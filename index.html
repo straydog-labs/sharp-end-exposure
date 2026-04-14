@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sharp End Exposure</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f4f0;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 2rem 1.5rem 1.5rem;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: #999;
+      line-height: 1.6;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 4rem;
+    }
+
+    .intro {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid #e8e6e0;
+    }
+
+    .intro p {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.7;
+    }
+
+    .intro strong {
+      color: #1a1a1a;
+      font-weight: 500;
+    }
+
+    .step-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: .75rem;
+      border: 1px solid #e8e6e0;
+    }
+
+    .step-num {
+      font-size: 11px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .step-q {
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a1a1a;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .opts {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .opt {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #e8e6e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .opt:hover { background: #f8f7f4; }
+
+    .opt.selected {
+      border-color: #1a1a1a;
+      background: #1a1a1a;
+    }
+
+    .opt.selected .opt-label { color: #fff; }
+
+    .opt-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid #ccc;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .12s;
+    }
+
+    .opt.selected .opt-dot {
+      background: #fff;
+      border-color: #fff;
+    }
+
+    .opt.selected .opt-dot::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #1a1a1a;
+    }
+
+    .opt-label {
+      font-size: 14px;
+      color: #1a1a1a;
+      line-height: 1.4;
+    }
+
+    .opt-sub {
+      font-size: 12px;
+      color: #888;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .opt.selected .opt-sub { color: #aaa; }
+
+    .progress {
+      height: 3px;
+      background: #e8e6e0;
+      border-radius: 2px;
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #1a1a1a;
+      border-radius: 2px;
+      transition: width .3s;
+    }
+
+    .cta-btn {
+      width: 100%;
+      padding: 14px;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: .5rem;
+      transition: background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cta-btn:hover { background: #333; }
+
+    .cta-btn:disabled {
+      background: #e8e6e0;
+      color: #aaa;
+      cursor: not-allowed;
+    }
+
+    .result-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: .75rem;
+      border: 1px solid #e8e6e0;
+    }
+
+    .result-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .badge-low { background: #fde8e8; color: #9b2c2c; }
+    .badge-developing { background: #fef3cd; color: #7d5a00; }
+    .badge-established { background: #e8f4fd; color: #1a5276; }
+    .badge-extensive { background: #e8f8e8; color: #1a5c1a; }
+
+    .result-level {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 16px;
+      line-height: 1.3;
+    }
+
+    .result-block {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: #f8f7f4;
+    }
+
+    .result-block-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+      margin-bottom: 5px;
+    }
+
+    .result-block-text {
+      font-size: 14px;
+      color: #333;
+      line-height: 1.7;
+    }
+
+    .reflection-block {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 20px;
+    }
+
+    .reflection-block .result-block-label { color: #666; }
+    .reflection-block .result-block-text { color: #fff; font-style: italic; }
+
+    .divider {
+      height: 1px;
+      background: #e8e6e0;
+      margin: 20px 0;
+    }
+
+    .feedback-section { text-align: center; }
+
+    .feedback-section p {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .feedback-btn {
+      display: inline-block;
+      width: 100%;
+      padding: 14px;
+      background: #fff;
+      color: #1a1a1a;
+      border: 1.5px solid #1a1a1a;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+      transition: all .15s;
+      margin-bottom: 10px;
+    }
+
+    .feedback-btn:hover { background: #f8f7f4; }
+
+    .reset-btn {
+      font-size: 13px;
+      color: #aaa;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: underline;
+      margin-top: 8px;
+    }
+
+    .disclaimer {
+      font-size: 11px;
+      color: #bbb;
+      text-align: center;
+      margin-top: 2rem;
+      line-height: 1.6;
+      padding: 0 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Sharp End Exposure</h1>
+    <p>Assess your risk before you climb. Based on your experience, fall exposure, and performance patterns — not just the grade.</p>
+  </div>
+
+  <div class="wrap">
+
+    <div class="intro">
+      <p><strong>How it works:</strong> Answer 7 quick questions before your climb. You'll get an instant readiness result. After you climb, tap the feedback link to share what happened. Takes about 2 minutes before and 5 minutes after.</p>
+    </div>
+
+    <div class="progress"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+
+    <div class="step-card">
+      <div class="step-num">Question 1 of 7</div>
+      <div class="step-q">Terrain type</div>
+      <div class="opts" id="opts-terrain">
+        <div class="opt" data-q="terrain" data-v="Slab"><div class="opt-dot"></div><span class="opt-label">Slab</span></div>
+        <div class="opt" data-q="terrain" data-v="Vertical"><div class="opt-dot"></div><span class="opt-label">Vertical</span></div>
+        <div class="opt" data-q="terrain" data-v="Overhang"><div class="opt-dot"></div><span class="opt-label">Overhang</span></div>
+        <div class="opt" data-q="terrain" data-v="Arete"><div class="opt-dot"></div><span class="opt-label">Arête</span></div>
+        <div class="opt" data-q="terrain" data-v="Dihedral"><div class="opt-dot"></div><span class="opt-label">Dihedral / corner</span></div>
+        <div class="opt" data-q="terrain" data-v="Roof"><div class="opt-dot"></div><span class="opt-label">Roof</span></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">Question 2 of 7</div>
+      <div class="step-q">Experience on this terrain</div>
+      <div class="opts" id="opts-exp">
+        <div class="opt" data-q="exp" data-v="none"><div class="opt-dot"></div><span class="opt-label">None<span class="opt-sub">First time on this terrain type</span></span></div>
+        <div class="opt" data-q="exp" data-v="limited"><div class="opt-dot"></div><span class="opt-label">Limited<span class="opt-sub">1–5 routes</span></span></div>
+        <div class="opt" data-q="exp" data-v="moderate"><div class="opt-dot"></div><span class="opt-label">Moderate<span class="opt-sub">5–15 routes</span></span></div>
+        <div class="opt" data-q="exp" data-v="extensive"><div class="opt-dot"></div><span class="opt-label">Extensive<span class="opt-sub">15+ routes</span></span></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">Question 3 of 7</div>
+      <div class="step-q">Fall exposure on this terrain</div>
+      <div class="opts" id="opts-fall">
+        <div class="opt" data-q="fall" data-v="never"><div class="opt-dot"></div><span class="opt-label">Never fall<span class="opt-sub">I avoid falling</span></span></div>
+        <div class="opt" data-q="fall" data-v="rarely"><div class="opt-dot"></div><span class="opt-label">Rarely fall<span class="opt-sub">Only when pushed</span></span></div>
+        <div class="opt" data-q="fall" data-v="sometimes"><div class="opt-dot"></div><span class="opt-label">Sometimes fall<span class="opt-sub">Part of my practice</span></span></div>
+        <div class="opt" data-q="fall" data-v="often"><div class="opt-dot"></div><span class="opt-label">Often fall<span class="opt-sub">Comfortable with it</span></span></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">Question 4 of 7</div>
+      <div class="step-q">Success rate on similar routes (self-estimated)</div>
+      <div class="opts" id="opts-success">
+        <div class="opt" data-q="success" data-v="low"><div class="opt-dot"></div><span class="opt-label">Low<span class="opt-sub">Under 30%</span></span></div>
+        <div class="opt" data-q="success" data-v="moderate"><div class="opt-dot"></div><span class="opt-label">Moderate<span class="opt-sub">30–70%</span></span></div>
+        <div class="opt" data-q="success" data-v="high"><div class="opt-dot"></div><span class="opt-label">High<span class="opt-sub">Over 70%</span></span></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">Question 5 of 7</div>
+      <div class="step-q">How are you feeling physically today?</div>
+      <div class="opts" id="opts-physical">
+        <div class="opt" data-q="physical" data-v="fresh"><div class="opt-dot"></div><span class="opt-label">Fresh<span class="opt-sub">Well rested, no fatigue</span></span></div>
+        <div class="opt" data-q="physical" data-v="good"><div class="opt-dot"></div><span class="opt-label">Good<span class="opt-sub">Minor soreness, nothing significant</span></span></div>
+        <div class="opt" data-q="physical" data-v="tired"><div class="opt-dot"></div><span class="opt-label">Tired<span class="opt-sub">Fatigued from training or life</span></span></div>
+        <div class="opt" data-q="physical" data-v="exhausted"><div class="opt-dot"></div><span class="opt-label">Exhausted<span class="opt-sub">Running on empty</span></span></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">Question 6 of 7</div>
+      <div class="step-q">How are you feeling mentally today?</div>
+      <div class="opts" id="opts-mental">
+        <div class="opt" data-q="mental" data-v="focused"><div class="opt-dot"></div><span class="opt-label">Focused<span class="opt-sub">Clear headed, present</span></span></div>
+        <div class="opt" data-q="mental" data-v="neutral"><div class="opt-dot"></div><span class="opt-label">Neutral<span class="opt-sub">Nothing notable going on</span></span></div>
+        <div class="opt" data-q="mental" data-v="distracted"><div class="opt-dot"></div><span class="opt-label">Distracted<span class="opt-sub">Stressed, preoccupied, or scattered</span></span></div>
+        <div class="opt" data-q="mental" data-v="nervous"><div class="opt-dot"></div><span class="opt-label">Nervous<span class="opt-sub">Elevated fear or nervousness about climbing</span></span></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">Question 7 of 7</div>
+      <div class="step-q">This route feels like it is:</div>
+      <div class="opts" id="opts-level">
+        <div class="opt" data-q="level" data-v="below"><div class="opt-dot"></div><span class="opt-label">Below my limit<span class="opt-sub">Comfortable territory</span></span></div>
+        <div class="opt" data-q="level" data-v="at"><div class="opt-dot"></div><span class="opt-label">At my limit<span class="opt-sub">Will require full effort</span></span></div>
+        <div class="opt" data-q="level" data-v="above"><div class="opt-dot"></div><span class="opt-label">Above my limit<span class="opt-sub">A real reach</span></span></div>
+      </div>
+    </div>
+
+    <button class="cta-btn" id="submitBtn" disabled>See my result</button>
+
+    <div id="result" style="display:none"></div>
+
+    <p class="disclaimer">This tool is for informational purposes only and does not constitute professional advice. Climbing involves inherent risk. Always use your own judgment and consult qualified instruction when needed.</p>
+
+  </div>
+
+<script>
+  const answers = {};
+  const totalQ = 7;
+
+  document.querySelectorAll('.opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const q = opt.dataset.q;
+      const v = opt.dataset.v;
+      document.querySelectorAll(`.opt[data-q="${q}"]`).forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      answers[q] = v;
+      const pct = Math.round((Object.keys(answers).length / totalQ) * 100);
+      document.getElementById('prog').style.width = pct + '%';
+      document.getElementById('submitBtn').disabled = Object.keys(answers).length < totalQ;
+    });
+  });
+
+  function getScores() {
+    const expMap = { none: 0, limited: 1, moderate: 2, extensive: 3 };
+    const fallMap = { never: 0, rarely: 1, sometimes: 2, often: 3 };
+    const successMap = { low: 0, moderate: 1.5, high: 3 };
+    const levelMap = { below: -1, at: 0, above: 1 };
+
+    const expScore = expMap[answers.exp];
+    const fallScore = fallMap[answers.fall];
+    const successScore = successMap[answers.success];
+    const diffAdj = levelMap[answers.level];
+    const riskCap = (expScore * 0.3) + (fallScore * 0.4) + (successScore * 0.3);
+    const readiness = riskCap - diffAdj;
+
+    let pattern;
+    if (expScore === 0 && fallScore <= 1) pattern = 'low';
+    else if (readiness < 0.5) pattern = 'low';
+    else if (readiness < 1.5) pattern = 'developing';
+    else if (readiness < 2.5) pattern = 'established';
+    else pattern = 'extensive';
+
+    return { expScore, fallScore, successScore, diffAdj, readiness, pattern };
+  }
+
+  function getPhysicalMentalNote() {
+    const { physical, mental } = answers;
+    const flags = [];
+    if (physical === 'tired' || physical === 'exhausted') flags.push('physical fatigue');
+    if (mental === 'distracted' || mental === 'nervous') flags.push('mental state');
+    if (flags.length > 0) {
+      return `Note: Your ${flags.join(' and ')} ${flags.length > 1 ? 'are' : 'is'} worth factoring in today. Even experienced climbers perform differently when not at their best.`;
+    }
+    return null;
+  }
+
+  function getResult() {
+    const { expScore, fallScore, diffAdj, pattern } = getScores();
+    const terrain = answers.terrain.toLowerCase();
+    const belowLimit = diffAdj === -1;
+    const physMentalNote = getPhysicalMentalNote();
+
+    let badge, badgeClass, level, insight, awareness, reflection;
+
+    if (pattern === 'low') {
+      badge = 'Low Experience'; badgeClass = 'badge-low';
+      level = 'Low Experience';
+      if (fallScore <= 1 && diffAdj === 1) {
+        insight = `This ${terrain} route and difficulty appear less familiar relative to your past experience. Decision-making may rely more on perception than direct experience on ${terrain} terrain.`;
+      } else {
+        insight = `You have limited experience on ${terrain} terrain and minimal exposure to falling at this level. Unfamiliar movement on ${terrain} may increase hesitation when committing.`;
+      }
+      awareness = `Take extra time to observe the route before you start. Notice what feels unfamiliar and give yourself permission to move slowly.`;
+      reflection = `What is one new thing you want to notice or pay attention to on this route?`;
+
+    } else if (pattern === 'developing') {
+      badge = 'Developing Experience'; badgeClass = 'badge-developing';
+      level = 'Developing Experience';
+      if (fallScore <= 1) {
+        insight = `You have some experience on ${terrain} terrain, but limited fall exposure relative to the difficulty. Commitment may be influenced by fall familiarity rather than movement capability on ${terrain}.`;
+      } else {
+        insight = `Your experience on ${terrain} terrain is developing, with variable outcomes on similar routes. Consistency may depend on how you respond to uncertainty during the attempt.`;
+      }
+      awareness = `Your movement patterns on ${terrain} are still building. What you know is real — and there is still room to grow.`;
+      reflection = `What is one thing you want to focus on with your falling or commitment on this attempt?`;
+
+    } else if (pattern === 'established') {
+      badge = 'Established Experience'; badgeClass = 'badge-established';
+      level = 'Established Experience';
+      if (expScore >= 2 && fallScore <= 1) {
+        insight = `Your experience and outcomes on ${terrain} suggest capability, while internal signals may not fully reflect that. Perception and demonstrated ability on ${terrain} may not be fully aligned.`;
+      } else {
+        insight = `You show consistent experience and performance on ${terrain} terrain. This reflects a stable base for exploring increased challenge on ${terrain} if desired.`;
+      }
+      awareness = `Your experience on ${terrain} is real and demonstrated. Trust what you have built.`;
+      reflection = `What is one thing you want to trust about yourself on this route that your experience supports?`;
+
+    } else {
+      badge = 'Extensive Experience'; badgeClass = 'badge-extensive';
+      level = 'Extensive Experience';
+      insight = `You have extensive experience and consistent outcomes on ${terrain} terrain.`;
+      if (belowLimit) {
+        awareness = `Familiar routes can sometimes demand less attention — this is when complacency is most likely to creep in. Before you start, take a moment to notice how you are feeling physically and mentally today.`;
+        reflection = `What would it look like to climb this route with full attention, as if it were your first time on this terrain?`;
+      } else {
+        awareness = `This ${terrain} route may provide meaningful challenge relative to your current ability. Your experience is a strong foundation — use it.`;
+        reflection = `What is one thing you want to focus on or improve on this route?`;
+      }
+    }
+
+    return { badge, badgeClass, level, insight, awareness, reflection, physMentalNote };
+  }
+
+  document.getElementById('submitBtn').addEventListener('click', () => {
+    const { badge, badgeClass, level, insight, awareness, reflection, physMentalNote } = getResult();
+
+    const physMentalHtml = physMentalNote
+      ? `<div class="result-block" style="border-left: 3px solid #e8a000; border-radius: 0 8px 8px 0; background: #fffbf0;">
+           <div class="result-block-label">Today's state</div>
+           <div class="result-block-text">${physMentalNote}</div>
+         </div>`
+      : '';
+
+    document.getElementById('result').innerHTML = `
+      <div class="result-card">
+        <span class="result-badge ${badgeClass}">${badge}</span>
+        <div class="result-level">${level}</div>
+
+        <div class="result-block">
+          <div class="result-block-label">Insight</div>
+          <div class="result-block-text">${insight}</div>
+        </div>
+
+        <div class="result-block">
+          <div class="result-block-label">Awareness</div>
+          <div class="result-block-text">${awareness}</div>
+        </div>
+
+        ${physMentalHtml}
+
+        <div class="reflection-block">
+          <div class="result-block-label">Reflection</div>
+          <div class="result-block-text">${reflection}</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="feedback-section">
+          <p>Go climb. When you're done, tap below to share what happened. Your feedback shapes this tool.</p>
+          <a class="feedback-btn" href="https://docs.google.com/forms/d/e/1FAIpQLSdY7tV21zocnX_fYjDWB3MqLHJwwgxNLGjAVROFfXUJBjmC7Q/viewform?usp=header" target="_blank">Share feedback after your climb</a>
+          <br>
+          <button class="reset-btn" id="resetBtn">Start over</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      Object.keys(answers).forEach(k => delete answers[k]);
+      document.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('prog').style.width = '0%';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
+
+</body>
+</html>
