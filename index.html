@@ -260,7 +260,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 <script>
 const freeQs=[
   {text:"What type of climbing are you doing today?",hint:"This helps frame the rest of the assessment — there's no right answer.",isContext:true,options:[
-    {label:"Top rope",sub:"Rope anchored above — falls are caught immediately",score:0},
+    {label:"Top rope",score:0},
     {label:"Sport lead",sub:"Clipping bolts as you go",score:0},
     {label:"Trad lead",sub:"Placing your own gear for protection",score:0}
   ]},
@@ -357,7 +357,7 @@ const quickFallQs=[
     {label:"Overhang — past vertical",val:"overhang"},
     {label:"Roof — severely overhanging",val:"roof"}
   ]},
-  {text:"How would you rate your fear level on the fall?",hint:"1 = no fear at all, 5 = significant fear response",key:"fear",isFear:true}
+  {text:"How did your body respond during or after the fall?",hint:"This is about physical reaction — grip, breath, freeze — not how you felt emotionally.",key:"fear",isFear:true}
 ];
 
 const extFallQs=[
@@ -526,16 +526,23 @@ function renderFall(){
   wrap.innerHTML='';
   if(q.isFear){
     document.getElementById('fall-btn-next').disabled=fearSelected===null;
-    const row=document.createElement('div');row.className='fear-row';
-    ['None','Mild','Moderate','High','Intense'].forEach((lbl,i)=>{
-      const n=i+1;
-      const btn=document.createElement('div');
-      btn.className='fear-btn'+(fearSelected===n?' selected':'');
-      btn.innerHTML=`<span class="fear-num">${n}</span><span class="fear-label">${lbl}</span>`;
-      btn.onclick=()=>{fearSelected=n;quickAnswers.fear=n;renderFall()};
-      row.appendChild(btn);
+    const stressOpts=[
+      {val:1,label:"No reaction",sub:"Breath steady, grip relaxed naturally"},
+      {val:2,label:"Mild response",sub:"Noticed some tension, recovered quickly"},
+      {val:3,label:"Moderate response",sub:"Grip tightened, breath shortened, took a moment"},
+      {val:4,label:"Strong response",sub:"Froze, pumped out, or needed time to reset"},
+      {val:5,label:"Intense response",sub:"Full shutdown, couldn't continue immediately"},
+      {val:0,label:"Not sure",sub:"I wasn't tracking my body's response"}
+    ];
+    const container=document.createElement('div');container.className='options';
+    stressOpts.forEach(opt=>{
+      const el=document.createElement('div');
+      el.className='option'+(fearSelected===opt.val?' selected':'');
+      el.innerHTML=`<div class="option-marker"></div><div class="option-label">${opt.label}<div class="option-sub">${opt.sub}</div></div>`;
+      el.onclick=()=>{fearSelected=opt.val;quickAnswers.fear=opt.val;quickAnswers.stressLabel=opt.label;renderFall()};
+      container.appendChild(el);
     });
-    wrap.appendChild(row);
+    wrap.appendChild(container);
   } else {
     document.getElementById('fall-btn-next').disabled=!answers[q.key];
     const container=document.createElement('div');container.className='options';
@@ -567,7 +574,7 @@ function fallNext(){
 function saveFall(){
   sessionFalls.push({
     fell:quickAnswers.fell,fallType:quickAnswers.fallType,
-    angle:quickAnswers.angle,fear:quickAnswers.fear||0,
+    angle:quickAnswers.angle,fear:quickAnswers.fear||0,stressLabel:quickAnswers.stressLabel||'',
     gotBack:extAnswers.gotBack,sessionImpact:extAnswers.sessionImpact,
     fallHeight:extAnswers.fallHeight,grade:extAnswers.grade,
     climbType:climbingTypeLabel,
@@ -584,7 +591,7 @@ function showFallSummary(){
   document.getElementById('session-summary').innerHTML=`
     <div class="session-stat"><span class="session-stat-label">Climbs logged</span><span class="session-stat-val">${sessionFalls.length}</span></div>
     <div class="session-stat"><span class="session-stat-label">Falls taken</span><span class="session-stat-val">${withFalls.length}</span></div>
-    ${withFalls.length>0?`<div class="session-stat"><span class="session-stat-label">Avg fear level</span><span class="session-stat-val">${avgFear} / 5</span></div>`:''}
+    ${withFalls.length>0?`<div class="session-stat"><span class="session-stat-label">Avg stress response</span><span class="session-stat-val">${avgFear} / 5</span></div>`:''}
     ${withFalls.length>0?`<div class="session-stat"><span class="session-stat-label">Got back on</span><span class="session-stat-val">${gotBackCount} of ${withFalls.length}</span></div>`:''}
     <div class="session-stat"><span class="session-stat-label">Climbing type</span><span class="session-stat-val">${climbingTypeLabel}</span></div>
   `;
@@ -599,7 +606,7 @@ function showFallSummary(){
         <div class="fall-entry-title">${f.fell==='yes'?(f.fallType==='intentional'?'Intentional':'Unexpected')+' fall':f.fell==='no'?'No fall taken':'Heading to the wall'}${f.angle?' · '+(angleLabels[f.angle]||f.angle):''}${f.grade?' · '+(gradeLabels[f.grade]||f.grade):''}</div>
         <div class="fall-entry-sub">${f.time}${f.fallHeight&&f.fallHeight!=='na'?' · '+{short:'Short fall',medium:'Medium fall',long:'Long fall'}[f.fallHeight]:''}${f.sessionImpact&&f.sessionImpact!=='na'?' · '+(impactLabels[f.sessionImpact]||''):''}</div>
       </div>
-      ${f.fell==='yes'?`<div class="fall-entry-fear">Fear ${f.fear}/5</div>`:''}
+      ${f.fell==='yes'?`<div class="fall-entry-fear">${f.stressLabel||'Stress: '+f.fear}</div>`:''}
     </div>
   `).join('');
   show('screen-fall-summary');
