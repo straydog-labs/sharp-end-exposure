@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Dashboard — Straydog Labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-height:100vh}
+.wrap{max-width:900px;margin:0 auto;padding:2rem 1.25rem 4rem}
+.header{padding-bottom:1.25rem;border-bottom:0.5px solid rgba(0,0,0,0.12);margin-bottom:1.75rem;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.header-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:4px}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;line-height:1;color:#1a1a18}
+.header-title span{color:#c8622a}
+.header-sub{font-size:13px;color:#5f5e5a;margin-top:4px;font-weight:300}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:0.5px solid rgba(0,0,0,0.2);background:transparent;color:#1a1a18;font-family:'DM Sans',sans-serif}
+.btn:hover{background:rgba(0,0,0,0.05)}
+.btn-primary{background:#c8622a;border-color:#c8622a;color:white}
+.btn-primary:hover{background:#e8843a;border-color:#e8843a}
+.btn-danger{background:#a83828;border-color:#a83828;color:white}
+
+/* Login screen */
+
+
+
+
+
+
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;margin-bottom:1.5rem}
+.stat-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem}
+.stat-value{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;line-height:1;color:#1a1a18;margin-bottom:4px}
+.stat-label{font-size:12px;color:#888780;font-weight:400}
+.stat-card.serious .stat-value{color:#a83828}
+
+/* Filters */
+.filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center}
+.filter-btn{font-size:12px;padding:5px 12px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.14);background:#fff;color:#5f5e5a;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.filter-btn:hover{border-color:rgba(0,0,0,0.28)}
+.filter-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18}
+.filter-label{font-size:12px;color:#888780;margin-right:4px}
+
+/* Table */
+.table-wrap{overflow-x:auto;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:.75rem 1rem;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;font-weight:500;border-bottom:0.5px solid rgba(0,0,0,0.1);white-space:nowrap;background:#faf8f5}
+td{padding:.75rem 1rem;border-bottom:0.5px solid rgba(0,0,0,0.06);color:#1a1a18;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#faf8f5}
+.severity-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+.sev-minor{background:rgba(74,122,90,.12);color:#2a5a3a}
+.sev-moderate{background:rgba(200,133,42,.12);color:#7a4a10}
+.sev-serious{background:rgba(168,56,40,.15);color:#782818}
+.env-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;background:rgba(74,100,160,.1);color:#2a3a7a}
+.empty-state{text-align:center;padding:3rem;color:#888780}
+.export-row{display:flex;justify-content:flex-end;margin-bottom:.75rem;gap:.5rem}
+.loading{text-align:center;padding:2rem;color:#888780;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- DASHBOARD -->
+  <div id="dashboard-screen">
+    <div class="header">
+      <div>
+        <div class="header-eyebrow">Straydog Labs — Sharp End Exposure</div>
+        <div class="header-title">Incident <span>Dashboard</span></div>
+        <div class="header-sub">Climbing incident reports — anonymized data for safety reporting</div>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:flex-start;flex-wrap:wrap">
+        <button class="btn" onclick="exportCSV()">Export CSV</button>
+        
+      </div>
+    </div>
+
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <div class="filters" id="filters">
+      <span class="filter-label">Filter:</span>
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('indoor',this)">Indoor</button>
+      <button class="filter-btn" onclick="setFilter('outdoor',this)">Outdoor</button>
+      <button class="filter-btn" onclick="setFilter('minor',this)">Minor</button>
+      <button class="filter-btn" onclick="setFilter('moderate',this)">Moderate</button>
+      <button class="filter-btn serious" onclick="setFilter('serious',this)" style="border-color:rgba(168,56,40,.3);color:#782818">Serious</button>
+    </div>
+
+    <div class="export-row">
+      <span style="font-size:12px;color:#888780;align-self:center" id="record-count"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Env</th>
+            <th>Severity</th>
+            <th>Body part</th>
+            <th>Cause</th>
+            <th>Climb type</th>
+            <th>Warmed up</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="incidents-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://kwtbqgoqtewrlsjgepwq.supabase.co';
+const SUPABASE_KEY='sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
+
+
+let allIncidents=[];
+let activeFilter='all';
+
+
+
+async function loadIncidents(){
+  document.getElementById('incidents-table').innerHTML=`<tr><td colspan="8" class="loading">Loading incidents...</td></tr>`;
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/incidents?order=created_at.desc&limit=500`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+    });
+    allIncidents=await r.json();
+    renderStats();
+    renderTable();
+  } catch(e){
+    document.getElementById('incidents-table').innerHTML=`<tr><td colspan="8" class="loading">Failed to load — check your Supabase connection.</td></tr>`;
+  }
+}
+
+function renderStats(){
+  const total=allIncidents.length;
+  const serious=allIncidents.filter(i=>i.severity==='serious').length;
+  const moderate=allIncidents.filter(i=>i.severity==='moderate').length;
+  const indoor=allIncidents.filter(i=>i.environment==='indoor').length;
+  const outdoor=allIncidents.filter(i=>i.environment==='outdoor'||i.environment==='outdoor_gym').length;
+
+  const bodyParts={};
+  allIncidents.forEach(i=>{if(i.body_part)bodyParts[i.body_part]=(bodyParts[i.body_part]||0)+1});
+  const topPart=Object.entries(bodyParts).sort((a,b)=>b[1]-a[1])[0];
+  const topPartLabel=topPart?formatVal(topPart[0]):'—';
+
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total incidents</div></div>
+    <div class="stat-card serious"><div class="stat-value">${serious}</div><div class="stat-label">Serious injuries</div></div>
+    <div class="stat-card"><div class="stat-value">${moderate}</div><div class="stat-label">Moderate injuries</div></div>
+    <div class="stat-card"><div class="stat-value">${indoor}</div><div class="stat-label">Indoor</div></div>
+    <div class="stat-card"><div class="stat-value">${outdoor}</div><div class="stat-label">Outdoor</div></div>
+    <div class="stat-card"><div class="stat-value" style="font-size:18px;padding-top:4px">${topPartLabel}</div><div class="stat-label">Most common injury area</div></div>
+  `;
+}
+
+function setFilter(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function renderTable(){
+  let rows=allIncidents;
+  if(activeFilter==='indoor') rows=rows.filter(i=>i.environment==='indoor');
+  else if(activeFilter==='outdoor') rows=rows.filter(i=>i.environment==='outdoor'||i.environment==='outdoor_gym');
+  else if(activeFilter==='minor') rows=rows.filter(i=>i.severity==='minor');
+  else if(activeFilter==='moderate') rows=rows.filter(i=>i.severity==='moderate');
+  else if(activeFilter==='serious') rows=rows.filter(i=>i.severity==='serious');
+
+  document.getElementById('record-count').textContent=`${rows.length} record${rows.length!==1?'s':''}`;
+
+  if(rows.length===0){
+    document.getElementById('incidents-table').innerHTML=`<tr><td colspan="8" class="empty-state">No incidents match this filter.</td></tr>`;
+    return;
+  }
+
+  const sevClass={minor:'sev-minor',moderate:'sev-moderate',serious:'sev-serious'};
+
+  document.getElementById('incidents-table').innerHTML=rows.map(i=>{
+    const date=new Date(i.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});
+    const details=[];
+    if(i.gym_area) details.push(formatVal(i.gym_area));
+    if(i.hold_type&&i.hold_type!=='none'&&i.hold_type!=='unknown') details.push(formatVal(i.hold_type));
+    if(i.fall_context&&i.fall_context!=='na') details.push(formatVal(i.fall_context));
+    if(i.protection) details.push(formatVal(i.protection));
+    if(i.outdoor_type) details.push(formatVal(i.outdoor_type));
+    if(i.first_time==='yes') details.push('First time on route');
+    if(i.belayer) details.push('Belayer: '+formatVal(i.belayer));
+    if(i.pitch_number&&i.pitch_number!=='N/A'&&i.pitch_number!=='na') details.push('Pitch '+i.pitch_number);
+    return `<tr>
+      <td style="white-space:nowrap;color:#888780">${date}</td>
+      <td><span class="env-badge">${i.environment==='indoor'?'Indoor':'Outdoor'}</span></td>
+      <td><span class="severity-badge ${sevClass[i.severity]||''}">${i.severity||'—'}</span></td>
+      <td>${formatVal(i.body_part)||'—'}</td>
+      <td>${formatVal(i.cause)||'—'}</td>
+      <td>${i.climbing_type||'—'}</td>
+      <td>${formatVal(i.warmed_up)||'—'}</td>
+      <td style="color:#5f5e5a;font-size:12px">${details.join(' · ')||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function formatVal(v){
+  if(!v)return'';
+  return v.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+function exportCSV(){
+  const headers=['Date','Environment','Severity','Body Part','Cause','Climbing Type','Warmed Up','Gym Area','Hold Type','Fall Context','Protection','First Time','Belayer','Pitch','Outdoor Type'];
+  const rows=allIncidents.map(i=>[
+    new Date(i.created_at).toLocaleDateString(),
+    i.environment||'',i.severity||'',i.body_part||'',i.cause||'',
+    i.climbing_type||'',i.warmed_up||'',i.gym_area||'',
+    i.hold_type||'',i.fall_context||'',i.protection||'',
+    i.first_time||'',i.belayer||'',i.pitch_number||'',i.outdoor_type||''
+  ].map(v=>`"${v}"`).join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`sharp-end-incidents-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+loadIncidents();
