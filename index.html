@@ -12,7 +12,6 @@
 body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-height:100vh}
 .app{max-width:640px;margin:0 auto;padding:2rem 1.25rem 5rem}
 .header{padding-bottom:1.25rem;border-bottom:0.5px solid rgba(0,0,0,0.12);margin-bottom:1.75rem;display:flex;align-items:flex-start;justify-content:space-between}
-.header-left{}
 .header-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:4px}
 .header-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.04em;line-height:1;color:#1a1a18}
 .header-title span{color:var(--rope)}
@@ -29,6 +28,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .phase-fall{background:rgba(74,100,160,.12);color:#2a3a7a}
 .phase-fall-ext{background:rgba(100,74,160,.12);color:#4a2a7a}
 .phase-feedback{background:rgba(88,88,88,.1);color:#444}
+.phase-injury{background:rgba(168,56,40,.12);color:#782818}
 .question-text{font-size:19px;font-weight:500;line-height:1.4;margin-bottom:4px;color:#1a1a18}
 .question-hint{font-size:13px;color:#888780;margin-bottom:1.25rem;font-weight:300;line-height:1.5}
 .options{display:flex;flex-direction:column;gap:8px}
@@ -71,6 +71,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
 .card-icon-orange{background:rgba(200,98,42,.1);color:var(--rope)}
 .card-icon-blue{background:rgba(74,100,160,.1);color:#2a4a8a}
+.card-icon-red{background:rgba(168,56,40,.1);color:#782818}
 .card-title{font-size:15px;font-weight:500;color:#1a1a18}
 .card-sub-label{font-size:12px;color:#888780;margin-top:2px}
 .card-body{font-size:13px;color:#5f5e5a;line-height:1.6;margin-bottom:1rem}
@@ -81,10 +82,12 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .small-step-card{border:0.5px solid rgba(168,56,40,.25);border-radius:12px;padding:1rem 1.25rem;background:rgba(168,56,40,.04);margin-bottom:.75rem}
 .small-step-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#782818;margin-bottom:8px}
 .small-step-q{font-size:15px;font-weight:500;margin-bottom:.75rem;line-height:1.4;color:#1a1a18}
-.small-step-input,.notes-input,.open-feedback-input{width:100%;font-size:14px;font-family:'DM Sans',sans-serif;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#1a1a18;resize:vertical;min-height:80px;line-height:1.5}
-.small-step-input:focus,.notes-input:focus,.open-feedback-input:focus{outline:none;border-color:var(--rope)}
+.small-step-input,.notes-input,.open-feedback-input,.text-input{width:100%;font-size:14px;font-family:'DM Sans',sans-serif;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#1a1a18;resize:vertical;line-height:1.5}
+.small-step-input{min-height:80px}
 .notes-input{background:#edeae3;min-height:64px}
 .open-feedback-input{min-height:80px}
+.text-input{min-height:40px;resize:none}
+.small-step-input:focus,.notes-input:focus,.open-feedback-input:focus,.text-input:focus{outline:none;border-color:var(--rope)}
 .climbing-type-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:500;background:rgba(200,98,42,.08);color:#7a3a10;border:0.5px solid rgba(200,98,42,.2);margin-bottom:1rem}
 .restart-row{display:flex;justify-content:flex-end;margin-top:1rem}
 .fall-entry{padding:.75rem 0;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px}
@@ -99,43 +102,34 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .session-stat-label{color:#5f5e5a}
 .session-stat-val{font-weight:500;color:#1a1a18}
 .session-summary-card{background:#edeae3;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
-
-/* Floating feedback button */
 .feedback-fab{position:fixed;bottom:1.5rem;right:1.5rem;padding:8px 16px;background:#fff;border:0.5px solid rgba(0,0,0,0.16);border-radius:99px;font-size:12px;font-weight:500;color:#888780;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.08);z-index:100}
 .feedback-fab:hover{color:#1a1a18;border-color:rgba(0,0,0,0.28);box-shadow:0 4px 12px rgba(0,0,0,0.12)}
-
-/* Feedback modal overlay */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .modal-overlay.active{display:flex}
 .modal{background:#f5f2ed;border-radius:16px 16px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:640px;max-height:85vh;overflow-y:auto}
 .modal-handle{width:36px;height:3px;background:rgba(0,0,0,0.15);border-radius:99px;margin:0 auto 1.25rem}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;margin-bottom:4px;color:#1a1a18}
 .modal-sub{font-size:13px;color:#5f5e5a;margin-bottom:1.25rem;font-weight:300}
-.feedback-success{text-align:center;padding:2rem 0}
+.feedback-success,.injury-success{text-align:center;padding:2rem 0}
 .feedback-success-icon{font-size:36px;margin-bottom:.75rem}
 .feedback-success-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;margin-bottom:6px;color:#1a1a18}
 .feedback-success-sub{font-size:13px;color:#5f5e5a;font-weight:300}
-
-/* History screen */
 .history-entry{padding:.875rem 0;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px}
 .history-entry:last-child{border-bottom:none}
 .history-zone-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .history-info{flex:1}
 .history-title{font-size:14px;font-weight:500;color:#1a1a18}
 .history-sub{font-size:12px;color:#888780;margin-top:2px}
-.history-zone-badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500}
 .empty-state{text-align:center;padding:3rem 0;color:#888780}
 .empty-state-title{font-size:15px;font-weight:500;margin-bottom:6px;color:#5f5e5a}
 .empty-state-sub{font-size:13px;font-weight:300;line-height:1.6}
-
-/* Saving indicator */
 .save-indicator{font-size:11px;color:#888780;text-align:center;margin-top:.5rem;min-height:16px;transition:opacity .3s}
+.warning-box{font-size:12px;color:#782818;background:rgba(168,56,40,.06);border:0.5px solid rgba(168,56,40,.2);border-radius:8px;padding:.75rem 1rem;margin-top:.75rem;line-height:1.6}
+.section-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin:1.25rem 0 .75rem}
 </style>
 </head>
 <body>
-
 <button class="feedback-fab" onclick="openFeedback()">Share feedback</button>
-
 <div class="app">
   <div class="header">
     <div class="header-left">
@@ -261,6 +255,31 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
     </div>
   </div>
 
+  <!-- INJURY REPORT -->
+  <div class="screen" id="screen-injury">
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#782818;margin-bottom:6px">Incident report</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:6px;color:#1a1a18">Are you okay?</div>
+      <div style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.6">Take a moment. Answer a few quick questions so we can log what happened accurately.</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="injury-progress" style="width:0%"></div></div>
+    <div class="phase-label"><span class="phase-tag phase-injury" id="injury-step-label">Step 1</span></div>
+    <div class="question-text" id="injury-q-text"></div>
+    <div class="question-hint" id="injury-q-hint"></div>
+    <div id="injury-q-wrap"></div>
+    <div id="injury-text-wrap" style="display:none;margin-top:.75rem"></div>
+    <div class="nav" style="margin-top:1.5rem">
+      <button class="btn" id="injury-back-btn" onclick="injuryBack()">← Back</button>
+      <button class="btn btn-primary" id="injury-next-btn" onclick="injuryNext()" disabled>Continue →</button>
+    </div>
+    <div class="injury-success" id="injury-success" style="display:none;text-align:center;padding:2rem 0">
+      <div style="font-size:36px;margin-bottom:.75rem">✓</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;margin-bottom:6px;color:#1a1a18">Incident logged</div>
+      <div style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.6;margin-bottom:1.25rem" id="injury-success-msg"></div>
+      <button class="btn" onclick="restart()">Done</button>
+    </div>
+  </div>
+
   <!-- FALL SUMMARY -->
   <div class="screen" id="screen-fall-summary">
     <div style="margin-bottom:1.25rem">
@@ -281,6 +300,9 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:1.25rem">
       <button class="btn btn-primary" onclick="startFallLog()">Log another fall →</button>
       <button class="btn" onclick="restart()">New assessment</button>
+    </div>
+    <div style="margin-top:1rem;text-align:right">
+      <button class="btn" onclick="startInjuryReport()" style="font-size:12px;color:#782818;border-color:rgba(168,56,40,.25);background:rgba(168,56,40,.04)">Report an incident</button>
     </div>
     <div class="save-indicator" id="fall-save-indicator"></div>
   </div>
@@ -327,7 +349,6 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 </div>
 
 <script>
-// ── Supabase config ──────────────────────────────────────
 const SUPABASE_URL='https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SUPABASE_KEY='sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 
@@ -353,7 +374,6 @@ async function sbSelect(table,filter){
   }catch(e){console.warn('Supabase read failed',e);return []}
 }
 
-// ── Device ID ────────────────────────────────────────────
 function getDeviceId(){
   let id=localStorage.getItem('see_device_id');
   if(!id){id=crypto.randomUUID();localStorage.setItem('see_device_id',id)}
@@ -361,10 +381,9 @@ function getDeviceId(){
 }
 const DEVICE_ID=getDeviceId();
 
-// ── Questions ────────────────────────────────────────────
 const freeQs=[
   {text:"What type of climbing are you doing today?",hint:"This helps frame the rest of the assessment — there's no right answer.",isContext:true,options:[
-    {label:"Top rope",score:0},
+    {label:"Top rope",sub:"Protected from above — lower consequence falls, ideal for building movement confidence and route familiarity",score:0},
     {label:"Sport lead",sub:"Clipping bolts as you go",score:0},
     {label:"Trad lead",sub:"Placing your own gear for protection",score:0}
   ]},
@@ -448,7 +467,8 @@ const quickFallQs=[
   {text:"Did you fall on this climb?",hint:"",key:"fell",options:[
     {label:"Yes — I fell",val:"yes"},
     {label:"No — I didn't fall",val:"no"},
-    {label:"Taking it to the wall to see",val:"tbd"}
+    {label:"Taking it to the wall to see",val:"tbd"},
+    {label:"I got injured",val:"injured"}
   ]},
   {text:"Was the fall intentional or unexpected?",hint:"Intentional falls are deliberate practice. Unexpected falls happen when you come off unplanned.",key:"fallType",options:[
     {label:"Intentional — I chose to fall",val:"intentional"},
@@ -497,7 +517,113 @@ const stressOpts=[
   {val:3,label:"Moderate response",sub:"Grip tightened, breath shortened, took a moment"},
   {val:4,label:"Strong response",sub:"Froze, pumped out, or needed time to reset"},
   {val:5,label:"Intense response",sub:"Full shutdown, couldn't continue immediately"},
-  {val:0,label:"Not sure",sub:"I wasn't tracking my body's response"}
+  {val:0,label:"Not sure",sub:"I wasn't tracking my body's response"},
+  {val:-1,label:"I feel off — something isn't right",sub:"Pain, discomfort, or something felt wrong"}
+];
+
+// Injury questions — shared, indoor, outdoor
+const injuryQsShared=[
+  {text:"Where did this happen?",hint:"",key:"environment",options:[
+    {label:"Indoor gym",val:"indoor"},
+    {label:"Outdoor crag",val:"outdoor"},
+    {label:"Outdoor gym or climbing structure",val:"outdoor_gym"}
+  ]},
+  {text:"How severe is the injury?",hint:"",key:"severity",options:[
+    {label:"Minor — soreness or strain, I can keep climbing",val:"minor"},
+    {label:"Moderate — I need to stop for today",val:"moderate"},
+    {label:"Serious — I need medical attention",val:"serious"}
+  ],showWarning:true},
+  {text:"What area of the body?",hint:"",key:"body_part",options:[
+    {label:"Finger or hand",val:"finger_hand"},
+    {label:"Wrist or forearm",val:"wrist_forearm"},
+    {label:"Shoulder or elbow",val:"shoulder_elbow"},
+    {label:"Ankle or foot",val:"ankle_foot"},
+    {label:"Knee or leg",val:"knee_leg"},
+    {label:"Back or core",val:"back_core"},
+    {label:"Head or neck",val:"head_neck"},
+    {label:"Other",val:"other"}
+  ]},
+  {text:"Was the climber warmed up?",hint:"",key:"warmed_up",options:[
+    {label:"Yes — fully warmed up",val:"yes"},
+    {label:"Partially — some warm up",val:"partial"},
+    {label:"No — cold start",val:"no"},
+    {label:"Not sure",val:"unknown"}
+  ]},
+  {text:"What do you think caused the injury?",hint:"Select the closest match.",key:"cause",options:[
+    {label:"Dynamic movement or hard catch",val:"dynamic"},
+    {label:"Overuse or fatigue",val:"overuse"},
+    {label:"Unexpected fall or swing",val:"fall"},
+    {label:"Poor technique or body position",val:"technique"},
+    {label:"Ground or wall impact",val:"impact"},
+    {label:"Not sure",val:"unknown"}
+  ]}
+];
+
+const injuryQsIndoor=[
+  {text:"What area of the gym?",hint:"",key:"gym_area",options:[
+    {label:"Bouldering area",val:"bouldering"},
+    {label:"Lead wall",val:"lead"},
+    {label:"Top rope area",val:"top_rope"},
+    {label:"Training area (hangboard, campus, etc.)",val:"training"}
+  ]},
+  {text:"Was it a lead fall or bouldering fall?",hint:"",key:"fall_context",options:[
+    {label:"Lead fall",val:"lead_fall"},
+    {label:"Bouldering fall",val:"boulder_fall"},
+    {label:"No fall — injury during movement",val:"no_fall"},
+    {label:"Not applicable",val:"na"}
+  ]},
+  {text:"What type of hold was involved?",hint:"",key:"hold_type",options:[
+    {label:"Crimp",val:"crimp"},
+    {label:"Sloper",val:"sloper"},
+    {label:"Jug",val:"jug"},
+    {label:"Pinch",val:"pinch"},
+    {label:"Pocket",val:"pocket"},
+    {label:"No specific hold",val:"none"},
+    {label:"Not sure",val:"unknown"}
+  ]},
+  {text:"Was this your first time on this type of route or problem?",hint:"",key:"first_time",options:[
+    {label:"Yes — new terrain for me",val:"yes"},
+    {label:"No — familiar type of climb",val:"no"},
+    {label:"Not sure",val:"unknown"}
+  ]},
+  {text:"Was a belayer present?",hint:"For lead climbing.",key:"belayer",options:[
+    {label:"Yes",val:"yes"},
+    {label:"No — top rope solo or autobelay",val:"no"},
+    {label:"Not applicable — bouldering",val:"na"}
+  ]}
+];
+
+const injuryQsOutdoor=[
+  {text:"Was this at an outdoor sport crag or an outdoor gym structure?",hint:"",key:"outdoor_type",options:[
+    {label:"Natural rock — sport or trad route",val:"natural"},
+    {label:"Outdoor gym or climbing structure",val:"structure"}
+  ]},
+  {text:"What was the protection type?",hint:"",key:"protection",options:[
+    {label:"Bolted sport route",val:"bolt"},
+    {label:"Trad gear",val:"trad"},
+    {label:"Top rope",val:"top_rope"},
+    {label:"Bouldering — no rope",val:"boulder"},
+    {label:"Other",val:"other"}
+  ]},
+  {text:"Was this your first time on this specific route?",hint:"",key:"first_time",options:[
+    {label:"Yes — onsight or first attempt",val:"yes"},
+    {label:"No — I've climbed it before",val:"no"},
+    {label:"Not sure",val:"unknown"}
+  ]},
+  {text:"If multi-pitch, which pitch did the incident occur on?",hint:"Leave as 1 if single pitch.",key:"pitch_number",isText:true,placeholder:"e.g. 1, 3, or N/A"},
+  {text:"Was a belayer or spotter present?",hint:"",key:"belayer",options:[
+    {label:"Yes — belayer present",val:"belayer"},
+    {label:"Yes — spotter present (bouldering)",val:"spotter"},
+    {label:"No",val:"no"}
+  ]}
+];
+
+const injuryQsContact=[
+  {text:"Would you like to add optional contact info?",hint:"Completely anonymous by default. Contact info is never shared without your permission.",key:"wants_contact",options:[
+    {label:"Yes — add my contact info",val:"yes"},
+    {label:"No — keep it anonymous",val:"no"}
+  ]},
+  {text:"Your name and email (optional)",hint:"Only used if follow-up is needed for safety reporting.",key:"contact_info",isText:true,placeholder:"Name, email address"}
 ];
 
 const guidance={
@@ -513,15 +639,14 @@ const scoreQLabels=['Experience','Fall comfort','Route knowledge','Mental state'
 const deeperLabels=['Onsight/redpoint','Bolt distance','Crux fall zone','Bolt visibility','Swing potential','Intention'];
 const zoneColors={comfort:'#4a7a5a',learning:'#c8852a',panic:'#a83828'};
 
-// ── State ────────────────────────────────────────────────
 let phase='free',current=0,baselineScore=0,climbingTypeLabel='',isDeeper=false;
 let freeAnswers=new Array(freeQs.length).fill(null);
 let deeperAnswers=new Array(deeperQs.length).fill(null);
 let fallPhase='quick',fallCurrent=0,stressSelected=null;
 let quickAnswers={},extAnswers={},sessionFalls=[];
 let currentSessionId=null;
+let injuryStep=0,injuryAnswers={},injuryEnv=null,injuryQsAll=[];
 
-// ── Helpers ──────────────────────────────────────────────
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 function getZone(pct){return pct<=0.42?'comfort':pct<=0.68?'learning':'panic'}
 function getDotPos(pct){
@@ -532,13 +657,24 @@ function getDotPos(pct){
   return{x:100+r*Math.cos(angle),y:100+r*Math.sin(angle)}
 }
 function setSaveIndicator(elId,msg,fade){
-  const el=document.getElementById(elId);
-  if(!el)return;
+  const el=document.getElementById(elId);if(!el)return;
   el.textContent=msg;el.style.opacity='1';
   if(fade)setTimeout(()=>{el.style.opacity='0'},3000);
 }
+function makeOptions(container,opts,currentVal,onSelect){
+  container.innerHTML='';
+  const wrap=document.createElement('div');wrap.className='options';
+  opts.forEach(opt=>{
+    const el=document.createElement('div');
+    el.className='option'+(currentVal===opt.val?' selected':'');
+    el.innerHTML=`<div class="option-marker"></div><div class="option-label">${opt.label}${opt.sub?`<div class="option-sub">${opt.sub}</div>`:''}</div>`;
+    el.onclick=()=>onSelect(opt.val);
+    wrap.appendChild(el);
+  });
+  container.appendChild(wrap);
+}
 
-// ── Assessment render ────────────────────────────────────
+// ── Assessment ───────────────────────────────────────────
 function currentQs(){return phase==='free'?freeQs:deeperQs}
 function currentAnswers(){return phase==='free'?freeAnswers:deeperAnswers}
 
@@ -556,8 +692,7 @@ function render(){
   document.getElementById('btn-back').style.opacity=(phase==='free'&&current===0)?'.3':'1';
   document.getElementById('btn-back').disabled=phase==='free'&&current===0;
   document.getElementById('btn-next').disabled=answers[current]===null;
-  const wrap=document.getElementById('q-options-wrap');
-  wrap.innerHTML='';
+  const wrap=document.getElementById('q-options-wrap');wrap.innerHTML='';
   const container=document.createElement('div');container.className='options';
   q.options.forEach((opt,i)=>{
     const el=document.createElement('div');
@@ -573,7 +708,6 @@ function goBack(){
   if(phase==='deeper'&&current===0){phase='free';current=freeQs.length-1;showScreen('screen-assessment')}
   else if(current>0){current--;render()}
 }
-
 function goNext(){
   const answers=currentAnswers();
   if(answers[current]===null)return;
@@ -585,7 +719,6 @@ function goNext(){
     showScreen('screen-gate');
   } else {showResult(true)}
 }
-
 function startDeeper(){phase='deeper';current=0;deeperAnswers=new Array(deeperQs.length).fill(null);showScreen('screen-assessment');render()}
 
 // ── Result ───────────────────────────────────────────────
@@ -594,11 +727,11 @@ async function showResult(deeper){
   const maxFree=(freeQs.length-1)*4;
   const freePct=baselineScore/maxFree;
   const basePos=getDotPos(freePct);
-  let finalZone=getZone(freePct),guidanceKey=getZone(freePct),dotPos=basePos,deeperScore=null,deeperZone=null,combinedPct=null;
+  let finalZone=getZone(freePct),guidanceKey=getZone(freePct),dotPos=basePos,deeperScore=null,deeperZone=null;
   if(deeper){
     deeperScore=deeperAnswers.reduce((s,a,i)=>s+(a!==null?deeperQs[i].options[a].score:0),0);
-    combinedPct=freePct*.6+(deeperScore/(deeperQs.length*3))*.4;
-    finalZone=getZone(combinedPct);guidanceKey=finalZone+'_deep';deeperZone=finalZone;dotPos=getDotPos(combinedPct);
+    const combined=freePct*.6+(deeperScore/(deeperQs.length*3))*.4;
+    finalZone=getZone(combined);guidanceKey=finalZone+'_deep';deeperZone=finalZone;dotPos=getDotPos(combined);
   }
   if(!guidance[guidanceKey])guidanceKey=finalZone;
   const g=guidance[guidanceKey];
@@ -625,21 +758,14 @@ async function showResult(deeper){
     dot.setAttribute('cx',dotPos.x);dot.setAttribute('cy',dotPos.y);dot.setAttribute('fill',col);dot.setAttribute('opacity','1');
     ring.setAttribute('cx',dotPos.x);ring.setAttribute('cy',dotPos.y);ring.setAttribute('stroke',col);ring.setAttribute('opacity','.45');
   },120);
-
-  // Save session to Supabase
   setSaveIndicator('save-indicator','Saving session...',false);
-  const sessionData={
-    device_id:DEVICE_ID,
-    climbing_type:climbingTypeLabel,
-    baseline_score:baselineScore,
-    baseline_zone:getZone(freePct),
-    did_go_deeper:deeper,
-    deeper_score:deeper?deeperScore:null,
-    deeper_zone:deeper?deeperZone:null
-  };
-  const saved=await sbInsert('sessions',sessionData);
+  const saved=await sbInsert('sessions',{
+    device_id:DEVICE_ID,climbing_type:climbingTypeLabel,
+    baseline_score:baselineScore,baseline_zone:getZone(freePct),
+    did_go_deeper:deeper,deeper_score:deeper?deeperScore:null,deeper_zone:deeper?deeperZone:null
+  });
   if(saved&&saved.id){currentSessionId=saved.id;setSaveIndicator('save-indicator','Session saved',true)}
-  else{setSaveIndicator('save-indicator','',false)}
+  else setSaveIndicator('save-indicator','',false);
 }
 
 // ── Fall log ─────────────────────────────────────────────
@@ -647,7 +773,6 @@ function startFallLog(){
   fallPhase='quick';fallCurrent=0;stressSelected=null;quickAnswers={};extAnswers={};
   showScreen('screen-fall');renderFall();
 }
-
 function renderFall(){
   const qs=fallPhase==='quick'?quickFallQs:extFallQs;
   const total=quickFallQs.length+extFallQs.length;
@@ -662,8 +787,7 @@ function renderFall(){
   document.getElementById('fall-btn-back').style.opacity=(fallPhase==='quick'&&fallCurrent===0)?'.3':'1';
   document.getElementById('fall-btn-back').disabled=fallPhase==='quick'&&fallCurrent===0;
   const answers=fallPhase==='quick'?quickAnswers:extAnswers;
-  const wrap=document.getElementById('fall-q-options-wrap');
-  wrap.innerHTML='';
+  const wrap=document.getElementById('fall-q-options-wrap');wrap.innerHTML='';
   if(q.isStress){
     document.getElementById('fall-btn-next').disabled=stressSelected===null;
     const container=document.createElement('div');container.className='options';
@@ -677,61 +801,37 @@ function renderFall(){
     wrap.appendChild(container);
   } else {
     document.getElementById('fall-btn-next').disabled=!answers[q.key];
-    const container=document.createElement('div');container.className='options';
-    q.options.forEach(opt=>{
-      const el=document.createElement('div');
-      el.className='option'+(answers[q.key]===opt.val?' selected':'');
-      el.innerHTML=`<div class="option-marker"></div><div class="option-label">${opt.label}</div>`;
-      el.onclick=()=>{answers[q.key]=opt.val;renderFall()};
-      container.appendChild(el);
-    });
-    wrap.appendChild(container);
+    makeOptions(wrap,q.options,answers[q.key],val=>{answers[q.key]=val;renderFall()});
   }
 }
-
 function fallBack(){
   if(fallPhase==='ext'&&fallCurrent===0){fallPhase='quick';fallCurrent=quickFallQs.length-1;renderFall()}
   else if(fallCurrent>0){fallCurrent--;renderFall()}
 }
-
 function fallNext(){
   const qs=fallPhase==='quick'?quickFallQs:extFallQs;
   if(fallCurrent<qs.length-1){fallCurrent++;renderFall()}
   else if(fallPhase==='quick'){
-    if(quickAnswers.fell==='no'||quickAnswers.fell==='tbd'){saveFall();showFallSummary()}
+    if(quickAnswers.fell==='injured'){startInjuryReport()}
+    else if(quickAnswers.fell==='no'||quickAnswers.fell==='tbd'){saveFall();showFallSummary()}
     else{fallPhase='ext';fallCurrent=0;renderFall()}
   } else {saveFall();showFallSummary()}
 }
-
 async function saveFall(){
-  const fallData={
-    fell:quickAnswers.fell,fallType:quickAnswers.fallType,
-    angle:quickAnswers.angle,stress_response:quickAnswers.stress||null,
-    stress_label:quickAnswers.stressLabel||null,
+  const f={fell:quickAnswers.fell,fallType:quickAnswers.fallType,angle:quickAnswers.angle,
+    stress_response:quickAnswers.stress||null,stress_label:quickAnswers.stressLabel||null,
     gotBack:extAnswers.gotBack,sessionImpact:extAnswers.sessionImpact,
     fallHeight:extAnswers.fallHeight,grade:extAnswers.grade,
-    climbType:climbingTypeLabel,
-    time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
-  };
-  sessionFalls.push(fallData);
-  // Save to Supabase
+    climbType:climbingTypeLabel,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
+  sessionFalls.push(f);
   if(currentSessionId){
-    sbInsert('falls',{
-      session_id:currentSessionId,
-      device_id:DEVICE_ID,
-      fell:fallData.fell,
-      fall_type:fallData.fallType,
-      wall_angle:fallData.angle,
-      stress_response:fallData.stress_response,
-      stress_label:fallData.stress_label,
-      got_back_on:fallData.gotBack,
-      session_impact:fallData.sessionImpact,
-      fall_height:fallData.fallHeight,
-      grade:fallData.grade
-    });
+    sbInsert('falls',{session_id:currentSessionId,device_id:DEVICE_ID,
+      fell:f.fell,fall_type:f.fallType,wall_angle:f.angle,
+      stress_response:f.stress_response,stress_label:f.stress_label,
+      got_back_on:f.gotBack,session_impact:f.sessionImpact,
+      fall_height:f.fallHeight,grade:f.grade});
   }
 }
-
 function showFallSummary(){
   const maxFree=(freeQs.length-1)*4;
   const zone=getZone(baselineScore/maxFree);
@@ -744,24 +844,113 @@ function showFallSummary(){
     <div class="session-stat"><span class="session-stat-label">Falls taken</span><span class="session-stat-val">${withFalls.length}</span></div>
     ${avgStress!==null?`<div class="session-stat"><span class="session-stat-label">Avg stress response</span><span class="session-stat-val">${avgStress} / 5</span></div>`:''}
     ${withFalls.length>0?`<div class="session-stat"><span class="session-stat-label">Got back on</span><span class="session-stat-val">${gotBackCount} of ${withFalls.length}</span></div>`:''}
-    <div class="session-stat"><span class="session-stat-label">Climbing type</span><span class="session-stat-val">${climbingTypeLabel}</span></div>
-  `;
-  const angleLabels={slab:'Slab',vertical:'Vertical',overhang:'Overhang',roof:'Roof'};
-  const gradeLabels={'5.8-':'5.8 or below','5.9-5.10':'5.9–5.10','5.11-5.12':'5.11–5.12','5.13+':'5.13+'};
-  const impactLabels={none:'No impact',slight:'Slight impact',moderate:'Noticeable impact',major:'Significant impact'};
+    <div class="session-stat"><span class="session-stat-label">Climbing type</span><span class="session-stat-val">${climbingTypeLabel}</span></div>`;
+  const aL={slab:'Slab',vertical:'Vertical',overhang:'Overhang',roof:'Roof'};
+  const gL={'5.8-':'5.8 or below','5.9-5.10':'5.9–5.10','5.11-5.12':'5.11–5.12','5.13+':'5.13+'};
+  const iL={none:'No impact',slight:'Slight impact',moderate:'Noticeable impact',major:'Significant impact'};
   const col=zoneColors[zone];
   document.getElementById('fall-entries').innerHTML=sessionFalls.map(f=>`
     <div class="fall-entry">
       <div class="fall-entry-dot" style="background:${col}"></div>
       <div class="fall-entry-info">
-        <div class="fall-entry-title">${f.fell==='yes'?(f.fallType==='intentional'?'Intentional':'Unexpected')+' fall':f.fell==='no'?'No fall taken':'Heading to the wall'}${f.angle?' · '+(angleLabels[f.angle]||f.angle):''}${f.grade?' · '+(gradeLabels[f.grade]||f.grade):''}</div>
-        <div class="fall-entry-sub">${f.time}${f.fallHeight&&f.fallHeight!=='na'?' · '+{short:'Short fall',medium:'Medium fall',long:'Long fall'}[f.fallHeight]:''}${f.sessionImpact&&f.sessionImpact!=='na'?' · '+(impactLabels[f.sessionImpact]||''):''}</div>
+        <div class="fall-entry-title">${f.fell==='yes'?(f.fallType==='intentional'?'Intentional':'Unexpected')+' fall':f.fell==='no'?'No fall taken':'Heading to the wall'}${f.angle?' · '+(aL[f.angle]||f.angle):''}${f.grade?' · '+(gL[f.grade]||f.grade):''}</div>
+        <div class="fall-entry-sub">${f.time}${f.fallHeight&&f.fallHeight!=='na'?' · '+{short:'Short fall',medium:'Medium fall',long:'Long fall'}[f.fallHeight]:''}${f.sessionImpact&&f.sessionImpact!=='na'?' · '+(iL[f.sessionImpact]||''):''}</div>
       </div>
       ${f.fell==='yes'&&f.stress_label?`<div class="fall-entry-stress">${f.stress_label}</div>`:''}
-    </div>
-  `).join('');
+    </div>`).join('');
   showScreen('screen-fall-summary');
   setSaveIndicator('fall-save-indicator','Falls saved to your session',true);
+}
+
+// ── Injury report ─────────────────────────────────────────
+function startInjuryReport(){
+  injuryStep=0;injuryAnswers={};injuryEnv=null;
+  injuryQsAll=[...injuryQsShared,...injuryQsContact];
+  document.getElementById('injury-success').style.display='none';
+  document.querySelectorAll('#screen-injury .btn,.screen-injury .question-text,.screen-injury .question-hint,#injury-q-wrap,#injury-text-wrap,.progress-bar,#injury-step-label,.nav').forEach(el=>{if(el)el.style.display=''});
+  showScreen('screen-injury');renderInjury();
+}
+
+function buildInjuryQs(){
+  // After environment is known, rebuild the full question list
+  const envQs=injuryAnswers.environment==='indoor'?injuryQsIndoor:injuryAnswers.environment?injuryQsOutdoor:[];
+  injuryQsAll=[...injuryQsShared,...envQs,...injuryQsContact];
+}
+
+function renderInjury(){
+  buildInjuryQs();
+  const q=injuryQsAll[injuryStep];
+  if(!q)return;
+  const total=injuryQsAll.length;
+  document.getElementById('injury-progress').style.width=(((injuryStep)/total)*100)+'%';
+  document.getElementById('injury-step-label').textContent=`Step ${injuryStep+1} of ${total}`;
+  document.getElementById('injury-q-text').textContent=q.text;
+  document.getElementById('injury-q-hint').textContent=q.hint||'';
+  document.getElementById('injury-back-btn').style.opacity=injuryStep===0?'.3':'1';
+  document.getElementById('injury-back-btn').disabled=injuryStep===0;
+
+  const wrap=document.getElementById('injury-q-wrap');
+  const textWrap=document.getElementById('injury-text-wrap');
+  wrap.innerHTML='';textWrap.innerHTML='';textWrap.style.display='none';
+
+  if(q.isText){
+    textWrap.style.display='block';
+    const inp=document.createElement('textarea');
+    inp.className='text-input';inp.placeholder=q.placeholder||'';
+    inp.value=injuryAnswers[q.key]||'';
+    inp.oninput=()=>{injuryAnswers[q.key]=inp.value};
+    textWrap.appendChild(inp);
+    document.getElementById('injury-next-btn').disabled=false;
+  } else {
+    makeOptions(wrap,q.options,injuryAnswers[q.key],val=>{
+      injuryAnswers[q.key]=val;
+      if(q.key==='environment'){injuryEnv=val;buildInjuryQs()}
+      if(q.key==='wants_contact'&&val==='no'){injuryAnswers.contact_info='anonymous'}
+      renderInjury();
+    });
+    document.getElementById('injury-next-btn').disabled=!injuryAnswers[q.key];
+    if(q.showWarning){
+      const warn=document.createElement('div');warn.className='warning-box';
+      warn.textContent='If this is a serious emergency, call 911 or seek immediate medical attention before continuing.';
+      wrap.appendChild(warn);
+    }
+  }
+  const isLast=injuryStep>=injuryQsAll.length-1;
+  const skipContact=injuryAnswers.wants_contact==='no'&&q.key==='wants_contact';
+  document.getElementById('injury-next-btn').textContent=isLast||skipContact?'Submit report':'Continue →';
+}
+
+function injuryBack(){if(injuryStep>0){injuryStep--;renderInjury()}}
+
+async function injuryNext(){
+  const q=injuryQsAll[injuryStep];
+  const isLast=injuryStep>=injuryQsAll.length-1;
+  const skipContact=injuryAnswers.wants_contact==='no';
+  if(isLast||skipContact){
+    await sbInsert('incidents',{
+      device_id:DEVICE_ID,session_id:currentSessionId||null,
+      environment:injuryAnswers.environment,severity:injuryAnswers.severity,
+      body_part:injuryAnswers.body_part,warmed_up:injuryAnswers.warmed_up,
+      cause:injuryAnswers.cause,gym_area:injuryAnswers.gym_area||null,
+      fall_context:injuryAnswers.fall_context||null,hold_type:injuryAnswers.hold_type||null,
+      first_time:injuryAnswers.first_time||null,belayer:injuryAnswers.belayer||null,
+      outdoor_type:injuryAnswers.outdoor_type||null,protection:injuryAnswers.protection||null,
+      pitch_number:injuryAnswers.pitch_number||null,
+      contact_info:injuryAnswers.contact_info||'anonymous',
+      climbing_type:climbingTypeLabel
+    });
+    document.getElementById('injury-success').style.display='block';
+    document.querySelector('#screen-injury .nav').style.display='none';
+    document.getElementById('injury-q-wrap').style.display='none';
+    document.getElementById('injury-text-wrap').style.display='none';
+    document.getElementById('injury-q-text').style.display='none';
+    document.getElementById('injury-q-hint').style.display='none';
+    document.getElementById('injury-success-msg').textContent=injuryAnswers.severity==='serious'
+      ?'Please seek medical attention if you haven\'t already. Your incident has been recorded.'
+      :'Rest up and take care of yourself. Your incident has been recorded.';
+  } else {
+    injuryStep++;renderInjury();
+  }
 }
 
 // ── History ──────────────────────────────────────────────
@@ -773,18 +962,18 @@ async function showHistory(){
     document.getElementById('history-list').innerHTML=`<div class="empty-state"><div class="empty-state-title">No sessions yet</div><div class="empty-state-sub">Complete your first assessment and it will appear here.</div></div>`;
     return;
   }
-  const zoneLabels={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
-  const badgeClasses={comfort:'badge-comfort',learning:'badge-learning',panic:'badge-panic'};
+  const zL={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
+  const bC={comfort:'badge-comfort',learning:'badge-learning',panic:'badge-panic'};
   document.getElementById('history-list').innerHTML=sessions.map(s=>{
     const zone=s.deeper_zone||s.baseline_zone||'comfort';
     const date=new Date(s.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});
     return `<div class="history-entry">
       <div class="history-zone-dot" style="background:${zoneColors[zone]||'#888'}"></div>
       <div class="history-info">
-        <div class="history-title">${s.climbing_type||'Unknown type'} ${s.did_go_deeper?'· Route analysis':''}</div>
+        <div class="history-title">${s.climbing_type||'Unknown type'}${s.did_go_deeper?' · Route analysis':''}</div>
         <div class="history-sub">${date}</div>
       </div>
-      <span class="history-zone-badge result-zone-badge ${badgeClasses[zone]||''}">${zoneLabels[zone]||zone}</span>
+      <span class="result-zone-badge ${bC[zone]||''}" style="margin-bottom:0;font-size:10px">${zL[zone]||zone}</span>
     </div>`;
   }).join('');
 }
@@ -811,20 +1000,17 @@ const feedbackQs=[
     {label:"Nothing — it worked well",val:"nothing"}
   ]}
 ];
-
-let fbCurrent=0,fbAnswers={},fbSource='floating';
-
+let fbCurrent=0,fbAnswers={};
 function openFeedback(){
-  fbCurrent=0;fbAnswers={};fbSource='floating';
+  fbCurrent=0;fbAnswers={};
   document.getElementById('feedback-success').style.display='none';
   document.getElementById('feedback-content').style.display='block';
+  document.getElementById('fb-open-text').value='';
   renderFeedback();
   document.getElementById('feedback-modal').classList.add('active');
 }
-
 function closeFeedback(){document.getElementById('feedback-modal').classList.remove('active')}
 function closeFeedbackOnOverlay(e){if(e.target===document.getElementById('feedback-modal'))closeFeedback()}
-
 function renderFeedback(){
   if(fbCurrent<feedbackQs.length){
     const q=feedbackQs[fbCurrent];
@@ -834,59 +1020,9 @@ function renderFeedback(){
     document.getElementById('fb-open-wrap').style.display='none';
     document.getElementById('fb-next-btn').disabled=!fbAnswers[q.key];
     document.getElementById('fb-next-btn').textContent='Continue →';
-    const wrap=document.getElementById('fb-options-wrap');
-    wrap.innerHTML='';
-    const container=document.createElement('div');container.className='options';
-    q.options.forEach(opt=>{
-      const el=document.createElement('div');
-      el.className='option'+(fbAnswers[q.key]===opt.val?' selected':'');
-      el.innerHTML=`<div class="option-marker"></div><div class="option-label">${opt.label}</div>`;
-      el.onclick=()=>{fbAnswers[q.key]=opt.val;renderFeedback()};
-      container.appendChild(el);
-    });
-    wrap.appendChild(container);
+    makeOptions(document.getElementById('fb-options-wrap'),q.options,fbAnswers[q.key],val=>{fbAnswers[q.key]=val;renderFeedback()});
   } else {
-    // Open text step
     document.getElementById('feedback-progress').style.width='90%';
     document.getElementById('feedback-step-label').textContent='Almost done';
     document.getElementById('fb-q-text').textContent='Anything else?';
-    document.getElementById('fb-options-wrap').innerHTML='';
-    document.getElementById('fb-open-wrap').style.display='block';
-    document.getElementById('fb-next-btn').disabled=false;
-    document.getElementById('fb-next-btn').textContent='Submit →';
-  }
-}
-
-async function feedbackNext(){
-  if(fbCurrent<feedbackQs.length){
-    fbCurrent++;renderFeedback();
-  } else {
-    const openText=document.getElementById('fb-open-text').value;
-    await sbInsert('feedback',{
-      what_felt_accurate:fbAnswers.most_useful||null,
-      what_felt_missing:fbAnswers.biggest_gap||null,
-      would_use_again:fbAnswers.overall==='great'||fbAnswers.overall==='good'?'yes':'no',
-      influenced_decision:null,
-      feedback_source:fbSource,
-      overall_rating:fbAnswers.overall,
-      open_notes:openText||null
-    });
-    document.getElementById('feedback-content').style.display='none';
-    document.getElementById('feedback-success').style.display='block';
-  }
-}
-
-// ── Restart ──────────────────────────────────────────────
-function restart(){
-  phase='free';current=0;baselineScore=0;climbingTypeLabel='';isDeeper=false;currentSessionId=null;
-  freeAnswers=new Array(freeQs.length).fill(null);
-  deeperAnswers=new Array(deeperQs.length).fill(null);
-  sessionFalls=[];stressSelected=null;quickAnswers={};extAnswers={};
-  ['dot-baseline','dot-main','dot-ring'].forEach(id=>document.getElementById(id).setAttribute('opacity','0'));
-  showScreen('screen-assessment');render();
-}
-
-render();
-</script>
-</body>
-</html>
+    d
