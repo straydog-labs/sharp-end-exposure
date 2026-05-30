@@ -10,12 +10,15 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--rope:#c8622a;--rope-light:#e8843a;--comfort:#4a7a5a;--learning:#c8852a;--panic:#a83828}
 body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-height:100vh}
-.app{max-width:640px;margin:0 auto;padding:2rem 1.25rem 4rem}
-.header{padding-bottom:1.25rem;border-bottom:0.5px solid rgba(0,0,0,0.12);margin-bottom:1.75rem}
+.app{max-width:640px;margin:0 auto;padding:2rem 1.25rem 5rem}
+.header{padding-bottom:1.25rem;border-bottom:0.5px solid rgba(0,0,0,0.12);margin-bottom:1.75rem;display:flex;align-items:flex-start;justify-content:space-between}
+.header-left{}
 .header-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:4px}
 .header-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:.04em;line-height:1;color:#1a1a18}
 .header-title span{color:var(--rope)}
 .header-sub{font-size:13px;color:#5f5e5a;margin-top:6px;font-weight:300;line-height:1.5}
+.header-history{font-size:12px;color:#888780;cursor:pointer;padding:6px 12px;border:0.5px solid rgba(0,0,0,0.14);border-radius:99px;background:#fff;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;margin-top:6px}
+.header-history:hover{border-color:rgba(0,0,0,0.28);color:#1a1a18}
 .screen{display:none}.screen.active{display:block}
 .progress-bar{height:2px;background:rgba(0,0,0,0.1);border-radius:1px;margin-bottom:1.5rem;overflow:hidden}
 .progress-fill{height:100%;background:var(--rope);border-radius:1px;transition:width .4s ease}
@@ -25,6 +28,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .phase-deep{background:rgba(200,98,42,.12);color:#7a3a10}
 .phase-fall{background:rgba(74,100,160,.12);color:#2a3a7a}
 .phase-fall-ext{background:rgba(100,74,160,.12);color:#4a2a7a}
+.phase-feedback{background:rgba(88,88,88,.1);color:#444}
 .question-text{font-size:19px;font-weight:500;line-height:1.4;margin-bottom:4px;color:#1a1a18}
 .question-hint{font-size:13px;color:#888780;margin-bottom:1.25rem;font-weight:300;line-height:1.5}
 .options{display:flex;flex-direction:column;gap:8px}
@@ -36,12 +40,6 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .option.selected .option-marker::after{content:'';width:6px;height:6px;border-radius:50%;background:white}
 .option-label{font-size:14px;line-height:1.5;color:#1a1a18;font-weight:400}
 .option-sub{font-size:12px;color:#888780;margin-top:2px}
-.fear-row{display:flex;gap:8px;margin-bottom:1.5rem}
-.fear-btn{flex:1;padding:14px 8px;border:0.5px solid rgba(0,0,0,0.14);border-radius:8px;cursor:pointer;text-align:center;transition:all .15s;background:#fff;font-family:'DM Sans',sans-serif}
-.fear-btn:hover{border-color:rgba(0,0,0,0.28);background:#faf8f5}
-.fear-btn.selected{border-color:var(--rope);background:rgba(200,98,42,.05)}
-.fear-num{font-size:20px;font-weight:500;display:block;margin-bottom:2px;color:#1a1a18}
-.fear-label{font-size:10px;color:#888780}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;border:0.5px solid rgba(0,0,0,0.2);background:transparent;color:#1a1a18;font-family:'DM Sans',sans-serif}
 .btn:hover{background:rgba(0,0,0,0.05)}
 .btn:active{transform:scale(.98)}
@@ -70,7 +68,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .score-pill{font-size:11px;padding:3px 10px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.12);color:#5f5e5a;background:#edeae3}
 .card{border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem;background:#fff;margin-top:.75rem}
 .card-header{display:flex;align-items:center;gap:12px;margin-bottom:.75rem}
-.card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
 .card-icon-orange{background:rgba(200,98,42,.1);color:var(--rope)}
 .card-icon-blue{background:rgba(74,100,160,.1);color:#2a4a8a}
 .card-title{font-size:15px;font-weight:500;color:#1a1a18}
@@ -83,8 +81,10 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .small-step-card{border:0.5px solid rgba(168,56,40,.25);border-radius:12px;padding:1rem 1.25rem;background:rgba(168,56,40,.04);margin-bottom:.75rem}
 .small-step-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#782818;margin-bottom:8px}
 .small-step-q{font-size:15px;font-weight:500;margin-bottom:.75rem;line-height:1.4;color:#1a1a18}
-.small-step-input{width:100%;font-size:14px;font-family:'DM Sans',sans-serif;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#1a1a18;resize:vertical;min-height:80px;line-height:1.5}
-.small-step-input:focus{outline:none;border-color:var(--rope)}
+.small-step-input,.notes-input,.open-feedback-input{width:100%;font-size:14px;font-family:'DM Sans',sans-serif;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#1a1a18;resize:vertical;min-height:80px;line-height:1.5}
+.small-step-input:focus,.notes-input:focus,.open-feedback-input:focus{outline:none;border-color:var(--rope)}
+.notes-input{background:#edeae3;min-height:64px}
+.open-feedback-input{min-height:80px}
 .climbing-type-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:500;background:rgba(200,98,42,.08);color:#7a3a10;border:0.5px solid rgba(200,98,42,.2);margin-bottom:1rem}
 .restart-row{display:flex;justify-content:flex-end;margin-top:1rem}
 .fall-entry{padding:.75rem 0;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px}
@@ -93,25 +93,60 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .fall-entry-info{flex:1}
 .fall-entry-title{font-size:13px;font-weight:500;color:#1a1a18}
 .fall-entry-sub{font-size:12px;color:#888780;margin-top:2px}
-.fall-entry-fear{font-size:12px;color:#5f5e5a;flex-shrink:0}
+.fall-entry-stress{font-size:12px;color:#5f5e5a;flex-shrink:0;text-align:right;max-width:120px}
 .session-stat{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:0.5px solid rgba(0,0,0,0.06)}
 .session-stat:last-child{border-bottom:none}
 .session-stat-label{color:#5f5e5a}
 .session-stat-val{font-weight:500;color:#1a1a18}
-.notes-input{width:100%;font-size:13px;font-family:'DM Sans',sans-serif;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.14);border-radius:8px;background:#edeae3;color:#1a1a18;resize:vertical;min-height:64px;line-height:1.5;margin-top:.5rem}
-.notes-input:focus{outline:none;border-color:var(--rope)}
 .session-summary-card{background:#edeae3;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+
+/* Floating feedback button */
+.feedback-fab{position:fixed;bottom:1.5rem;right:1.5rem;padding:8px 16px;background:#fff;border:0.5px solid rgba(0,0,0,0.16);border-radius:99px;font-size:12px;font-weight:500;color:#888780;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.08);z-index:100}
+.feedback-fab:hover{color:#1a1a18;border-color:rgba(0,0,0,0.28);box-shadow:0 4px 12px rgba(0,0,0,0.12)}
+
+/* Feedback modal overlay */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:#f5f2ed;border-radius:16px 16px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:640px;max-height:85vh;overflow-y:auto}
+.modal-handle{width:36px;height:3px;background:rgba(0,0,0,0.15);border-radius:99px;margin:0 auto 1.25rem}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;margin-bottom:4px;color:#1a1a18}
+.modal-sub{font-size:13px;color:#5f5e5a;margin-bottom:1.25rem;font-weight:300}
+.feedback-success{text-align:center;padding:2rem 0}
+.feedback-success-icon{font-size:36px;margin-bottom:.75rem}
+.feedback-success-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;margin-bottom:6px;color:#1a1a18}
+.feedback-success-sub{font-size:13px;color:#5f5e5a;font-weight:300}
+
+/* History screen */
+.history-entry{padding:.875rem 0;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px}
+.history-entry:last-child{border-bottom:none}
+.history-zone-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.history-info{flex:1}
+.history-title{font-size:14px;font-weight:500;color:#1a1a18}
+.history-sub{font-size:12px;color:#888780;margin-top:2px}
+.history-zone-badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500}
+.empty-state{text-align:center;padding:3rem 0;color:#888780}
+.empty-state-title{font-size:15px;font-weight:500;margin-bottom:6px;color:#5f5e5a}
+.empty-state-sub{font-size:13px;font-weight:300;line-height:1.6}
+
+/* Saving indicator */
+.save-indicator{font-size:11px;color:#888780;text-align:center;margin-top:.5rem;min-height:16px;transition:opacity .3s}
 </style>
 </head>
 <body>
+
+<button class="feedback-fab" onclick="openFeedback()">Share feedback</button>
+
 <div class="app">
   <div class="header">
-    <div class="header-eyebrow">Straydog Labs</div>
-    <div class="header-title">Sharp End <span>Exposure</span></div>
-    <div class="header-sub">A pre-climb psychological readiness assessment</div>
+    <div class="header-left">
+      <div class="header-eyebrow">Straydog Labs</div>
+      <div class="header-title">Sharp End <span>Exposure</span></div>
+      <div class="header-sub">A pre-climb psychological readiness assessment</div>
+    </div>
+    <button class="header-history" onclick="showHistory()">My sessions</button>
   </div>
 
-  <!-- ASSESSMENT SCREEN -->
+  <!-- ASSESSMENT -->
   <div class="screen active" id="screen-assessment">
     <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
     <div class="phase-label" id="phase-label"></div>
@@ -148,7 +183,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
     </div>
   </div>
 
-  <!-- RESULT SCREEN -->
+  <!-- RESULT -->
   <div class="screen" id="screen-result">
     <div id="climbing-type-tag" class="climbing-type-tag"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -157,11 +192,9 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
     </div>
     <div class="result-title" id="result-title"></div>
     <div class="result-subtitle" id="result-subtitle"></div>
-
     <div class="exposure-map-container">
       <div style="flex-shrink:0">
-        <svg width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="Exposure Map showing comfort, learning, and panic zones as concentric circles">
-          <title>Exposure Map</title>
+        <svg width="200" height="200" viewBox="0 0 200 200">
           <circle cx="100" cy="100" r="90" fill="rgba(168,56,40,.08)" stroke="rgba(168,56,40,.25)" stroke-width=".5"/>
           <circle cx="100" cy="100" r="62" fill="rgba(200,133,42,.1)" stroke="rgba(200,133,42,.3)" stroke-width=".5"/>
           <circle cx="100" cy="100" r="34" fill="rgba(74,122,90,.15)" stroke="rgba(74,122,90,.35)" stroke-width=".5"/>
@@ -181,21 +214,17 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
         <div class="legend-item"><div class="legend-dot" style="background:#c8622a"></div><div class="legend-text"><strong id="your-dot-label">Your placement</strong>This climb, right now</div></div>
       </div>
     </div>
-
     <div class="small-step-card" id="small-step-section" style="display:none">
       <div class="small-step-label">Before you commit</div>
       <div class="small-step-q">You're pushing into challenging territory. What's one smaller step you could take today that still moves you forward?</div>
       <textarea class="small-step-input" placeholder="e.g. Lead a familiar route and practice intentional falls first, then come back to this one..."></textarea>
     </div>
-
     <div class="guidance-section">
       <div class="guidance-label" id="guidance-label">Assessment</div>
       <div class="guidance-text" id="guidance-text"></div>
     </div>
-
     <div class="score-pills" id="score-pills"></div>
     <div class="divider"></div>
-
     <div class="card" id="deeper-gate" style="display:none">
       <div class="card-header">
         <div class="card-icon card-icon-orange">↓</div>
@@ -204,7 +233,6 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
       <div class="card-body">Add route-specific detail to refine your Exposure Map placement.</div>
       <button class="btn btn-primary" onclick="startDeeper()">Go deeper →</button>
     </div>
-
     <div class="card">
       <div class="card-header">
         <div class="card-icon card-icon-blue">↯</div>
@@ -213,14 +241,14 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
           <div class="card-sub-label">Track what happened on the wall today</div>
         </div>
       </div>
-      <div class="card-body">A few quick questions about how the climb went — no typing required. Builds your fall history over time.</div>
+      <div class="card-body">A few quick questions about how the climb went — no typing required.</div>
       <button class="btn btn-primary" onclick="startFallLog()">Log a fall →</button>
     </div>
-
+    <div class="save-indicator" id="save-indicator"></div>
     <div class="restart-row"><button class="btn" onclick="restart()" style="font-size:13px">Start over</button></div>
   </div>
 
-  <!-- FALL LOG SCREEN -->
+  <!-- FALL LOG -->
   <div class="screen" id="screen-fall">
     <div class="progress-bar"><div class="progress-fill" id="fall-progress" style="width:0%"></div></div>
     <div class="phase-label" id="fall-phase-label"></div>
@@ -233,7 +261,7 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
     </div>
   </div>
 
-  <!-- FALL SUMMARY SCREEN -->
+  <!-- FALL SUMMARY -->
   <div class="screen" id="screen-fall-summary">
     <div style="margin-bottom:1.25rem">
       <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px">Session fall log</div>
@@ -243,21 +271,97 @@ body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
     <div class="session-summary-card" id="session-summary"></div>
     <div class="card" style="margin-top:.75rem">
       <div style="font-size:13px;font-weight:500;margin-bottom:4px;color:#1a1a18">This session</div>
-      <div style="font-size:12px;color:#888780;margin-bottom:.75rem">All falls logged today</div>
+      <div style="font-size:12px;color:#888780;margin-bottom:.75rem">All climbs logged today</div>
       <div id="fall-entries"></div>
     </div>
     <div style="margin-top:1.25rem">
       <div style="font-size:13px;color:#888780;font-weight:300;margin-bottom:4px">Personal notes — optional</div>
-      <textarea class="notes-input" placeholder="Anything you want to remember about today..."></textarea>
+      <textarea class="notes-input" id="session-notes" placeholder="Anything you want to remember about today..."></textarea>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:1.25rem">
       <button class="btn btn-primary" onclick="startFallLog()">Log another fall →</button>
       <button class="btn" onclick="restart()">New assessment</button>
     </div>
+    <div class="save-indicator" id="fall-save-indicator"></div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="screen" id="screen-history">
+    <div style="margin-bottom:1.25rem">
+      <button class="btn" onclick="showScreen('screen-assessment')" style="font-size:13px;margin-bottom:1rem">← Back</button>
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px">Your sessions</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:4px;color:#1a1a18">Session History</div>
+      <div style="font-size:13px;color:#5f5e5a;font-weight:300">All your past assessments on this device.</div>
+    </div>
+    <div id="history-list"></div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="feedback-modal" onclick="closeFeedbackOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="feedback-content">
+      <div class="modal-title">Share Feedback</div>
+      <div class="modal-sub">3 quick taps — helps make the tool better.</div>
+      <div class="progress-bar" style="margin-bottom:1.25rem"><div class="progress-fill" id="feedback-progress" style="width:0%"></div></div>
+      <div class="phase-label"><span class="phase-tag phase-feedback" id="feedback-step-label">Step 1 of 3</span></div>
+      <div class="question-text" id="fb-q-text"></div>
+      <div style="margin-top:1rem" id="fb-options-wrap"></div>
+      <div id="fb-open-wrap" style="display:none;margin-top:1rem">
+        <div class="question-hint">Optional — anything else you want us to know?</div>
+        <textarea class="open-feedback-input" id="fb-open-text" placeholder="Your thoughts..."></textarea>
+      </div>
+      <div class="nav" style="margin-top:1.25rem">
+        <button class="btn" onclick="closeFeedback()">Cancel</button>
+        <button class="btn btn-primary" id="fb-next-btn" onclick="feedbackNext()" disabled>Continue →</button>
+      </div>
+    </div>
+    <div class="feedback-success" id="feedback-success" style="display:none">
+      <div class="feedback-success-icon">✓</div>
+      <div class="feedback-success-title">Thank you</div>
+      <div class="feedback-success-sub">Your feedback helps shape what this tool becomes.</div>
+      <button class="btn" onclick="closeFeedback()" style="margin-top:1.25rem">Close</button>
+    </div>
   </div>
 </div>
 
 <script>
+// ── Supabase config ──────────────────────────────────────
+const SUPABASE_URL='https://kwtbqgoqtewrlsjgepwq.supabase.co';
+const SUPABASE_KEY='sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
+
+async function sbInsert(table,data){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=representation'},
+      body:JSON.stringify(data)
+    });
+    const json=await r.json();
+    return Array.isArray(json)?json[0]:json;
+  }catch(e){console.warn('Supabase write failed',e);return null}
+}
+
+async function sbSelect(table,filter){
+  try{
+    const params=new URLSearchParams(filter);
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}&order=created_at.desc`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+    });
+    return await r.json();
+  }catch(e){console.warn('Supabase read failed',e);return []}
+}
+
+// ── Device ID ────────────────────────────────────────────
+function getDeviceId(){
+  let id=localStorage.getItem('see_device_id');
+  if(!id){id=crypto.randomUUID();localStorage.setItem('see_device_id',id)}
+  return id;
+}
+const DEVICE_ID=getDeviceId();
+
+// ── Questions ────────────────────────────────────────────
 const freeQs=[
   {text:"What type of climbing are you doing today?",hint:"This helps frame the rest of the assessment — there's no right answer.",isContext:true,options:[
     {label:"Top rope",score:0},
@@ -357,7 +461,7 @@ const quickFallQs=[
     {label:"Overhang — past vertical",val:"overhang"},
     {label:"Roof — severely overhanging",val:"roof"}
   ]},
-  {text:"How did your body respond during or after the fall?",hint:"This is about physical reaction — grip, breath, freeze — not how you felt emotionally.",key:"fear",isFear:true}
+  {text:"How did your body respond during or after the fall?",hint:"This is about physical reaction — grip, breath, freeze — not how you felt emotionally.",key:"stress",isStress:true}
 ];
 
 const extFallQs=[
@@ -387,6 +491,15 @@ const extFallQs=[
   ]}
 ];
 
+const stressOpts=[
+  {val:1,label:"No reaction",sub:"Breath steady, grip relaxed naturally"},
+  {val:2,label:"Mild response",sub:"Noticed some tension, recovered quickly"},
+  {val:3,label:"Moderate response",sub:"Grip tightened, breath shortened, took a moment"},
+  {val:4,label:"Strong response",sub:"Froze, pumped out, or needed time to reset"},
+  {val:5,label:"Intense response",sub:"Full shutdown, couldn't continue immediately"},
+  {val:0,label:"Not sure",sub:"I wasn't tracking my body's response"}
+];
+
 const guidance={
   comfort:{title:"Within your comfort zone",badge:"Comfort zone",badgeClass:"badge-comfort",subtitle:"This climb sits inside your current experience. Your psychological readiness is well-matched to the demands of the route.",text:"You're operating from a place of familiarity. That's not a reason to coast — it's an opportunity. Use this climb to sharpen your movement, tighten your focus, and build the kind of deep experience that becomes a foundation for harder terrain. Ask yourself: what can I do better today than last time? Comfort zone climbing done with full attention is where technique gets grooved and confidence is built on something real."},
   comfort_deep:{title:"Solidly in your comfort zone",badge:"Comfort zone",badgeClass:"badge-comfort",subtitle:"Your readiness and the route demands are closely matched. The route detail confirms you're well within your current range.",text:"The route-specific detail reinforces what your baseline showed — this is familiar ground. Use the clarity to climb with precision. Set an intention before you leave the ground: a movement focus, a breath pattern, a specific section you want to own. Growth doesn't only happen at the limit. Sometimes the most valuable session is the one where you do the familiar thing really, really well."},
@@ -400,20 +513,40 @@ const scoreQLabels=['Experience','Fall comfort','Route knowledge','Mental state'
 const deeperLabels=['Onsight/redpoint','Bolt distance','Crux fall zone','Bolt visibility','Swing potential','Intention'];
 const zoneColors={comfort:'#4a7a5a',learning:'#c8852a',panic:'#a83828'};
 
+// ── State ────────────────────────────────────────────────
 let phase='free',current=0,baselineScore=0,climbingTypeLabel='',isDeeper=false;
 let freeAnswers=new Array(freeQs.length).fill(null);
 let deeperAnswers=new Array(deeperQs.length).fill(null);
-let fallPhase='quick',fallCurrent=0,fearSelected=null;
+let fallPhase='quick',fallCurrent=0,stressSelected=null;
 let quickAnswers={},extAnswers={},sessionFalls=[];
+let currentSessionId=null;
 
+// ── Helpers ──────────────────────────────────────────────
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function getZone(pct){return pct<=0.42?'comfort':pct<=0.68?'learning':'panic'}
+function getDotPos(pct){
+  let r,angle;
+  if(pct<=0.42){r=10+(pct/0.42)*22;angle=-Math.PI*.6+pct*Math.PI*.8}
+  else if(pct<=0.68){r=38+((pct-.42)/.26)*20;angle=-Math.PI*.3+(pct-.42)*Math.PI}
+  else{r=65+((pct-.68)/.32)*18;angle=-Math.PI*.1+(pct-.68)*Math.PI*.6}
+  return{x:100+r*Math.cos(angle),y:100+r*Math.sin(angle)}
+}
+function setSaveIndicator(elId,msg,fade){
+  const el=document.getElementById(elId);
+  if(!el)return;
+  el.textContent=msg;el.style.opacity='1';
+  if(fade)setTimeout(()=>{el.style.opacity='0'},3000);
+}
+
+// ── Assessment render ────────────────────────────────────
 function currentQs(){return phase==='free'?freeQs:deeperQs}
 function currentAnswers(){return phase==='free'?freeAnswers:deeperAnswers}
 
 function render(){
   const qs=currentQs(),answers=currentAnswers();
-  const totalQs=freeQs.length+deeperQs.length;
   const idx=phase==='free'?current:freeQs.length+current;
-  document.getElementById('progress').style.width=((idx/totalQs)*100)+'%';
+  const total=freeQs.length+deeperQs.length;
+  document.getElementById('progress').style.width=((idx/total)*100)+'%';
   document.getElementById('phase-label').innerHTML=phase==='free'
     ?`Question ${current+1} of ${qs.length} <span class="phase-tag phase-free">Free</span>`
     :`Route question ${current+1} of ${qs.length} <span class="phase-tag phase-deep">Go Deeper</span>`;
@@ -425,8 +558,7 @@ function render(){
   document.getElementById('btn-next').disabled=answers[current]===null;
   const wrap=document.getElementById('q-options-wrap');
   wrap.innerHTML='';
-  const container=document.createElement('div');
-  container.className='options';
+  const container=document.createElement('div');container.className='options';
   q.options.forEach((opt,i)=>{
     const el=document.createElement('div');
     el.className='option'+(answers[current]===i?' selected':'');
@@ -438,7 +570,7 @@ function render(){
 }
 
 function goBack(){
-  if(phase==='deeper'&&current===0){phase='free';current=freeQs.length-1;show('screen-assessment')}
+  if(phase==='deeper'&&current===0){phase='free';current=freeQs.length-1;showScreen('screen-assessment')}
   else if(current>0){current--;render()}
 }
 
@@ -450,31 +582,23 @@ function goNext(){
   if(current<qs.length-1){current++;render()}
   else if(phase==='free'){
     baselineScore=freeAnswers.slice(1).reduce((s,a,i)=>s+(a!==null?freeQs[i+1].options[a].score:0),0);
-    show('screen-gate');
+    showScreen('screen-gate');
   } else {showResult(true)}
 }
 
-function startDeeper(){phase='deeper';current=0;deeperAnswers=new Array(deeperQs.length).fill(null);show('screen-assessment');render()}
+function startDeeper(){phase='deeper';current=0;deeperAnswers=new Array(deeperQs.length).fill(null);showScreen('screen-assessment');render()}
 
-function getZone(pct){return pct<=0.42?'comfort':pct<=0.68?'learning':'panic'}
-function getDotPos(pct){
-  let r,angle;
-  if(pct<=0.42){r=10+(pct/0.42)*22;angle=-Math.PI*.6+pct*Math.PI*.8}
-  else if(pct<=0.68){r=38+((pct-.42)/.26)*20;angle=-Math.PI*.3+(pct-.42)*Math.PI}
-  else{r=65+((pct-.68)/.32)*18;angle=-Math.PI*.1+(pct-.68)*Math.PI*.6}
-  return{x:100+r*Math.cos(angle),y:100+r*Math.sin(angle)}
-}
-
-function showResult(deeper){
+// ── Result ───────────────────────────────────────────────
+async function showResult(deeper){
   isDeeper=deeper;
   const maxFree=(freeQs.length-1)*4;
   const freePct=baselineScore/maxFree;
   const basePos=getDotPos(freePct);
-  let finalZone=getZone(freePct),guidanceKey=getZone(freePct),dotPos=basePos;
+  let finalZone=getZone(freePct),guidanceKey=getZone(freePct),dotPos=basePos,deeperScore=null,deeperZone=null,combinedPct=null;
   if(deeper){
-    const deepScore=deeperAnswers.reduce((s,a,i)=>s+(a!==null?deeperQs[i].options[a].score:0),0);
-    const combined=freePct*.6+(deepScore/(deeperQs.length*3))*.4;
-    finalZone=getZone(combined);guidanceKey=finalZone+'_deep';dotPos=getDotPos(combined);
+    deeperScore=deeperAnswers.reduce((s,a,i)=>s+(a!==null?deeperQs[i].options[a].score:0),0);
+    combinedPct=freePct*.6+(deeperScore/(deeperQs.length*3))*.4;
+    finalZone=getZone(combinedPct);guidanceKey=finalZone+'_deep';deeperZone=finalZone;dotPos=getDotPos(combinedPct);
   }
   if(!guidance[guidanceKey])guidanceKey=finalZone;
   const g=guidance[guidanceKey];
@@ -493,7 +617,7 @@ function showResult(deeper){
   const freePills=freeAnswers.slice(1).map((a,i)=>a!==null?`<div class="score-pill">${scoreQLabels[i]}: ${freeQs[i+1].options[a].label.split('—')[0].trim()}</div>`:'').join('');
   const deepPills=deeper?deeperAnswers.map((a,i)=>a!==null?`<div class="score-pill">${deeperLabels[i]}: ${deeperQs[i].options[a].label.split('—')[0].trim()}</div>`:'').join(''):'';
   document.getElementById('score-pills').innerHTML=freePills+deepPills;
-  show('screen-result');
+  showScreen('screen-result');
   const col=zoneColors[finalZone];
   setTimeout(()=>{
     if(deeper){const bd=document.getElementById('dot-baseline');bd.setAttribute('cx',basePos.x);bd.setAttribute('cy',basePos.y);bd.setAttribute('opacity','1')}
@@ -501,11 +625,27 @@ function showResult(deeper){
     dot.setAttribute('cx',dotPos.x);dot.setAttribute('cy',dotPos.y);dot.setAttribute('fill',col);dot.setAttribute('opacity','1');
     ring.setAttribute('cx',dotPos.x);ring.setAttribute('cy',dotPos.y);ring.setAttribute('stroke',col);ring.setAttribute('opacity','.45');
   },120);
+
+  // Save session to Supabase
+  setSaveIndicator('save-indicator','Saving session...',false);
+  const sessionData={
+    device_id:DEVICE_ID,
+    climbing_type:climbingTypeLabel,
+    baseline_score:baselineScore,
+    baseline_zone:getZone(freePct),
+    did_go_deeper:deeper,
+    deeper_score:deeper?deeperScore:null,
+    deeper_zone:deeper?deeperZone:null
+  };
+  const saved=await sbInsert('sessions',sessionData);
+  if(saved&&saved.id){currentSessionId=saved.id;setSaveIndicator('save-indicator','Session saved',true)}
+  else{setSaveIndicator('save-indicator','',false)}
 }
 
+// ── Fall log ─────────────────────────────────────────────
 function startFallLog(){
-  fallPhase='quick';fallCurrent=0;fearSelected=null;quickAnswers={};extAnswers={};
-  show('screen-fall');renderFall();
+  fallPhase='quick';fallCurrent=0;stressSelected=null;quickAnswers={};extAnswers={};
+  showScreen('screen-fall');renderFall();
 }
 
 function renderFall(){
@@ -524,22 +664,14 @@ function renderFall(){
   const answers=fallPhase==='quick'?quickAnswers:extAnswers;
   const wrap=document.getElementById('fall-q-options-wrap');
   wrap.innerHTML='';
-  if(q.isFear){
-    document.getElementById('fall-btn-next').disabled=fearSelected===null;
-    const stressOpts=[
-      {val:1,label:"No reaction",sub:"Breath steady, grip relaxed naturally"},
-      {val:2,label:"Mild response",sub:"Noticed some tension, recovered quickly"},
-      {val:3,label:"Moderate response",sub:"Grip tightened, breath shortened, took a moment"},
-      {val:4,label:"Strong response",sub:"Froze, pumped out, or needed time to reset"},
-      {val:5,label:"Intense response",sub:"Full shutdown, couldn't continue immediately"},
-      {val:0,label:"Not sure",sub:"I wasn't tracking my body's response"}
-    ];
+  if(q.isStress){
+    document.getElementById('fall-btn-next').disabled=stressSelected===null;
     const container=document.createElement('div');container.className='options';
     stressOpts.forEach(opt=>{
       const el=document.createElement('div');
-      el.className='option'+(fearSelected===opt.val?' selected':'');
+      el.className='option'+(stressSelected===opt.val?' selected':'');
       el.innerHTML=`<div class="option-marker"></div><div class="option-label">${opt.label}<div class="option-sub">${opt.sub}</div></div>`;
-      el.onclick=()=>{fearSelected=opt.val;quickAnswers.fear=opt.val;quickAnswers.stressLabel=opt.label;renderFall()};
+      el.onclick=()=>{stressSelected=opt.val;quickAnswers.stress=opt.val;quickAnswers.stressLabel=opt.label;renderFall()};
       container.appendChild(el);
     });
     wrap.appendChild(container);
@@ -571,27 +703,46 @@ function fallNext(){
   } else {saveFall();showFallSummary()}
 }
 
-function saveFall(){
-  sessionFalls.push({
+async function saveFall(){
+  const fallData={
     fell:quickAnswers.fell,fallType:quickAnswers.fallType,
-    angle:quickAnswers.angle,fear:quickAnswers.fear||0,stressLabel:quickAnswers.stressLabel||'',
+    angle:quickAnswers.angle,stress_response:quickAnswers.stress||null,
+    stress_label:quickAnswers.stressLabel||null,
     gotBack:extAnswers.gotBack,sessionImpact:extAnswers.sessionImpact,
     fallHeight:extAnswers.fallHeight,grade:extAnswers.grade,
     climbType:climbingTypeLabel,
     time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
-  });
+  };
+  sessionFalls.push(fallData);
+  // Save to Supabase
+  if(currentSessionId){
+    sbInsert('falls',{
+      session_id:currentSessionId,
+      device_id:DEVICE_ID,
+      fell:fallData.fell,
+      fall_type:fallData.fallType,
+      wall_angle:fallData.angle,
+      stress_response:fallData.stress_response,
+      stress_label:fallData.stress_label,
+      got_back_on:fallData.gotBack,
+      session_impact:fallData.sessionImpact,
+      fall_height:fallData.fallHeight,
+      grade:fallData.grade
+    });
+  }
 }
 
 function showFallSummary(){
   const maxFree=(freeQs.length-1)*4;
   const zone=getZone(baselineScore/maxFree);
   const withFalls=sessionFalls.filter(f=>f.fell==='yes');
-  const avgFear=withFalls.length>0?Math.round(withFalls.reduce((s,f)=>s+f.fear,0)/withFalls.length*10)/10:0;
+  const validStress=withFalls.filter(f=>f.stress_response>0);
+  const avgStress=validStress.length>0?Math.round(validStress.reduce((s,f)=>s+f.stress_response,0)/validStress.length*10)/10:null;
   const gotBackCount=sessionFalls.filter(f=>f.gotBack==='yes_quick'||f.gotBack==='yes_slow').length;
   document.getElementById('session-summary').innerHTML=`
     <div class="session-stat"><span class="session-stat-label">Climbs logged</span><span class="session-stat-val">${sessionFalls.length}</span></div>
     <div class="session-stat"><span class="session-stat-label">Falls taken</span><span class="session-stat-val">${withFalls.length}</span></div>
-    ${withFalls.length>0?`<div class="session-stat"><span class="session-stat-label">Avg stress response</span><span class="session-stat-val">${avgFear} / 5</span></div>`:''}
+    ${avgStress!==null?`<div class="session-stat"><span class="session-stat-label">Avg stress response</span><span class="session-stat-val">${avgStress} / 5</span></div>`:''}
     ${withFalls.length>0?`<div class="session-stat"><span class="session-stat-label">Got back on</span><span class="session-stat-val">${gotBackCount} of ${withFalls.length}</span></div>`:''}
     <div class="session-stat"><span class="session-stat-label">Climbing type</span><span class="session-stat-val">${climbingTypeLabel}</span></div>
   `;
@@ -606,21 +757,133 @@ function showFallSummary(){
         <div class="fall-entry-title">${f.fell==='yes'?(f.fallType==='intentional'?'Intentional':'Unexpected')+' fall':f.fell==='no'?'No fall taken':'Heading to the wall'}${f.angle?' · '+(angleLabels[f.angle]||f.angle):''}${f.grade?' · '+(gradeLabels[f.grade]||f.grade):''}</div>
         <div class="fall-entry-sub">${f.time}${f.fallHeight&&f.fallHeight!=='na'?' · '+{short:'Short fall',medium:'Medium fall',long:'Long fall'}[f.fallHeight]:''}${f.sessionImpact&&f.sessionImpact!=='na'?' · '+(impactLabels[f.sessionImpact]||''):''}</div>
       </div>
-      ${f.fell==='yes'?`<div class="fall-entry-fear">${f.stressLabel||'Stress: '+f.fear}</div>`:''}
+      ${f.fell==='yes'&&f.stress_label?`<div class="fall-entry-stress">${f.stress_label}</div>`:''}
     </div>
   `).join('');
-  show('screen-fall-summary');
+  showScreen('screen-fall-summary');
+  setSaveIndicator('fall-save-indicator','Falls saved to your session',true);
 }
 
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+// ── History ──────────────────────────────────────────────
+async function showHistory(){
+  showScreen('screen-history');
+  document.getElementById('history-list').innerHTML='<div class="empty-state"><div class="empty-state-title">Loading...</div></div>';
+  const sessions=await sbSelect('sessions',{device_id:`eq.${DEVICE_ID}`,limit:20});
+  if(!sessions||sessions.length===0){
+    document.getElementById('history-list').innerHTML=`<div class="empty-state"><div class="empty-state-title">No sessions yet</div><div class="empty-state-sub">Complete your first assessment and it will appear here.</div></div>`;
+    return;
+  }
+  const zoneLabels={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
+  const badgeClasses={comfort:'badge-comfort',learning:'badge-learning',panic:'badge-panic'};
+  document.getElementById('history-list').innerHTML=sessions.map(s=>{
+    const zone=s.deeper_zone||s.baseline_zone||'comfort';
+    const date=new Date(s.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});
+    return `<div class="history-entry">
+      <div class="history-zone-dot" style="background:${zoneColors[zone]||'#888'}"></div>
+      <div class="history-info">
+        <div class="history-title">${s.climbing_type||'Unknown type'} ${s.did_go_deeper?'· Route analysis':''}</div>
+        <div class="history-sub">${date}</div>
+      </div>
+      <span class="history-zone-badge result-zone-badge ${badgeClasses[zone]||''}">${zoneLabels[zone]||zone}</span>
+    </div>`;
+  }).join('');
+}
 
+// ── Feedback ─────────────────────────────────────────────
+const feedbackQs=[
+  {text:"How was your experience with the app?",key:"overall",options:[
+    {label:"Great — exactly what I needed",val:"great"},
+    {label:"Good — mostly worked well",val:"good"},
+    {label:"Needs work — some friction",val:"needs_work"},
+    {label:"Confusing — I wasn't sure what to do",val:"confusing"}
+  ]},
+  {text:"What was most useful?",key:"most_useful",options:[
+    {label:"The assessment questions",val:"assessment"},
+    {label:"The Exposure Map",val:"exposure_map"},
+    {label:"Go Deeper route analysis",val:"go_deeper"},
+    {label:"The fall log",val:"fall_log"},
+    {label:"All of it",val:"all"}
+  ]},
+  {text:"What was missing or could be better?",key:"biggest_gap",options:[
+    {label:"Questions felt too vague",val:"vague_questions"},
+    {label:"The result wasn't specific enough",val:"vague_result"},
+    {label:"I wanted more features",val:"more_features"},
+    {label:"Nothing — it worked well",val:"nothing"}
+  ]}
+];
+
+let fbCurrent=0,fbAnswers={},fbSource='floating';
+
+function openFeedback(){
+  fbCurrent=0;fbAnswers={};fbSource='floating';
+  document.getElementById('feedback-success').style.display='none';
+  document.getElementById('feedback-content').style.display='block';
+  renderFeedback();
+  document.getElementById('feedback-modal').classList.add('active');
+}
+
+function closeFeedback(){document.getElementById('feedback-modal').classList.remove('active')}
+function closeFeedbackOnOverlay(e){if(e.target===document.getElementById('feedback-modal'))closeFeedback()}
+
+function renderFeedback(){
+  if(fbCurrent<feedbackQs.length){
+    const q=feedbackQs[fbCurrent];
+    document.getElementById('feedback-progress').style.width=(((fbCurrent)/(feedbackQs.length+1))*100)+'%';
+    document.getElementById('feedback-step-label').textContent=`Step ${fbCurrent+1} of ${feedbackQs.length}`;
+    document.getElementById('fb-q-text').textContent=q.text;
+    document.getElementById('fb-open-wrap').style.display='none';
+    document.getElementById('fb-next-btn').disabled=!fbAnswers[q.key];
+    document.getElementById('fb-next-btn').textContent='Continue →';
+    const wrap=document.getElementById('fb-options-wrap');
+    wrap.innerHTML='';
+    const container=document.createElement('div');container.className='options';
+    q.options.forEach(opt=>{
+      const el=document.createElement('div');
+      el.className='option'+(fbAnswers[q.key]===opt.val?' selected':'');
+      el.innerHTML=`<div class="option-marker"></div><div class="option-label">${opt.label}</div>`;
+      el.onclick=()=>{fbAnswers[q.key]=opt.val;renderFeedback()};
+      container.appendChild(el);
+    });
+    wrap.appendChild(container);
+  } else {
+    // Open text step
+    document.getElementById('feedback-progress').style.width='90%';
+    document.getElementById('feedback-step-label').textContent='Almost done';
+    document.getElementById('fb-q-text').textContent='Anything else?';
+    document.getElementById('fb-options-wrap').innerHTML='';
+    document.getElementById('fb-open-wrap').style.display='block';
+    document.getElementById('fb-next-btn').disabled=false;
+    document.getElementById('fb-next-btn').textContent='Submit →';
+  }
+}
+
+async function feedbackNext(){
+  if(fbCurrent<feedbackQs.length){
+    fbCurrent++;renderFeedback();
+  } else {
+    const openText=document.getElementById('fb-open-text').value;
+    await sbInsert('feedback',{
+      what_felt_accurate:fbAnswers.most_useful||null,
+      what_felt_missing:fbAnswers.biggest_gap||null,
+      would_use_again:fbAnswers.overall==='great'||fbAnswers.overall==='good'?'yes':'no',
+      influenced_decision:null,
+      feedback_source:fbSource,
+      overall_rating:fbAnswers.overall,
+      open_notes:openText||null
+    });
+    document.getElementById('feedback-content').style.display='none';
+    document.getElementById('feedback-success').style.display='block';
+  }
+}
+
+// ── Restart ──────────────────────────────────────────────
 function restart(){
-  phase='free';current=0;baselineScore=0;climbingTypeLabel='';isDeeper=false;
+  phase='free';current=0;baselineScore=0;climbingTypeLabel='';isDeeper=false;currentSessionId=null;
   freeAnswers=new Array(freeQs.length).fill(null);
   deeperAnswers=new Array(deeperQs.length).fill(null);
-  sessionFalls=[];fearSelected=null;quickAnswers={};extAnswers={};
+  sessionFalls=[];stressSelected=null;quickAnswers={};extAnswers={};
   ['dot-baseline','dot-main','dot-ring'].forEach(id=>document.getElementById(id).setAttribute('opacity','0'));
-  show('screen-assessment');render();
+  showScreen('screen-assessment');render();
 }
 
 render();
