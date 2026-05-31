@@ -188,7 +188,10 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
       <div class="header-title">Sharp End <span>Exposure</span></div>
       <div class="header-sub">Know your edge. Track your growth.</div>
     </div>
-    <button class="header-btn" onclick="showHistory()">My sessions</button>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button class="header-btn" onclick="showHistory()">Sessions</button>
+      <button class="header-btn" onclick="show('s-research')">Research</button>
+    </div>
   </div>
 
   <div class="screen" id="s-assess">
@@ -207,81 +210,88 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
   </div>
 
   <div class="screen" id="s-result">
-    <div id="ct-tag" class="ct-tag"></div>
-    <div id="pattern-line" style="display:none;font-size:13px;color:#5f5e5a;font-weight:300;margin-bottom:.75rem;padding:.5rem .75rem;background:rgba(0,0,0,0.04);border-radius:6px;border-left:2px solid #c8622a"></div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <div class="zone-badge" id="zone-badge"></div>
-      <span class="refined-badge" id="refined-lbl" style="display:none">Route-refined</span>
+
+    <!-- TOP: Zone + one sentence -->
+    <div style="margin-bottom:1.25rem">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem">
+        <div class="zone-badge" id="zone-badge"></div>
+        <span class="refined-badge" id="refined-lbl" style="display:none">Route-refined</span>
+      </div>
+      <div class="res-title" id="res-title"></div>
     </div>
-    <div class="res-title" id="res-title"></div>
-    <div class="res-sub" id="res-sub"></div>
-    <div class="map-wrap">
+
+    <!-- MIDDLE: Map left, guidance right -->
+    <div style="display:flex;gap:1.25rem;align-items:flex-start;margin-bottom:1.25rem">
       <div style="flex-shrink:0">
-        <svg width="200" height="200" viewBox="0 0 200 200">
-          <circle cx="100" cy="100" r="90" fill="rgba(168,56,40,.08)" stroke="rgba(168,56,40,.25)" stroke-width=".5"/>
-          <circle cx="100" cy="100" r="62" fill="rgba(200,133,42,.1)" stroke="rgba(200,133,42,.3)" stroke-width=".5"/>
-          <circle cx="100" cy="100" r="34" fill="rgba(74,122,90,.15)" stroke="rgba(74,122,90,.35)" stroke-width=".5"/>
-          <text x="100" y="103" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="rgba(74,122,90,.9)" font-weight="500">Comfort</text>
-          <text x="100" y="77" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7.5" fill="rgba(200,133,42,.85)">Learning</text>
-          <text x="100" y="32" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7" fill="rgba(168,56,40,.8)">Panic</text>
+        <svg width="160" height="160" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="90" fill="rgba(168,56,40,.08)" stroke="rgba(168,56,40,.22)" stroke-width=".5"/>
+          <circle cx="100" cy="100" r="62" fill="rgba(200,133,42,.1)" stroke="rgba(200,133,42,.25)" stroke-width=".5"/>
+          <circle cx="100" cy="100" r="34" fill="rgba(74,122,90,.15)" stroke="rgba(74,122,90,.3)" stroke-width=".5"/>
+          <text x="100" y="103" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" fill="rgba(74,122,90,.85)" font-weight="500">Comfort</text>
+          <text x="100" y="77" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="rgba(200,133,42,.8)">Learning</text>
+          <text x="100" y="32" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7.5" fill="rgba(168,56,40,.75)">Panic</text>
           <circle id="dot-base" cx="100" cy="100" r="5" fill="rgba(150,150,150,.4)" opacity="0" style="transition:all .8s ease"/>
-          <circle id="dot-main" cx="100" cy="100" r="6" fill="#c8622a" opacity="0" style="transition:all .8s ease"/>
-          <circle id="dot-ring" cx="100" cy="100" r="10" fill="none" stroke="#c8622a" stroke-width="1" opacity="0" style="transition:all .8s ease"/>
+          <circle id="dot-main" cx="100" cy="100" r="7" fill="#c8622a" opacity="0" style="transition:all .8s ease"/>
+          <circle id="dot-ring" cx="100" cy="100" r="11" fill="none" stroke="#c8622a" stroke-width="1.5" opacity="0" style="transition:all .8s ease"/>
         </svg>
+        <div id="leg-base" style="display:none;font-size:11px;color:#888780;margin-top:4px;display:flex;align-items:center;gap:5px">
+          <div style="width:8px;height:8px;border-radius:50%;background:rgba(150,150,150,.5)"></div>Baseline
+        </div>
       </div>
-      <div class="map-legend">
-        <div class="leg-item"><div class="leg-dot" style="background:rgba(74,122,90,.8)"></div><div class="leg-text"><strong>Comfort zone</strong>Within your current experience</div></div>
-        <div class="leg-item"><div class="leg-dot" style="background:rgba(200,133,42,.8)"></div><div class="leg-text"><strong>Learning zone</strong>Stretch &mdash; growth happens here</div></div>
-        <div class="leg-item"><div class="leg-dot" style="background:rgba(168,56,40,.8)"></div><div class="leg-text"><strong>Panic zone</strong>Risk may outpace readiness</div></div>
-        <div class="leg-item" id="leg-base" style="display:none"><div class="leg-dot" style="background:rgba(150,150,150,.5)"></div><div class="leg-text"><strong>Baseline</strong>Before route detail</div></div>
-        <div class="leg-item"><div class="leg-dot" style="background:#c8622a"></div><div class="leg-text"><strong id="dot-lbl">Your placement</strong>This climb, right now</div></div>
+      <div style="flex:1;min-width:0">
+        <div class="g-text" id="g-text"></div>
       </div>
     </div>
+
+    <!-- Panic zone small step -->
     <div class="small-step" id="small-step" style="display:none">
       <div class="ss-label">Before you commit</div>
-      <div class="ss-q">You are pushing into challenging territory. What is one smaller step you could take today that still moves you forward?</div>
+      <div class="ss-q">What is one smaller step you could take today that still moves you forward?</div>
       <textarea class="ta-sm" placeholder="e.g. Lead a familiar route and practice intentional falls first..."></textarea>
     </div>
-    <div class="guidance">
-      <div class="g-label" id="g-label">Assessment</div>
-      <div class="g-text" id="g-text"></div>
+
+    <!-- Pattern line (returning users) -->
+    <div id="pattern-line" style="display:none;font-size:12px;color:#5f5e5a;font-weight:300;margin-bottom:1rem;padding:.5rem .75rem;background:rgba(0,0,0,0.04);border-radius:6px;border-left:2px solid #c8622a"></div>
+
+    <div class="divider"></div>
+
+    <!-- BOTTOM: What next -->
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem">What would you like to do next?</div>
+    <div id="deeper-gate" class="next-card" onclick="startDeeper()" style="margin-bottom:8px;display:flex">
+      <div class="next-card-icon ci-orange">&#8595;</div>
+      <div class="next-card-body">
+        <div class="next-card-title">Go Deeper</div>
+        <div class="next-card-sub">Route analysis &amp; physical state &mdash; refines your map</div>
+      </div>
+      <div class="next-card-arrow">&#8250;</div>
     </div>
-    <div style="margin-bottom:.5rem">
-      <button onclick="togglePills()" style="font-size:12px;color:#888780;background:none;border:none;cursor:pointer;padding:0;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:4px">
-        <span id="pills-caret" style="display:inline-block;transition:transform .2s">&#9656;</span> Your answers
+    <div style="display:flex;gap:8px">
+      <div class="next-card" onclick="startFallLog()" style="flex:1">
+        <div class="next-card-icon ci-blue">&#8627;</div>
+        <div class="next-card-body">
+          <div class="next-card-title">Log a fall</div>
+          <div class="next-card-sub">Track what happened</div>
+        </div>
+      </div>
+      <div class="next-card" onclick="showHistory()" style="flex:1">
+        <div class="next-card-icon ci-green">&#9211;</div>
+        <div class="next-card-body">
+          <div class="next-card-title">My sessions</div>
+          <div class="next-card-sub">Radar &amp; history</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsed answers -->
+    <div style="margin-top:1rem">
+      <button onclick="togglePills()" style="font-size:12px;color:#aaa;background:none;border:none;cursor:pointer;padding:0;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px">
+        <span id="pills-caret" style="display:inline-block;transition:transform .2s">&#9656;</span> View your answers
       </button>
       <div id="pills" style="display:none;margin-top:.5rem;flex-wrap:wrap;gap:6px"></div>
     </div>
-    <div class="divider"></div>
-    <div class="next-section-label" id="what-next-label">What would you like to do next?</div>
-    <div id="next-actions">
-      <div class="next-card" id="deeper-gate" onclick="startDeeper()">
-        <div class="next-card-icon ci-orange">&#8595;</div>
-        <div class="next-card-body">
-          <div class="next-card-title">Go Deeper</div>
-          <div class="next-card-sub">Route analysis &amp; physical state — refines your Exposure Map</div>
-        </div>
-        <div class="next-card-arrow">&#8250;</div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <div class="next-card" onclick="startFallLog()" style="flex:1">
-          <div class="next-card-icon ci-blue">&#8627;</div>
-          <div class="next-card-body">
-            <div class="next-card-title">Log a fall</div>
-            <div class="next-card-sub">Track what happened</div>
-          </div>
-        </div>
-        <div class="next-card" onclick="showHistory()" style="flex:1">
-          <div class="next-card-icon ci-green">&#9684;</div>
-          <div class="next-card-body">
-            <div class="next-card-title">My radar</div>
-            <div class="next-card-sub">Terrain experience</div>
-          </div>
-        </div>
-      </div>
-    </div>
+
     <div class="save-ind" id="save-ind"></div>
-    <div class="restart-row"><button class="btn" onclick="restart()" style="font-size:13px">Start over</button></div>
+    <div class="restart-row"><button class="btn" onclick="restart()" style="font-size:13px;color:#aaa">Start over</button></div>
   </div>
 
   <div class="screen" id="s-fall">
@@ -384,8 +394,49 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
     </div>
   </div>
 
+  <div class="screen" id="s-research">
+    <button class="btn" onclick="show('s-assess')" style="font-size:13px;margin-bottom:1rem">&#8592; Back</button>
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px">Straydog Labs</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;line-height:1;margin-bottom:4px">The Research</div>
+    <div style="font-size:13px;color:#5f5e5a;font-weight:300;margin-bottom:1.75rem;line-height:1.6">The psychology behind Sharp End Exposure — why the zones exist, what the questions are measuring, and what the data suggests about how climbers develop.</div>
+
+    <div class="card" style="margin-top:0">
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:6px">Optimal Activation</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:.75rem;line-height:1.3">The learning window</div>
+      <div style="font-size:13px;color:#5f5e5a;line-height:1.7;font-weight:300">Performance research consistently shows there is an optimal level of mental activation for any given task. Too little — and attention drifts, effort drops, learning slows. Too much — and judgment narrows, fine motor control can degrade, risk assessment becomes less reliable. The zone in between is where skill acquisition tends to peak. Sharp End Exposure calls this the learning zone. It is not where you feel most comfortable. Research suggests it is where you improve most.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:6px">Fall Psychology</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:.75rem;line-height:1.3">Fear is learned — and it can change</div>
+      <div style="font-size:13px;color:#5f5e5a;line-height:1.7;font-weight:300">Fear of falling is not fixed. Research suggests it is largely a learned response — shaped by past experience, perceived consequence, and the stories we tell ourselves about what falling means. Controlled, deliberate exposure to falling in progressively challenging terrain tends to reduce that fear response over time. That is what the fall log is tracking — not just what happened, but how your relationship with falling changes across sessions.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:6px">Stress and Performance</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:.75rem;line-height:1.3">High activation is a readiness signal, not a character judgment</div>
+      <div style="font-size:13px;color:#5f5e5a;line-height:1.7;font-weight:300">Under high perceived stress, the brain tends to prioritize threat detection over performance. Research suggests this can affect judgment, working memory, and fine motor control — not because something is wrong with the climber, but because that is how threat response tends to work. Recognizing high activation as a readiness signal — rather than a character flaw — tends to produce better decisions about when and how to engage with challenging terrain.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:6px">Deliberate Practice</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:.75rem;line-height:1.3">Repetition is not enough</div>
+      <div style="font-size:13px;color:#5f5e5a;line-height:1.7;font-weight:300">Research on skill acquisition suggests volume of practice matters less than the quality of attention brought to it. Repetition without a specific focus reinforces existing patterns rather than building new ones. Deliberate practice — defined by a specific intention, attention to process, and reflection on what happened — produces skill development even on familiar terrain. Comfort zone climbing with a deliberate focus is not wasted climbing. Without one, it often is.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:6px">Process vs Outcome</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:.75rem;line-height:1.3">What you control matters more than what you want</div>
+      <div style="font-size:13px;color:#5f5e5a;line-height:1.7;font-weight:300">Performance psychology research consistently shows that focusing on what you can control — preparation, attention, response to difficulty — produces better outcomes than focusing on the result. Outcome focus narrows attention to success or failure. Process focus expands it to the specific actions that lead to performance. Sharp End Exposure asks about intention, mental state, and fall response rather than grade — because that is where the data that predicts growth tends to live.</div>
+    </div>
+
+    <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:0.5px solid rgba(0,0,0,0.08)">
+      <div style="font-size:12px;color:#aaa;line-height:1.6;font-weight:300">Sharp End Exposure is a self-assessment tool, not a clinical instrument. The frameworks referenced here draw on established sport psychology and performance research. Results are based on self-reported responses and should be interpreted as one data point among many — not as a definitive assessment of any individual.</div>
+    </div>
+  </div>
+
   <div class="screen" id="s-history">
-    <button class="btn" onclick="show('s-assess')" style="font-size:13px;margin-bottom:1rem">Back</button>
+    <button class="btn" onclick="show('s-assess')" style="font-size:13px;margin-bottom:1rem">&#8592; Back</button>
     <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px">Your sessions</div>
     <div style="font-family:Bebas Neue,sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:4px">Session History</div>
     <div style="font-size:13px;color:#5f5e5a;font-weight:300;margin-bottom:1.25rem">All your past assessments on this device.</div>
@@ -680,24 +731,42 @@ var injContact=[
 ];
 
 var guidance={
-  comfort:{title:"Within your comfort zone",badge:"Comfort zone",bc:"z-comfort",
-    sub:"This climb sits inside what you already know. Your readiness and the demands of the route are well-matched.",
-    text:"Here is the question worth sitting with: are you climbing in your comfort zone because it is the right call today, or because you have stopped pushing the edge? Both are valid — but only one of them is intentional. Comfort zone climbing is not wasted climbing. It is where movement gets automated, where you stop thinking and start feeling the rock. But if this is where you always land, the zone is not just comfortable — it has become a ceiling. Before you leave the ground, pick one thing to do differently. Not harder. Just more deliberately."},
-  comfort_deep:{title:"Solidly in your comfort zone",badge:"Comfort zone",bc:"z-comfort",
-    sub:"The route detail confirms it — you are well within your current range. Your readiness and the demands are closely matched.",
-    text:"The route is not the challenge today. Which means you are free to use it as a laboratory. What does your breathing do on the crux? Where does your attention go when you get pumped? How do you talk to yourself when you come off? These are the questions that matter when the climbing is not hard enough to demand your full attention. The most experienced climbers are the ones who stay curious on easy terrain. What are you going to pay attention to on this one?"},
-  learning:{title:"In your learning zone",badge:"Learning zone",bc:"z-learning",
-    sub:"This climb is at the edge of what is familiar. You are stretched — not overwhelmed. This is exactly where growth happens.",
-    text:"Something will come up on this route that you do not know how to handle yet. That moment — when the move feels impossible, when the fall looks big, when your hands start to shake — is not a signal to stop. It is the actual lesson. The nervous system does not distinguish between real danger and perceived danger; your job is to learn the difference. Before you clip the first bolt, decide what you will do when that moment arrives. Not if — when. Climbers who precommit to staying present through discomfort learn faster than climbers who are surprised by it."},
-  learning_deep:{title:"Learning zone — route confirmed",badge:"Learning zone",bc:"z-learning",
-    sub:"The route detail adds real texture to your baseline. The specific demands here are worth naming before you leave the ground.",
-    text:"You know what concerns you on this route. The question is whether you have made a decision about it, or whether you are hoping it will not matter. The runout, the crux fall, the sequence you have not figured out — these do not disappear when you start climbing. They get louder. What is your specific plan for the moment that worries you most? Not a hope — a plan. Climbers who name the hard thing and decide how they will meet it perform better than climbers who avoid thinking about it until they are already on the wall."},
-  panic:{title:"Approaching the panic zone",badge:"Panic zone",bc:"z-panic",
-    sub:"The psychological demands of this climb may outpace your current readiness. That is not a judgment — it is data worth taking seriously.",
-    text:"When the nervous system goes into panic, the prefrontal cortex — the part responsible for judgment, decision-making, and learning — goes offline. You stop climbing and start surviving. That state does not produce growth; it produces reinforced fear patterns that are harder to unlearn than the original skill gap. So here is the real question: what is driving the pull toward this climb right now? Is it genuine readiness, or is it something else — ego, social pressure, the story you want to tell? There is more courage in choosing the right climb than in charging the wrong one."},
-  panic_deep:{title:"Panic zone — route detail confirms it",badge:"Panic zone",bc:"z-panic",
-    sub:"The route-specific factors add real weight to your baseline score. The demands here are significant relative to where you are right now.",
-    text:"The route is telling you something. The runout you cannot see the bottom of, the crux fall over the ledge, the onsight on terrain you have never touched — these are not just technical factors. They are psychological load, stacked on top of a readiness score that is already stretched. Proceeding from this state rarely produces the climb you are imagining. It produces the one where you are gripping too hard, moving too fast, and not actually present for any of it. What would it look like to take one step back and one step toward this climb at the same time?"}
+  comfort:{
+    title:"This climb appears to sit within your current range.",
+    badge:"Comfort zone",bc:"z-comfort",
+    sub:"",
+    text:"Comfort zone climbing done with full attention builds real skill. Done on autopilot, it passes time. Before you leave the ground — what specifically are you going to pay attention to on this one?"
+  },
+  comfort_deep:{
+    title:"The route detail suggests familiar territory.",
+    badge:"Comfort zone",bc:"z-comfort",
+    sub:"",
+    text:"Lower activation on familiar terrain is where movement gets grooved — that has genuine value. It compounds when paired with a specific focus. Pick one thing to pay attention to. Not a result. A process."
+  },
+  learning:{
+    title:"Your responses suggest you may be in an optimal activation window.",
+    badge:"Learning zone",bc:"z-learning",
+    sub:"",
+    text:"Engaged enough that the climb demands something real — not so activated that it interferes. Something on this climb will test you. Decide now how you want to meet it, before you are already on the wall."
+  },
+  learning_deep:{
+    title:"The route detail suggests productive stretch territory.",
+    badge:"Learning zone",bc:"z-learning",
+    sub:"",
+    text:"At this level, attention to new information tends to be heightened — bolt spacing, crux position, fall consequence all register more sharply. Name the specific thing that concerns you most. Then decide how you will meet it. A decision made here becomes composure up there."
+  },
+  panic:{
+    title:"The demands of this climb may be outpacing your current readiness.",
+    badge:"Panic zone",bc:"z-panic",
+    sub:"",
+    text:"Research suggests that judgment and fine motor control can be affected when perceived stress gets too high — this tends to be physiological, not a reflection of capability. What is driving the pull toward this route right now? That answer tends to matter more than the grade."
+  },
+  panic_deep:{
+    title:"The route detail suggests the gap between demand and readiness may be significant.",
+    badge:"Panic zone",bc:"z-panic",
+    sub:"",
+    text:"At higher activation levels, perception tends to narrow — routes can feel more demanding than they are, movement tends to rush. A version of this challenge that keeps you closer to the learning window is typically the more productive climb — and often the braver choice."
+  }
 };
 
 var freeLabels=["Experience","Fall comfort","Route knowledge","Mental state","Grade","Fall response"];
@@ -856,8 +925,8 @@ function showResult(deeper){
   document.getElementById("zone-badge").textContent=g.badge;
   document.getElementById("zone-badge").className="zone-badge "+g.bc;
   document.getElementById("res-title").textContent=g.title;
-  document.getElementById("res-sub").textContent=g.sub;
-  document.getElementById("g-label").textContent=deeper?"Route-refined assessment":"Baseline assessment";
+  // subtitle removed
+  // g-label no longer used as section header
   document.getElementById("g-text").textContent=g.text;
   document.getElementById("refined-lbl").style.display=deeper?"inline-flex":"none";
   document.getElementById("leg-base").style.display=deeper?"flex":"none";
