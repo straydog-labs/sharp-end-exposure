@@ -236,26 +236,34 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
       <button onclick="togglePills()" style="font-size:12px;color:#888780;background:none;border:none;cursor:pointer;padding:0;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:4px">
         <span id="pills-caret" style="display:inline-block;transition:transform .2s">&#9656;</span> Your answers
       </button>
-      <div id="pills" style="display:none;margin-top:.5rem"></div>
+      <div id="pills" style="display:none;margin-top:.5rem;flex-wrap:wrap;gap:6px"></div>
     </div>
     <div class="divider"></div>
-    <div class="next-section-label">What would you like to do next?</div>
-    <div class="next-cards" id="deeper-gate">
-      <div class="next-card" onclick="startDeeper()">
+    <div class="next-section-label" id="what-next-label">What would you like to do next?</div>
+    <div id="next-actions">
+      <div class="next-card" id="deeper-gate" onclick="startDeeper()">
         <div class="next-card-icon ci-orange">&#8595;</div>
         <div class="next-card-body">
           <div class="next-card-title">Go Deeper</div>
-          <div class="next-card-sub">Route analysis &amp; physical state</div>
+          <div class="next-card-sub">Route analysis &amp; physical state — refines your Exposure Map</div>
         </div>
         <div class="next-card-arrow">&#8250;</div>
       </div>
-      <div class="next-card" onclick="startFallLog()">
-        <div class="next-card-icon ci-blue">&#8627;</div>
-        <div class="next-card-body">
-          <div class="next-card-title">Log a fall</div>
-          <div class="next-card-sub">Track what happened on the wall</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <div class="next-card" onclick="startFallLog()" style="flex:1">
+          <div class="next-card-icon ci-blue">&#8627;</div>
+          <div class="next-card-body">
+            <div class="next-card-title">Log a fall</div>
+            <div class="next-card-sub">Track what happened</div>
+          </div>
         </div>
-        <div class="next-card-arrow">&#8250;</div>
+        <div class="next-card" onclick="showHistory()" style="flex:1">
+          <div class="next-card-icon ci-green">&#9684;</div>
+          <div class="next-card-body">
+            <div class="next-card-title">My radar</div>
+            <div class="next-card-sub">Terrain experience</div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="save-ind" id="save-ind"></div>
@@ -833,7 +841,7 @@ function showResult(deeper){
   document.getElementById("leg-base").style.display=deeper?"flex":"none";
   document.getElementById("dot-lbl").textContent=deeper?"Refined placement":"Your placement";
   document.getElementById("small-step").style.display=fz==="panic"?"block":"none";
-  document.getElementById("deeper-gate").style.display=deeper?"none":"block";
+  document.getElementById("deeper-gate").style.display=deeper?"none":"flex";
   if(deeper)isDeeper=true;
   var fp2=freeAns.slice(1).map(function(a,i){return a!==null?"<div class='pill'>"+freeLabels[i]+": "+freeQs[i+1].opts[a].l.split("—")[0].trim()+"</div>":"";}).join("");
   var dp2=deeper?deepAns.map(function(a,i){return a!==null?"<div class='pill'>"+deepLabels[i]+": "+deeperQs[i].opts[a].l.split("—")[0].trim()+"</div>":"";}).join(""):"";
