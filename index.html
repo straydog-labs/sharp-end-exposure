@@ -642,7 +642,7 @@ function makeOpts(wrap,opts,curV,onSel){
   opts.forEach(function(opt){
     var el=document.createElement("div");
     el.className="option"+(curV===(opt.v||opt.val)?" selected":"");
-    el.innerHTML="<div class="opt-marker"></div><div class="opt-label">"+(opt.l||opt.label)+(opt.s||opt.sub?"<div class="opt-sub">"+(opt.s||opt.sub)+"</div>":"")+"</div>";
+    el.innerHTML="<div class='opt-marker'></div><div class='opt-label'>"+(opt.l||opt.label)+(opt.s||opt.sub?"<div class='opt-sub'>"+(opt.s||opt.sub)+"</div>":"")+"</div>";
     el.onclick=function(){onSel(opt.v||opt.val);};
     c.appendChild(el);
   });
@@ -685,8 +685,8 @@ function render(){
   var tot=freeQs.length+deeperQs.length;
   document.getElementById("prog").style.width=((idx/tot)*100)+"%";
   document.getElementById("phase-lbl").innerHTML=phase==="free"
-    ?"Question "+(cur+1)+" of "+qs.length+" <span class="phase-tag phase-free">Free</span>"
-    :"Route question "+(cur+1)+" of "+qs.length+" <span class="phase-tag phase-deep">Go Deeper</span>";
+    ?"Question "+(cur+1)+" of "+qs.length+" <span class='phase-tag phase-free'>Free</span>"
+    :"Route question "+(cur+1)+" of "+qs.length+" <span class='phase-tag phase-deep'>Go Deeper</span>";
   var q=qs[cur];
   document.getElementById("q-text").textContent=q.text;
   document.getElementById("q-hint").textContent=q.hint||"";
@@ -698,7 +698,7 @@ function render(){
   q.opts.forEach(function(opt,i){
     var el=document.createElement("div");
     el.className="option"+(as[cur]===i?" selected":"");
-    el.innerHTML="<div class="opt-marker"></div><div class="opt-label">"+(opt.l||opt.label)+(opt.s||opt.sub?"<div class="opt-sub">"+(opt.s||opt.sub)+"</div>":"")+"</div>";
+    el.innerHTML="<div class='opt-marker'></div><div class='opt-label'>"+(opt.l||opt.label)+(opt.s||opt.sub?"<div class='opt-sub'>"+(opt.s||opt.sub)+"</div>":"")+"</div>";
     el.onclick=function(){cAs()[cur]=i;render();};
     c.appendChild(el);
   });
@@ -751,8 +751,8 @@ function showResult(deeper){
   document.getElementById("dot-lbl").textContent=deeper?"Refined placement":"Your placement";
   document.getElementById("small-step").style.display=fz==="panic"?"block":"none";
   document.getElementById("deeper-gate").style.display=deeper?"none":"block";
-  var fp2=freeAns.slice(1).map(function(a,i){return a!==null?"<div class="pill">"+freeLabels[i]+": "+freeQs[i+1].opts[a].l.split("—")[0].trim()+"</div>":"";}).join("");
-  var dp2=deeper?deepAns.map(function(a,i){return a!==null?"<div class="pill">"+deepLabels[i]+": "+deeperQs[i].opts[a].l.split("—")[0].trim()+"</div>":"";}).join(""):"";
+  var fp2=freeAns.slice(1).map(function(a,i){return a!==null?"<div class='pill'>"+freeLabels[i]+": "+freeQs[i+1].opts[a].l.split("—")[0].trim()+"</div>":"";}).join("");
+  var dp2=deeper?deepAns.map(function(a,i){return a!==null?"<div class='pill'>"+deepLabels[i]+": "+deeperQs[i].opts[a].l.split("—")[0].trim()+"</div>":"";}).join(""):"";
   document.getElementById("pills").innerHTML=fp2+dp2;
   show("s-result");
   loadPatternLine();
@@ -851,8 +851,8 @@ function renderFall(){
   var idx=fallPhase==="quick"?fallCur:quickFallQs.length+fallCur;
   document.getElementById("fall-prog").style.width=((idx/tot)*100)+"%";
   document.getElementById("fall-phase").innerHTML=fallPhase==="quick"
-    ?"Fall log "+(fallCur+1)+" of "+quickFallQs.length+" <span class="phase-tag phase-fall">Quick log</span>"
-    :"Fall detail "+(fallCur+1)+" of "+extFallQs.length+" <span class="phase-tag phase-ext">Extended</span>";
+    ?"Fall log "+(fallCur+1)+" of "+quickFallQs.length+" <span class='phase-tag phase-fall'>Quick log</span>"
+    :"Fall detail "+(fallCur+1)+" of "+extFallQs.length+" <span class='phase-tag phase-ext'>Extended</span>";
   var q=qs[fallCur];
   document.getElementById("fall-q").textContent=q.text;
   document.getElementById("fall-hint").textContent=q.hint||"";
@@ -866,7 +866,7 @@ function renderFall(){
     stressOpts.forEach(function(opt){
       var el=document.createElement("div");
       el.className="option"+(stressSel===opt.v?" selected":"");
-      el.innerHTML="<div class="opt-marker"></div><div class="opt-label">"+opt.l+"<div class="opt-sub">"+opt.s+"</div></div>";
+      el.innerHTML="<div class='opt-marker'></div><div class='opt-label'>"+opt.l+"<div class='opt-sub'>"+opt.s+"</div></div>";
       el.onclick=function(){stressSel=opt.v;qA.stress=opt.v;qA.stressLabel=opt.l;renderFall();};
       c.appendChild(el);
     });
@@ -908,25 +908,36 @@ function showFallSum(){
   var avg=vs.length>0?Math.round(vs.reduce(function(s,f){return s+f.stress;},0)/vs.length*10)/10:null;
   var gb=falls.filter(function(f){return f.gotBack==="yes_quick"||f.gotBack==="yes_slow";}).length;
   document.getElementById("sess-sum").innerHTML=
-    "<div class="sess-stat"><span>Climbs logged</span><span class="ss-val">"+falls.length+"</span></div>"+
-    "<div class="sess-stat"><span>Falls taken</span><span class="ss-val">"+wf.length+"</span></div>"+
-    (avg!==null?"<div class="sess-stat"><span>Avg stress response</span><span class="ss-val">"+avg+" / 5</span></div>":"")+
-    (wf.length>0?"<div class="sess-stat"><span>Got back on</span><span class="ss-val">"+gb+" of "+wf.length+"</span></div>":"")+
-    "<div class="sess-stat"><span>Climbing type</span><span class="ss-val">"+ctLabel+"</span></div>";
+    "<div class='sess-stat'><span>Climbs logged</span><span class='ss-val'>"+falls.length+"</span></div>"+
+    "<div class='sess-stat'><span>Falls taken</span><span class='ss-val'>"+wf.length+"</span></div>"+
+    (avg!==null?"<div class='sess-stat'><span>Avg stress response</span><span class='ss-val'>"+avg+" / 5</span></div>":"")+
+    (wf.length>0?"<div class='sess-stat'><span>Got back on</span><span class='ss-val'>"+gb+" of "+wf.length+"</span></div>":"")+
+    "<div class='sess-stat'><span>Climbing type</span><span class='ss-val'>"+ctLabel+"</span></div>";
   var aL={slab:"Slab",vertical:"Vertical",overhang:"Overhang",roof:"Roof"};
   var gL={"5.8-":"5.8 or below","5.9-5.10":"5.9 to 5.10","5.11-5.12":"5.11 to 5.12","5.13+":"5.13+"};
   var iL={none:"No impact",slight:"Slight impact",moderate:"Noticeable impact",major:"Significant impact"};
   var col=zColors[zone];
-  document.getElementById("fall-entries").innerHTML=falls.map(function(f){
-    return "<div class="fall-entry">"+
-      "<div class="fe-dot" style="background:"+col+""></div>"+
-      "<div class="fe-info">"+
-        "<div class="fe-title">"+(f.fell==="yes"?(f.fallType==="intentional"?"Intentional":"Unexpected")+" fall":f.fell==="no"?"No fall taken":"Heading to the wall")+(f.angle?" &middot; "+(aL[f.angle]||f.angle):"")+(f.grade?" &middot; "+(gL[f.grade]||f.grade):"")+"</div>"+
-        "<div class="fe-sub">"+f.time+(f.height&&f.height!=="na"?" &middot; "+{short:"Short fall",medium:"Medium fall",long:"Long fall"}[f.height]:"")+(f.impact&&f.impact!=="na"?" &middot; "+(iL[f.impact]||""):"")+"</div>"+
-      "</div>"+
-      (f.fell==="yes"&&f.stressLabel?"<div class="fe-stress">"+f.stressLabel+"</div>":"")+
-    "</div>";
-  }).join("");
+  var entriesEl=document.getElementById("fall-entries");entriesEl.innerHTML="";
+  falls.forEach(function(f){
+    var entry=document.createElement("div");entry.className="fall-entry";
+    var dot=document.createElement("div");dot.className="fe-dot";dot.style.background=col;
+    var info=document.createElement("div");info.className="fe-info";
+    var tParts=[];
+    if(f.fell==="yes")tParts.push((f.fallType==="intentional"?"Intentional":"Unexpected")+" fall");
+    else if(f.fell==="no")tParts.push("No fall taken");
+    else tParts.push("Heading to the wall");
+    if(f.angle)tParts.push(aL[f.angle]||f.angle);
+    if(f.grade)tParts.push(gL[f.grade]||f.grade);
+    var ftitle=document.createElement("div");ftitle.className="fe-title";ftitle.textContent=tParts.join(" · ");
+    var sParts=[f.time];
+    if(f.height&&f.height!=="na")sParts.push({short:"Short fall",medium:"Medium fall",long:"Long fall"}[f.height]||"");
+    if(f.impact&&f.impact!=="na")sParts.push(iL[f.impact]||"");
+    var fsub=document.createElement("div");fsub.className="fe-sub";fsub.textContent=sParts.filter(Boolean).join(" · ");
+    info.appendChild(ftitle);info.appendChild(fsub);
+    entry.appendChild(dot);entry.appendChild(info);
+    if(f.fell==="yes"&&f.stressLabel){var st=document.createElement("div");st.className="fe-stress";st.textContent=f.stressLabel;entry.appendChild(st);}
+    entriesEl.appendChild(entry);
+  });
   show("s-fall-sum");
   drawRadar("sum-radar","sum-radar-wrap");
   setSave("fall-ind","Falls saved to your session",true);
@@ -984,18 +995,36 @@ function injNext(){
 
 function showHistory(){
   show("s-history");
-  document.getElementById("hist-list").innerHTML="<div class="empty"><div class="empty-title">Loading...</div></div>";
+  var list=document.getElementById("hist-list");list.innerHTML="";
+  var loading=document.createElement("div");loading.className="empty";
+  loading.innerHTML="<div class='empty-title'>Loading...</div>";list.appendChild(loading);
   sbSelect("sessions",{device_id:"eq."+DID,limit:20}).then(function(rows){
-    if(!rows||rows.length===0){document.getElementById("hist-list").innerHTML="<div class="empty"><div class="empty-title">No sessions yet</div><div class="empty-sub">Complete your first assessment and it will appear here.</div></div>";return;}
+    list.innerHTML="";
+    if(!rows||rows.length===0){
+      var empty=document.createElement("div");empty.className="empty";
+      empty.innerHTML="<div class='empty-title'>No sessions yet</div><div class='empty-sub'>Complete your first assessment and it will appear here.</div>";
+      list.appendChild(empty);return;
+    }
     var zL={comfort:"Comfort zone",learning:"Learning zone",panic:"Panic zone"};
     var bC={comfort:"z-comfort",learning:"z-learning",panic:"z-panic"};
-    document.getElementById("hist-list").innerHTML=rows.map(function(s){
+    rows.forEach(function(s){
       var zone=s.deeper_zone||s.baseline_zone||"comfort";
       var date=new Date(s.created_at).toLocaleDateString([],{month:"short",day:"numeric",year:"numeric"});
-      return "<div class="hist-entry"><div class="hist-dot" style="background:"+(zColors[zone]||"#888")+""></div><div class="hist-info"><div class="hist-title">"+(s.climbing_type||"Unknown")+(s.did_go_deeper?" &middot; Route analysis":"")+"</div><div class="hist-sub">"+date+"</div></div><span class="zone-badge "+(bC[zone]||"")+"" style="margin-bottom:0;font-size:10px">"+(zL[zone]||zone)+"</span></div>";
-    }).join("");
+      var entry=document.createElement("div");entry.className="hist-entry";
+      var dot=document.createElement("div");dot.className="hist-dot";dot.style.background=zColors[zone]||"#888";
+      var info=document.createElement("div");info.className="hist-info";
+      var htitle=document.createElement("div");htitle.className="hist-title";
+      htitle.textContent=(s.climbing_type||"Unknown")+(s.did_go_deeper?" · Route analysis":"");
+      var hsub=document.createElement("div");hsub.className="hist-sub";hsub.textContent=date;
+      info.appendChild(htitle);info.appendChild(hsub);
+      var badge=document.createElement("span");badge.className="zone-badge "+(bC[zone]||"");
+      badge.style.marginBottom="0";badge.style.fontSize="10px";badge.textContent=zL[zone]||zone;
+      entry.appendChild(dot);entry.appendChild(info);entry.appendChild(badge);
+      list.appendChild(entry);
+    });
   });
 }
+
 
 var fbQs=[
   {text:"How was your experience with the app?",key:"overall",opts:[{l:"Great — exactly what I needed",v:"great"},{l:"Good — mostly worked well",v:"good"},{l:"Needs work — some friction",v:"needs_work"},{l:"Confusing — I was not sure what to do",v:"confusing"}]},
