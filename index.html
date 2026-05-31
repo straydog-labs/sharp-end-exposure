@@ -48,7 +48,6 @@ body{font-family:"DM Sans",sans-serif;background:#f5f2ed;color:#1a1a18;min-heigh
 .btn-p:disabled{opacity:.4;cursor:not-allowed}
 .btn-p:disabled:hover{background:var(--rope);border-color:var(--rope)}
 .nav{display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem}
-.admin-btn{position:fixed;bottom:1.5rem;right:1.5rem;font-size:11px;padding:5px 10px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.14);background:rgba(255,255,255,0.8);color:#aaa;cursor:pointer;font-family:"DM Sans",sans-serif;z-index:50;display:none}
 .admin-btn:hover{color:#555;border-color:rgba(0,0,0,0.28)}
 .zone-badge{display:inline-block;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
 .z-comfort{background:rgba(74,122,90,.15);color:#2a5a3a}
@@ -129,6 +128,16 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 .radar-title{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.5rem}
 .pattern-zones{display:flex;gap:4px;align-items:center;margin-top:4px}
 .pz-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.next-section-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem}
+.next-cards{display:flex;flex-direction:column;gap:8px}
+.next-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border:0.5px solid rgba(0,0,0,0.12);border-radius:10px;background:#fff;cursor:pointer;transition:all .15s}
+.next-card:hover{border-color:rgba(0,0,0,0.24);background:#faf8f5}
+.next-card:active{transform:scale(.99)}
+.next-card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.next-card-body{flex:1}
+.next-card-title{font-size:14px;font-weight:500;color:#1a1a18}
+.next-card-sub{font-size:12px;color:#888780;margin-top:2px}
+.next-card-arrow{font-size:18px;color:#c8c8c0}
 </style>
 </head>
 <body>
@@ -152,10 +161,10 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
     <div id="q-wrap"></div>
     <div class="nav">
       <button class="btn" id="btn-back" onclick="goBack()">Back</button>
-      <button class="btn btn-p" id="btn-next" onclick="goNext()" disabled>Continue</button>
-    </div>
-    <div style="text-align:right;margin-top:.75rem">
-      <button class="admin-btn" id="admin-btn" onclick="adminRandomize()">&#9654; Skip (admin)</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="admin-btn" id="admin-btn" onclick="adminRandomize()" style="position:static;display:none;font-size:11px;padding:5px 10px;border-radius:6px;border:0.5px solid rgba(0,0,0,0.14);background:rgba(255,255,255,0.9);color:#aaa;cursor:pointer;font-family:DM Sans,sans-serif">&#9654; admin</button>
+        <button class="btn btn-p" id="btn-next" onclick="goNext()" disabled>Continue</button>
+      </div>
     </div>
   </div>
 
@@ -200,36 +209,28 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
       <div class="g-text" id="g-text"></div>
     </div>
     <div class="pills" id="pills"></div>
-    <div class="radar-wrap" id="result-radar-wrap" style="display:none">
-      <div class="radar-title">Terrain Experience</div>
-      <canvas id="result-radar" width="300" height="220"></canvas>
-    </div>
     <div class="divider"></div>
-    <div class="card" id="deeper-gate">
-      <div class="card-hdr"><div class="card-icon ci-orange">&#8595;</div><div><div class="card-title">Go Deeper &mdash; Route Analysis</div><div class="card-sub">10 questions about this specific climb</div></div></div>
-      <div class="card-body">Refine your Exposure Map placement with route-specific detail and check in on your physical and mental state today.</div>
-      <div class="card-feats">
-        <div class="card-feat"><div class="feat-dot"></div>Bolt distance &amp; runout</div>
-        <div class="card-feat"><div class="feat-dot"></div>Physical state today</div>
-        <div class="card-feat"><div class="feat-dot"></div>Crux fall analysis</div>
-        <div class="card-feat"><div class="feat-dot"></div>Partner dynamic</div>
+    <div class="next-section-label">What would you like to do next?</div>
+    <div class="next-cards" id="deeper-gate">
+      <div class="next-card" onclick="startDeeper()">
+        <div class="next-card-icon ci-orange">&#8595;</div>
+        <div class="next-card-body">
+          <div class="next-card-title">Go Deeper</div>
+          <div class="next-card-sub">Route analysis &amp; physical state</div>
+        </div>
+        <div class="next-card-arrow">&#8250;</div>
       </div>
-      <button class="btn btn-p" onclick="startDeeper()">Go deeper</button>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-icon ci-blue">&#8627;</div><div><div class="card-title">Log your falls</div><div class="card-sub">Track what happened on the wall today</div></div></div>
-      <div class="card-body">A few quick questions about how the climb went &mdash; no typing required.</div>
-      <button class="btn btn-p" onclick="startFallLog()">Log a fall</button>
-    </div>
-    <div class="fb-inline">
-      <div class="fb-inline-text"><strong>How was this?</strong>Your feedback shapes what this tool becomes.</div>
-      <button class="btn btn-p" onclick="openFeedback()" style="white-space:nowrap;font-size:13px">Share feedback</button>
+      <div class="next-card" onclick="startFallLog()">
+        <div class="next-card-icon ci-blue">&#8627;</div>
+        <div class="next-card-body">
+          <div class="next-card-title">Log a fall</div>
+          <div class="next-card-sub">Track what happened on the wall</div>
+        </div>
+        <div class="next-card-arrow">&#8250;</div>
+      </div>
     </div>
     <div class="save-ind" id="save-ind"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem">
-      <button class="btn btn-p" onclick="startPostClimb()" style="font-size:13px">I just climbed it &#8594;</button>
-      <button class="btn" onclick="restart()" style="font-size:13px">Start over</button>
-    </div>
+    <div class="restart-row"><button class="btn" onclick="restart()" style="font-size:13px">Start over</button></div>
   </div>
 
   <div class="screen" id="s-fall">
@@ -288,16 +289,20 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
       <div style="font-size:13px;color:#888780;font-weight:300;margin-bottom:4px">Personal notes &mdash; optional</div>
       <textarea class="ta-note" placeholder="Anything you want to remember about today..."></textarea>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:1.25rem">
+    <div class="next-card" onclick="startPostClimb()" style="margin-top:1.25rem">
+      <div class="next-card-icon ci-green">&#10003;</div>
+      <div class="next-card-body">
+        <div class="next-card-title">How did it actually go?</div>
+        <div class="next-card-sub">Close the loop — 4 quick questions</div>
+      </div>
+      <div class="next-card-arrow">&#8250;</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:1rem">
       <button class="btn btn-p" onclick="startFallLog()">Log another fall</button>
       <button class="btn" onclick="restart()">New assessment</button>
     </div>
-    <div style="margin-top:1rem;text-align:right">
+    <div style="margin-top:.75rem;text-align:right">
       <button class="btn" onclick="startInjury()" style="font-size:12px;color:#782818;border-color:rgba(168,56,40,.25);background:rgba(168,56,40,.04)">Report an incident</button>
-    </div>
-    <div class="fb-inline" style="margin-top:.75rem">
-      <div class="fb-inline-text"><strong>How was this?</strong>Help us make it better.</div>
-      <button class="btn btn-p" onclick="openFeedback()" style="white-space:nowrap;font-size:13px">Share feedback</button>
     </div>
     <div class="save-ind" id="fall-ind"></div>
   </div>
@@ -329,11 +334,16 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
   </div>
 
   <div class="screen" id="s-history">
-    <button class="btn" onclick="show("s-assess")" style="font-size:13px;margin-bottom:1rem">Back</button>
+    <button class="btn" onclick="show('s-assess')" style="font-size:13px;margin-bottom:1rem">Back</button>
     <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px">Your sessions</div>
     <div style="font-family:Bebas Neue,sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:4px">Session History</div>
     <div style="font-size:13px;color:#5f5e5a;font-weight:300;margin-bottom:1.25rem">All your past assessments on this device.</div>
     <div id="hist-list"></div>
+    <div id="hist-radar-wrap" style="display:none;margin-top:1.5rem">
+      <div class="radar-title">Terrain Experience — All Sessions</div>
+      <canvas id="hist-radar" width="300" height="220"></canvas>
+      <div style="font-size:12px;color:#888780;margin-top:.5rem;font-weight:300">Based on your fall history across all sessions.</div>
+    </div>
   </div>
 </div>
 
@@ -773,9 +783,21 @@ function showResult(deeper){
 }
 
 // ── Radar chart ───────────────────────────────────────────
+function drawRadarFromData(canvasId,data){
+  var canvas=document.getElementById(canvasId);if(!canvas)return;
+  var ctx=canvas.getContext("2d");
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  var cx=W/2,cy=H/2+10,R=Math.min(W,H)/2-30;
+  var axes=["Slab","Vertical","Overhang","Roof","Short fall","Long fall"];
+  var n=axes.length;
+  var scores=computeRadarScores(data);
+  renderRadarCanvas(ctx,cx,cy,R,axes,scores,"#c8622a");
+}
+
 function drawRadar(canvasId,wrapId){
   var wrap=document.getElementById(wrapId);
-  if(falls.length<3){if(wrap)wrap.style.display="none";return;}
+  if(falls.length<1){if(wrap)wrap.style.display="none";return;}
   if(wrap)wrap.style.display="block";
   var canvas=document.getElementById(canvasId);
   if(!canvas)return;
@@ -785,42 +807,40 @@ function drawRadar(canvasId,wrapId){
   var cx=W/2,cy=H/2+10,R=Math.min(W,H)/2-30;
   var axes=["Slab","Vertical","Overhang","Roof","Short fall","Long fall"];
   var n=axes.length;
-  // Compute scores from current session falls
   var scores=computeRadarScores(falls);
-  var histScores=null; // placeholder for history
-  // Draw background rings
+  renderRadarCanvas(ctx,cx,cy,R,axes,scores,"#c8622a");
+}
+
+function renderRadarCanvas(ctx,cx,cy,R,axes,scores,color){
+  var n=axes.length;
   ctx.strokeStyle="rgba(0,0,0,0.08)";ctx.lineWidth=0.5;
   [0.25,0.5,0.75,1].forEach(function(r){
     ctx.beginPath();
     for(var i=0;i<n;i++){var a=-Math.PI/2+(2*Math.PI*i/n);ctx.lineTo(cx+R*r*Math.cos(a),cy+R*r*Math.sin(a));}
     ctx.closePath();ctx.stroke();
   });
-  // Draw axis lines
   for(var i=0;i<n;i++){
     var a=-Math.PI/2+(2*Math.PI*i/n);
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));
     ctx.strokeStyle="rgba(0,0,0,0.1)";ctx.lineWidth=0.5;ctx.stroke();
-    // Labels
     var lx=cx+(R+16)*Math.cos(a),ly=cy+(R+16)*Math.sin(a);
     ctx.fillStyle="#888780";ctx.font="10px DM Sans,sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.fillText(axes[i],lx,ly);
   }
-  // Draw session polygon
   ctx.beginPath();
   for(var i=0;i<n;i++){
-    var a=-Math.PI/2+(2*Math.PI*i/n);
-    var v=scores[i]||0;
+    var a=-Math.PI/2+(2*Math.PI*i/n);var v=scores[i]||0;
     if(i===0)ctx.moveTo(cx+R*v*Math.cos(a),cy+R*v*Math.sin(a));
     else ctx.lineTo(cx+R*v*Math.cos(a),cy+R*v*Math.sin(a));
   }
   ctx.closePath();
-  ctx.fillStyle="rgba(200,98,42,0.15)";ctx.fill();
-  ctx.strokeStyle="#c8622a";ctx.lineWidth=1.5;ctx.stroke();
-  // Dots
+  var rgb=color==="rgba(74,122,90,0.5)"?"74,122,90":"200,98,42";
+  ctx.fillStyle="rgba("+rgb+",0.15)";ctx.fill();
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
   for(var i=0;i<n;i++){
     var a=-Math.PI/2+(2*Math.PI*i/n);var v=scores[i]||0;
     ctx.beginPath();ctx.arc(cx+R*v*Math.cos(a),cy+R*v*Math.sin(a),3,0,Math.PI*2);
-    ctx.fillStyle="#c8622a";ctx.fill();
+    ctx.fillStyle=color;ctx.fill();
   }
 }
 
@@ -1022,7 +1042,20 @@ function showHistory(){
       entry.appendChild(dot);entry.appendChild(info);entry.appendChild(badge);
       list.appendChild(entry);
     });
+    // Load radar from fall history
+    loadHistoryRadar();
   });
+}
+
+async function loadHistoryRadar(){
+  try{
+    var fallRows=await sbSelect("falls",{device_id:"eq."+DID,limit:100});
+    if(!fallRows||fallRows.length===0){document.getElementById("hist-radar-wrap").style.display="none";return;}
+    // Map Supabase fall rows to local fall format
+    var mapped=fallRows.map(function(r){return{fell:r.fell,fallType:r.fall_type,angle:r.wall_angle,stress:r.stress_response,height:r.fall_height,impact:r.session_impact,grade:r.grade};});
+    document.getElementById("hist-radar-wrap").style.display="block";
+    drawRadarFromData("hist-radar",mapped);
+  }catch(e){console.warn("history radar failed",e);}
 }
 
 
