@@ -144,9 +144,9 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 .ob-text{font-size:13px;color:#5f5e5a;line-height:1.65;font-weight:300}
 .intel-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem}
 .intel-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem}
-.intel-insight{font-size:13px;color:#1a1a18;line-height:1.7;padding:.5rem 0;border-bottom:0.5px solid rgba(0,0,0,0.06);font-weight:300}
-.intel-insight:last-child{border-bottom:none;padding-bottom:0}
-.intel-insight strong{font-weight:500}
+.intel-bullet{font-size:13px;color:#1a1a18;line-height:1.5;padding:.3rem 0;display:flex;align-items:flex-start;gap:8px}
+.intel-bullet::before{content:"—";color:#c8622a;flex-shrink:0;font-weight:600;line-height:1.5}
+.intel-bullet strong{font-weight:600}
 .intel-placeholder{background:#edeae3;border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem;font-size:13px;color:#5f5e5a;line-height:1.6;font-weight:300}
 </style>
 </head>
@@ -155,15 +155,29 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 
 <div class="app">
   <div class="screen active" id="s-onboard">
-    <div style="padding:2rem 0 1rem">
-      <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:6px">Straydog Labs</div>
-      <div style="font-family:Bebas Neue,sans-serif;font-size:40px;letter-spacing:.04em;line-height:1;margin-bottom:.75rem">Sharp End<br><span style="color:#c8622a">Exposure</span></div>
-      <div style="font-size:15px;color:#5f5e5a;font-weight:300;line-height:1.7;margin-bottom:1.5rem">Know your edge. Track your growth.</div>
-    </div>
-    <div id="onboard-wrap"></div>
-    <div class="nav" style="margin-top:1.5rem">
-      <button class="btn" id="ob-back" onclick="obBack()" style="opacity:.3" disabled>Back</button>
-      <button class="btn btn-p" id="ob-next" onclick="obNext()">Continue</button>
+    <div style="min-height:85vh;display:flex;flex-direction:column;justify-content:space-between;padding:2rem 0">
+      <div>
+        <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#888780;margin-bottom:10px">Straydog Labs</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:.04em;line-height:.95;margin-bottom:.75rem">Sharp End<br><span style="color:#c8622a">Exposure</span></div>
+        <div style="font-size:16px;color:#5f5e5a;font-weight:300;line-height:1.5;margin-bottom:2rem">Know your edge.<br>Track your growth.</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:30px;height:30px;border-radius:6px;background:rgba(200,98,42,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#c8622a;font-weight:700;font-size:13px;margin-top:1px">1</div>
+            <div><div style="font-size:14px;font-weight:500;color:#1a1a18;margin-bottom:2px">Assess your readiness</div><div style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.5">7 questions before you climb. Know what zone you are in — comfort, learning, or panic.</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:30px;height:30px;border-radius:6px;background:rgba(74,122,90,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#3a6a4a;font-weight:700;font-size:13px;margin-top:1px">2</div>
+            <div><div style="font-size:14px;font-weight:500;color:#1a1a18;margin-bottom:2px">Go deeper on the route</div><div style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.5">Bolt distance, crux fall, physical state, partner dynamic. Refines your Exposure Map placement.</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:30px;height:30px;border-radius:6px;background:rgba(74,100,160,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#2a4a8a;font-weight:700;font-size:13px;margin-top:1px">3</div>
+            <div><div style="font-size:14px;font-weight:500;color:#1a1a18;margin-bottom:2px">Track your experience</div><div style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.5">Log falls, watch your terrain radar grow, see your patterns over time.</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:2rem">
+        <button class="btn btn-p" onclick="startApp()" style="width:100%;justify-content:center;padding:14px 20px;font-size:15px">Start assessment &rarr;</button>
+      </div>
     </div>
   </div>
 
@@ -378,9 +392,17 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
     <div id="personal-intel" style="display:none;margin-bottom:1.25rem"></div>
     <div id="hist-list"></div>
     <div id="hist-radar-wrap" style="display:none;margin-top:1.5rem">
-      <div class="radar-title">Terrain Experience — All Sessions</div>
-      <canvas id="hist-radar" width="300" height="220"></canvas>
-      <div style="font-size:12px;color:#888780;margin-top:.5rem;font-weight:300">Based on your fall history across all sessions.</div>
+      <div class="radar-title">Terrain Experience</div>
+      <canvas id="hist-radar" width="300" height="260"></canvas>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:.75rem;align-items:center">
+        <div style="display:flex;align-items:center;gap:5px"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(140,140,140,0.5)" stroke-width="1" stroke-dasharray="3,3"/></svg><span style="font-size:11px;color:#888780">Early</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(200,133,42,0.6)" stroke-width="1.5" stroke-dasharray="4,2"/></svg><span style="font-size:11px;color:#888780">Recent</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#c8622a" stroke-width="2"/></svg><span style="font-size:11px;color:#888780">All sessions</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:rgba(74,122,90,0.7)"></div><span style="font-size:11px;color:#888780">Comfort</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:rgba(200,133,42,0.7)"></div><span style="font-size:11px;color:#888780">Learning</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:rgba(168,56,40,0.7)"></div><span style="font-size:11px;color:#888780">Panic</span></div>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:.5rem;font-weight:300">Axis color = dominant zone on that terrain. Size = fall volume.</div>
     </div>
   </div>
 </div>
@@ -864,85 +886,140 @@ function showResult(deeper){
   });
 }
 
-// ── Radar chart ───────────────────────────────────────────
-function drawRadarFromData(canvasId,data){
+// ── Terrain Radar Chart ──────────────────────────────────
+// 4 axes: Slab, Vertical, Overhang, Roof
+// Axis color = dominant zone on that terrain
+// 3 polygons: early (gray), recent (amber), current/all (orange)
+
+function getTerrainCounts(data,key){
+  var keys=["slab","vertical","overhang","roof"];
+  var counts={slab:0,vertical:0,overhang:0,roof:0};
+  (data||[]).forEach(function(f){
+    var a=f[key||"angle"]||f.wall_angle;
+    if(a&&counts[a]!==undefined)counts[a]++;
+  });
+  return keys.map(function(k){return counts[k];});
+}
+
+function getTerrainScores(data,key){
+  var counts=getTerrainCounts(data,key);
+  var max=Math.max.apply(null,counts)||1;
+  return counts.map(function(c){return Math.min(1,c/max);});
+}
+
+function getAxisColors(data,key){
+  var terrains=["slab","vertical","overhang","roof"];
+  return terrains.map(function(t){
+    var falls=(data||[]).filter(function(f){return (f[key||"angle"]||f.wall_angle)===t;});
+    if(falls.length===0)return"rgba(180,180,180,0.35)";
+    var zc={comfort:0,learning:0,panic:0};
+    falls.forEach(function(f){var z=f.zone||"learning";if(zc[z]!==undefined)zc[z]++;});
+    var dom=Object.keys(zc).sort(function(a,b){return zc[b]-zc[a];})[0];
+    return dom==="comfort"?"rgba(74,122,90,0.8)":dom==="panic"?"rgba(168,56,40,0.8)":"rgba(200,133,42,0.8)";
+  });
+}
+
+function drawRadarPoly(ctx,cx,cy,R,n,scores,fillColor,strokeColor,lineWidth,dash){
+  ctx.beginPath();
+  for(var i=0;i<n;i++){
+    var a=-Math.PI/2+(2*Math.PI*i/n);
+    var v=Math.max(0.01,scores[i]||0);
+    var x=cx+R*v*Math.cos(a),y=cy+R*v*Math.sin(a);
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle=fillColor;ctx.fill();
+  ctx.setLineDash(dash||[]);
+  ctx.strokeStyle=strokeColor;ctx.lineWidth=lineWidth;ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function renderTerrainRadar(canvasId,wrapId,currentData,earlyData,recentData,dataKey){
+  var wrap=document.getElementById(wrapId);
+  var hasFalls=(currentData||[]).filter(function(f){return(f[dataKey||"angle"]||f.wall_angle);}).length>0;
+  if(!hasFalls){if(wrap)wrap.style.display="none";return;}
+  if(wrap)wrap.style.display="block";
   var canvas=document.getElementById(canvasId);if(!canvas)return;
   var ctx=canvas.getContext("2d");
   var W=canvas.width,H=canvas.height;
   ctx.clearRect(0,0,W,H);
-  var cx=W/2,cy=H/2+10,R=Math.min(W,H)/2-30;
-  var axes=["Slab","Vertical","Overhang","Roof","Short fall","Long fall"];
+  var cx=W/2,cy=H/2+8,R=Math.min(W,H)/2-38;
+  var axes=["Slab","Vertical","Overhang","Roof"];
   var n=axes.length;
-  var scores=computeRadarScores(data);
-  renderRadarCanvas(ctx,cx,cy,R,axes,scores,"#c8622a");
-}
+  var axisColors=getAxisColors(currentData,dataKey);
+  var currentScores=getTerrainScores(currentData,dataKey);
+  var earlyScores=earlyData?getTerrainScores(earlyData,dataKey):null;
+  var recentScores=recentData?getTerrainScores(recentData,dataKey):null;
 
-function drawRadar(canvasId,wrapId){
-  var wrap=document.getElementById(wrapId);
-  if(falls.length<1){if(wrap)wrap.style.display="none";return;}
-  if(wrap)wrap.style.display="block";
-  var canvas=document.getElementById(canvasId);
-  if(!canvas)return;
-  var ctx=canvas.getContext("2d");
-  var W=canvas.width,H=canvas.height;
-  ctx.clearRect(0,0,W,H);
-  var cx=W/2,cy=H/2+10,R=Math.min(W,H)/2-30;
-  var axes=["Slab","Vertical","Overhang","Roof","Short fall","Long fall"];
-  var n=axes.length;
-  var scores=computeRadarScores(falls);
-  renderRadarCanvas(ctx,cx,cy,R,axes,scores,"#c8622a");
-}
-
-function renderRadarCanvas(ctx,cx,cy,R,axes,scores,color){
-  var n=axes.length;
-  ctx.strokeStyle="rgba(0,0,0,0.08)";ctx.lineWidth=0.5;
+  // Background rings
   [0.25,0.5,0.75,1].forEach(function(r){
     ctx.beginPath();
-    for(var i=0;i<n;i++){var a=-Math.PI/2+(2*Math.PI*i/n);ctx.lineTo(cx+R*r*Math.cos(a),cy+R*r*Math.sin(a));}
-    ctx.closePath();ctx.stroke();
+    for(var i=0;i<n;i++){
+      var a=-Math.PI/2+(2*Math.PI*i/n);
+      if(i===0)ctx.moveTo(cx+R*r*Math.cos(a),cy+R*r*Math.sin(a));
+      else ctx.lineTo(cx+R*r*Math.cos(a),cy+R*r*Math.sin(a));
+    }
+    ctx.closePath();
+    ctx.strokeStyle="rgba(128,128,128,0.1)";ctx.lineWidth=0.5;ctx.stroke();
   });
+
+  // Axis lines (colored by zone)
   for(var i=0;i<n;i++){
     var a=-Math.PI/2+(2*Math.PI*i/n);
-    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));
-    ctx.strokeStyle="rgba(0,0,0,0.1)";ctx.lineWidth=0.5;ctx.stroke();
-    var lx=cx+(R+16)*Math.cos(a),ly=cy+(R+16)*Math.sin(a);
-    ctx.fillStyle="#888780";ctx.font="10px DM Sans,sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));
+    ctx.strokeStyle=axisColors[i];ctx.lineWidth=2;ctx.stroke();
+    // Endpoint dot
+    ctx.beginPath();ctx.arc(cx+R*Math.cos(a),cy+R*Math.sin(a),4,0,Math.PI*2);
+    ctx.fillStyle=axisColors[i];ctx.fill();
+  }
+
+  // Early polygon (gray dashed)
+  if(earlyScores)drawRadarPoly(ctx,cx,cy,R,n,earlyScores,"rgba(120,120,120,0.05)","rgba(140,140,140,0.35)",1,[3,3]);
+  // Recent polygon (amber dashed)
+  if(recentScores)drawRadarPoly(ctx,cx,cy,R,n,recentScores,"rgba(200,133,42,0.07)","rgba(200,133,42,0.45)",1.5,[4,2]);
+  // Current polygon (orange solid)
+  drawRadarPoly(ctx,cx,cy,R,n,currentScores,"rgba(200,98,42,0.13)","#c8622a",2,null);
+
+  // Dots + fall count on current polygon
+  var counts=getTerrainCounts(currentData,dataKey);
+  for(var i=0;i<n;i++){
+    var a=-Math.PI/2+(2*Math.PI*i/n);
+    var v=Math.max(0.01,currentScores[i]||0);
+    var px=cx+R*v*Math.cos(a),py=cy+R*v*Math.sin(a);
+    ctx.beginPath();ctx.arc(px,py,5,0,Math.PI*2);
+    ctx.fillStyle="#c8622a";ctx.strokeStyle="white";ctx.lineWidth=1.5;
+    ctx.fill();ctx.stroke();
+  }
+
+  // Axis labels + fall counts
+  for(var i=0;i<n;i++){
+    var a=-Math.PI/2+(2*Math.PI*i/n);
+    var lx=cx+(R+22)*Math.cos(a),ly=cy+(R+22)*Math.sin(a);
+    ctx.fillStyle=axisColors[i];
+    ctx.font="bold 11px 'DM Sans',sans-serif";
+    ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.fillText(axes[i],lx,ly);
-  }
-  ctx.beginPath();
-  for(var i=0;i<n;i++){
-    var a=-Math.PI/2+(2*Math.PI*i/n);var v=scores[i]||0;
-    if(i===0)ctx.moveTo(cx+R*v*Math.cos(a),cy+R*v*Math.sin(a));
-    else ctx.lineTo(cx+R*v*Math.cos(a),cy+R*v*Math.sin(a));
-  }
-  ctx.closePath();
-  var rgb=color==="rgba(74,122,90,0.5)"?"74,122,90":"200,98,42";
-  ctx.fillStyle="rgba("+rgb+",0.15)";ctx.fill();
-  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
-  for(var i=0;i<n;i++){
-    var a=-Math.PI/2+(2*Math.PI*i/n);var v=scores[i]||0;
-    ctx.beginPath();ctx.arc(cx+R*v*Math.cos(a),cy+R*v*Math.sin(a),3,0,Math.PI*2);
-    ctx.fillStyle=color;ctx.fill();
+    if(counts[i]>0){
+      ctx.fillStyle="rgba(100,100,100,0.55)";
+      ctx.font="9px 'DM Sans',sans-serif";
+      ctx.fillText(counts[i]+" fall"+(counts[i]===1?"":"s"),lx,ly+13);
+    }
   }
 }
 
-function computeRadarScores(fallData){
-  var counts={slab:0,vertical:0,overhang:0,roof:0,short:0,long:0};
-  var totals={slab:0,vertical:0,overhang:0,roof:0,short:0,long:0};
-  fallData.forEach(function(f){
-    if(f.angle&&counts[f.angle]!==undefined){counts[f.angle]++;totals[f.angle]+=f.stress>0?1:0.5;}
-    if(f.height==="short"||f.height==="medium")counts.short++;
-    if(f.height==="long")counts.long++;
-  });
-  var max=Math.max(1,Math.max.apply(null,Object.values(counts)));
-  return[
-    Math.min(1,counts.slab/max),
-    Math.min(1,counts.vertical/max),
-    Math.min(1,counts.overhang/max),
-    Math.min(1,counts.roof/max),
-    Math.min(1,counts.short/max),
-    Math.min(1,counts.long/max)
-  ];
+// Session radar (uses local falls array)
+function drawRadar(canvasId,wrapId){
+  renderTerrainRadar(canvasId,wrapId,falls,null,null,"angle");
+}
+
+// History radar (uses Supabase data with wall_angle key)
+function drawRadarFromData(canvasId,data,histData){
+  var early=histData?histData.early:null;
+  var recent=histData?histData.recent:null;
+  renderTerrainRadar(canvasId,null,data,early,recent,"wall_angle");
+  var wrap=document.getElementById(canvasId.replace("-radar","-radar-wrap"));
+  if(wrap)(data&&data.length>0)?wrap.style.display="block":wrap.style.display="none";
 }
 
 function startFallLog(){fallPhase="quick";fallCur=0;stressSel=null;qA={};eA={};show("s-fall");renderFall();}
@@ -1165,32 +1242,31 @@ function loadPersonalIntel(sessions){
   zones.forEach(function(z){if(zCount[z]!==undefined)zCount[z]++;});
   var topZone=Object.keys(zCount).sort(function(a,b){return zCount[b]-zCount[a];})[0];
   var zNames={comfort:"comfort zone",learning:"learning zone",panic:"panic zone"};
-  insights.push("You have logged <strong>"+total+" sessions</strong>. Your most common placement is the <strong>"+zNames[topZone]+"</strong>.");
+  insights.push("<strong>"+total+" sessions</strong> logged. Most common zone: <strong>"+zNames[topZone]+"</strong> ("+zCount[topZone]+" of "+total+").");
 
   // Zone trend (last 3)
   if(zones.length>=3){
     var recent=zones.slice(0,3).reverse();
     var zO={comfort:0,learning:1,panic:2};
     var trend=zO[recent[recent.length-1]]-zO[recent[0]];
-    if(trend>0) insights.push("Your last three sessions show a <strong>trend toward higher-stress terrain</strong>. You are pushing the edge — make sure it is intentional.");
-    else if(trend<0) insights.push("Your last three sessions show a <strong>trend toward lower-stress terrain</strong>. Worth asking: are you recovering, or are you pulling back?");
-    else insights.push("Your zone placement has been <strong>consistent across your last three sessions</strong>. Stability can mean mastery — or it can mean a plateau.");
+    if(trend>0) insights.push("Last 3 sessions: <strong>"+recent.map(function(z){return zNames[z];}).join(" &rarr; ")+"</strong> &rarr; today. Trending higher stress.");
+    else if(trend<0) insights.push("Last 3 sessions: <strong>"+recent.map(function(z){return zNames[z];}).join(" &rarr; ")+"</strong> &rarr; today. Trending lower stress.");
+    else insights.push("Last 3 sessions: <strong>"+recent.map(function(z){return zNames[z];}).join(" &rarr; ")+"</strong> &rarr; today. Zone holding steady.");
   }
 
   // Climbing type pattern
   var ctCount={};
   ctypes.forEach(function(t){if(t)ctCount[t]=(ctCount[t]||0)+1;});
   var topCt=Object.keys(ctCount).sort(function(a,b){return ctCount[b]-ctCount[a];})[0];
-  if(topCt&&ctCount[topCt]>1) insights.push("Most of your sessions have been on <strong>"+topCt+"</strong>. If that is your comfort zone style, consider whether you are avoiding other terrain.");
+  if(topCt) insights.push("Primary style: <strong>"+topCt+"</strong> ("+ctCount[topCt]+" of "+total+" sessions).");
 
   // Go deeper usage
   var deeperCount=sessions.filter(function(s){return s.did_go_deeper;}).length;
-  if(deeperCount===0&&total>=3) insights.push("You have not used <strong>Go Deeper</strong> yet. Route-specific analysis refines your Exposure Map placement — worth trying on your next session.");
-  else if(deeperCount>0) insights.push("You have used <strong>Go Deeper on "+deeperCount+" of "+total+" sessions</strong>. That route-level data is making your assessment more accurate over time.");
+  insights.push("Go Deeper used: <strong>"+deeperCount+" of "+total+" sessions</strong>.");
 
   // Render
   el.innerHTML="<div class='intel-card'><div class='intel-label'>Your patterns</div>"+
-    insights.map(function(i){return "<div class='intel-insight'>"+i+"</div>";}).join("")+
+    insights.map(function(i){return "<div class='intel-bullet'>"+i+"</div>";}).join("")+
   "</div>";
 
   // Also load fall data for deeper insights
@@ -1201,40 +1277,36 @@ function loadPersonalIntel(sessions){
     // Take pattern
     var tookCount=fallRows.filter(function(r){return r.took==="once"||r.took==="multiple"||r.took==="prevented_commit";}).length;
     var preventedCount=fallRows.filter(function(r){return r.took==="prevented_commit";}).length;
-    if(tookCount>0){
-      var pct=Math.round((tookCount/fallRows.length)*100);
-      fallInsights.push("You took or backed off on <strong>"+pct+"% of logged climbs</strong>."+
-        (preventedCount>0?" On "+preventedCount+" of those, it stopped you from committing to a move. That is worth paying attention to.":""));
-    }
+    // Falls total
+    var fellCount=fallRows.filter(function(r){return r.fell==="yes";}).length;
+    fallInsights.push("<strong>"+fallRows.length+" climbs</strong> logged, <strong>"+fellCount+" falls</strong> taken.");
 
-    // Terrain gaps
+    // Terrain breakdown
     var angles={slab:0,vertical:0,overhang:0,roof:0};
     fallRows.forEach(function(r){if(r.wall_angle&&angles[r.wall_angle]!==undefined)angles[r.wall_angle]++;});
-    var zero=Object.keys(angles).filter(function(a){return angles[a]===0;});
-    if(zero.length>0) fallInsights.push("You have <strong>no logged falls on "+zero.join(" or ")+" terrain</strong>. That may be a gap in your fall experience — or terrain you are avoiding.");
+    var terrStr=Object.keys(angles).filter(function(k){return angles[k]>0;}).map(function(k){return k+": "+angles[k];}).join(", ");
+    if(terrStr) fallInsights.push("Falls by terrain: <strong>"+terrStr+"</strong>.");
+    var zeroT=Object.keys(angles).filter(function(k){return angles[k]===0;});
+    if(zeroT.length>0) fallInsights.push("No falls logged on: <strong>"+zeroT.join(", ")+"</strong>.");
 
-    // Stress response pattern
+    // Stress response
     var stressVals=fallRows.filter(function(r){return r.stress_response>0;}).map(function(r){return r.stress_response;});
     if(stressVals.length>=3){
       var avg=Math.round(stressVals.reduce(function(s,v){return s+v;},0)/stressVals.length*10)/10;
-      if(avg>=3.5) fallInsights.push("Your average stress response on falls is <strong>"+avg+" out of 5</strong> — on the higher end. Your nervous system is working hard. Fall practice in lower-stakes terrain may help.");
-      else if(avg<=1.5) fallInsights.push("Your average stress response on falls is <strong>"+avg+" out of 5</strong> — low. Either you are very comfortable falling, or you are not yet in terrain that challenges you.");
-      else fallInsights.push("Your average stress response on falls is <strong>"+avg+" out of 5</strong> — in a healthy range for active learning.");
+      fallInsights.push("Avg stress response: <strong>"+avg+" / 5</strong> ("+stressVals.length+" falls).");
     }
 
-    // Got back on pattern
-    var fellCount=fallRows.filter(function(r){return r.fell==="yes";}).length;
+    // Got back on
     var gotBack=fallRows.filter(function(r){return r.got_back_on==="yes_quick"||r.got_back_on==="yes_slow";}).length;
-    if(fellCount>=3){
-      var gpct=Math.round((gotBack/fellCount)*100);
-      if(gpct>=80) fallInsights.push("You got back on after <strong>"+gpct+"% of your falls</strong>. That is a strong indicator of psychological resilience.");
-      else if(gpct<=40) fallInsights.push("You got back on after <strong>"+gpct+"% of your falls</strong>. That is worth examining — is it fear, fatigue, or judgment?");
-    }
+    if(fellCount>=2) fallInsights.push("Got back on: <strong>"+gotBack+" of "+fellCount+"</strong> ("+Math.round((gotBack/fellCount)*100)+"%).");
+
+    // Took
+    if(tookCount>0) fallInsights.push("Took or backed off: <strong>"+tookCount+" climbs</strong>"+(preventedCount>0?", prevented commit: <strong>"+preventedCount+"</strong>":"")+".");
 
     if(fallInsights.length>0){
       var existing=el.innerHTML;
       el.innerHTML=existing.replace("</div>",""+
-        fallInsights.map(function(i){return "<div class='intel-insight'>"+i+"</div>";}).join("")+
+        fallInsights.map(function(i){return "<div class='intel-bullet'>"+i+"</div>";}).join("")+
       "</div>");
     }
   });
@@ -1242,12 +1314,15 @@ function loadPersonalIntel(sessions){
 
 async function loadHistoryRadar(){
   try{
-    var fallRows=await sbSelect("falls",{device_id:"eq."+DID,limit:100});
+    var fallRows=await sbSelect("falls",{device_id:"eq."+DID,limit:200});
     if(!fallRows||fallRows.length===0){document.getElementById("hist-radar-wrap").style.display="none";return;}
-    // Map Supabase fall rows to local fall format
-    var mapped=fallRows.map(function(r){return{fell:r.fell,fallType:r.fall_type,angle:r.wall_angle,stress:r.stress_response,height:r.fall_height,impact:r.session_impact,grade:r.grade};});
+    var third=Math.floor(fallRows.length/3);
+    var histData={
+      early:fallRows.slice(0,Math.max(1,third)),
+      recent:fallRows.slice(Math.max(1,third),Math.max(2,third*2))
+    };
     document.getElementById("hist-radar-wrap").style.display="block";
-    drawRadarFromData("hist-radar",mapped);
+    drawRadarFromData("hist-radar",fallRows,histData);
   }catch(e){console.warn("history radar failed",e);}
 }
 
@@ -1417,33 +1492,10 @@ function restart(){
   show("s-assess");render();
 }
 
-var obSlides=[
-  {num:"01",title:"This is a psychological tool, not a performance tracker",text:"Sharp End Exposure helps you understand your readiness before you climb — and track what actually happened after. It does not measure how hard you climb. It measures how honestly you engage with the risk you are taking."},
-  {num:"02",title:"Answer honestly, not aspirationally",text:"The tool only works if your answers reflect where you actually are — not where you want to be. There is no right answer. A comfort zone result is not failure. A panic zone result is not badness. It is just data."},
-  {num:"03",title:"The more you use it, the more it tells you",text:"Single sessions give you a snapshot. Multiple sessions reveal your patterns — where you consistently land, what terrain you avoid, how your stress response changes over time. Come back after every session."}
-];
-var obStep=0;
-
-function renderOb(){
-  var s=obSlides[obStep];
-  document.getElementById("onboard-wrap").innerHTML=
-    "<div class='ob-card'><div class='ob-num'>"+s.num+" / 03</div><div class='ob-title'>"+s.title+"</div><div class='ob-text'>"+s.text+"</div></div>"+
-    "<div style='display:flex;justify-content:center;gap:6px;margin-top:.5rem'>"+
-    obSlides.map(function(_,i){return "<div style='width:6px;height:6px;border-radius:50%;background:"+(i===obStep?"#c8622a":"rgba(0,0,0,0.15)")+"'></div>";}).join("")+
-    "</div>";
-  document.getElementById("ob-back").style.opacity=obStep===0?".3":"1";
-  document.getElementById("ob-back").disabled=obStep===0;
-  document.getElementById("ob-next").textContent=obStep===obSlides.length-1?"Start assessment":"Continue";
-}
-
-function obBack(){if(obStep>0){obStep--;renderOb();}}
-function obNext(){
-  if(obStep<obSlides.length-1){obStep++;renderOb();}
-  else{
-    localStorage.setItem("see_onboarded","1");
-    show("s-assess");
-    render();
-  }
+function startApp(){
+  localStorage.setItem("see_onboarded","1");
+  show("s-assess");
+  render();
 }
 
 function initApp(){
@@ -1451,7 +1503,6 @@ function initApp(){
     show("s-assess");
   } else {
     show("s-onboard");
-    renderOb();
   }
   render();
 }
