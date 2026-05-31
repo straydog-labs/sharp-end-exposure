@@ -138,6 +138,10 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 .next-card-title{font-size:14px;font-weight:500;color:#1a1a18}
 .next-card-sub{font-size:12px;color:#888780;margin-top:2px}
 .next-card-arrow{font-size:18px;color:#c8c8c0}
+.ob-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1.25rem;margin-bottom:.75rem}
+.ob-num{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px}
+.ob-title{font-size:16px;font-weight:500;margin-bottom:6px}
+.ob-text{font-size:13px;color:#5f5e5a;line-height:1.65;font-weight:300}
 .intel-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem}
 .intel-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem}
 .intel-insight{font-size:13px;color:#1a1a18;line-height:1.7;padding:.5rem 0;border-bottom:0.5px solid rgba(0,0,0,0.06);font-weight:300}
@@ -150,11 +154,25 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 <button class="fab" onclick="openFeedback()">Share feedback</button>
 
 <div class="app">
+  <div class="screen active" id="s-onboard">
+    <div style="padding:2rem 0 1rem">
+      <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:6px">Straydog Labs</div>
+      <div style="font-family:Bebas Neue,sans-serif;font-size:40px;letter-spacing:.04em;line-height:1;margin-bottom:.75rem">Sharp End<br><span style="color:#c8622a">Exposure</span></div>
+      <div style="font-size:15px;color:#5f5e5a;font-weight:300;line-height:1.7;margin-bottom:1.5rem">Know your edge. Track your growth.</div>
+    </div>
+    <div id="onboard-wrap"></div>
+    <div class="nav" style="margin-top:1.5rem">
+      <button class="btn" id="ob-back" onclick="obBack()" style="opacity:.3" disabled>Back</button>
+      <button class="btn btn-p" id="ob-next" onclick="obNext()">Continue</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-main">
   <div class="header">
     <div>
       <div class="header-eyebrow">Straydog Labs</div>
       <div class="header-title">Sharp End <span>Exposure</span></div>
-      <div class="header-sub">A pre-climb psychological readiness assessment</div>
+      <div class="header-sub">Know your edge. Track your growth.</div>
     </div>
     <button class="header-btn" onclick="showHistory()">My sessions</button>
   </div>
@@ -214,7 +232,12 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
       <div class="g-label" id="g-label">Assessment</div>
       <div class="g-text" id="g-text"></div>
     </div>
-    <div class="pills" id="pills"></div>
+    <div style="margin-bottom:.5rem">
+      <button onclick="togglePills()" style="font-size:12px;color:#888780;background:none;border:none;cursor:pointer;padding:0;font-family:DM Sans,sans-serif;display:flex;align-items:center;gap:4px">
+        <span id="pills-caret" style="display:inline-block;transition:transform .2s">&#9656;</span> Your answers
+      </button>
+      <div id="pills" style="display:none;margin-top:.5rem"></div>
+    </div>
     <div class="divider"></div>
     <div class="next-section-label">What would you like to do next?</div>
     <div class="next-cards" id="deeper-gate">
@@ -352,6 +375,7 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
       <div style="font-size:12px;color:#888780;margin-top:.5rem;font-weight:300">Based on your fall history across all sessions.</div>
     </div>
   </div>
+</div>
 </div>
 
 <div class="overlay" id="fb-overlay" onclick="closeFbOverlay(event)">
@@ -518,7 +542,6 @@ var quickFallQs=[
   {text:"Did you fall on this climb?",hint:"",key:"fell",opts:[
     {l:"Yes — I fell",v:"yes"},
     {l:"No — I did not fall",v:"no"},
-    {l:"Taking it to the wall to see",v:"tbd"},
     {l:"I got injured",v:"injured"}
   ]},
   {text:"Was the fall intentional or unexpected?",hint:"Intentional falls are deliberate practice. Unexpected falls happen when you come off unplanned.",key:"fallType",opts:[
@@ -660,7 +683,12 @@ var sessId=null;
 var injStep=0,injAns={},injQsAll=[];
 var fbCur=0,fbAns={};
 
-function show(id){document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");});document.getElementById(id).classList.add("active");updateAdminBtn();}
+function show(id){
+  document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");});
+  var el=document.getElementById(id);
+  if(el)el.classList.add("active");
+  updateAdminBtn();
+}
 function getZone(p){return p<=0.38?"comfort":p<=0.65?"learning":"panic";}
 
 function getDot(p){
@@ -718,7 +746,17 @@ function adminFill(zone){
     else{freeAns[i]=opts.length-1-Math.floor(Math.random()*Math.max(1,Math.ceil(opts.length*0.35)));}
   }
   baseScore=freeAns.slice(1).reduce(function(s,a,i){return s+(a!==null?freeQs[i+1].opts[a].score:0);},0);
-  showResult(false);
+  // Fill Go Deeper answers
+  phase="deeper";
+  for(var i=0;i<deeperQs.length;i++){
+    var opts=deeperQs[i].opts;
+    if(zone===-1){deepAns[i]=Math.floor(Math.random()*opts.length);}
+    else if(zone===0){deepAns[i]=Math.floor(Math.random()*Math.max(1,Math.ceil(opts.length*0.4)));}
+    else if(zone===1){var mid=Math.floor(opts.length/2);deepAns[i]=mid+Math.floor(Math.random()*2)-1;deepAns[i]=Math.max(0,Math.min(opts.length-1,deepAns[i]));}
+    else{deepAns[i]=opts.length-1-Math.floor(Math.random()*Math.max(1,Math.ceil(opts.length*0.35)));}
+  }
+  phase="free";
+  showResult(true);
 }
 
 function cQs(){return phase==="free"?freeQs:deeperQs;}
@@ -796,6 +834,7 @@ function showResult(deeper){
   document.getElementById("dot-lbl").textContent=deeper?"Refined placement":"Your placement";
   document.getElementById("small-step").style.display=fz==="panic"?"block":"none";
   document.getElementById("deeper-gate").style.display=deeper?"none":"block";
+  if(deeper)isDeeper=true;
   var fp2=freeAns.slice(1).map(function(a,i){return a!==null?"<div class='pill'>"+freeLabels[i]+": "+freeQs[i+1].opts[a].l.split("—")[0].trim()+"</div>":"";}).join("");
   var dp2=deeper?deepAns.map(function(a,i){return a!==null?"<div class='pill'>"+deepLabels[i]+": "+deeperQs[i].opts[a].l.split("—")[0].trim()+"</div>":"";}).join(""):"";
   document.getElementById("pills").innerHTML=fp2+dp2;
@@ -944,13 +983,13 @@ function fallNext(){
   if(fallCur<qs.length-1){fallCur++;renderFall();}
   else if(fallPhase==="quick"){
     if(qA.fell==="injured"){startInjury();}
-    else if(qA.fell==="no"||qA.fell==="tbd"){fallPhase="nofall";fallCur=0;renderFall();}
+    else if(qA.fell==="no"){fallPhase="nofall";fallCur=0;renderFall();}
     else{fallPhase="ext";fallCur=0;renderFall();}
   } else {saveFall();showFallSum();}
 }
 
 function saveFall(){
-  var isNoFall=fallPhase==="nofall"||qA.fell==="no"||qA.fell==="tbd";
+  var isNoFall=fallPhase==="nofall"||qA.fell==="no";
   var f={fell:qA.fell,fallType:qA.fallType,angle:qA.angle,stress:qA.stress||null,stressLabel:qA.stressLabel||null,
     gotBack:eA.gotBack,impact:eA.impact,height:eA.height,grade:eA.grade,
     vs_expect:eA.vs_expect||null,control:eA.control||null,crux_state:eA.crux_state||null,took:eA.took||null,
@@ -1351,6 +1390,17 @@ async function loadPatternLine(){
   }catch(e){console.warn("pattern line failed",e);}
 }
 
+function togglePills(){
+  var el=document.getElementById("pills");
+  var caret=document.getElementById("pills-caret");
+  if(el.style.display==="none"){
+    el.style.display="flex";el.style.flexWrap="wrap";el.style.gap="6px";
+    caret.style.transform="rotate(90deg)";
+  } else {
+    el.style.display="none";caret.style.transform="";
+  }
+}
+
 function restart(){
   phase="free";cur=0;baseScore=0;ctLabel="";isDeeper=false;sessId=null;
   freeAns=new Array(freeQs.length).fill(null);deepAns=new Array(deeperQs.length).fill(null);
@@ -1359,7 +1409,45 @@ function restart(){
   show("s-assess");render();
 }
 
-render();
+var obSlides=[
+  {num:"01",title:"This is a psychological tool, not a performance tracker",text:"Sharp End Exposure helps you understand your readiness before you climb — and track what actually happened after. It does not measure how hard you climb. It measures how honestly you engage with the risk you are taking."},
+  {num:"02",title:"Answer honestly, not aspirationally",text:"The tool only works if your answers reflect where you actually are — not where you want to be. There is no right answer. A comfort zone result is not failure. A panic zone result is not badness. It is just data."},
+  {num:"03",title:"The more you use it, the more it tells you",text:"Single sessions give you a snapshot. Multiple sessions reveal your patterns — where you consistently land, what terrain you avoid, how your stress response changes over time. Come back after every session."}
+];
+var obStep=0;
+
+function renderOb(){
+  var s=obSlides[obStep];
+  document.getElementById("onboard-wrap").innerHTML=
+    "<div class='ob-card'><div class='ob-num'>"+s.num+" / 03</div><div class='ob-title'>"+s.title+"</div><div class='ob-text'>"+s.text+"</div></div>"+
+    "<div style='display:flex;justify-content:center;gap:6px;margin-top:.5rem'>"+
+    obSlides.map(function(_,i){return "<div style='width:6px;height:6px;border-radius:50%;background:"+(i===obStep?"#c8622a":"rgba(0,0,0,0.15)")+"'></div>";}).join("")+
+    "</div>";
+  document.getElementById("ob-back").style.opacity=obStep===0?".3":"1";
+  document.getElementById("ob-back").disabled=obStep===0;
+  document.getElementById("ob-next").textContent=obStep===obSlides.length-1?"Start assessment":"Continue";
+}
+
+function obBack(){if(obStep>0){obStep--;renderOb();}}
+function obNext(){
+  if(obStep<obSlides.length-1){obStep++;renderOb();}
+  else{
+    localStorage.setItem("see_onboarded","1");
+    show("s-main");
+  }
+}
+
+function initApp(){
+  if(localStorage.getItem("see_onboarded")==="1"){
+    show("s-main");
+  } else {
+    show("s-onboard");
+    renderOb();
+  }
+  render();
+}
+
+initApp();
 </script>
 </body>
 </html>
