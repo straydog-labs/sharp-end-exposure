@@ -138,6 +138,12 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 .next-card-title{font-size:14px;font-weight:500;color:#1a1a18}
 .next-card-sub{font-size:12px;color:#888780;margin-top:2px}
 .next-card-arrow{font-size:18px;color:#c8c8c0}
+.intel-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem}
+.intel-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem}
+.intel-insight{font-size:13px;color:#1a1a18;line-height:1.7;padding:.5rem 0;border-bottom:0.5px solid rgba(0,0,0,0.06);font-weight:300}
+.intel-insight:last-child{border-bottom:none;padding-bottom:0}
+.intel-insight strong{font-weight:500}
+.intel-placeholder{background:#edeae3;border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem;font-size:13px;color:#5f5e5a;line-height:1.6;font-weight:300}
 </style>
 </head>
 <body>
@@ -338,6 +344,7 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
     <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px">Your sessions</div>
     <div style="font-family:Bebas Neue,sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:4px">Session History</div>
     <div style="font-size:13px;color:#5f5e5a;font-weight:300;margin-bottom:1.25rem">All your past assessments on this device.</div>
+    <div id="personal-intel" style="display:none;margin-bottom:1.25rem"></div>
     <div id="hist-list"></div>
     <div id="hist-radar-wrap" style="display:none;margin-top:1.5rem">
       <div class="radar-title">Terrain Experience — All Sessions</div>
@@ -563,6 +570,34 @@ var stressOpts=[
   {v:5,l:"Intense response",s:"Full shutdown, could not continue immediately"},
   {v:0,l:"Not sure",s:"I was not tracking my body response"},
   {v:-1,l:"I feel off — something is not right",s:"Pain, discomfort, or something felt wrong"}
+];
+
+var noFallQs=[
+  {text:"How did the climb feel relative to what you expected going in?",hint:"",key:"vs_expect",opts:[
+    {l:"Easier than expected — I felt solid throughout",v:"easier"},
+    {l:"About what I expected",v:"as_expected"},
+    {l:"Harder than expected — it demanded more than I thought",v:"harder"},
+    {l:"I did not finish the climb",v:"dnf"}
+  ]},
+  {text:"How in control did you feel throughout the climb?",hint:"",key:"control",opts:[
+    {l:"Fully in control — deliberate and present",v:"full"},
+    {l:"Mostly in control, with a few uncertain moments",v:"mostly"},
+    {l:"Hanging on — more reactive than deliberate",v:"reactive"},
+    {l:"I backed off before it got to that point",v:"backed_off"}
+  ]},
+  {text:"What was your mental state at the crux?",hint:"The crux is where you find out what you are actually working with.",key:"crux_state",opts:[
+    {l:"Present and focused — I climbed it deliberately",v:"present"},
+    {l:"Tense but managed — I got through it",v:"tense"},
+    {l:"I rushed through without really processing it",v:"rushed"},
+    {l:"I avoided the crux or found a way around it",v:"avoided"},
+    {l:"There was no distinct crux on this route",v:"no_crux"}
+  ]},
+  {text:"Did you take, or ask your belayer to take, during the climb?",hint:"Taking is not failure — but the reason behind it is worth knowing.",key:"took",opts:[
+    {l:"No — I climbed it clean",v:"clean"},
+    {l:"Yes, once — to rest or reset",v:"once"},
+    {l:"Yes, multiple times",v:"multiple"},
+    {l:"Yes — and it stopped me from committing to a move",v:"prevented_commit"}
+  ]}
 ];
 
 var injShared=[
@@ -866,13 +901,15 @@ function computeRadarScores(fallData){
 function startFallLog(){fallPhase="quick";fallCur=0;stressSel=null;qA={};eA={};show("s-fall");renderFall();}
 
 function renderFall(){
-  var qs=fallPhase==="quick"?quickFallQs:extFallQs;
-  var tot=quickFallQs.length+extFallQs.length;
+  var qs=fallPhase==="quick"?quickFallQs:fallPhase==="nofall"?noFallQs:extFallQs;
+  var tot=quickFallQs.length+Math.max(noFallQs.length,extFallQs.length);
   var idx=fallPhase==="quick"?fallCur:quickFallQs.length+fallCur;
   document.getElementById("fall-prog").style.width=((idx/tot)*100)+"%";
-  document.getElementById("fall-phase").innerHTML=fallPhase==="quick"
-    ?"Fall log "+(fallCur+1)+" of "+quickFallQs.length+" <span class='phase-tag phase-fall'>Quick log</span>"
-    :"Fall detail "+(fallCur+1)+" of "+extFallQs.length+" <span class='phase-tag phase-ext'>Extended</span>";
+  var phl;
+  if(fallPhase==="quick") phl="Fall log "+(fallCur+1)+" of "+quickFallQs.length+" <span class='phase-tag phase-fall'>Quick log</span>";
+  else if(fallPhase==="nofall") phl="Climb check-in "+(fallCur+1)+" of "+noFallQs.length+" <span class='phase-tag phase-deep'>No fall</span>";
+  else phl="Fall detail "+(fallCur+1)+" of "+extFallQs.length+" <span class='phase-tag phase-ext'>Extended</span>";
+  document.getElementById("fall-phase").innerHTML=phl;
   var q=qs[fallCur];
   document.getElementById("fall-q").textContent=q.text;
   document.getElementById("fall-hint").textContent=q.hint||"";
@@ -898,26 +935,33 @@ function renderFall(){
 }
 
 function fallBack(){
-  if(fallPhase==="ext"&&fallCur===0){fallPhase="quick";fallCur=quickFallQs.length-1;renderFall();}
+  if((fallPhase==="ext"||fallPhase==="nofall")&&fallCur===0){fallPhase="quick";fallCur=quickFallQs.length-1;renderFall();}
   else if(fallCur>0){fallCur--;renderFall();}
 }
 
 function fallNext(){
-  var qs=fallPhase==="quick"?quickFallQs:extFallQs;
+  var qs=fallPhase==="quick"?quickFallQs:fallPhase==="nofall"?noFallQs:extFallQs;
   if(fallCur<qs.length-1){fallCur++;renderFall();}
   else if(fallPhase==="quick"){
     if(qA.fell==="injured"){startInjury();}
-    else if(qA.fell==="no"||qA.fell==="tbd"){saveFall();showFallSum();}
+    else if(qA.fell==="no"||qA.fell==="tbd"){fallPhase="nofall";fallCur=0;renderFall();}
     else{fallPhase="ext";fallCur=0;renderFall();}
   } else {saveFall();showFallSum();}
 }
 
 function saveFall(){
+  var isNoFall=fallPhase==="nofall"||qA.fell==="no"||qA.fell==="tbd";
   var f={fell:qA.fell,fallType:qA.fallType,angle:qA.angle,stress:qA.stress||null,stressLabel:qA.stressLabel||null,
     gotBack:eA.gotBack,impact:eA.impact,height:eA.height,grade:eA.grade,
+    vs_expect:eA.vs_expect||null,control:eA.control||null,crux_state:eA.crux_state||null,took:eA.took||null,
     ct:ctLabel,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})};
   falls.push(f);
-  if(sessId){sbInsert("falls",{session_id:sessId,device_id:DID,fell:f.fell,fall_type:f.fallType,wall_angle:f.angle,stress_response:f.stress,stress_label:f.stressLabel,got_back_on:f.gotBack,session_impact:f.impact,fall_height:f.height,grade:f.grade});}
+  if(sessId){
+    sbInsert("falls",{session_id:sessId,device_id:DID,fell:f.fell,fall_type:f.fallType,wall_angle:f.angle,
+      stress_response:f.stress,stress_label:f.stressLabel,got_back_on:f.gotBack,session_impact:f.impact,
+      fall_height:f.height,grade:f.grade,
+      vs_expect:f.vs_expect,control:f.control,crux_state:f.crux_state,took:f.took});
+  }
 }
 
 function showFallSum(){
@@ -1044,6 +1088,108 @@ function showHistory(){
     });
     // Load radar from fall history
     loadHistoryRadar();
+    // Load personal intelligence
+    loadPersonalIntel(rows);
+  });
+}
+
+function loadPersonalIntel(sessions){
+  var el=document.getElementById("personal-intel");
+  if(!el)return;
+  el.style.display="block";
+
+  if(!sessions||sessions.length===0){
+    el.innerHTML="<div class='intel-placeholder'>Complete your first assessment and your insights will appear here.</div>";
+    return;
+  }
+
+  if(sessions.length===1){
+    el.innerHTML="<div class='intel-placeholder'>Come back after your next session — your patterns will start to show. One session is a moment. Two is a direction.</div>";
+    return;
+  }
+
+  var insights=[];
+  var total=sessions.length;
+  var zones=sessions.map(function(s){return s.deeper_zone||s.baseline_zone||"comfort";});
+  var ctypes=sessions.map(function(s){return s.climbing_type||"";});
+
+  // Zone pattern
+  var zCount={comfort:0,learning:0,panic:0};
+  zones.forEach(function(z){if(zCount[z]!==undefined)zCount[z]++;});
+  var topZone=Object.keys(zCount).sort(function(a,b){return zCount[b]-zCount[a];})[0];
+  var zNames={comfort:"comfort zone",learning:"learning zone",panic:"panic zone"};
+  insights.push("You have logged <strong>"+total+" sessions</strong>. Your most common placement is the <strong>"+zNames[topZone]+"</strong>.");
+
+  // Zone trend (last 3)
+  if(zones.length>=3){
+    var recent=zones.slice(0,3).reverse();
+    var zO={comfort:0,learning:1,panic:2};
+    var trend=zO[recent[recent.length-1]]-zO[recent[0]];
+    if(trend>0) insights.push("Your last three sessions show a <strong>trend toward higher-stress terrain</strong>. You are pushing the edge — make sure it is intentional.");
+    else if(trend<0) insights.push("Your last three sessions show a <strong>trend toward lower-stress terrain</strong>. Worth asking: are you recovering, or are you pulling back?");
+    else insights.push("Your zone placement has been <strong>consistent across your last three sessions</strong>. Stability can mean mastery — or it can mean a plateau.");
+  }
+
+  // Climbing type pattern
+  var ctCount={};
+  ctypes.forEach(function(t){if(t)ctCount[t]=(ctCount[t]||0)+1;});
+  var topCt=Object.keys(ctCount).sort(function(a,b){return ctCount[b]-ctCount[a];})[0];
+  if(topCt&&ctCount[topCt]>1) insights.push("Most of your sessions have been on <strong>"+topCt+"</strong>. If that is your comfort zone style, consider whether you are avoiding other terrain.");
+
+  // Go deeper usage
+  var deeperCount=sessions.filter(function(s){return s.did_go_deeper;}).length;
+  if(deeperCount===0&&total>=3) insights.push("You have not used <strong>Go Deeper</strong> yet. Route-specific analysis refines your Exposure Map placement — worth trying on your next session.");
+  else if(deeperCount>0) insights.push("You have used <strong>Go Deeper on "+deeperCount+" of "+total+" sessions</strong>. That route-level data is making your assessment more accurate over time.");
+
+  // Render
+  el.innerHTML="<div class='intel-card'><div class='intel-label'>Your patterns</div>"+
+    insights.map(function(i){return "<div class='intel-insight'>"+i+"</div>";}).join("")+
+  "</div>";
+
+  // Also load fall data for deeper insights
+  sbSelect("falls",{device_id:"eq."+DID,limit:100}).then(function(fallRows){
+    if(!fallRows||fallRows.length===0)return;
+    var fallInsights=[];
+
+    // Take pattern
+    var tookCount=fallRows.filter(function(r){return r.took==="once"||r.took==="multiple"||r.took==="prevented_commit";}).length;
+    var preventedCount=fallRows.filter(function(r){return r.took==="prevented_commit";}).length;
+    if(tookCount>0){
+      var pct=Math.round((tookCount/fallRows.length)*100);
+      fallInsights.push("You took or backed off on <strong>"+pct+"% of logged climbs</strong>."+
+        (preventedCount>0?" On "+preventedCount+" of those, it stopped you from committing to a move. That is worth paying attention to.":""));
+    }
+
+    // Terrain gaps
+    var angles={slab:0,vertical:0,overhang:0,roof:0};
+    fallRows.forEach(function(r){if(r.wall_angle&&angles[r.wall_angle]!==undefined)angles[r.wall_angle]++;});
+    var zero=Object.keys(angles).filter(function(a){return angles[a]===0;});
+    if(zero.length>0) fallInsights.push("You have <strong>no logged falls on "+zero.join(" or ")+" terrain</strong>. That may be a gap in your fall experience — or terrain you are avoiding.");
+
+    // Stress response pattern
+    var stressVals=fallRows.filter(function(r){return r.stress_response>0;}).map(function(r){return r.stress_response;});
+    if(stressVals.length>=3){
+      var avg=Math.round(stressVals.reduce(function(s,v){return s+v;},0)/stressVals.length*10)/10;
+      if(avg>=3.5) fallInsights.push("Your average stress response on falls is <strong>"+avg+" out of 5</strong> — on the higher end. Your nervous system is working hard. Fall practice in lower-stakes terrain may help.");
+      else if(avg<=1.5) fallInsights.push("Your average stress response on falls is <strong>"+avg+" out of 5</strong> — low. Either you are very comfortable falling, or you are not yet in terrain that challenges you.");
+      else fallInsights.push("Your average stress response on falls is <strong>"+avg+" out of 5</strong> — in a healthy range for active learning.");
+    }
+
+    // Got back on pattern
+    var fellCount=fallRows.filter(function(r){return r.fell==="yes";}).length;
+    var gotBack=fallRows.filter(function(r){return r.got_back_on==="yes_quick"||r.got_back_on==="yes_slow";}).length;
+    if(fellCount>=3){
+      var gpct=Math.round((gotBack/fellCount)*100);
+      if(gpct>=80) fallInsights.push("You got back on after <strong>"+gpct+"% of your falls</strong>. That is a strong indicator of psychological resilience.");
+      else if(gpct<=40) fallInsights.push("You got back on after <strong>"+gpct+"% of your falls</strong>. That is worth examining — is it fear, fatigue, or judgment?");
+    }
+
+    if(fallInsights.length>0){
+      var existing=el.innerHTML;
+      el.innerHTML=existing.replace("</div>",""+
+        fallInsights.map(function(i){return "<div class='intel-insight'>"+i+"</div>";}).join("")+
+      "</div>");
+    }
   });
 }
 
