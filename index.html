@@ -86,8 +86,7 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 .hist-info{flex:1}
 .hist-title{font-size:14px;font-weight:500}
 .hist-sub{font-size:12px;color:#888780;margin-top:2px}
-.fab{position:fixed;bottom:1.5rem;right:1.5rem;padding:8px 16px;background:#fff;border:0.5px solid rgba(0,0,0,0.16);border-radius:99px;font-size:12px;font-weight:500;color:#888780;cursor:pointer;font-family:"DM Sans",sans-serif;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.08);z-index:100}
-.fab:hover{color:#1a1a18;border-color:rgba(0,0,0,0.28);box-shadow:0 4px 12px rgba(0,0,0,0.12)}
+
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .overlay.open{display:flex}
 .modal{background:#f5f2ed;border-radius:16px 16px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:640px;max-height:85vh;overflow-y:auto}
@@ -132,7 +131,7 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 </style>
 </head>
 <body>
-<button class="fab" onclick="openFeedback()">Share feedback</button>
+
 <div class="app">
 <!DOCTYPE html>
 <html lang="en">
@@ -142,133 +141,10 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 <title>Sharp End Exposure — Straydog Labs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{--rope:#c8622a;--rope-light:#e8843a}
-body{font-family:"DM Sans",sans-serif;background:#f5f2ed;color:#1a1a18;min-height:100vh}
-.app{max-width:640px;margin:0 auto;padding:2rem 1.25rem 5rem}
-.screen{display:none}.screen.active{display:block}
-.progress-bar{height:2px;background:rgba(0,0,0,0.1);border-radius:1px;margin-bottom:1.5rem;overflow:hidden}
-.progress-fill{height:100%;background:var(--rope);border-radius:1px;transition:width .4s ease}
-.phase-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.phase-tag{padding:2px 8px;border-radius:99px;font-size:10px;font-weight:500;letter-spacing:.06em}
-.phase-free{background:rgba(74,122,90,.12);color:#2a5a3a}
-.phase-deep{background:rgba(200,98,42,.12);color:#7a3a10}
-.phase-fall{background:rgba(74,100,160,.12);color:#2a3a7a}
-.phase-ext{background:rgba(100,74,160,.12);color:#4a2a7a}
-.phase-inj{background:rgba(168,56,40,.12);color:#782818}
-.phase-fb{background:rgba(88,88,88,.1);color:#444}
-.phase-climb{background:rgba(74,122,90,.12);color:#2a5a3a}
-.q-text{font-size:19px;font-weight:500;line-height:1.4;margin-bottom:4px}
-.q-hint{font-size:13px;color:#888780;margin-bottom:1.25rem;font-weight:300;line-height:1.5}
-.options{display:flex;flex-direction:column;gap:8px}
-.option{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:0.5px solid rgba(0,0,0,0.14);border-radius:8px;cursor:pointer;transition:all .15s;background:#fff}
-.option:hover{border-color:rgba(0,0,0,0.28);background:#faf8f5}
-.option.selected{border-color:var(--rope);background:rgba(200,98,42,.05)}
-.opt-marker{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.2);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center}
-.option.selected .opt-marker{background:var(--rope);border-color:var(--rope)}
-.option.selected .opt-marker::after{content:"";width:6px;height:6px;border-radius:50%;background:white}
-.opt-label{font-size:14px;line-height:1.5;font-weight:400}
-.opt-sub{font-size:12px;color:#888780;margin-top:2px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;border:0.5px solid rgba(0,0,0,0.2);background:transparent;color:#1a1a18;font-family:"DM Sans",sans-serif}
-.btn:hover{background:rgba(0,0,0,0.05)}
-.btn:active{transform:scale(.98)}
-.btn-p{background:var(--rope);border-color:var(--rope);color:white}
-.btn-p:hover{background:var(--rope-light);border-color:var(--rope-light)}
-.btn-p:disabled{opacity:.4;cursor:not-allowed}
-.nav{display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem}
-.zone-badge{display:inline-block;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
-.z-comfort{background:rgba(74,122,90,.15);color:#2a5a3a}
-.z-learning{background:rgba(200,133,42,.15);color:#7a4a10}
-.z-panic{background:rgba(168,56,40,.15);color:#782818}
-.res-title{font-family:"Bebas Neue",sans-serif;font-size:26px;letter-spacing:.04em;line-height:1.1;margin-bottom:1.25rem}
-.map-wrap{display:flex;gap:1.25rem;align-items:flex-start;margin-bottom:1.25rem}
-.guidance-text{font-size:13px;line-height:1.75;color:#5f5e5a;font-weight:300}
-.guidance-breathing{font-size:12px;color:#888780;font-style:italic;margin-top:.5rem;line-height:1.6;padding-top:.5rem;border-top:0.5px solid rgba(0,0,0,0.08)}
-.divider{height:0.5px;background:rgba(0,0,0,0.1);margin:1.25rem 0}
-.card{border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem;background:#fff;margin-top:.75rem}
-.ci-orange{background:rgba(200,98,42,.1);color:var(--rope)}
-.ci-blue{background:rgba(74,100,160,.1);color:#2a4a8a}
-.ci-green{background:rgba(74,122,90,.1);color:#2a5a3a}
-.ci-red{background:rgba(168,56,40,.1);color:#782818}
-.refined-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;background:rgba(200,98,42,.12);color:#7a3a10;margin-left:8px}
-.small-step{border:0.5px solid rgba(168,56,40,.25);border-radius:12px;padding:1rem 1.25rem;background:rgba(168,56,40,.04);margin-bottom:.75rem}
-.ss-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#782818;margin-bottom:8px}
-.ss-q{font-size:14px;font-weight:400;margin-bottom:.75rem;line-height:1.5;color:#5f5e5a;font-weight:300}
-textarea,input[type=text]{width:100%;font-size:14px;font-family:"DM Sans",sans-serif;padding:10px 12px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#1a1a18;resize:vertical;line-height:1.5}
-textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
-.ta-sm{min-height:80px}
-.ta-note{min-height:64px;background:#edeae3}
-.ta-fb{min-height:80px}
-.fall-entry{padding:.75rem 0;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px}
-.fall-entry:last-child{border-bottom:none;padding-bottom:0}
-.fe-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.fe-info{flex:1}
-.fe-title{font-size:13px;font-weight:500}
-.fe-sub{font-size:12px;color:#888780;margin-top:2px}
-.fe-stress{font-size:12px;color:#5f5e5a;flex-shrink:0;text-align:right;max-width:130px}
-.sess-stat{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:0.5px solid rgba(0,0,0,0.06)}
-.sess-stat:last-child{border-bottom:none}
-.ss-val{font-weight:500}
-.sess-card{background:#edeae3;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
-.warn-box{font-size:12px;color:#782818;background:rgba(168,56,40,.06);border:0.5px solid rgba(168,56,40,.2);border-radius:8px;padding:.75rem 1rem;margin-top:.75rem;line-height:1.6}
-.save-ind{font-size:11px;color:#888780;text-align:center;margin-top:.5rem;min-height:16px;transition:opacity .3s}
-.empty{text-align:center;padding:3rem 0;color:#888780}
-.empty-title{font-size:15px;font-weight:500;margin-bottom:6px;color:#5f5e5a}
-.empty-sub{font-size:13px;font-weight:300;line-height:1.6}
-.hist-entry{padding:.875rem 0;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px}
-.hist-entry:last-child{border-bottom:none}
-.hist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.hist-info{flex:1}
-.hist-title{font-size:14px;font-weight:500}
-.hist-sub{font-size:12px;color:#888780;margin-top:2px}
-.fab{position:fixed;bottom:1.5rem;right:1.5rem;padding:8px 16px;background:#fff;border:0.5px solid rgba(0,0,0,0.16);border-radius:99px;font-size:12px;font-weight:500;color:#888780;cursor:pointer;font-family:"DM Sans",sans-serif;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.08);z-index:100}
-.fab:hover{color:#1a1a18;border-color:rgba(0,0,0,0.28);box-shadow:0 4px 12px rgba(0,0,0,0.12)}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
-.overlay.open{display:flex}
-.modal{background:#f5f2ed;border-radius:16px 16px 0 0;padding:1.5rem 1.25rem 2rem;width:100%;max-width:640px;max-height:85vh;overflow-y:auto}
-.modal-handle{width:36px;height:3px;background:rgba(0,0,0,0.15);border-radius:99px;margin:0 auto 1.25rem}
-.modal-title{font-family:"Bebas Neue",sans-serif;font-size:24px;letter-spacing:.04em;margin-bottom:4px}
-.modal-sub{font-size:13px;color:#5f5e5a;margin-bottom:1.25rem;font-weight:300}
-.restart-row{display:flex;justify-content:flex-end;margin-top:1rem}
-.next-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border:0.5px solid rgba(0,0,0,0.12);border-radius:10px;background:#fff;cursor:pointer;transition:all .15s}
-.next-card:hover{border-color:rgba(0,0,0,0.24);background:#faf8f5}
-.next-card:active{transform:scale(.99)}
-.next-card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
-.next-card-body{flex:1}
-.next-card-title{font-size:14px;font-weight:500;color:#1a1a18}
-.next-card-sub{font-size:12px;color:#888780;margin-top:2px}
-.next-card-arrow{font-size:18px;color:#c8c8c0}
-.intel-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem}
-.intel-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem}
-.intel-bullet{font-size:13px;color:#1a1a18;line-height:1.5;padding:.3rem 0;display:flex;align-items:flex-start;gap:8px}
-.intel-bullet::before{content:"—";color:#c8622a;flex-shrink:0;font-weight:600;line-height:1.5}
-.intel-bullet strong{font-weight:600}
-.intel-placeholder{background:#edeae3;border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem;font-size:13px;color:#5f5e5a;line-height:1.6;font-weight:300}
-.radar-title{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.5rem}
-.disclaimer{font-size:11px;color:#aaa;text-align:center;line-height:1.6;margin-top:1rem;padding-top:1rem;border-top:0.5px solid rgba(0,0,0,0.06)}
-.somatic-reminder{font-size:12px;color:#888780;font-style:italic;padding:.5rem .75rem;background:rgba(200,98,42,.04);border-radius:6px;border-left:2px solid rgba(200,98,42,.3);margin-bottom:1rem;line-height:1.6}
-.pattern-line{font-size:12px;color:#5f5e5a;font-weight:300;margin-bottom:.75rem;padding:.5rem .75rem;background:rgba(0,0,0,0.04);border-radius:6px;border-left:2px solid #c8622a;display:none}
-.first-session{text-align:center;padding:2rem 1rem;background:#edeae3;border-radius:12px;margin-bottom:1rem}
-.first-session-title{font-size:15px;font-weight:500;margin-bottom:6px}
-.first-session-sub{font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.6}
-.gym-stat{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;padding:.875rem 1rem;text-align:center}
-.gym-stat-num{font-family:"Bebas Neue",sans-serif;font-size:32px;letter-spacing:.04em;color:var(--rope);line-height:1}
-.gym-stat-label{font-size:11px;color:#888780;margin-top:4px;font-weight:300}
 
-.demo-banner{background:rgba(200,98,42,.08);border:0.5px solid rgba(200,98,42,.25);border-radius:8px;padding:6px 12px;font-size:11px;color:#7a3a10;text-align:center;margin-bottom:1.25rem;letter-spacing:.04em}
-.demo-tabs{display:flex;gap:6px;margin-bottom:1.25rem}
-.demo-tab{flex:1;padding:8px 10px;border:0.5px solid rgba(0,0,0,0.14);border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;background:#fff;color:#5f5e5a;font-family:'DM Sans',sans-serif;text-align:center;transition:all .15s}
-.demo-tab.active{background:#1a1a18;color:#fff;border-color:#1a1a18}
-.demo-hist-entry{padding:.875rem 0;border-bottom:0.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:12px}
-.demo-hist-entry:last-child{border-bottom:none}
-.breath-delta{font-size:12px;color:#7a3a10;background:rgba(200,98,42,.08);border-left:2px solid rgba(200,98,42,.4);padding:.5rem .75rem;border-radius:0 6px 6px 0;margin-bottom:.75rem;line-height:1.6;display:none}
-.ct-tag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;background:rgba(74,100,160,.1);color:#2a3a7a;margin-bottom:.75rem}
-
-</style>
 </head>
 <body>
-<button class="fab" onclick="openFeedback()">Share feedback</button>
+
 <div class="app">
 
 <!-- ═══════════════════════════════════════════════════════
@@ -586,23 +462,64 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 <div class="screen" id="s-history">
   <button class="btn" onclick="show('s-assess')" style="font-size:13px;margin-bottom:1.25rem">&#8592; Close</button>
   <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:4px">Your sessions</div>
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:1rem">Session History</div>
-  <div class="somatic-reminder" style="margin-bottom:1rem">These are your recorded patterns. Use them to observe — not as prescriptive guidance.</div>
-  <div id="stat-cards" style="display:none;margin-bottom:1.5rem"></div>
-  <div id="hist-radar-wrap" style="display:none;margin-bottom:1.5rem">
-    <div class="radar-title">Terrain Experience</div>
-    <canvas id="hist-radar" width="320" height="280" style="max-width:100%"></canvas>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:.75rem;align-items:center">
-      <div style="display:flex;align-items:center;gap:5px"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(140,140,140,0.5)" stroke-width="1" stroke-dasharray="3,3"/></svg><span style="font-size:11px;color:#888780">Early</span></div>
-      <div style="display:flex;align-items:center;gap:5px"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(200,133,42,0.6)" stroke-width="1.5" stroke-dasharray="4,2"/></svg><span style="font-size:11px;color:#888780">Recent</span></div>
-      <div style="display:flex;align-items:center;gap:5px"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#c8622a" stroke-width="2"/></svg><span style="font-size:11px;color:#888780">All sessions</span></div>
-      <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:rgba(74,122,90,0.7)"></div><span style="font-size:11px;color:#888780">Comfort</span></div>
-      <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:rgba(200,133,42,0.7)"></div><span style="font-size:11px;color:#888780">Learning</span></div>
-      <div style="display:flex;align-items:center;gap:5px"><div style="width:8px;height:8px;border-radius:50%;background:rgba(168,56,40,0.7)"></div><span style="font-size:11px;color:#888780">Panic</span></div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:1.25rem">Session History</div>
+
+  <!-- Zone distribution bar -->
+  <div id="zone-dist-wrap" style="margin-bottom:1.25rem">
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.5rem">Zone distribution</div>
+    <div id="zone-dist-bar" style="display:flex;height:8px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:.4rem;background:rgba(0,0,0,0.08)"></div>
+    <div id="zone-dist-legend" style="display:flex;gap:12px">
+      <div style="font-size:11px;color:#aaa">Complete an assessment to begin</div>
     </div>
-    <div style="font-size:11px;color:#aaa;margin-top:.5rem">Axis color = dominant zone on that terrain. Size = fall volume. Log climbs to populate.</div>
   </div>
-  <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem">Past sessions</div>
+
+  <!-- Exposure dart board -->
+  <div id="expo-map-wrap" style="margin-bottom:1.25rem">
+    <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem">Exposure map</div>
+      <div style="display:flex;justify-content:center">
+        <svg id="expo-svg" width="220" height="220" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="100" fill="rgba(168,56,40,.06)" stroke="rgba(168,56,40,.18)" stroke-width=".5"/>
+          <circle cx="110" cy="110" r="68" fill="rgba(200,133,42,.08)" stroke="rgba(200,133,42,.18)" stroke-width=".5"/>
+          <circle cx="110" cy="110" r="36" fill="rgba(74,122,90,.12)" stroke="rgba(74,122,90,.22)" stroke-width=".5"/>
+          <text x="110" y="113" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" fill="rgba(74,122,90,.9)" font-weight="500">Comfort</text>
+          <text x="110" y="86" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="rgba(200,133,42,.8)">Learning</text>
+          <text x="110" y="30" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7.5" fill="rgba(168,56,40,.75)">Panic</text>
+          <line x1="110" y1="10" x2="110" y2="210" stroke="rgba(0,0,0,.05)" stroke-width=".5" stroke-dasharray="3,3"/>
+          <line x1="10" y1="110" x2="210" y2="110" stroke="rgba(0,0,0,.05)" stroke-width=".5" stroke-dasharray="3,3"/>
+          <g id="expo-dots">
+            <text x="110" y="118" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="rgba(0,0,0,0.18)">No sessions yet</text>
+          </g>
+        </svg>
+      </div>
+      <div style="font-size:11px;color:#aaa;text-align:center;margin-top:.25rem">Each dot = one session. Most recent is largest.</div>
+    </div>
+  </div>
+
+  <!-- Zone timeline -->
+  <div id="zone-timeline-wrap" style="margin-bottom:1.25rem">
+    <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem">Zone progression</div>
+      <div id="zone-timeline" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:14px">
+        <div style="font-size:11px;color:#aaa">Complete sessions to build progression</div>
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-top:.5rem">Oldest &rarr; most recent.</div>
+    </div>
+  </div>
+
+  <!-- Terrain radar -->
+  <div id="hist-radar-wrap" style="margin-bottom:1.25rem">
+    <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem">
+      <div class="radar-title">Terrain experience radar</div>
+      <canvas id="hist-radar" width="320" height="280" style="max-width:100%"></canvas>
+      <div style="font-size:11px;color:#aaa;margin-top:.5rem">Log climbs with terrain data to populate.</div>
+    </div>
+  </div>
+
+  <!-- Personal intel -->
+  <div id="stat-cards" style="display:none;margin-bottom:1.25rem"></div>
+
+  <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem">Sessions</div>
   <div id="hist-list"></div>
 </div>
 
