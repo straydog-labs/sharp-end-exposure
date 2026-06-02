@@ -166,8 +166,8 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
     <div>
       <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#888780;margin-bottom:10px">Straydog Labs</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:.04em;line-height:.95;margin-bottom:.75rem">Sharp End<br><span style="color:#c8622a">Exposure</span></div>
-      <div style="font-size:16px;color:#5f5e5a;font-weight:300;line-height:1.5;margin-bottom:.5rem">Pre-climb readiness for climbers. Know where you are before you leave the ground.</div>
-      <div style="font-size:13px;color:#888780;font-weight:300;line-height:1.6;margin-bottom:1.5rem">7 baseline questions. Exposure map placement. Climb and fall logging. Pattern tracking over time.</div>
+      <div style="font-size:16px;color:#5f5e5a;font-weight:300;line-height:1.5;margin-bottom:.5rem">Risk Exposure Through Experiential Data</div>
+      <div style="font-size:13px;color:#888780;font-weight:300;line-height:1.6;margin-bottom:1.5rem">Better risk decisions start with awareness of your experience.</div>
       <div style="font-size:12px;color:#aaa;line-height:1.7;padding:.875rem 1rem;background:rgba(0,0,0,0.03);border-radius:8px;border-left:2px solid rgba(200,98,42,.3);margin-bottom:1.75rem">Self-reported data only. Not a clinical assessment. Not a substitute for judgment.</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <button class="btn btn-p" onclick="startApp()" style="width:100%;justify-content:center;padding:14px 20px;font-size:15px">Start assessment &rarr;</button>
@@ -241,7 +241,8 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
       <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:.75rem"><div style="width:12px;height:12px;border-radius:50%;background:#c8852a;flex-shrink:0;margin-top:3px"></div><div style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.5"><strong style="color:#1a1a18">Learning zone</strong> — Activation within optimal adaptation range. Peak skill acquisition occurs here.</div></div>
       <div style="display:flex;align-items:flex-start;gap:12px"><div style="width:12px;height:12px;border-radius:50%;background:#a83828;flex-shrink:0;margin-top:3px"></div><div style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.5"><strong style="color:#1a1a18">Panic zone</strong> — Perceived demand outpacing current experience. Elevated activation may affect judgment.</div></div>
     </div>
-    <div style="font-size:12px;color:#aaa;margin-bottom:1.25rem;line-height:1.6">Zone placement is derived from self-reported responses. No zone carries a value judgment.</div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:1.25rem;line-height:1.6">Zone placement is derived from self-reported responses. No zone carries a value judgment.
+    <div style="margin-top:.75rem;font-size:12px;color:#888780;line-height:1.6;padding:.625rem .875rem;background:rgba(200,98,42,.04);border-radius:6px;border-left:2px solid rgba(200,98,42,.25)">Somatic awareness is the practice of noticing what your body is reporting — breath rate, grip tension, heart rate — as objective activation data. Two markers are tracked here: breathing and grip tension.</div></div>
     <button class="btn btn-p" onclick="dismissIntro()" style="width:100%;justify-content:center;padding:13px 20px;font-size:14px">Got it — start assessment &rarr;</button>
   </div>
 </div>
@@ -338,6 +339,10 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
   </div>
 
   <div class="disclaimer">Sharp End Exposure records self-reported readiness data. Not a clinical assessment. Not a substitute for climber judgment. All decisions remain with the climber.</div>
+  <div id="somatic-before-after" style="display:none;margin-top:1rem;padding:1rem;background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px">
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem">Somatic comparison</div>
+    <div id="somatic-ba-content" style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.8"></div>
+  </div>
   <div id="curiosity-anchor" style="margin-top:1rem;padding:.875rem 1rem;border-top:0.5px solid rgba(0,0,0,0.08);font-size:13px;color:#5f5e5a;font-style:italic;font-weight:300;line-height:1.7;text-align:center"></div>
   <div style="margin-top:.75rem;padding:.875rem 1rem;background:rgba(0,0,0,0.03);border-radius:8px;text-align:center">
     <div style="font-size:12px;color:#888780;margin-bottom:.5rem">Help improve this tool</div>
@@ -507,7 +512,16 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
 <div class="screen" id="s-history">
   <button class="btn" onclick="show('s-assess')" style="font-size:13px;margin-bottom:1.25rem">&#8592; Close</button>
   <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:4px">Your sessions</div>
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:1.25rem">Session History</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:1rem">Session History</div>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:6px;margin-bottom:1.25rem">
+    <button id="tab-sessions" class="demo-tab active" onclick="switchHistTab('sessions',this)" style="flex:1">Sessions</button>
+    <button id="tab-patterns" class="demo-tab" onclick="switchHistTab('patterns',this)" style="flex:1">Patterns</button>
+  </div>
+
+  <!-- SESSIONS TAB -->
+  <div id="hist-tab-sessions">
 
   <!-- Zone distribution bar -->
   <div id="zone-dist-wrap" style="margin-bottom:1.25rem">
@@ -566,16 +580,94 @@ textarea:focus,input[type=text]:focus{outline:none;border-color:var(--rope)}
     </div>
   </div>
 
-  <!-- Personal intel -->
-  <div id="stat-cards" style="display:none;margin-bottom:1.25rem"></div>
-
   <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.75rem">Sessions</div>
   <div id="hist-list"></div>
+  </div><!-- end hist-tab-sessions -->
+
+  <!-- PATTERNS TAB -->
+  <div id="hist-tab-patterns" style="display:none">
+    <!-- Readiness signature -->
+    <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.5rem">Readiness signature</div>
+      <div id="readiness-sig" style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.7">Your readiness signature is building. Log more climbs to reveal patterns by terrain and grade.</div>
+    </div>
+
+    <!-- Somatic by terrain -->
+    <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.5rem">Somatic activation by terrain</div>
+      <div id="somatic-terrain-chart" style="font-size:12px;color:#aaa">Log climbs with terrain data to populate.</div>
+    </div>
+
+    <!-- 3-month progression -->
+    <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.5rem">3-month progression</div>
+      <div id="progression-chart" style="font-size:12px;color:#aaa">Return after 3 months of sessions to see progression.</div>
+    </div>
+
+    <!-- Fall pattern intel -->
+    <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem;margin-bottom:1rem">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:.5rem">Fall patterns</div>
+      <div id="fall-pattern-intel" style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.7">Log falls to surface terrain-specific patterns.</div>
+    </div>
+
+    <!-- Personal intel -->
+    <div id="stat-cards" style="display:none;margin-bottom:1rem"></div>
+
+    <!-- Terrain radar -->
+    <div id="hist-radar-wrap" style="margin-bottom:1rem">
+      <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem">
+        <div class="radar-title">Terrain experience radar</div>
+        <canvas id="hist-radar" width="320" height="280" style="max-width:100%"></canvas>
+        <div id="radar-msg" style="font-size:11px;color:#aaa;margin-top:.5rem">Log climbs with terrain data to populate.</div>
+      </div>
+    </div>
+  </div><!-- end hist-tab-patterns -->
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     POST-CLIMB SOMATIC + REFLECTION
+════════════════════════════════════════════════════════ -->
+<div class="screen" id="s-post-somatic">
+  <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:6px">Post-climb check-in</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;line-height:1;margin-bottom:.75rem">What did you notice?</div>
+  <div style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.6;margin-bottom:1.25rem">Report somatic state during the climb. Capture while memory is fresh.</div>
+
+  <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:.5rem;font-weight:500">Breathing during the climb</div>
+  <div class="options" id="post-breath-opts" style="margin-bottom:1rem">
+    <div class="option" onclick="selPostSomatic('breath','effortless',this)"><div class="opt-marker"></div><div class="opt-label">Effortless — stayed open throughout</div></div>
+    <div class="option" onclick="selPostSomatic('breath','slight',this)"><div class="opt-marker"></div><div class="opt-label">Slight effort — noticeable but manageable</div></div>
+    <div class="option" onclick="selPostSomatic('breath','restricted',this)"><div class="opt-marker"></div><div class="opt-label">Restricted — shortened or held at points</div></div>
+    <div class="option" onclick="selPostSomatic('breath','unaware',this)"><div class="opt-marker"></div><div class="opt-label">Unaware — did not notice breath during</div></div>
+  </div>
+
+  <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:.5rem;font-weight:500">Grip tension during the climb</div>
+  <div class="options" id="post-grip-opts" style="margin-bottom:1.25rem">
+    <div class="option" onclick="selPostSomatic('grip','relaxed',this)"><div class="opt-marker"></div><div class="opt-label">Relaxed — grip matched the hold</div></div>
+    <div class="option" onclick="selPostSomatic('grip','slight',this)"><div class="opt-marker"></div><div class="opt-label">Slightly tight — aware of gripping</div></div>
+    <div class="option" onclick="selPostSomatic('grip','gripped',this)"><div class="opt-marker"></div><div class="opt-label">Significantly tight — over-gripping at points</div></div>
+    <div class="option" onclick="selPostSomatic('grip','unaware',this)"><div class="opt-marker"></div><div class="opt-label">Unaware — did not notice grip during</div></div>
+  </div>
+
+  <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:.5rem;font-weight:500">What does this session data reflect?</div>
+  <div class="options" id="post-reflect-opts" style="margin-bottom:1.25rem">
+    <div class="option" onclick="selPostSomatic('reflect','confirmed',this)"><div class="opt-marker"></div><div class="opt-label">Confirmed a pattern I already suspected</div></div>
+    <div class="option" onclick="selPostSomatic('reflect','revealed',this)"><div class="opt-marker"></div><div class="opt-label">Revealed something new about my body or response</div></div>
+    <div class="option" onclick="selPostSomatic('reflect','gap',this)"><div class="opt-marker"></div><div class="opt-label">Showed a gap between my expectation and what happened</div></div>
+    <div class="option" onclick="selPostSomatic('reflect','unclear',this)"><div class="opt-marker"></div><div class="opt-label">No clear insight yet — need more sessions</div></div>
+  </div>
+
+  <button class="btn btn-p" id="post-somatic-submit" onclick="submitPostSomatic()" style="width:100%;justify-content:center;padding:13px 20px;font-size:14px" disabled>Complete session</button>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
      GYM DASHBOARD (basic)
 ════════════════════════════════════════════════════════ -->
+<div class="screen" id="s-session-detail">
+  <button class="btn" onclick="show('s-history')" style="font-size:13px;margin-bottom:1.25rem">&#8592; Sessions</button>
+  <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:4px">Session detail</div>
+  <div id="session-detail-content" style="font-size:13px;color:#5f5e5a;font-weight:300;line-height:1.8"></div>
+</div>
+
 <div class="screen" id="s-gym">
   <button class="btn" onclick="show('s-assess')" style="font-size:13px;margin-bottom:1.25rem">&#8592; Close</button>
   <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#888780;margin-bottom:4px">Gym dashboard</div>
@@ -850,14 +942,19 @@ var freeQs=[
     {l:"Distracted or unsettled",score:3},
     {l:"Anxious — something feels off",score:4}
   ]},
-  {text:"Check in with your breathing again — right now, before you leave the ground.",
-   hint:"Record current breathing state after completing the prior questions. Note any change from Q4.",
+  {text:"Second somatic check-in — observe the same two areas after considering this route.",
+   hint:"Note any change from your first check-in. Report actual current state.",
    isSomatic2:true,
+   isDualSomatic:true,
    opts:[
-    {l:"Effortless — no attention needed",score:1},
-    {l:"Slight effort — I notice it a little",score:2},
-    {l:"Noticeable effort — I am aware of it",score:3},
-    {l:"Restricted — something is making it harder",score:4}
+    {l:"Breathing: effortless",score:1,key:"breath",val:"effortless"},
+    {l:"Breathing: slight effort",score:2,key:"breath",val:"slight"},
+    {l:"Breathing: noticeable effort",score:3,key:"breath",val:"noticeable"},
+    {l:"Breathing: restricted",score:4,key:"breath",val:"restricted"},
+    {l:"Grip: relaxed",score:1,key:"grip",val:"relaxed"},
+    {l:"Grip: slightly tight",score:2,key:"grip",val:"slight"},
+    {l:"Grip: noticeably tight",score:3,key:"grip",val:"noticeable"},
+    {l:"Grip: gripped",score:4,key:"grip",val:"gripped"}
   ]}
 ];
 
@@ -1018,7 +1115,7 @@ var deeperRefinements={
   panic:"Route detail compounds an already elevated readiness gap. Assess whether current conditions support productive engagement with this specific route today."
 };
 
-var freeLabels=["Style","Experience","Prior attempts","Breathing","Intention","Mental state","Breathing (after)"];
+var freeLabels=["Style","Experience","Prior attempts","Somatic check-in","Intention","Mental state","Somatic check-in 2"];
 var deepLabels=["Approach","Bolt spacing","Crux fall","Bolt visibility","Swing risk","Physical state","Partner","Session position","Fall consequence","Attempt intention","Success definition"];
 var zColors={comfort:"#4a7a5a",learning:"#c8852a",panic:"#a83828"};
 
@@ -1093,6 +1190,55 @@ function dismissIntro(){
   localStorage.setItem("see_intro_done","1");
   show("s-assess");
   render();
+}
+
+// ── POST-CLIMB SOMATIC ─────────────────────────────────
+var postSomaticAns={breath:null,grip:null,reflect:null};
+
+function selPostSomatic(key,val,el){
+  var groupId="post-"+key+"-opts";
+  document.querySelectorAll("#"+groupId+" .option").forEach(function(o){o.classList.remove("selected");});
+  el.classList.add("selected");
+  postSomaticAns[key]=val;
+  var btn=document.getElementById("post-somatic-submit");
+  if(btn)btn.disabled=!(postSomaticAns.breath&&postSomaticAns.grip&&postSomaticAns.reflect);
+}
+
+function showPostSomatic(){
+  postSomaticAns={breath:null,grip:null,reflect:null};
+  document.querySelectorAll("#s-post-somatic .option").forEach(function(o){o.classList.remove("selected");});
+  var btn=document.getElementById("post-somatic-submit");if(btn)btn.disabled=true;
+  show("s-post-somatic");
+}
+
+function submitPostSomatic(){
+  if(sessId){
+    sbInsert("falls",{session_id:sessId,device_id:DID,fell:"post_somatic",
+      breathing_during:postSomaticAns.breath,
+      grip_during:postSomaticAns.grip,
+      learning_reflection:postSomaticAns.reflect
+    });
+  }
+  // Show before/after comparison
+  var baEl=document.getElementById("somatic-before-after");
+  var baContent=document.getElementById("somatic-ba-content");
+  if(baEl&&baContent&&freeAns[3]){
+    var b1=freeAns[3].breath||"—";
+    var g1=freeAns[3].grip||"—";
+    var b2=freeAns[6]?freeAns[6].breath||"—":"—";
+    var g2=freeAns[6]?freeAns[6].grip||"—":"—";
+    var bDur=postSomaticAns.breath||"—";var gDur=postSomaticAns.grip||"—";
+    baContent.innerHTML=
+      "<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;text-align:center;margin-bottom:.5rem'>"+
+      "<div style='font-size:10px;color:#aaa'>Before</div><div style='font-size:10px;color:#aaa'>After route thinking</div><div style='font-size:10px;color:#aaa'>During climb</div></div>"+
+      "<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;text-align:center;margin-bottom:.375rem'>"+
+      "<div style='font-size:11px'>Breath: "+b1+"</div><div style='font-size:11px'>Breath: "+b2+"</div><div style='font-size:11px'>Breath: "+bDur+"</div></div>"+
+      "<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;text-align:center'>"+
+      "<div style='font-size:11px'>Grip: "+g1+"</div><div style='font-size:11px'>Grip: "+g2+"</div><div style='font-size:11px'>Grip: "+gDur+"</div></div>";
+    baEl.style.display="block";
+  }
+  showToast("Session complete");
+  show("s-result");
 }
 
 function showToast(msg){
@@ -1205,8 +1351,9 @@ function showResult(deeper){
   // Breathing delta
   var bdEl=document.getElementById("breath-delta");
   if(bdEl&&freeAns[3]!==null&&freeAns[6]!==null){
-    var b1score=freeQs[3].opts[freeAns[3]].score;
-    var b2score=freeQs[6].opts[freeAns[6]].score;
+    var breathVals={effortless:1,slight:2,noticeable:3,restricted:4};
+    var b1score=freeAns[3]&&freeAns[3].breath?breathVals[freeAns[3].breath]||2:2;
+    var b2score=freeAns[6]&&freeAns[6].breath?breathVals[freeAns[6].breath]||2:2;
     if(b2score-b1score>=2){
       bdEl.textContent="Breathing state shifted between Q4 and Q7. Somatic change occurred during the assessment. Observe current breath state before proceeding.";
       bdEl.style.display="block";
@@ -1238,7 +1385,7 @@ function showResult(deeper){
 
   // Save session
   setSave("save-ind","Saving...",false);
-  sbInsert("sessions",{device_id:DID,climbing_type:ctLabel,baseline_score:baseScore,baseline_zone:getZone(fp),did_go_deeper:deeper,deeper_score:deeper?ds:null,deeper_zone:deeper?dz:null,breathing_baseline:freeAns[3]!==null?freeQs[3].opts[freeAns[3]].l:null,breathing_after:freeAns[6]!==null?freeQs[6].opts[freeAns[6]].l:null}).then(function(saved){
+  sbInsert("sessions",{device_id:DID,climbing_type:ctLabel,baseline_score:baseScore,baseline_zone:getZone(fp),did_go_deeper:deeper,deeper_score:deeper?ds:null,deeper_zone:deeper?dz:null,breathing_baseline:freeAns[3]&&freeAns[3].breath?freeAns[3].breath:null,grip_baseline:freeAns[3]&&freeAns[3].grip?freeAns[3].grip:null,breathing_after:freeAns[6]&&freeAns[6].breath?freeAns[6].breath:null,grip_after:freeAns[6]&&freeAns[6].grip?freeAns[6].grip:null,session_hour:new Date().getHours()}).then(function(saved){
     if(saved&&saved.id){sessId=saved.id;setSave("save-ind","Session saved",true);}
     else setSave("save-ind","",false);
   });
@@ -1327,11 +1474,13 @@ var quickFallQs=[
     {l:"Overhang — past vertical",v:"overhang"},
     {l:"Roof — severely overhanging",v:"roof"}
   ]},
-  {text:"What grade was the route?",hint:"Approximate is fine.",key:"grade",opts:[
-    {l:"5.8 or below",v:"5.8-"},
-    {l:"5.9 to 5.10",v:"5.9-5.10"},
-    {l:"5.11 to 5.12",v:"5.11-5.12"},
-    {l:"5.13 and above",v:"5.13+"}
+  {text:"What grade was the route?",hint:"Select the closest grade.",key:"grade_structured",opts:[
+    {l:"5.6",v:"5.6"},{l:"5.7",v:"5.7"},{l:"5.8",v:"5.8"},{l:"5.9",v:"5.9"},
+    {l:"5.10a",v:"5.10a"},{l:"5.10b",v:"5.10b"},{l:"5.10c",v:"5.10c"},{l:"5.10d",v:"5.10d"},
+    {l:"5.11a",v:"5.11a"},{l:"5.11b",v:"5.11b"},{l:"5.11c",v:"5.11c"},{l:"5.11d",v:"5.11d"},
+    {l:"5.12a",v:"5.12a"},{l:"5.12b",v:"5.12b"},{l:"5.12c",v:"5.12c"},{l:"5.12d",v:"5.12d"},
+    {l:"5.13a",v:"5.13a"},{l:"5.13b",v:"5.13b"},{l:"5.13c",v:"5.13c"},{l:"5.13d",v:"5.13d"},
+    {l:"5.14+",v:"5.14+"}
   ]},
   {text:"What do you notice about how long the fall was?",hint:"",key:"height",opts:[
     {l:"Short — half a body length or less",v:"short"},
@@ -1422,11 +1571,13 @@ var noFallQs=[
     {l:"Overhang — past vertical",v:"overhang"},
     {l:"Roof — severely overhanging",v:"roof"}
   ]},
-  {text:"What grade was the route?",hint:"Approximate is fine.",key:"grade",opts:[
-    {l:"5.8 or below",v:"5.8-"},
-    {l:"5.9 to 5.10",v:"5.9-5.10"},
-    {l:"5.11 to 5.12",v:"5.11-5.12"},
-    {l:"5.13 and above",v:"5.13+"}
+  {text:"What grade was the route?",hint:"Select the closest grade.",key:"grade_structured",opts:[
+    {l:"5.6",v:"5.6"},{l:"5.7",v:"5.7"},{l:"5.8",v:"5.8"},{l:"5.9",v:"5.9"},
+    {l:"5.10a",v:"5.10a"},{l:"5.10b",v:"5.10b"},{l:"5.10c",v:"5.10c"},{l:"5.10d",v:"5.10d"},
+    {l:"5.11a",v:"5.11a"},{l:"5.11b",v:"5.11b"},{l:"5.11c",v:"5.11c"},{l:"5.11d",v:"5.11d"},
+    {l:"5.12a",v:"5.12a"},{l:"5.12b",v:"5.12b"},{l:"5.12c",v:"5.12c"},{l:"5.12d",v:"5.12d"},
+    {l:"5.13a",v:"5.13a"},{l:"5.13b",v:"5.13b"},{l:"5.13c",v:"5.13c"},{l:"5.13d",v:"5.13d"},
+    {l:"5.14+",v:"5.14+"}
   ]},
   {text:"Was this your first attempt on this route?",hint:"",key:"first_time",opts:[
     {l:"Yes — first attempt",v:"yes"},
@@ -1485,15 +1636,17 @@ function nflNext(){
 }
 
 function saveNoFall(){
-  var f={fell:"no",type:nflAns.type,angle:nflAns.angle,grade:nflAns.grade,first_time:nflAns.first_time,breathing:nflAns.breathing_climb,crux_state:nflAns.crux_state,control:nflAns.control,took:nflAns.took,ct:ctLabel,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})};
+  var f={fell:"no",type:nflAns.type,angle:nflAns.angle,grade_structured:nflAns.grade_structured,first_time:nflAns.first_time,breathing:nflAns.breathing_climb,crux_state:nflAns.crux_state,control:nflAns.control,took:nflAns.took,ct:ctLabel,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})};
   falls.push(f);
-  if(sessId){showToast("Climb logged");sbInsert("falls",{session_id:sessId,device_id:DID,fell:"no",fell_type:nflAns.type,wall_angle:nflAns.angle,grade:nflAns.grade,first_time:nflAns.first_time,approach:nflAns.approach,breathing_climb:nflAns.breathing_climb,crux_state:nflAns.crux_state,control:nflAns.control,took:nflAns.took});}
+  if(sessId){sbInsert("falls",{session_id:sessId,device_id:DID,fell:"no",fell_type:nflAns.type,wall_angle:nflAns.angle,grade_structured:nflAns.grade_structured,first_time:nflAns.first_time,approach:nflAns.approach,breathing_climb:nflAns.breathing_climb,crux_state:nflAns.crux_state,control:nflAns.control,took:nflAns.took});}
+  showPostSomatic();return;
 }
 
 function saveFall(){
-  var f={fell:"yes",fallType:qA.fallType,angle:qA.angle,grade:qA.grade,height:qA.height,breathing_fall:eA.breathing_fall,body_position:eA.body_position,crux_state:eA.crux_state,gotBack:eA.gotBack,impact:eA.impact,ct:ctLabel,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})};
+  var f={fell:"yes",fallType:qA.fallType,angle:qA.angle,grade_structured:qA.grade,height:qA.height,breathing_fall:eA.breathing_fall,body_position:eA.body_position,crux_state:eA.crux_state,gotBack:eA.gotBack,impact:eA.impact,ct:ctLabel,time:new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})};
   falls.push(f);
-  if(sessId){showToast("Climb logged");sbInsert("falls",{session_id:sessId,device_id:DID,fell:"yes",fall_type:f.fallType,wall_angle:f.angle,grade:f.grade,fall_height:f.height,breathing_fall:f.breathing_fall,body_position:f.body_position,crux_state:f.crux_state,got_back_on:f.gotBack,session_impact:f.impact});}
+  if(sessId){sbInsert("falls",{session_id:sessId,device_id:DID,fell:"yes",fall_type:f.fallType,wall_angle:f.angle,grade_structured:f.grade,fall_height:f.height,breathing_fall:f.breathing_fall,body_position:f.body_position,crux_state:f.crux_state,got_back_on:f.gotBack,session_impact:f.impact});}
+  showPostSomatic();return;
 }
 
 function showFallSum(){
@@ -1649,6 +1802,120 @@ function injNext(){
 }
 
 // ── SESSIONS / HISTORY ────────────────────────────────────
+function showSessionDetail(s){
+  show("s-session-detail");
+  var zone=s.deeper_zone||s.baseline_zone||"comfort";
+  var zNames={comfort:"Comfort zone",learning:"Learning zone",panic:"Panic zone"};
+  var zColors2={comfort:"#4a7a5a",learning:"#c8852a",panic:"#a83828"};
+  var date=new Date(s.created_at).toLocaleDateString([],{month:"long",day:"numeric",year:"numeric"});
+  var html="<div style='margin-bottom:1rem;padding:.875rem 1rem;background:rgba(0,0,0,0.03);border-radius:8px;border-left:3px solid "+zColors2[zone]+"'>"+
+    "<div style='font-size:11px;color:#888780;margin-bottom:2px'>"+date+"</div>"+
+    "<div style='font-size:15px;font-weight:500'>"+(s.climbing_type||"Unknown")+"</div>"+
+    "<div style='font-size:13px;color:"+zColors2[zone]+"'>"+zNames[zone]+"</div>"+
+    "</div>";
+  if(s.breathing_baseline||s.grip_baseline){
+    html+="<div style='font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:.5rem;margin-top:.75rem'>Pre-climb somatic (baseline)</div>";
+    if(s.breathing_baseline)html+="<div style='margin-bottom:3px'>Breathing: <strong>"+s.breathing_baseline+"</strong></div>";
+    if(s.grip_baseline)html+="<div style='margin-bottom:3px'>Grip: <strong>"+s.grip_baseline+"</strong></div>";
+  }
+  if(s.breathing_after||s.grip_after){
+    html+="<div style='font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:.5rem;margin-top:.75rem'>Post-route-thinking somatic</div>";
+    if(s.breathing_after)html+="<div style='margin-bottom:3px'>Breathing: <strong>"+s.breathing_after+"</strong></div>";
+    if(s.grip_after)html+="<div style='margin-bottom:3px'>Grip: <strong>"+s.grip_after+"</strong></div>";
+  }
+  if(s.session_hour!==null&&s.session_hour!==undefined){
+    var hr=s.session_hour;
+    var period=hr<12?"morning":hr<17?"afternoon":"evening";
+    html+="<div style='font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;margin-bottom:.5rem;margin-top:.75rem'>Session time</div>";
+    html+="<div>"+period+" ("+hr+":00)</div>";
+  }
+  html+="<div style='font-size:12px;color:#aaa;margin-top:1rem;padding-top:.75rem;border-top:0.5px solid rgba(0,0,0,0.08)'>Climb log and post-somatic data attached to this session loads from your fall records.</div>";
+  document.getElementById("session-detail-content").innerHTML=html;
+}
+
+function switchHistTab(tab,btn){
+  document.querySelectorAll("#s-history .demo-tab").forEach(function(t){t.classList.remove("active");});
+  btn.classList.add("active");
+  document.getElementById("hist-tab-sessions").style.display=tab==="sessions"?"block":"none";
+  document.getElementById("hist-tab-patterns").style.display=tab==="patterns"?"block":"none";
+}
+
+function renderFallPatternIntel(fallRows){
+  var el=document.getElementById("fall-pattern-intel");
+  if(!el||!fallRows||fallRows.length===0)return;
+  var terrainFalls={slab:0,vertical:0,overhang:0,roof:0};
+  fallRows.filter(function(f){return f.fell==="yes";}).forEach(function(f){
+    var t=f.wall_angle||"vertical";
+    if(terrainFalls[t]!==undefined)terrainFalls[t]++;
+  });
+  var total=Object.values(terrainFalls).reduce(function(a,b){return a+b;},0);
+  if(total===0){el.textContent="No falls logged yet.";return;}
+  var sorted=Object.entries(terrainFalls).sort(function(a,b){return b[1]-a[1];});
+  var top=sorted[0];var bottom=sorted[sorted.length-1];
+  var insights=[];
+  if(top[1]>0)insights.push("Fall experience concentrated in <strong>"+top[0]+"</strong> terrain ("+top[1]+" of "+total+" falls).");
+  if(bottom[1]===0)insights.push("No fall data recorded on <strong>"+bottom[0]+"</strong> — consider logging sessions in that terrain.");
+  el.innerHTML=insights.join("<br><br>")||"Not enough fall data yet.";
+}
+
+function renderReadinessSignature(sessions,fallRows){
+  var el=document.getElementById("readiness-sig");
+  if(!el)return;
+  if(!sessions||sessions.length<3){el.textContent="Log 3 or more sessions to begin building your readiness signature.";return;}
+  var byTerrain={};
+  (fallRows||[]).forEach(function(f){
+    if(!f.grade_structured||!f.wall_angle)return;
+    var key=f.wall_angle+"_"+f.grade_structured;
+    if(!byTerrain[key])byTerrain[key]={terrain:f.wall_angle,grade:f.grade_structured,sessions:0,panicCount:0};
+    byTerrain[key].sessions++;
+  });
+  sessions.forEach(function(s){
+    var zone=s.deeper_zone||s.baseline_zone||"comfort";
+    if(zone==="panic"){
+      Object.keys(byTerrain).forEach(function(k){byTerrain[k].panicCount++;});
+    }
+  });
+  var entries=Object.values(byTerrain).filter(function(e){return e.sessions>=2;});
+  if(entries.length===0){el.textContent="Log more climbs with terrain and grade data to build your readiness signature.";return;}
+  var lines=entries.slice(0,3).map(function(e){
+    var act=e.panicCount/e.sessions>=0.5?"elevated":"moderate";
+    return "On <strong>"+e.terrain+"</strong> at <strong>"+e.grade+"</strong> — somatic activation tends to be "+act+" ("+e.sessions+" sessions).";
+  });
+  el.innerHTML=lines.join("<br><br>");
+}
+
+function renderSomaticTerrainChart(sessions){
+  var el=document.getElementById("somatic-terrain-chart");
+  if(!el||!sessions||sessions.length<3){return;}
+  var terrains=["slab","vertical","overhang","roof"];
+  var data={};
+  terrains.forEach(function(t){data[t]={breath:0,grip:0,count:0};});
+  var breathVals={effortless:1,slight:2,noticeable:3,restricted:4};
+  var gripVals={relaxed:1,slight:2,noticeable:3,gripped:4};
+  sessions.forEach(function(s){
+    if(s.breathing_baseline&&s.grip_baseline){
+      terrains.forEach(function(t){
+        data[t].breath+=breathVals[s.breathing_baseline]||2;
+        data[t].grip+=gripVals[s.grip_baseline]||2;
+        data[t].count++;
+      });
+    }
+  });
+  var maxVal=4;
+  var barHtml=terrains.map(function(t){
+    if(data[t].count===0)return "";
+    var bAvg=data[t].breath/data[t].count;
+    var gAvg=data[t].grip/data[t].count;
+    var bPct=Math.round((bAvg/maxVal)*100);
+    var gPct=Math.round((gAvg/maxVal)*100);
+    return "<div style='margin-bottom:.875rem'><div style='font-size:11px;font-weight:500;margin-bottom:4px;text-transform:capitalize'>"+t+"</div>"+
+      "<div style='display:flex;align-items:center;gap:8px;margin-bottom:3px'><div style='font-size:10px;color:#888780;width:50px'>Breathing</div><div style='flex:1;height:6px;background:rgba(0,0,0,0.07);border-radius:99px'><div style='height:100%;border-radius:99px;background:#4a7a5a;width:"+bPct+"%'></div></div><div style='font-size:10px;color:#888780'>"+bAvg.toFixed(1)+"</div></div>"+
+      "<div style='display:flex;align-items:center;gap:8px'><div style='font-size:10px;color:#888780;width:50px'>Grip</div><div style='flex:1;height:6px;background:rgba(0,0,0,0.07);border-radius:99px'><div style='height:100%;border-radius:99px;background:#c8852a;width:"+gPct+"%'></div></div><div style='font-size:10px;color:#888780'>"+gAvg.toFixed(1)+"</div></div></div>";
+  }).join("");
+  el.innerHTML=barHtml||"<span style='font-size:12px;color:#aaa'>Not enough data yet.</span>";
+  el.innerHTML+="<div style='font-size:10px;color:#aaa;margin-top:.5rem'>1=low activation 4=high activation. Based on pre-climb somatic check-in.</div>";
+}
+
 function showHistory(){
   show("s-history");
   var list=document.getElementById("hist-list");list.innerHTML="";
@@ -1711,10 +1978,15 @@ function showHistory(){
       var badge=document.createElement("span");badge.className="zone-badge "+(bC[zone]||"");
       badge.style.marginBottom="0";badge.style.fontSize="10px";badge.textContent=zL[zone]||zone;
       entry.appendChild(dot);entry.appendChild(info);entry.appendChild(badge);
+      (function(sess){entry.onclick=function(){showSessionDetail(sess);};})(s);
+      entry.style.cursor="pointer";
       list.appendChild(entry);
     });
     loadHistoryRadar();
     loadPersonalIntel(rows);
+    renderFallPatternIntel(fallsMap ? Object.values(fallsMap).reduce(function(a,b){return a.concat(b);},[]) : []);
+    renderReadinessSignature(rows, fallsMap ? Object.values(fallsMap).reduce(function(a,b){return a.concat(b);},[]) : []);
+    renderSomaticTerrainChart(rows);
   }).catch(function(){});
 }
 
@@ -1724,7 +1996,7 @@ function loadPersonalIntel(sessions){
   if(!sessions||sessions.length===0){statEl.style.display="none";return;}
   if(sessions.length===1){
     statEl.style.display="block";
-    statEl.innerHTML="<div class='intel-placeholder'>Come back after your next session. One session is a snapshot. Two is a direction.</div>";
+    statEl.innerHTML="<div class='intel-placeholder'>One session recorded. Return after additional sessions to surface pattern data.</div>";
     return;
   }
   statEl.style.display="block";
