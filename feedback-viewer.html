@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feedback — Sharp End Exposure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f5f2ed;color:#1a1a18;min-height:100vh}
+.wrap{max-width:1000px;margin:0 auto;padding:2rem 1.25rem 4rem}
+.header{padding-bottom:1.25rem;border-bottom:0.5px solid rgba(0,0,0,0.12);margin-bottom:1.75rem;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.header-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:4px}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;line-height:1;color:#1a1a18}
+.header-title span{color:#c8622a}
+.header-sub{font-size:13px;color:#5f5e5a;margin-top:4px;font-weight:300}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:0.5px solid rgba(0,0,0,0.2);background:transparent;color:#1a1a18;font-family:'DM Sans',sans-serif}
+.btn:hover{background:rgba(0,0,0,0.05)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-bottom:1.5rem}
+.stat-card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:1rem 1.25rem}
+.stat-value{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;line-height:1;color:#1a1a18;margin-bottom:4px}
+.stat-label{font-size:12px;color:#888780;font-weight:400}
+.stat-card.positive .stat-value{color:#4a7a5a}
+.filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center}
+.filter-btn{font-size:12px;padding:5px 12px;border-radius:99px;border:0.5px solid rgba(0,0,0,0.14);background:#fff;color:#5f5e5a;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.filter-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18}
+.filter-label{font-size:12px;color:#888780;margin-right:4px}
+.table-wrap{overflow-x:auto;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:.75rem 1rem;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#888780;font-weight:500;border-bottom:0.5px solid rgba(0,0,0,0.1);white-space:nowrap;background:#faf8f5}
+td{padding:.75rem 1rem;border-bottom:0.5px solid rgba(0,0,0,0.06);color:#1a1a18;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#faf8f5}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+.b-regularly{background:rgba(74,122,90,.12);color:#2a5a3a}
+.b-occasionally{background:rgba(200,133,42,.12);color:#7a4a10}
+.b-probably{background:rgba(100,100,100,.1);color:#5f5e5a}
+.b-no{background:rgba(168,56,40,.12);color:#782818}
+.sessions-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;background:rgba(74,100,160,.1);color:#2a3a7a}
+.empty-state{text-align:center;padding:3rem;color:#888780}
+.loading{text-align:center;padding:2rem;color:#888780;font-size:13px}
+.export-row{display:flex;justify-content:flex-end;margin-bottom:.75rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <div class="header-eyebrow">Straydog Labs — Sharp End Exposure</div>
+      <div class="header-title">Beta <span>Feedback</span></div>
+      <div class="header-sub">Self-reported feedback from beta testers — includes session count per respondent</div>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:flex-start">
+      <button class="btn" onclick="exportCSV()">Export CSV</button>
+      <button class="btn" onclick="loadAll()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="stat-value" id="s-total">—</div><div class="stat-label">Total responses</div></div>
+    <div class="stat-card positive"><div class="stat-value" id="s-would-use">—</div><div class="stat-label">Would use regularly</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-somatic">—</div><div class="stat-label">Somatic felt accurate</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-avg-sessions">—</div><div class="stat-label">Avg sessions per tester</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-behavior">—</div><div class="stat-label">Changed risk behavior</div></div>
+  </div>
+
+  <div class="filters">
+    <span class="filter-label">Filter:</span>
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('would_use',this)">Would use regularly</button>
+    <button class="filter-btn" onclick="setFilter('somatic',this)">Somatic accurate</button>
+    <button class="filter-btn" onclick="setFilter('missing',this)">Had missing items</button>
+    <button class="filter-btn" onclick="setFilter('notes',this)">Has notes</button>
+    <button class="filter-btn" onclick="setFilter('behavior',this)">Behavior changed</button>
+  </div>
+
+  <div class="export-row">
+    <span style="font-size:12px;color:#888780;align-self:center" id="record-count"></span>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Sessions</th>
+          <th>Would use again</th>
+          <th>What felt accurate</th>
+          <th>What felt missing</th>
+          <th>Behavior change</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="feedback-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://kwtbqgoqtewrlsjgepwq.supabase.co';
+const SUPABASE_KEY='sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
+
+let allFeedback=[];
+let sessionCounts={};
+let activeFilter='all';
+
+async function loadAll(){
+  document.getElementById('feedback-table').innerHTML=`<tr><td colspan="7" class="loading">Loading...</td></tr>`;
+  try{
+    const [fbRes, sessRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/feedback?order=created_at.desc&limit=500`,{
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+      }),
+      fetch(`${SUPABASE_URL}/rest/v1/sessions?select=device_id&limit=2000`,{
+        headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+      })
+    ]);
+    allFeedback=await fbRes.json();
+    const sessions=await sessRes.json();
+    sessionCounts={};
+    sessions.forEach(s=>{sessionCounts[s.device_id]=(sessionCounts[s.device_id]||0)+1;});
+    renderStats();
+    renderTable();
+  }catch(e){
+    document.getElementById('feedback-table').innerHTML=`<tr><td colspan="7" class="loading">Failed to load.</td></tr>`;
+  }
+}
+
+function renderStats(){
+  const total=allFeedback.length;
+  const wouldUse=allFeedback.filter(f=>f.would_use_again==='yes_regularly').length;
+  const somatic=allFeedback.filter(f=>f.what_felt_accurate==='somatic_checkin').length;
+  const changed=allFeedback.filter(f=>f.behavior_change==='changed_assessment'||f.behavior_change==='more_aware').length;
+  const avgSess=total>0?Math.round(allFeedback.reduce((a,f)=>a+(sessionCounts[f.device_id]||0),0)/total):0;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-would-use').textContent=total>0?Math.round((wouldUse/total)*100)+'%':'—';
+  document.getElementById('s-somatic').textContent=somatic;
+  document.getElementById('s-avg-sessions').textContent=avgSess||'—';
+  document.getElementById('s-behavior').textContent=changed;
+}
+
+function setFilter(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+const wouldUseLabel={'yes_regularly':'Yes — regularly','yes_occasionally':'Yes — occasionally','probably_not':'Probably not','no':'No'};
+const wouldUseClass={'yes_regularly':'b-regularly','yes_occasionally':'b-occasionally','probably_not':'b-probably','no':'b-no'};
+const accurateLabel={'zone_placement':'Zone placement','route_analysis':'Route analysis','somatic_checkin':'Somatic check-in','post_climb':'Post-climb'};
+const missingLabel={'somatic_unclear':'Somatic unclear','guidance_text':'Guidance text','exposure_map':'Exposure map','post_climb_unclear':'Post-climb unclear','nothing_missing':'Nothing missing'};
+const behaviorLabel={'changed_assessment':'Changed assessment','more_aware':'More body aware','thinking_not_changed':'Thinking, not behavior','no_change':'No change'};
+
+function renderTable(){
+  let rows=allFeedback;
+  if(activeFilter==='would_use') rows=rows.filter(f=>f.would_use_again==='yes_regularly');
+  else if(activeFilter==='somatic') rows=rows.filter(f=>f.what_felt_accurate==='somatic_checkin');
+  else if(activeFilter==='missing') rows=rows.filter(f=>f.what_felt_missing&&f.what_felt_missing!=='nothing_missing');
+  else if(activeFilter==='notes') rows=rows.filter(f=>f.open_notes&&f.open_notes.trim());
+  else if(activeFilter==='behavior') rows=rows.filter(f=>f.behavior_change==='changed_assessment'||f.behavior_change==='more_aware');
+
+  document.getElementById('record-count').textContent=`${rows.length} response${rows.length!==1?'s':''}`;
+
+  if(rows.length===0){
+    document.getElementById('feedback-table').innerHTML=`<tr><td colspan="7" class="empty-state">No responses match this filter.</td></tr>`;
+    return;
+  }
+
+  document.getElementById('feedback-table').innerHTML=rows.map(f=>{
+    const date=new Date(f.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});
+    const sessCount=sessionCounts[f.device_id]||0;
+    const wu=f.would_use_again||'—';
+    return `<tr>
+      <td style="white-space:nowrap;color:#888780">${date}</td>
+      <td><span class="sessions-badge">${sessCount} session${sessCount!==1?'s':''}</span></td>
+      <td>${wu!=='—'?`<span class="badge ${wouldUseClass[wu]||''}">${wouldUseLabel[wu]||wu}</span>`:'—'}</td>
+      <td style="font-size:12px;color:#5f5e5a">${accurateLabel[f.what_felt_accurate]||f.what_felt_accurate||'—'}</td>
+      <td style="font-size:12px;color:#5f5e5a">${missingLabel[f.what_felt_missing]||f.what_felt_missing||'—'}</td>
+      <td style="font-size:12px;color:#5f5e5a">${behaviorLabel[f.behavior_change]||f.behavior_change||'—'}</td>
+      <td style="font-size:12px;color:#5f5e5a;max-width:200px;line-height:1.5">${f.open_notes||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportCSV(){
+  const headers=['Date','Sessions','Would Use Again','What Felt Accurate','What Felt Missing','Behavior Change','Notes'];
+  const rows=allFeedback.map(f=>[
+    new Date(f.created_at).toLocaleDateString(),
+    sessionCounts[f.device_id]||0,
+    wouldUseLabel[f.would_use_again]||f.would_use_again||'',
+    accurateLabel[f.what_felt_accurate]||f.what_felt_accurate||'',
+    missingLabel[f.what_felt_missing]||f.what_felt_missing||'',
+    behaviorLabel[f.behavior_change]||f.behavior_change||'',
+    f.open_notes||''
+  ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`sharp-end-feedback-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+}
+
+loadAll();
+</script>
+</body>
+</html>
