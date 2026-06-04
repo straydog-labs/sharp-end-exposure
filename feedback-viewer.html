@@ -96,8 +96,12 @@ tr:hover td{background:#faf8f5}
     <div style="display:flex;gap:.5rem;align-items:flex-start;flex-wrap:wrap">
       <button class="btn btn-p" onclick="exportCSV()">Export CSV</button>
       <button class="btn" onclick="loadAll()">&#8635; Refresh</button>
+      <button class="btn" onclick="runDiagnostic()">&#128269; Diagnose</button>
     </div>
   </div>
+
+  <!-- Diagnostic output -->
+  <div id="diag-out" style="display:none;font-size:12px;color:#5f5e5a;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:10px;padding:1rem;margin-bottom:1.25rem;font-family:monospace;white-space:pre-wrap;line-height:1.6"></div>
 
   <!-- Stats -->
   <div class="stat-strip" id="stat-strip">
@@ -194,8 +198,7 @@ function loadAll(){
     sess.forEach(function(s){sessionCounts[s.device_id]=(sessionCounts[s.device_id]||0)+1;});
     buildVersionBtns();
     render();
-    document.getElementById('ver-badge').textContent=
-      [...new Set(allFeedback.map(function(r){return r.app_version||'unknown';}))].length+' version(s) \u00b7 '+allFeedback.length+' total';
+
   }).catch(function(e){
     console.error(e);
     document.getElementById('pane-summary').innerHTML='<div class="empty">Could not load. Check Supabase connection.<br><span style="font-size:11px;opacity:.7">'+e.message+'</span></div>';
@@ -526,6 +529,34 @@ function exportCSV(){
 }
 
 loadAll();
+
+function runDiagnostic(){
+  var out=document.getElementById('diag-out');
+  out.style.display='block';
+  out.textContent='Running diagnostic...\n';
+  // Test 1: can we reach the feedback table at all?
+  fetch(SB+'/rest/v1/feedback?limit=1',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}})
+  .then(function(r){
+    out.textContent+='HTTP status: '+r.status+'\n';
+    return r.text();
+  }).then(function(body){
+    out.textContent+='Raw response:\n'+body.substring(0,600)+'\n\n';
+    // Try to parse
+    try{
+      var parsed=JSON.parse(body);
+      if(Array.isArray(parsed)){
+        out.textContent+='✓ Table accessible. Rows found: '+parsed.length+'\n';
+        if(parsed.length>0){
+          out.textContent+='Column keys in first row: '+Object.keys(parsed[0]).join(', ')+'\n';
+        }
+      } else {
+        out.textContent+='✗ Error response: '+JSON.stringify(parsed,null,2)+'\n';
+      }
+    } catch(e){out.textContent+='Could not parse JSON: '+e.message+'\n';}
+  }).catch(function(e){
+    out.textContent+='✗ Network error: '+e.message+'\n';
+  });
+}
 </script>
 </body>
 </html>
