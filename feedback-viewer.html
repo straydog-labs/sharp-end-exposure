@@ -177,15 +177,28 @@ function loadAll(){
       headers:{'apikey':SK,'Authorization':'Bearer '+SK}
     }).then(function(r){return r.json();})
   ]).then(function(results){
-    allFeedback=results[0]||[];
-    var sess=results[1]||[];
+    var fbResult=results[0];
+    // Supabase returns an error object (not array) when query fails
+    if(!Array.isArray(fbResult)){
+      var msg=fbResult&&fbResult.message?fbResult.message:'Unknown error from Supabase';
+      var hint=fbResult&&fbResult.hint?'<br><span style="opacity:.7">Hint: '+fbResult.hint+'</span>':'';
+      document.getElementById('pane-summary').innerHTML=
+        '<div class="empty" style="color:#a83828">Supabase error: '+msg+hint+
+        '<br><br><span style="font-size:11px;color:#888780">Check that all feedback columns exist. Run the SQL migration if needed.</span></div>';
+      console.error('Supabase feedback error:', fbResult);
+      return;
+    }
+    allFeedback=fbResult;
+    var sess=Array.isArray(results[1])?results[1]:[];
     sessionCounts={};
     sess.forEach(function(s){sessionCounts[s.device_id]=(sessionCounts[s.device_id]||0)+1;});
     buildVersionBtns();
     render();
+    document.getElementById('ver-badge').textContent=
+      [...new Set(allFeedback.map(function(r){return r.app_version||'unknown';}))].length+' version(s) \u00b7 '+allFeedback.length+' total';
   }).catch(function(e){
     console.error(e);
-    document.getElementById('pane-summary').innerHTML='<div class="empty">Could not load. Check Supabase connection.</div>';
+    document.getElementById('pane-summary').innerHTML='<div class="empty">Could not load. Check Supabase connection.<br><span style="font-size:11px;opacity:.7">'+e.message+'</span></div>';
   });
 }
 
