@@ -574,19 +574,104 @@ body{font-family:"DM Sans",sans-serif;background:var(--bg);color:var(--ink);min-
 
   <!-- PATTERNS TAB -->
   <div id="hist-tab-patterns" style="display:none">
-    <div class="card" style="margin-top:0">
-      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:.5rem">Somatic signature</div>
-      <div id="readiness-sig" style="font-size:13px;color:var(--ink2);font-weight:300;line-height:1.7">Log 3 or more sessions to begin building your somatic signature.</div>
-    </div>
-    <div id="somatic-line-wrap" class="card" style="margin-top:.75rem;display:none">
-      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:.75rem">Activation over time</div>
-      <div style="display:flex;gap:12px;margin-bottom:.75rem">
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3)"><div style="width:20px;height:3px;background:#4a7a5a;border-radius:2px"></div>Breath</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3)"><div style="width:20px;height:3px;background:var(--rope);border-radius:2px"></div>Gut</div>
+
+  <!-- 1. Delta over time -->
+  <div style="background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;padding:1rem 1.125rem;margin-bottom:10px">
+    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px">Shift pattern</div>
+    <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:.625rem;line-height:1.3">Your somatic delta over time</div>
+    <div style="font-size:11px;color:var(--ink2);font-weight:300;font-style:italic;line-height:1.65;padding-bottom:.625rem;border-bottom:0.5px solid rgba(0,0,0,.07);margin-bottom:.875rem;display:none" id="pat-delta-insight"></div>
+    <div id="pat-delta-body" style="display:none">
+      <div style="display:flex;gap:12px;margin-bottom:.5rem">
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink3)"><div style="width:14px;height:3px;background:var(--rope);border-radius:2px"></div>Shift magnitude</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--ink3)"><div style="width:14px;height:2px;background:rgba(0,0,0,.15);border-radius:2px"></div>Average</div>
       </div>
-      <svg id="somatic-line-chart" width="100%" viewBox="0 0 300 120" style="display:block;overflow:visible"></svg>
-      <div style="font-size:10px;color:#aaa;margin-top:.375rem">1 = low activation &middot; 4 = high &middot; Oldest&rarr;newest</div>
+      <div id="pat-delta-chart" style="width:100%;min-height:130px"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:.5rem">
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--comfort)"><div style="width:8px;height:8px;border-radius:2px;background:rgba(74,122,90,.18)"></div>No shift (0-1)</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--learning)"><div style="width:8px;height:8px;border-radius:2px;background:rgba(200,133,42,.15)"></div>Mild (1-3)</div>
+        <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--panic)"><div style="width:8px;height:8px;border-radius:2px;background:rgba(168,56,40,.13)"></div>Significant (3+)</div>
+      </div>
     </div>
+    <div id="pat-delta-gate" style="font-size:12px;color:var(--ink3);font-weight:300;line-height:1.65;padding:.625rem .875rem;border:0.5px solid rgba(0,0,0,.1);border-radius:8px;background:var(--bg)">
+      <span id="pat-delta-gate-msg">Complete 5 sessions to see your shift pattern over time.</span>
+      <div style="font-size:11px;color:var(--rope);margin-top:4px;font-weight:300;font-style:italic">&rarr; Are your shifts getting smaller as you learn this terrain?</div>
+    </div>
+  </div>
+
+  <!-- 2. Zone distribution -->
+  <div style="background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;padding:1rem 1.125rem;margin-bottom:10px">
+    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px">Zone distribution</div>
+    <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:.625rem;line-height:1.3">Where you've spent your sessions</div>
+    <div style="font-size:11px;color:var(--ink2);font-weight:300;font-style:italic;line-height:1.65;padding-bottom:.625rem;border-bottom:0.5px solid rgba(0,0,0,.07);margin-bottom:.875rem;display:none" id="pat-zone-insight"></div>
+    <div id="pat-zone-body" style="display:none">
+      <div style="height:12px;border-radius:99px;overflow:hidden;display:flex;margin-bottom:.75rem;gap:2px" id="pat-zone-bar"></div>
+      <div style="display:flex;gap:6px" id="pat-zone-tiles"></div>
+    </div>
+    <div id="pat-zone-gate" style="font-size:12px;color:var(--ink3);font-weight:300;line-height:1.65;padding:.625rem .875rem;border:0.5px solid rgba(0,0,0,.1);border-radius:8px;background:var(--bg)">
+      <span id="pat-zone-gate-msg">Complete 5 sessions to see your zone distribution breakdown.</span>
+      <div style="font-size:11px;color:var(--rope);margin-top:4px;font-weight:300;font-style:italic">&rarr; How much time are you actually spending at the fringe?</div>
+    </div>
+  </div>
+
+  <!-- 3. Body scan patterns -->
+  <div style="background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;padding:1rem 1.125rem;margin-bottom:10px">
+    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px" id="pat-scan-lbl">Body scan</div>
+    <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:.625rem;line-height:1.3">Where you hold tension before climbing</div>
+    <div style="font-size:11px;color:var(--ink2);font-weight:300;font-style:italic;line-height:1.65;padding-bottom:.625rem;border-bottom:0.5px solid rgba(0,0,0,.07);margin-bottom:.875rem;display:none" id="pat-scan-insight"></div>
+    <div id="pat-scan-body" style="display:none;gap:1.25rem;align-items:flex-start">
+      <svg id="pat-scan-svg" width="88" height="150" viewBox="0 0 88 150" style="flex-shrink:0" role="img" aria-label="Body zone frequency schematic">
+        <rect id="scan-head" x="30" y="3" width="28" height="20" rx="10" fill="rgba(200,98,42,.1)" stroke="rgba(200,98,42,.22)" stroke-width=".75"/>
+        <text x="44" y="17" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7" fill="rgba(200,98,42,.65)">head</text>
+        <rect id="scan-shoulders" x="5" y="26" width="78" height="24" rx="9" fill="rgba(200,98,42,.1)" stroke="rgba(200,98,42,.25)" stroke-width=".75"/>
+        <text x="44" y="42" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7.5" fill="rgba(200,98,42,.7)">shoulders</text>
+        <rect id="scan-chest" x="16" y="53" width="56" height="22" rx="8" fill="rgba(200,98,42,.1)" stroke="rgba(200,98,42,.22)" stroke-width=".75"/>
+        <text x="44" y="68" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7" fill="rgba(200,98,42,.65)">chest</text>
+        <rect id="scan-core" x="20" y="78" width="48" height="20" rx="7" fill="rgba(200,98,42,.1)" stroke="rgba(200,98,42,.22)" stroke-width=".75"/>
+        <text x="44" y="92" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7" fill="rgba(200,98,42,.65)">core</text>
+        <rect id="scan-lower" x="12" y="101" width="64" height="22" rx="9" fill="rgba(200,98,42,.1)" stroke="rgba(200,98,42,.22)" stroke-width=".75"/>
+        <text x="44" y="116" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7" fill="rgba(200,98,42,.55)">hips &middot; legs</text>
+        <text x="44" y="140" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="var(--ink3)" font-style="italic">intensity = frequency</text>
+      </svg>
+      <div style="flex:1;padding-top:4px" id="pat-scan-bars"></div>
+    </div>
+    <div id="pat-scan-gate" style="font-size:12px;color:var(--ink3);font-weight:300;line-height:1.65;padding:.625rem .875rem;border:0.5px solid rgba(0,0,0,.1);border-radius:8px;background:var(--bg)">
+      <span id="pat-scan-gate-msg">Complete 3 body scan sessions to surface your holding patterns.</span>
+      <div style="font-size:11px;color:var(--rope);margin-top:4px;font-weight:300;font-style:italic">&rarr; Which zones appear in your scans before harder sessions?</div>
+    </div>
+  </div>
+
+  <!-- 4. By climbing style -->
+  <div style="background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;padding:1rem 1.125rem;margin-bottom:10px">
+    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px">By climbing style</div>
+    <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:.625rem;line-height:1.3">How style affects your activation</div>
+    <div style="font-size:11px;color:var(--ink2);font-weight:300;font-style:italic;line-height:1.65;padding-bottom:.625rem;border-bottom:0.5px solid rgba(0,0,0,.07);margin-bottom:.875rem;display:none" id="pat-style-insight"></div>
+    <div id="pat-style-body" style="display:none"></div>
+    <div id="pat-style-legend" style="display:none;gap:10px;margin-top:.5rem">
+      <span style="font-size:10px;color:#4a7a5a;display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#4a7a5a;display:inline-block"></span>Comfort</span>
+      <span style="font-size:10px;color:#c8852a;display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#c8852a;display:inline-block"></span>Learning</span>
+      <span style="font-size:10px;color:#a83828;display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#a83828;display:inline-block"></span>Panic</span>
+    </div>
+    <div id="pat-style-gate" style="font-size:12px;color:var(--ink3);font-weight:300;line-height:1.65;padding:.625rem .875rem;border:0.5px solid rgba(0,0,0,.1);border-radius:8px;background:var(--bg)">
+      Log sessions across 2 or more climbing styles to activate this. Same body, different perceived risk.
+      <div style="font-size:11px;color:var(--rope);margin-top:4px;font-weight:300;font-style:italic">&rarr; Do you enter a different zone on lead vs top rope?</div>
+    </div>
+  </div>
+
+  <!-- 5. Tool accuracy -->
+  <div style="background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;padding:1rem 1.125rem;margin-bottom:10px">
+    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px" id="pat-acc-lbl">Tool accuracy</div>
+    <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:.625rem;line-height:1.3">Did the result match what happened?</div>
+    <div style="font-size:11px;color:var(--ink2);font-weight:300;font-style:italic;line-height:1.65;padding-bottom:.625rem;border-bottom:0.5px solid rgba(0,0,0,.07);margin-bottom:.875rem;display:none" id="pat-acc-insight"></div>
+    <div id="pat-acc-body" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:.875rem" id="pat-acc-tiles"></div>
+      <div style="display:flex;flex-direction:column;gap:5px;font-size:12px" id="pat-acc-rows"></div>
+    </div>
+    <div id="pat-acc-gate" style="font-size:12px;color:var(--ink3);font-weight:300;line-height:1.65;padding:.625rem .875rem;border:0.5px solid rgba(0,0,0,.1);border-radius:8px;background:var(--bg)">
+      Complete 5 post-climb check-ins to start tracking this. Mismatches tend to cluster around specific conditions.
+      <div style="font-size:11px;color:var(--rope);margin-top:4px;font-weight:300;font-style:italic">&rarr; When does the tool get it wrong, and what do those sessions share?</div>
+    </div>
+  </div>
+
   </div>
 </div>
 
@@ -1217,54 +1302,54 @@ var DID=getDID();
 // PAUSE_AFTER = index 4 (after route familiarity, before breath2)
 var PAUSE_AFTER=4;
 var Qs=[
-  {id:"breath1",phase:"somatic",text:"Notice your breathing right now.",hint:"Not what you think it should be. What is it actually doing?",
+  {id:"breath1",phase:"somatic",text:"Notice your breathing right now.",hint:"Not what you think it should be — what is it actually doing?",
    bodyNote:"Take a breath before you answer. Report what you observe — not what you expect.",
-   opts:[{l:"Effortless",s:"No awareness needed — air moves freely",v:"effortless",sc:1},
+   opts:[{l:"Effortless",s:"No effort needed",v:"effortless",sc:1},
          {l:"Slight effort",s:"Noticeable but manageable",v:"slight",sc:2},
-         {l:"Noticeable effort",s:"Requires attention — shortened or labored",v:"noticeable",sc:3},
-         {l:"Restricted",s:"Tight, held, or shallow",v:"restricted",sc:4}]},
-  {id:"gut1",phase:"somatic",text:"Notice your gut right now.",hint:"Any tightness, butterflies, pulling — or neutral calm.",
+         {l:"Noticeable effort",s:"Shortened or labored",v:"noticeable",sc:3},
+         {l:"Restricted",s:"Tight or held",v:"restricted",sc:4}]},
+  {id:"gut1",phase:"somatic",text:"Notice your gut right now.",hint:"Tightness, butterflies, pulling — or neutral calm.",
    bodyNote:"Your gut is already reporting something. What is it?",
-   opts:[{l:"Settled",s:"Neutral — no sensation present",v:"settled",sc:1},
-         {l:"Mild sensation",s:"Slight awareness — butterflies or mild tightness",v:"mild",sc:2},
-         {l:"Unsettled",s:"Noticeable tension or churning",v:"unsettled",sc:3},
+   opts:[{l:"Settled",s:"No sensation",v:"settled",sc:1},
+         {l:"Mild sensation",s:"Butterflies or mild tightness",v:"mild",sc:2},
+         {l:"Unsettled",s:"Noticeable tension",v:"unsettled",sc:3},
          {l:"Knotted",s:"Tight pulling sensation",v:"knotted",sc:4}]},
-  {id:"style",phase:"context",ctx:true,text:"What are you climbing today?",hint:"Sets the context for everything that follows.",
+  {id:"style",phase:"context",ctx:true,text:"What are you climbing today?",hint:"",
    opts:[{l:"Top rope",s:"Protected from above",v:"Top rope",sc:0},
-         {l:"Sport lead",s:"Clipping bolts as you go",v:"Sport lead",sc:1},
+         {l:"Sport lead",s:"Clipping bolts",v:"Sport lead",sc:1},
          {l:"Trad lead",s:"Self-placed gear",v:"Trad lead",sc:2}]},
-  {id:"experience",phase:"context",text:"How experienced are you in this terrain?",hint:"Report what you have physically done — not what you know intellectually.",
+  {id:"experience",phase:"context",text:"How experienced are you in this terrain?",hint:"What you\'ve physically done — not what you know.",
    opts:[{l:"Extensive experience",s:"Done this many times",v:"extensive",sc:0},
          {l:"Some experience",s:"Done this a few times",v:"some",sc:1},
          {l:"Limited experience",s:"Once or twice",v:"limited",sc:2},
-         {l:"First time",s:"No prior experience in this terrain",v:"first",sc:3}]},
-  {id:"route",phase:"context",text:"First time on this route or something similar?",hint:"Prior experience on this specific route is weighted differently.",
-   opts:[{l:"No — I know this route",s:"Attempted before, familiar",v:"know",sc:0},
-         {l:"Similar but not this one",s:"Comparable terrain and grade",v:"similar",sc:1},
-         {l:"Yes — first attempt",s:"No prior experience on this route",v:"first",sc:2}]},
+         {l:"First time",s:"No prior experience",v:"first",sc:3}]},
+  {id:"route",phase:"context",text:"First time on this route or something similar?",hint:"Your experience on this specific route matters.",
+   opts:[{l:"No — I know this route",s:"Attempted before",v:"know",sc:0},
+         {l:"Similar but not this one",s:"Comparable terrain",v:"similar",sc:1},
+         {l:"Yes — first attempt",s:"First time on this one",v:"first",sc:2}]},
   // PAUSE happens after index 4, before index 5
   {id:"breath2",phase:"somatic2",text:"Notice your breathing again.",hint:"After thinking through this route — what do you notice now?",
-   bodyNote:"Take a breath before answering. Has anything shifted since the first check-in?",
-   opts:[{l:"Effortless",s:"No awareness needed",v:"effortless",sc:1},
+   bodyNote:"Take a breath before answering. Has anything shifted?",
+   opts:[{l:"Effortless",s:"No effort needed",v:"effortless",sc:1},
          {l:"Slight effort",s:"Noticeable but manageable",v:"slight",sc:2},
-         {l:"Noticeable effort",s:"Requires attention",v:"noticeable",sc:3},
-         {l:"Restricted",s:"Tight, held, or shallow",v:"restricted",sc:4}]},
+         {l:"Noticeable effort",s:"Shortened or labored",v:"noticeable",sc:3},
+         {l:"Restricted",s:"Tight or held",v:"restricted",sc:4}]},
   {id:"gut2",phase:"somatic2",text:"Notice your gut again.",hint:"Has anything shifted since the first gut check?",
-   bodyNote:"The shift between now and your first gut check is the primary data this tool captures.",
-   opts:[{l:"Settled",s:"Neutral — no sensation",v:"settled",sc:1},
-         {l:"Mild sensation",s:"Slight awareness",v:"mild",sc:2},
-         {l:"Unsettled",s:"Noticeable tension or churning",v:"unsettled",sc:3},
+   bodyNote:"This shift is the primary data this tool captures.",
+   opts:[{l:"Settled",s:"No sensation",v:"settled",sc:1},
+         {l:"Mild sensation",s:"Butterflies or mild tightness",v:"mild",sc:2},
+         {l:"Unsettled",s:"Noticeable tension",v:"unsettled",sc:3},
          {l:"Knotted",s:"Tight pulling sensation",v:"knotted",sc:4}]},
-  {id:"mental",phase:"context",text:"Mental state right now?",hint:"Report what is actually present — not what should be there.",
+  {id:"mental",phase:"context",text:"Mental state right now?",hint:"What\'s actually present — not what should be.",
    opts:[{l:"Focused and present",v:"focused",sc:1},
-         {l:"Energized",s:"Some activation, not fear",v:"energized",sc:2},
+         {l:"Energized",s:"Some activation",v:"energized",sc:2},
          {l:"Distracted or unsettled",v:"distracted",sc:3},
          {l:"Anxious",s:"Something feels off",v:"anxious",sc:4}]},
-  {id:"motivation",phase:"context",text:"Why are you attempting this today?",hint:"Report actual motivation — not what seems appropriate.",
-   opts:[{l:"Skill development",s:"I am here to learn",v:"skill",sc:0},
-         {l:"Performance goal",s:"I want to send this route",v:"performance",sc:1},
-         {l:"Curiosity",s:"I want to see how it feels",v:"curiosity",sc:1},
-         {l:"Unclear",s:"Drawn to it but cannot say why",v:"unclear",sc:3}]}
+  {id:"motivation",phase:"context",text:"Why are you attempting this today?",hint:"Your actual motivation — not what seems right.",
+   opts:[{l:"Skill development",s:"Here to learn",v:"skill",sc:0},
+         {l:"Performance goal",s:"Want to send",v:"performance",sc:1},
+         {l:"Curiosity",s:"Want to see how it feels",v:"curiosity",sc:1},
+         {l:"Unclear",s:"Drawn to it, unsure why",v:"unclear",sc:3}]}
 ];
 
 // ── ROUTE ANALYSIS (10 Qs) ───────────────────────────────
@@ -1637,7 +1722,13 @@ function showHistory(){
     var hasReal=rows.length>0;
     buildStats(rows,hasReal);
     renderZoneRiver(rows,!hasReal);
-    sbS("falls",{device_id:"eq."+DID,limit:200}).then(fr=>{renderTerrainRadar(fr||[],!hasReal);renderPatterns(rows);}).catch(()=>renderTerrainRadar([],!hasReal));
+    Promise.all([
+      sbS("falls",{device_id:"eq."+DID,limit:200}),
+      sbS("post_climb",{device_id:"eq."+DID,limit:200})
+    ]).then(function(results){
+      renderTerrainRadar(results[0]||[],!hasReal);
+      renderPatternsFull(rows,results[1]||[]);
+    }).catch(function(){renderTerrainRadar([],!hasReal);renderPatternsFull(rows,[]);});
     if(!hasReal){
       document.getElementById("dummy-banner").style.display="block";
       document.getElementById("your-data-marker").style.display="none";
@@ -1662,7 +1753,7 @@ function showHistory(){
       });
       if(rows.length>5){var mb=moreBtn(rows.length);mb.onclick=()=>{list.querySelectorAll(".hist-entry").forEach(e=>e.style.display="flex");mb.style.display="none";};list.appendChild(mb);}
     }
-    renderSig(rows);renderSomaticChart(rows);
+    // patterns rendered by renderPatternsFull via falls/post_climb fetch above
   }).catch(()=>{list.innerHTML='<div class="empty-state"><div style="font-size:13px">Could not load sessions</div></div>';});
 }
 function buildStats(rows,hasReal){
@@ -1743,9 +1834,240 @@ function renderTerrainRadar(fallRows,showDummy){
   var ri=document.getElementById("radar-insight");if(ri){ri.style.display="block";if(showDummy){ri.textContent="Example data — strong vertical and overhang volume, roof almost untouched. Your terrain shape builds here as you log climbs.";}else{var sorted=tkeys.slice().sort((a,b)=>tc[b]-tc[a]);ri.textContent="Strongest experience on "+sorted[0]+" ("+tc[sorted[0]]+" sessions). Thinnest on "+sorted[3]+(tc[sorted[3]]===0?" — no data yet":" ("+tc[sorted[3]]+" session"+(tc[sorted[3]]===1?"":"s")+").")+".";}}
 }
 
-function renderPatterns(rows){}
-function renderSig(rows){var el=document.getElementById("readiness-sig");if(!el)return;if(!rows||rows.length<3){el.textContent="Log 3 or more sessions to begin building your somatic signature.";return;}var zc={comfort:0,learning:0,panic:0};rows.forEach(s=>{var z=s.deeper_zone||s.baseline_zone||"comfort";if(zc[z]!==undefined)zc[z]++;});var top=Object.keys(zc).sort((a,b)=>zc[b]-zc[a])[0];var shifts=rows.filter(s=>((BV[s.breathing_after]||2)-(BV[s.breathing_baseline]||2))+((GV[s.gut_after]||2)-(GV[s.gut_baseline]||2))>=1).length;el.innerHTML="<strong>"+rows.length+" sessions.</strong> Most common zone: <strong>"+top+"</strong>. Significant somatic shifts in <strong>"+shifts+" of "+rows.length+"</strong> sessions.";}
-function renderSomaticChart(rows){var wrap=document.getElementById("somatic-line-wrap"),svg=document.getElementById("somatic-line-chart");if(!wrap||!svg)return;var pts=rows.slice().reverse().filter(s=>s.breathing_baseline);if(pts.length<2)return;wrap.style.display="block";var W=300,H=120,pX=24,pY=18,n=pts.length;var bP=[],gP=[];pts.forEach((s,i)=>{var x=pX+(n===1?W/2:i/(n-1))*(W-pX*2);bP.push({x,y:H-pY-((( BV[s.breathing_baseline]||2)-1)/3)*(H-pY*2)});gP.push({x,y:H-pY-(((GV[s.gut_baseline]||2)-1)/3)*(H-pY*2)});});var bStr=bP.map(p=>p.x+","+p.y).join(" ");var gStr=gP.map(p=>p.x+","+p.y).join(" ");svg.innerHTML='<polygon points="'+bStr+" "+(W-pX)+","+(H-pY)+" "+pX+","+(H-pY)+'" fill="rgba(74,122,90,.1)"/><polygon points="'+gStr+" "+(W-pX)+","+(H-pY)+" "+pX+","+(H-pY)+'" fill="rgba(200,98,42,.08)"/><polyline points="'+bStr+'" fill="none" stroke="#4a7a5a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/><polyline points="'+gStr+'" fill="none" stroke="var(--rope)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+bP.map((p,i)=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(i===bP.length-1?5:3.5)+'" fill="#4a7a5a" stroke="white" stroke-width="'+(i===bP.length-1?2:1.5)+'"/>').join("")+gP.map((p,i)=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(i===gP.length-1?5:3.5)+'" fill="var(--rope)" stroke="white" stroke-width="'+(i===gP.length-1?2:1.5)+'"/>').join("");}
+function renderDeltaSVG(containerId,deltas){
+  var el=document.getElementById(containerId);if(!el||!deltas.length)return;
+  var W=320,H=110,padX=28,padY=10,maxVal=7,n=deltas.length;
+  var avg=Math.round(deltas.reduce(function(a,b){return a+b;},0)/n*10)/10;
+  function xP(i){return padX+i*(W-padX*2)/Math.max(n-1,1);}
+  function yP(v){return padY+(1-Math.min(v,maxVal)/maxVal)*(H-padY*2);}
+  var pts=deltas.map(function(d,i){return xP(i)+','+yP(d);}).join(' ');
+  var area='M '+xP(0)+','+yP(deltas[0]);
+  for(var i=1;i<n;i++)area+=' L '+xP(i)+','+yP(deltas[i]);
+  area+=' L '+xP(n-1)+','+(H-padY)+' L '+padX+','+(H-padY)+' Z';
+  var avgY=yP(avg);
+  var y3=yP(3),y1=yP(1),y0=H-padY;
+  var dots=deltas.map(function(d,i){
+    var isL=i===n-1;
+    return(isL?'<circle cx="'+xP(i)+'" cy="'+yP(d)+'" r="9" fill="none" stroke="#c8622a" stroke-width="1.5" opacity=".25"/>':'')+
+      '<circle cx="'+xP(i)+'" cy="'+yP(d)+'" r="'+(isL?5.5:4)+'" fill="#c8622a" stroke="white" stroke-width="'+(isL?2:1.5)+'"/>';
+  }).join('');
+  var xLbls=[0,Math.floor(n/2),n-1].map(function(i){
+    return'<text x="'+xP(i)+'" y="'+(H+8)+'" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" fill="rgba(0,0,0,.28)">S'+(i+1)+'</text>';
+  }).join('');
+  el.innerHTML='<svg width="100%" viewBox="0 0 '+W+' '+(H+12)+'" style="display:block;overflow:visible" role="img" aria-label="Somatic delta per session">'+
+    '<rect x="'+padX+'" y="'+padY+'" width="'+(W-padX*2)+'" height="'+(y3-padY)+'" fill="rgba(168,56,40,.1)"/>'+
+    '<rect x="'+padX+'" y="'+y3+'" width="'+(W-padX*2)+'" height="'+(y1-y3)+'" fill="rgba(200,133,42,.09)"/>'+
+    '<rect x="'+padX+'" y="'+y1+'" width="'+(W-padX*2)+'" height="'+(y0-y1)+'" fill="rgba(74,122,90,.1)"/>'+
+    '<line x1="'+padX+'" y1="'+avgY+'" x2="'+(W-padX)+'" y2="'+avgY+'" stroke="rgba(0,0,0,.2)" stroke-width="1.5" stroke-dasharray="4,3"/>'+
+    '<path d="'+area+'" fill="rgba(200,98,42,.07)"/>'+
+    '<polyline points="'+pts+'" fill="none" stroke="#c8622a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+    dots+xLbls+'</svg>';
+}
+
+function renderPatternsFull(sessions,postClimbRows){
+  if(!sessions||!sessions.length)return;
+  var BV_={effortless:1,slight:2,noticeable:3,restricted:4};
+  var GV_={settled:1,mild:2,unsettled:3,knotted:4};
+  var ZN_={comfort:"Comfort",learning:"Learning",panic:"Panic"};
+
+  var withDelta=sessions.filter(function(s){return s.breathing_baseline&&s.breathing_after&&s.gut_baseline&&s.gut_after;}).slice().reverse();
+  var deltas=withDelta.map(function(s){
+    var bd=(BV_[s.breathing_after]||2)-(BV_[s.breathing_baseline]||2);
+    var gd=(GV_[s.gut_after]||2)-(GV_[s.gut_baseline]||2);
+    return Math.max(0,bd+gd);
+  });
+
+  // ── 1. DELTA CHART ────────────────────────────────────────────────────────
+  if(deltas.length>=5){
+    document.getElementById('pat-delta-gate').style.display='none';
+    document.getElementById('pat-delta-body').style.display='block';
+    var avg=deltas.reduce(function(a,b){return a+b;},0)/deltas.length;
+    var half=Math.floor(deltas.length/2);
+    var f1=deltas.slice(0,half).reduce(function(a,b){return a+b;},0)/half;
+    var f2=deltas.slice(half).reduce(function(a,b){return a+b;},0)/(deltas.length-half);
+    var trend=f2<f1-0.5?'converging':f2>f1+0.5?'growing':'stable';
+    var insightMap={
+      converging:'Your shifts are converging — the last '+(deltas.length-half)+' sessions show smaller deltas than the first '+half+'. Your body's read on the route is arriving before you think through it.',
+      growing:'Your shifts are increasing — recent sessions show larger deltas than earlier ones. You may be pushing into more challenging terrain.',
+      stable:'Your shift magnitude has been consistent across '+deltas.length+' sessions. Consistency here means the tool is producing stable readings.'
+    };
+    var diEl=document.getElementById('pat-delta-insight');diEl.textContent=insightMap[trend];diEl.style.display='block';
+    renderDeltaSVG('pat-delta-chart',deltas);
+  } else {
+    document.getElementById('pat-delta-insight').style.display='none';
+    document.getElementById('pat-delta-body').style.display='none';
+    document.getElementById('pat-delta-gate').style.display='block';
+    var need=5-deltas.length;
+    document.getElementById('pat-delta-gate-msg').textContent=need+' more session'+(need!==1?'s':'')+' before this activates — then you'll see your shift arc over time.';
+  }
+
+  // ── 2. ZONE DISTRIBUTION ──────────────────────────────────────────────────
+  if(sessions.length>=5){
+    document.getElementById('pat-zone-gate').style.display='none';
+    document.getElementById('pat-zone-body').style.display='block';
+    var zc={comfort:0,learning:0,panic:0};
+    sessions.forEach(function(s){var z=s.deeper_zone||s.baseline_zone||'comfort';if(zc[z]!==undefined)zc[z]++;});
+    var n=sessions.length;
+    var top=Object.keys(zc).sort(function(a,b){return zc[b]-zc[a];})[0];
+    var panicS=sessions.filter(function(s){return(s.deeper_zone||s.baseline_zone)==='panic';});
+    var parts=[Math.round((zc[top]/n)*100)+'% of your sessions land in the '+top+' zone.'];
+    if(top==='learning')parts.push('That's where skill acquisition peaks.');
+    if(panicS.length>0){
+      var pStyles=[...new Set(panicS.map(function(s){return s.climbing_type;}).filter(Boolean))];
+      if(pStyles.length===1)parts.push('Panic sessions have all been on '+pStyles[0]+'.');
+    }
+    var ziEl=document.getElementById('pat-zone-insight');ziEl.textContent=parts.join(' ');ziEl.style.display='block';
+    var cPct=Math.round((zc.comfort/n)*100),lPct=Math.round((zc.learning/n)*100),pPct=100-cPct-lPct;
+    document.getElementById('pat-zone-bar').innerHTML=
+      '<div style="width:'+cPct+'%;background:#4a7a5a;border-radius:99px 0 0 99px;opacity:.8"></div>'+
+      '<div style="width:'+lPct+'%;background:#c8852a;opacity:.8"></div>'+
+      '<div style="width:'+pPct+'%;background:#a83828;border-radius:0 99px 99px 0;opacity:.8"></div>';
+    document.getElementById('pat-zone-tiles').innerHTML=[
+      {z:'comfort',col:'#4a7a5a',bg:'rgba(74,122,90,.07)',pct:cPct,cnt:zc.comfort},
+      {z:'learning',col:'#c8852a',bg:'rgba(200,133,42,.07)',pct:lPct,cnt:zc.learning},
+      {z:'panic',col:'#a83828',bg:'rgba(168,56,40,.06)',pct:pPct,cnt:zc.panic},
+    ].map(function(t){
+      return'<div style="flex:1;padding:.625rem;background:'+t.bg+';border-radius:8px;text-align:center">'+
+        '<div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.04em;line-height:1;color:'+t.col+'">'+t.pct+'%</div>'+
+        '<div style="font-size:10px;color:'+t.col+';margin-top:1px;font-weight:500;text-transform:capitalize">'+t.z+'</div>'+
+        '<div style="font-size:10px;color:#888780">'+t.cnt+' session'+(t.cnt!==1?'s':'')+'</div></div>';
+    }).join('');
+  } else {
+    document.getElementById('pat-zone-insight').style.display='none';
+    document.getElementById('pat-zone-body').style.display='none';
+    document.getElementById('pat-zone-gate').style.display='block';
+    var needZ=5-sessions.length;
+    document.getElementById('pat-zone-gate-msg').textContent=needZ+' more session'+(needZ!==1?'s':'')+' before this activates.';
+  }
+
+  // ── 3. BODY SCAN ──────────────────────────────────────────────────────────
+  var scanS=sessions.filter(function(s){return s.body_scan_zones&&s.body_scan_zones.trim();});
+  var patScanLbl=document.getElementById('pat-scan-lbl');
+  if(patScanLbl)patScanLbl.textContent='Body scan · '+scanS.length+' session'+(scanS.length!==1?'s':'')+' with data';
+  if(scanS.length>=3){
+    document.getElementById('pat-scan-gate').style.display='none';
+    document.getElementById('pat-scan-body').style.display='flex';
+    var zKeys=['head','shoulders','chest','core','lower'];
+    var zLabels={head:'Head / neck',shoulders:'Shoulders',chest:'Chest / back',core:'Core / low back',lower:'Hips / legs'};
+    var zCnts={head:0,shoulders:0,chest:0,core:0,lower:0};
+    scanS.forEach(function(s){(s.body_scan_zones||'').split(',').forEach(function(z){z=z.trim();if(zCnts[z]!==undefined)zCnts[z]++;});});
+    var maxZ=Math.max.apply(null,Object.values(zCnts).concat([1]));
+    var topZ=Object.keys(zCnts).sort(function(a,b){return zCnts[b]-zCnts[a];})[0];
+    var topPct=Math.round((zCnts[topZ]/scanS.length)*100);
+    var siEl=document.getElementById('pat-scan-insight');siEl.style.display='block';siEl.textContent=
+      (zLabels[topZ]||topZ)+' appears in '+topPct+'% of your pre-climb body scans. Your most consistent holding pattern — notice whether it shifts after harder sessions.';
+    var svgMap={head:'scan-head',shoulders:'scan-shoulders',chest:'scan-chest',core:'scan-core',lower:'scan-lower'};
+    Object.keys(svgMap).forEach(function(z){
+      var el=document.getElementById(svgMap[z]);if(!el)return;
+      var freq=maxZ?zCnts[z]/maxZ:0;
+      el.setAttribute('fill','rgba(200,98,42,'+(0.08+freq*0.65).toFixed(2)+')');
+      el.setAttribute('stroke','rgba(200,98,42,'+(0.2+freq*0.7).toFixed(2)+')');
+      el.setAttribute('stroke-width',freq>0.5?'1.2':'.75');
+    });
+    var sorted=zKeys.slice().sort(function(a,b){return zCnts[b]-zCnts[a];});
+    document.getElementById('pat-scan-bars').innerHTML=sorted.map(function(z){
+      var pct=scanS.length?Math.round((zCnts[z]/scanS.length)*100):0;
+      var bW=maxZ?Math.round((zCnts[z]/maxZ)*100):0;
+      var col=pct>=50?'#c8622a':pct>=25?'rgba(200,98,42,.6)':'rgba(0,0,0,.18)';
+      var tCol=pct>=50?'#c8622a':'#888780';
+      return'<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:#1a1a18">'+
+        zLabels[z]+'<span style="font-weight:500;color:'+tCol+'">'+pct+'%</span></div>'+
+        '<div style="height:5px;background:rgba(0,0,0,.07);border-radius:99px;overflow:hidden">'+
+        '<div style="width:'+bW+'%;height:100%;background:'+col+';border-radius:99px"></div></div></div>';
+    }).join('');
+  } else {
+    document.getElementById('pat-scan-insight').style.display='none';
+    document.getElementById('pat-scan-body').style.display='none';
+    document.getElementById('pat-scan-gate').style.display='block';
+    var needSc=3-scanS.length;
+    document.getElementById('pat-scan-gate-msg').textContent=needSc+' more body scan session'+(needSc!==1?'s':'')+' needed to surface holding patterns.';
+  }
+
+  // ── 4. BY CLIMBING STYLE ──────────────────────────────────────────────────
+  var styles=['Top rope','Sport lead','Trad lead'];
+  var sData={};
+  styles.forEach(function(s){sData[s]={comfort:0,learning:0,panic:0,total:0};});
+  sessions.forEach(function(s){
+    var style=s.climbing_type;if(!style||!sData[style])return;
+    var z=s.deeper_zone||s.baseline_zone||'comfort';
+    sData[style][z]++;sData[style].total++;
+  });
+  var used=styles.filter(function(s){return sData[s].total>0;});
+  if(used.length>=2){
+    document.getElementById('pat-style-gate').style.display='none';
+    document.getElementById('pat-style-body').style.display='block';
+    var sl=document.getElementById('pat-style-legend');if(sl)sl.style.display='flex';
+    var byPanic=used.slice().sort(function(a,b){
+      return(sData[b].total?sData[b].panic/sData[b].total:0)-(sData[a].total?sData[a].panic/sData[a].total:0);
+    });
+    var hiPanic=byPanic[0],hiPct=sData[hiPanic].total?Math.round((sData[hiPanic].panic/sData[hiPanic].total)*100):0;
+    var loPanic=byPanic[byPanic.length-1];
+    var stEl=document.getElementById('pat-style-insight');stEl.style.display='block';stEl.textContent=
+      hiPct>0?
+        hiPanic+' pushes you into the panic zone '+hiPct+'% of the time. '+loPanic+' stays in the lower range. Same body, different perceived risk.':
+        'Your activation is consistent across climbing styles so far.';
+    document.getElementById('pat-style-body').innerHTML=used.map(function(style){
+      var d=sData[style],n_=d.total;
+      var cP=n_?Math.round((d.comfort/n_)*100):0,lP=n_?Math.round((d.learning/n_)*100):0,pP=100-cP-lP;
+      return'<div style="margin-bottom:10px">'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">'+
+          '<span style="font-weight:500;color:#1a1a18">'+style+'</span>'+
+          '<span style="color:#888780;font-size:11px">'+n_+' session'+(n_!==1?'s':'')+'</span></div>'+
+        '<div style="height:10px;border-radius:99px;overflow:hidden;display:flex">'+
+          (cP?'<div style="width:'+cP+'%;background:#4a7a5a'+(cP===100?';border-radius:99px':';border-radius:99px 0 0 99px')+'"></div>':'')+
+          (lP?'<div style="width:'+lP+'%;background:#c8852a"></div>':'')+
+          (pP?'<div style="width:'+pP+'%;background:#a83828'+(cP===0&&lP===0?';border-radius:99px':';border-radius:0 99px 99px 0')+'"></div>':'')+
+        '</div></div>';
+    }).join('');
+  } else {
+    var sBody=document.getElementById('pat-style-body');if(sBody)sBody.style.display='none';
+    document.getElementById('pat-style-insight').style.display='none';
+    document.getElementById('pat-style-gate').style.display='block';
+    var sl2=document.getElementById('pat-style-legend');if(sl2)sl2.style.display='none';
+  }
+
+  // ── 5. TOOL ACCURACY ──────────────────────────────────────────────────────
+  var pcRows=postClimbRows||[];
+  var matched=pcRows.filter(function(r){return r.vs_expected==='as_expected'||r.vs_expected==='better';}).length;
+  var harder=pcRows.filter(function(r){return r.vs_expected==='harder';}).length;
+  var noAtt=pcRows.filter(function(r){return r.vs_expected==='no_attempt';}).length;
+  var n_pc=pcRows.length;
+  var patAccLbl=document.getElementById('pat-acc-lbl');
+  if(patAccLbl)patAccLbl.textContent='Tool accuracy · '+n_pc+' post-climb check-in'+(n_pc!==1?'s':'');
+  if(n_pc>=5){
+    document.getElementById('pat-acc-gate').style.display='none';
+    document.getElementById('pat-acc-body').style.display='block';
+    var accPct=n_pc?Math.round(((matched+harder)/n_pc)*100):0;
+    var aiEl=document.getElementById('pat-acc-insight');aiEl.style.display='block';aiEl.textContent=
+      (matched+harder)+' of '+n_pc+' post-climb check-ins confirmed the tool's read ('+accPct+'%). '+
+      (noAtt>1?'The '+noAtt+' mismatches are worth reviewing for shared conditions.':
+       accPct>=80?'Strong calibration — your reported state is tracking well against what actually happened.':
+       'Keep logging post-climb check-ins to build a clearer picture.');
+    document.getElementById('pat-acc-tiles').innerHTML=
+      '<div style="flex:1;padding:.75rem;background:rgba(74,122,90,.07);border-radius:8px;text-align:center">'+
+        '<div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.04em;color:#4a7a5a;line-height:1">'+accPct+'%</div>'+
+        '<div style="font-size:10px;color:#4a7a5a;margin-top:1px">Accurate or close</div></div>'+
+      '<div style="flex:1;padding:.75rem;background:rgba(168,56,40,.06);border-radius:8px;text-align:center">'+
+        '<div style="font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.04em;color:#a83828;line-height:1">'+(100-accPct)+'%</div>'+
+        '<div style="font-size:10px;color:#a83828;margin-top:1px">Off or unclear</div></div>';
+    document.getElementById('pat-acc-rows').innerHTML=[
+      {lbl:'Felt accurate',cnt:matched,bg:'rgba(74,122,90,.07)',chip:'rgba(74,122,90,.14)',ct:'#2a5a3a'},
+      {lbl:'Harder than expected',cnt:harder,bg:'rgba(200,133,42,.07)',chip:'rgba(200,133,42,.14)',ct:'#7a4a10'},
+      {lbl:'Did not attempt',cnt:noAtt,bg:'rgba(168,56,40,.06)',chip:'rgba(168,56,40,.13)',ct:'#782818'},
+    ].map(function(r){
+      return'<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem;background:'+r.bg+';border-radius:6px">'+
+        '<span style="color:#1a1a18;font-size:12px">'+r.lbl+'</span>'+
+        '<span style="display:inline-block;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:500;background:'+r.chip+';color:'+r.ct+'">'+r.cnt+'</span></div>';
+    }).join('');
+  } else {
+    document.getElementById('pat-acc-insight').style.display='none';
+    document.getElementById('pat-acc-body').style.display='none';
+    document.getElementById('pat-acc-gate').style.display='block';
+  }
+}
+
+function renderSig(rows){}
+function renderSomaticChart(rows){}
 
 function showSessionDetail(s){show("s-session-detail");var zone=s.deeper_zone||s.baseline_zone||"comfort";var date=new Date(s.created_at).toLocaleDateString([],{month:"long",day:"numeric",year:"numeric"});var bd=(BV[s.breathing_after]||2)-(BV[s.breathing_baseline]||2),gd=(GV[s.gut_after]||2)-(GV[s.gut_baseline]||2),td=bd+gd;var dc=td>=2?"#782818":td>=1?"#7a4a10":"#2a5a3a";var dt=td>=2?"Significant shift after route thinking.":td>=1?"Mild shift after route thinking.":td<0?"State settled after route thinking.":"No shift — consistent state.";var h='<div style="margin-bottom:1rem;padding:.875rem 1rem;background:rgba(0,0,0,.03);border-radius:8px;border-left:3px solid '+ZC[zone]+'"><div style="font-size:11px;color:var(--ink3);margin-bottom:2px">'+date+'</div><div style="font-size:15px;font-weight:500">'+(s.climbing_type||"Unknown")+'</div><div style="font-size:13px;color:'+ZC[zone]+'">'+(zone==="comfort"?"Comfort zone":zone==="learning"?"Learning zone":"Panic zone")+'</div></div>';if(s.breathing_baseline){h+='<div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:.5rem">Somatic check-in</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem"><div style="background:#edeae3;border-radius:8px;padding:.625rem .875rem"><div style="font-size:10px;color:#aaa;margin-bottom:2px">Before</div><div style="font-size:12px">Breath: <strong>'+(s.breathing_baseline||"—")+'</strong></div><div style="font-size:12px;margin-top:2px">Gut: <strong>'+(s.gut_baseline||"—")+'</strong></div></div><div style="background:#edeae3;border-radius:8px;padding:.625rem .875rem"><div style="font-size:10px;color:#aaa;margin-bottom:2px">After</div><div style="font-size:12px">Breath: <strong>'+(s.breathing_after||"—")+'</strong></div><div style="font-size:12px;margin-top:2px">Gut: <strong>'+(s.gut_after||"—")+'</strong></div></div></div><div style="font-size:12px;color:'+dc+';padding:.5rem .75rem;background:rgba(0,0,0,.03);border-radius:6px;margin-bottom:.75rem">'+dt+'</div>';}h+='<div id="detail-falls" style="font-size:12px;color:#aaa">Loading fall data...</div>';document.getElementById("session-detail-content").innerHTML=h;sbS("falls",{session_id:"eq."+s.id,limit:20}).then(fr=>{var el=document.getElementById("detail-falls");if(!el)return;var real=(fr||[]).filter(f=>f.fell!=="post_somatic"&&f.fell!=="process_intention");el.innerHTML=real.length?real.map(f=>'<div style="padding:.5rem 0;border-bottom:0.5px solid rgba(0,0,0,.06)">'+(f.fell==="yes"?"Fall":"Climb")+(f.wall_angle?" · "+f.wall_angle:"")+(f.grade_structured?" · "+f.grade_structured:"")+"</div>").join(""):"No climb data logged for this session.";});}
 
@@ -1763,7 +2085,7 @@ function renderFb(){
   if(fbCur<FBQs.length){var q=FBQs[fbCur];document.getElementById("fb-prog").style.width=((fbCur/(FBQs.length+1))*100)+"%";document.getElementById("fb-step-lbl").textContent="Question "+(fbCur+1)+" of "+FBQs.length;document.getElementById("fb-q").textContent=q.text;document.getElementById("fb-open").style.display="none";document.getElementById("fb-next").disabled=!fbAns[q.key];document.getElementById("fb-next").textContent="Continue";mkOpts(document.getElementById("fb-opts"),q.opts,fbAns[q.key],v=>{fbAns[q.key]=v;renderFb();});}
   else{document.getElementById("fb-prog").style.width="90%";document.getElementById("fb-step-lbl").textContent="Almost done";document.getElementById("fb-q").textContent="Anything else?";document.getElementById("fb-opts").innerHTML="";document.getElementById("fb-open").style.display="block";document.getElementById("fb-next").disabled=false;document.getElementById("fb-next").textContent="Submit";}
 }
-function feedbackNext(){if(fbCur<FBQs.length){fbCur++;renderFb();}else{sbI("feedback",{device_id:DID,simplicity:fbAns.simplicity,somatic_real:fbAns.somatic_real,body_scan_real:fbAns.body_scan_real,delta_accurate:fbAns.delta_accurate,open_notes:document.getElementById("fb-open-text").value||null,app_version:"index30"});document.getElementById("fb-content").style.display="none";document.getElementById("fb-success").style.display="block";}}
+function feedbackNext(){if(fbCur<FBQs.length){fbCur++;renderFb();}else{sbI("feedback",{device_id:DID,simplicity:fbAns.simplicity,somatic_real:fbAns.somatic_real,body_scan_real:fbAns.body_scan_real,delta_accurate:fbAns.delta_accurate,open_notes:document.getElementById("fb-open-text").value||null,app_version:"index32"});document.getElementById("fb-content").style.display="none";document.getElementById("fb-success").style.display="block";}}
 
 // ── HELPERS ──────────────────────────────────────────────
 function mkOpts(wrap,opts,curV,onSel){wrap.innerHTML="";var c=document.createElement("div");c.className="options";opts.forEach(opt=>{var val=opt.v!==undefined?opt.v:opt.l;var el=document.createElement("div");el.className="option"+(curV===val?" selected":"");el.innerHTML="<div class='opt-marker'></div><div class='opt-label'>"+(opt.l||opt.label||val)+(opt.s?"<div class='opt-sub'>"+opt.s+"</div>":"")+"</div>";el.onclick=()=>onSel(val);c.appendChild(el);});wrap.appendChild(c);}
