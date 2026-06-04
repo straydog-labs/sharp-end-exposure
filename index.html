@@ -1279,6 +1279,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--bg);color:var(--ink);min-
     <div class="nav" style="margin-top:1.25rem">
       <button class="btn" onclick="closeFeedback()">Cancel</button>
       <button class="btn btn-p" id="fb-next" onclick="feedbackNext()" disabled>Continue</button>
+      <div id="fb-save-error" style="display:none;font-size:12px;color:#a83828;margin-top:.75rem;padding:.625rem .875rem;background:rgba(168,56,40,.07);border-radius:8px;line-height:1.55"></div>
     </div>
   </div>
   <div id="fb-success" style="display:none;text-align:center;padding:2rem 0">
@@ -1293,7 +1294,7 @@ body{font-family:"DM Sans",sans-serif;background:var(--bg);color:var(--ink);min-
 <div class="toast" id="toast"></div>
 <script>
 var SB="https://kwtbqgoqtewrlsjgepwq.supabase.co",SK="sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t";
-function sbI(t,d){return fetch(SB+"/rest/v1/"+t,{method:"POST",headers:{"Content-Type":"application/json","apikey":SK,"Authorization":"Bearer "+SK,"Prefer":"return=representation"},body:JSON.stringify(d)}).then(r=>r.json()).then(j=>Array.isArray(j)?j[0]:j).catch(e=>{console.warn("sb",e);return null;});}
+function sbI(t,d){return fetch(SB+"/rest/v1/"+t,{method:"POST",headers:{"Content-Type":"application/json","apikey":SK,"Authorization":"Bearer "+SK,"Prefer":"return=representation"},body:JSON.stringify(d)}).then(function(r){return r.json().then(function(j){if(!r.ok)return j;return Array.isArray(j)?j[0]:j;});}).catch(function(e){console.warn("sb",e);return null;});}
 function sbS(t,p){var q=Object.keys(p).map(k=>k+"="+p[k]).join("&");return fetch(SB+"/rest/v1/"+t+"?"+q+"&order=created_at.desc",{headers:{"apikey":SK,"Authorization":"Bearer "+SK}}).then(r=>r.json()).catch(()=>[]);}
 function getDID(){var id=localStorage.getItem("see_did");if(!id){id=([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));localStorage.setItem("see_did",id);}return id;}
 var DID=getDID();
@@ -2085,7 +2086,35 @@ function renderFb(){
   if(fbCur<FBQs.length){var q=FBQs[fbCur];document.getElementById("fb-prog").style.width=((fbCur/(FBQs.length+1))*100)+"%";document.getElementById("fb-step-lbl").textContent="Question "+(fbCur+1)+" of "+FBQs.length;document.getElementById("fb-q").textContent=q.text;document.getElementById("fb-open").style.display="none";document.getElementById("fb-next").disabled=!fbAns[q.key];document.getElementById("fb-next").textContent="Continue";mkOpts(document.getElementById("fb-opts"),q.opts,fbAns[q.key],v=>{fbAns[q.key]=v;renderFb();});}
   else{document.getElementById("fb-prog").style.width="90%";document.getElementById("fb-step-lbl").textContent="Almost done";document.getElementById("fb-q").textContent="Anything else?";document.getElementById("fb-opts").innerHTML="";document.getElementById("fb-open").style.display="block";document.getElementById("fb-next").disabled=false;document.getElementById("fb-next").textContent="Submit";}
 }
-function feedbackNext(){if(fbCur<FBQs.length){fbCur++;renderFb();}else{sbI("feedback",{device_id:DID,simplicity:fbAns.simplicity,somatic_real:fbAns.somatic_real,body_scan_real:fbAns.body_scan_real,delta_accurate:fbAns.delta_accurate,open_notes:document.getElementById("fb-open-text").value||null,app_version:"index33"});document.getElementById("fb-content").style.display="none";document.getElementById("fb-success").style.display="block";}}
+function feedbackNext(){
+  if(fbCur<FBQs.length){fbCur++;renderFb();return;}
+  var btn=document.getElementById("fb-next");
+  var errEl=document.getElementById("fb-save-error");
+  btn.textContent="Saving...";btn.disabled=true;
+  if(errEl)errEl.style.display="none";
+  sbI("feedback",{
+    device_id:DID,
+    simplicity:fbAns.simplicity,
+    somatic_real:fbAns.somatic_real,
+    body_scan_real:fbAns.body_scan_real,
+    delta_accurate:fbAns.delta_accurate,
+    open_notes:document.getElementById("fb-open-text").value||null,
+    app_version:"index35"
+  }).then(function(result){
+    if(result&&result.code){
+      // Supabase returned an error
+      btn.textContent="Continue";btn.disabled=false;
+      if(errEl){errEl.style.display="block";errEl.textContent="Save error: "+result.message+(result.hint?" ("+result.hint+")":"");}
+      console.error("Feedback save error:",result);
+    } else {
+      document.getElementById("fb-content").style.display="none";
+      document.getElementById("fb-success").style.display="block";
+    }
+  }).catch(function(e){
+    btn.textContent="Continue";btn.disabled=false;
+    if(errEl){errEl.style.display="block";errEl.textContent="Network error: "+e.message;}
+  });
+}
 
 // ── HELPERS ──────────────────────────────────────────────
 function mkOpts(wrap,opts,curV,onSel){wrap.innerHTML="";var c=document.createElement("div");c.className="options";opts.forEach(opt=>{var val=opt.v!==undefined?opt.v:opt.l;var el=document.createElement("div");el.className="option"+(curV===val?" selected":"");el.innerHTML="<div class='opt-marker'></div><div class='opt-label'>"+(opt.l||opt.label||val)+(opt.s?"<div class='opt-sub'>"+opt.s+"</div>":"")+"</div>";el.onclick=()=>onSel(val);c.appendChild(el);});wrap.appendChild(c);}
