@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Sharp End Exposure</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%234a4238' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -11,8 +13,8 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   /* Sandstone dark — warm slate, not pure black */
-  --bg:#3a342c;--surface:#46403a;--surface2:#524a42;--border:#5e5650;--border2:#6a625a;
-  --text:#f5f0e8;--muted:#a09890;--muted2:#6a6260;
+  --bg:#4a4238;--surface:#564e44;--surface2:#625a50;--border:#6e665c;--border2:#7a726a;
+  --text:#f7f2ea;--muted:#b8b0a4;--muted2:#7a7268;
   /* Sandstone accent palette — Red River Gorge / Obed */
   --accent:#e8763a;--accent-light:#f08c52;--accent-dim:rgba(232,118,58,.15);
   --panic:#e84444;--learning:#f5a623;--comfort:#7ec87a;
@@ -25,7 +27,7 @@
   --btn-bg:#363028;
 }
 html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;font-size:17px;line-height:1.5;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
-.app{max-width:640px;margin:0 auto;padding:0 0 calc(var(--footer-h) + var(--safe-bottom) + 48px)}
+.app{max-width:640px;margin:0 auto;padding:0 0 calc(var(--footer-h) + var(--safe-bottom) + 64px)}
 
 /* ── SCREENS ── */
 .screen{display:none}.screen.active{display:block}
@@ -34,7 +36,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .beta-badge{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(232,118,58,.12);color:var(--accent);border:1px solid rgba(232,118,58,.25);border-radius:4px;padding:2px 6px;margin-left:8px;vertical-align:middle;}
 
 /* ── FOOTER NAV ── */
-.footer-nav{position:fixed;bottom:0;left:0;right:0;min-height:var(--footer-h);padding-bottom:var(--safe-bottom);background:rgba(58,52,44,.97);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;backdrop-filter:blur(12px);z-index:100;}
+.footer-nav{position:fixed;bottom:0;left:0;right:0;min-height:var(--footer-h);padding-bottom:var(--safe-bottom);background:rgba(74,66,56,.97);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;backdrop-filter:blur(12px);z-index:100;}
 .footer-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:500;letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:8px 10px;-webkit-tap-highlight-color:transparent;transition:color .12s;min-width:56px;}
 .footer-btn svg{width:20px;height:20px;}
 .footer-btn.active{color:var(--accent);}
@@ -75,10 +77,37 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
 /* ── GRADE TOGGLE ── */
 .grade-toggle{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px;}
+.discipline-chips{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.disc-btn{background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:500;padding:14px 12px;text-align:left;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;gap:3px;}
+.disc-btn .disc-label{font-size:15px;font-weight:600;}
+.disc-btn .disc-sub{font-size:12px;color:var(--muted);}
+.disc-btn.selected{background:rgba(232,118,58,.12);border-color:var(--accent);}
+.disc-btn.selected .disc-label{color:var(--accent);}
+.env-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.env-btn{background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:16px;text-align:center;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;}
+.env-btn.selected{background:rgba(232,118,58,.12);border-color:var(--accent);color:var(--accent);}
+.route-name-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:16px;outline:none;transition:border-color .15s;}
+.route-name-input:focus{border-color:var(--accent);}
+.route-name-input::placeholder{color:var(--muted);}
+.stepper{display:flex;align-items:center;gap:12px;}
+.stepper-btn{width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;transition:all .12s;}
+.stepper-btn:active{background:var(--surface2);}
+.stepper-val{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);min-width:60px;text-align:center;}
+.stepper-unit{font-size:13px;color:var(--muted);}
+.rock-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.rock-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:13px;padding:8px 14px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;}
+.rock-chip.selected{background:rgba(232,118,58,.12);border-color:var(--accent);color:var(--accent);}
+.deeper2-header{background:rgba(126,200,122,.06);border-bottom:1px solid rgba(126,200,122,.15);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.deeper2-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--comfort);}
+.unit-toggle{display:flex;gap:4px;}
+.unit-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;transition:all .12s;}
+.unit-btn.active{background:rgba(232,118,58,.12);border-color:var(--accent);color:var(--accent);}
+.route-suggestion{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:4px;font-size:14px;cursor:pointer;display:none;}
+.route-suggestion:hover{background:var(--surface);}
 .toggle-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;padding:10px 4px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;text-align:center;line-height:1.3;}
 .toggle-btn .sys-name{display:block;font-size:13px;font-weight:700;color:var(--muted);}
 .toggle-btn .sys-label{display:block;font-size:10px;margin-top:1px;}
-.toggle-btn.active{background:#4e4840;border-color:var(--accent);}
+.toggle-btn.active{background:#5e5650;border-color:var(--accent);}
 .toggle-btn.active .sys-name{color:var(--accent);}
 .toggle-btn.active .sys-label{color:var(--text);}
 
@@ -130,13 +159,13 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 /* ── ACTION STACK ── */
 .action-stack{margin:0 20px 24px;display:flex;flex-direction:column;gap:10px;}
 .action-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;padding:18px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;text-align:center;}
-.action-btn:active{transform:scale(.98);background:#4e4840;}
+.action-btn:active{transform:scale(.98);background:#5e5650;}
 .action-btn.primary-action{background:#363028;border-color:var(--border);}
 .action-btn .arrow{color:var(--accent);margin-left:6px;}
 .divider-label{text-align:center;font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
 
 /* ── GO DEEPER ── */
-.deeper-header{background:#3a342c;border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.deeper-header{background:#4a4238;border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
 .deeper-climb-label{font-family:'Space Mono',monospace;font-size:13px;color:var(--accent);font-weight:700;}
 .deeper-progress{font-size:11px;color:var(--muted);letter-spacing:.06em;}
 .question-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;}
@@ -156,7 +185,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
 /* ── REFLECTION ── */
 .nav-visual-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
-.nav-visual-card:active{transform:scale(.98);background:#4e4840;}
+.nav-visual-card:active{transform:scale(.98);background:#5e5650;}
 .nav-visual-body{flex:1;min-width:0;}
 .nav-visual-label{font-size:16px;font-weight:600;color:var(--text);margin-bottom:3px;}
 .nav-visual-sub{font-size:13px;color:var(--muted);}
@@ -184,12 +213,12 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .pt-climb{background:rgba(200,245,90,.1);color:#8aaa20;}
 .pt-inj{background:rgba(255,92,58,.1);color:var(--panic);}
 .pt-fb{background:rgba(88,88,88,.12);color:#888;}
-.q-text{font-size:22px;font-weight:700;line-height:1.3;margin-bottom:6px;color:var(--text);}
+.q-text{font-size:22px;font-weight:600;line-height:1.3;margin-bottom:6px;color:var(--text);}
 .q-hint{font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:300;line-height:1.55;}
 .q-body-note{font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:300;line-height:1.6;padding:10px 14px;background:rgba(200,98,42,.06);border-radius:6px;border-left:2px solid rgba(200,98,42,.3);font-style:italic;}
 .options{display:flex;flex-direction:column;gap:8px;}
 .option{display:flex;align-items:flex-start;gap:14px;padding:18px 18px;border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;background:var(--surface);}
-.option:active{background:#4e4840;}
+.option:active{background:#5e5650;}
 .option.selected{border-color:var(--accent);background:rgba(200,245,90,.05);}
 .opt-marker{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .option.selected .opt-marker{background:var(--accent);border-color:var(--accent);}
@@ -202,9 +231,9 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .btn-p:disabled{opacity:.3;cursor:not-allowed;}
 .nav{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-bottom:8px;}
 .zone-badge{display:inline-block;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;}
-.z-comfort{background:rgba(200,245,90,.15);color:#8aaa20;}
-.z-learning{background:rgba(245,166,35,.15);color:var(--learning);}
-.z-panic{background:rgba(255,92,58,.15);color:var(--panic);}
+.z-comfort{background:rgba(126,200,122,.12);color:var(--comfort);}
+.z-learning{background:rgba(245,166,35,.12);color:var(--learning);}
+.z-panic{background:rgba(232,68,68,.12);color:var(--panic);}
 .delta-card{border-radius:12px;padding:18px;margin-bottom:16px;border:1px solid;}
 .delta-shifted{background:rgba(255,92,58,.05);border-color:rgba(255,92,58,.2);}
 .delta-mild{background:rgba(245,166,35,.05);border-color:rgba(245,166,35,.2);}
@@ -222,7 +251,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .card{border:1px solid var(--border);border-radius:12px;padding:14px 18px;background:var(--surface);margin-top:10px;}
 .divider{height:1px;background:var(--border);margin:16px 0;}
 .next-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;transition:all .15s;}
-.next-card:active{background:#4e4840;}
+.next-card:active{background:#5e5650;}
 .next-card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
 .next-card-body{flex:1;}
 .next-card-title{font-size:14px;font-weight:500;color:var(--text);}
@@ -263,6 +292,11 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .sci-note{font-size:11px;color:var(--muted);font-style:italic;line-height:1.6;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid rgba(200,245,90,.25);margin-top:10px;}
 .toast{position:fixed;bottom:calc(var(--footer-h)+12px);left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
+.save-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(232,118,58,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-toast{position:fixed;bottom:calc(var(--footer-h)+12px);left:16px;right:16px;background:rgba(232,68,68,.95);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;}
+.error-toast.show{opacity:1;}
+.toast.show{opacity:1;}
 .save-ind{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;min-height:16px;}
 .warn-box{font-size:12px;color:var(--panic);background:rgba(255,92,58,.06);border:1px solid rgba(255,92,58,.2);border-radius:8px;padding:10px 14px;margin-top:10px;line-height:1.6;}
 .empty-state{text-align:center;padding:3rem 0;color:var(--muted);}
@@ -272,7 +306,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 /* ── RESEARCH / HIW CARDS ── */
 .res-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;}
 .res-card-header{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.res-card-header:active{background:#4e4840;}
+.res-card-header:active{background:#5e5650;}
 .res-card-icon{width:48px;height:48px;border-radius:10px;overflow:hidden;flex-shrink:0;}
 .res-card-meta{flex:1;min-width:0;}
 .res-card-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:3px;}
@@ -312,6 +346,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 <body>
 <div class="app">
 <div id="toast-el" class="toast"></div>
+<div id="error-toast-el" class="error-toast"></div>
 
 <!-- ═══════════════════════════════════════
      PERSISTENT FOOTER NAV
@@ -343,17 +378,17 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div>
       <div class="home-brand">
         <div class="home-wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-        <div class="home-tagline">Map your climbs.<br><em>Own your edge.</em></div>
+        <div class="home-tagline">Know your body.<br><em>Own your decision.</em></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:24px;">
       <div class="home-actions">
         <button class="home-btn primary" onclick="showScreen('screen-log')">
-          <div class="btn-label"><span>Log a climb</span><span class="btn-sub">Record grade, terrain, and body state</span></div>
+          <div class="btn-label"><span>Log a climb</span><span class="btn-sub">After you climb — 60 seconds</span></div>
           <span class="btn-arrow">→</span>
         </button>
         <button class="home-btn" onclick="startPrepare()">
-          <div class="btn-label"><span>Prepare for a climb</span><span class="btn-sub">Somatic check-in before you engage</span></div>
+          <div class="btn-label"><span>Prepare for a climb</span><span class="btn-sub">Before you commit — somatic check-in</span></div>
           <span class="btn-arrow">→</span>
         </button>
       </div>
@@ -372,6 +407,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="screen-title">Log a climb<span class="sub">Grade · terrain · result.</span></div>
+
     <div class="field-group">
       <div class="field-label">Grade</div>
       <div class="grade-toggle">
@@ -457,12 +493,106 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="save-ind" id="log-save-ind"></div>
   </div>
   <div style="height:16px"></div>
-  <div class="action-stack">
-    <button class="action-btn primary-action" onclick="startDeeper()">Go deeper — what happened? <span class="arrow">→</span></button>
+  <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
+    <button class="action-btn primary-action" onclick="startDeeper()" style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="text-align:left;">
+        <div style="font-size:16px;font-weight:600;">Go Deeper</div>
+        <div style="font-size:13px;color:var(--muted);font-weight:400;margin-top:2px;">What happened in your body?</div>
+      </div>
+      <span style="color:var(--accent);font-size:20px;">→</span>
+    </button>
+    <button class="action-btn" onclick="showScreen('screen-route-details')" style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="text-align:left;">
+        <div style="font-size:16px;font-weight:600;">Add route details</div>
+        <div style="font-size:13px;color:var(--muted);font-weight:400;margin-top:2px;">Discipline · environment · rock type</div>
+      </div>
+      <span style="color:var(--accent);font-size:20px;">→</span>
+    </button>
     <div class="divider-label">or</div>
     <button class="action-btn" onclick="logAnother()">Log another climb</button>
     <button class="action-btn" onclick="showScreen('screen-home')" style="color:var(--muted);border-color:transparent;background:transparent;font-size:14px;">← Home</button>
   </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     ROUTE DETAILS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-route-details">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-celebrate')">← Back</button>
+  </div>
+  <div class="deeper-header">
+    <span class="deeper-climb-label" id="rd-label">—</span>
+    <span class="deeper-progress">Route context</span>
+  </div>
+  <div class="content">
+    <div class="field-group">
+      <div class="field-label">Route name <span style="color:var(--muted);font-weight:400;letter-spacing:0;text-transform:none;font-size:12px;">— optional</span></div>
+      <input style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:16px;outline:none;transition:border-color .15s;" id="rd-route-name" type="text" placeholder="e.g. Crimson Tide, Project slab..." oninput="logState.routeName=this.value.trim()||null"/>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Discipline</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="rdSelectDisc(this,'Sport')"><strong style="display:block;font-size:15px;">Sport</strong><span style="font-size:12px;color:var(--muted);">Bolted routes</span></button>
+        <button class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="rdSelectDisc(this,'Trad')"><strong style="display:block;font-size:15px;">Trad</strong><span style="font-size:12px;color:var(--muted);">Self-placed gear</span></button>
+        <button class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="rdSelectDisc(this,'Boulder')"><strong style="display:block;font-size:15px;">Boulder</strong><span style="font-size:12px;color:var(--muted);">No rope</span></button>
+        <button class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="rdSelectDisc(this,'Top Rope')"><strong style="display:block;font-size:15px;">Top Rope</strong><span style="font-size:12px;color:var(--muted);">Protected above</span></button>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Environment</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button class="chip" id="rd-indoor" onclick="rdSelectEnv('indoor')" style="padding:16px;border-radius:12px;">Indoor</button>
+        <button class="chip" id="rd-outdoor" onclick="rdSelectEnv('outdoor')" style="padding:16px;border-radius:12px;">Outdoor</button>
+      </div>
+    </div>
+    <div id="rd-outdoor-fields" style="display:none;flex-direction:column;gap:20px;">
+      <div class="field-group">
+        <div class="field-label">Rock type</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="chip" onclick="rdSelectRock(this,'Sandstone')">Sandstone</button>
+          <button class="chip" onclick="rdSelectRock(this,'Limestone')">Limestone</button>
+          <button class="chip" onclick="rdSelectRock(this,'Granite')">Granite</button>
+          <button class="chip" onclick="rdSelectRock(this,'Basalt')">Basalt</button>
+          <button class="chip" onclick="rdSelectRock(this,'Quartzite')">Quartzite</button>
+          <button class="chip" onclick="rdSelectRock(this,'Conglomerate')">Conglomerate</button>
+          <button class="chip" onclick="rdSelectRock(this,'Gneiss')">Gneiss</button>
+          <button class="chip" onclick="rdSelectRock(this,'Schist')">Schist</button>
+          <button class="chip" onclick="rdSelectRock(this,'Rhyolite')">Rhyolite</button>
+          <button class="chip" onclick="rdSelectRock(this,'Tuff')">Tuff</button>
+          <button class="chip" onclick="rdSelectRock(this,'Gabbro')">Gabbro</button>
+          <button class="chip" onclick="rdSelectRock(this,'Unknown')">Unknown</button>
+        </div>
+      </div>
+      <div class="field-group" id="rd-bolt-group" style="display:none;">
+        <div class="field-label">Bolt count</div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button onclick="rdAdjBolt(-1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+          <div style="text-align:center;"><div id="rd-bolt-val" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;text-align:center;">—</div><div style="font-size:12px;color:var(--muted);margin-top:2px;">bolts</div></div>
+          <button onclick="rdAdjBolt(1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Route height</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:13px;color:var(--muted);">Approximate</span>
+          <div style="display:flex;gap:4px;">
+            <button id="rd-unit-ft" onclick="rdSetUnit('ft')" style="background:rgba(232,118,58,.12);border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;">ft</button>
+            <button id="rd-unit-m" onclick="rdSetUnit('m')" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;">m</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button onclick="rdAdjHeight(-1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+          <div style="text-align:center;"><div id="rd-height-val" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;text-align:center;">—</div><div id="rd-height-unit" style="font-size:12px;color:var(--muted);margin-top:2px;">ft</div></div>
+          <button onclick="rdAdjHeight(1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="save-ind" id="rd-save-ind"></div>
+  </div>
+  <div style="height:24px"></div>
+  <button class="log-btn ready" onclick="saveRouteDetails()">Save details</button>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -647,7 +777,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <circle cx="300" cy="82" r="9" fill="none" stroke="rgba(200,245,90,.3)" stroke-width="1.5" id="river-current-ring"/>
         <polyline points="60,82 110,75 160,48 210,40 260,55 300,82" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5" stroke-linejoin="round" id="river-line"/>
       </svg>
-      <div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;line-height:1.5;" id="river-insight">Your sessions build here as you log more climbs.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;font-style:italic;line-height:1.5;" id="river-insight">Your sessions build here as you log more climbs.</div>
     </div>
 
     <!-- MY SESSIONS NAV CARD -->
@@ -1355,19 +1485,24 @@ function showScreen(id){
   if(map[id])document.getElementById(map[id]).classList.add("active");
   if(id==="screen-sessions")loadSessionsScreen();
   if(id==="screen-feedback")initFeedback();
+  if(id==="screen-route-details")initRouteDetails();
 }
 // Legacy show() for prepare flow compatibility
 function show(id){showScreen(id);}
 
 // ── LOG A CLIMB STATE ────────────────────────────────────
-var logState={grade:null,terrain:null,result:null,zone:null,sessId:null};
+var logState={grade:null,terrain:null,result:null,zone:null,sessId:null,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft'};
+var previousRoutes=[];
 var logGradeSystem="YDS";
 var gradeSystems={
-  V:["VB","V0","V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11","V12","V13","V14","V15"],
-  YDS:["5.5","5.6","5.7","5.8","5.9","5.10a","5.10b","5.10c","5.10d","5.11a","5.11b","5.11c","5.11d","5.12a","5.12b","5.12c","5.12d","5.13a","5.13b","5.13c","5.13d","5.14a","5.14b","5.14c","5.14d"],
-  FR:["3","4","4+","5","5+","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c"],
-  UK:["M","D","VD","S","HS","VS","HVS","E1","E2","E3","E4","E5","E6","E7","E8","E9"]
+  V:["VB","V0","V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11","V12","V13","V14","V15","V16","V17"],
+  YDS:["5.5","5.6","5.7","5.8","5.9","5.10a","5.10b","5.10c","5.10d","5.11a","5.11b","5.11c","5.11d","5.12a","5.12b","5.12c","5.12d","5.13a","5.13b","5.13c","5.13d","5.14a","5.14b","5.14c","5.14d","5.15a","5.15b","5.15c","5.15d"],
+  FR:["5","5+","6a","6a+","6b","6b+","6c","6c+","7a","7a+","7b","7b+","7c","7c+","8a","8a+","8b","8b+","8c","8c+","9a","9a+","9b","9b+","9c"],
+  UK:["M","D","VD","S","HS","VS","HVS","E1","E2","E3","E4","E5","E6","E7","E8","E9","E10"]
 };
+
+// Route name autocomplete for Route Details screen
+function onRouteNameInput(val){var sug=document.getElementById("route-suggestion");if(!val||!previousRoutes.length){if(sug)sug.style.display="none";return;}var matches=previousRoutes.filter(function(r){return r.toLowerCase().startsWith(val.toLowerCase())&&r!==val;});if(sug&&matches.length){sug.style.display="block";sug.textContent=matches[0];sug.onclick=function(){document.getElementById("route-name-input").value=matches[0];logState.routeName=matches[0];sug.style.display="none";};}else if(sug)sug.style.display="none";}
 
 function buildGradeGrid(sys){
   var grid=document.getElementById("grade-grid");
@@ -1411,8 +1546,8 @@ function logClimb(){
   renderLogCelebration();
   showScreen("screen-celebrate");
   // Save to Supabase
-  var si=document.getElementById("log-save-ind");if(si)si.textContent="Saving...";
-  sbI("sessions",{device_id:DID,grade_value:logState.grade,grade_system:logGradeSystem,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":"attempt",session_hour:new Date().getHours()}).then(saved=>{
+  var si=document.getElementById("log-save-ind");if(si)si.innerHTML="<span class='save-spinner'></span>Saving…";
+  sbI("sessions",{device_id:DID,grade_value:logState.grade,grade_system:logGradeSystem,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":"attempt",session_hour:new Date().getHours(),route_name:logState.routeName||null,discipline:logState.discipline||null,environment:logState.environment||null,rock_type:logState.rockType||null,bolt_count:logState.boltCount||null,route_height_ft:logState.routeHeight&&logState.heightUnit==="ft"?logState.routeHeight:logState.routeHeight?Math.round(logState.routeHeight*3.28084):null}).then(saved=>{
     if(saved&&saved.id){logState.sessId=saved.id;if(si)si.textContent="";}else if(si)si.textContent="";
   });
 }
@@ -1585,7 +1720,7 @@ function incidentNext(){
 
 // ── LOG ANOTHER ──────────────────────────────────────────
 function logAnother(){
-  logState={grade:null,terrain:null,result:null,zone:null,sessId:null};
+  logState={grade:null,terrain:null,result:null,zone:null,sessId:null,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft'};
   buildGradeGrid(logGradeSystem);
   document.querySelectorAll(".chip[onclick*='selectTerrain']").forEach(b=>b.classList.remove("selected"));
   document.getElementById("btn-sent").classList.remove("selected-send");
@@ -1597,6 +1732,8 @@ function logAnother(){
 // ── MY SESSIONS SCREEN ───────────────────────────────────
 function loadSessionsScreen(){
   sbS("sessions",{device_id:"eq."+DID,limit:50}).then(function(rows){
+    // Cache unique route names for autocomplete
+    previousRoutes=[...new Set((rows||[]).filter(function(r){return r.route_name;}).map(function(r){return r.route_name;}))];
     var real=rows&&rows.length?rows.filter(function(r){return r.grade_value;}):[];
     renderSessionsPreview();
     renderRealData(real);
@@ -2120,7 +2257,7 @@ function deepBack(){if(deepCur>0){deepCur--;renderDeeper();}}
 function deepNext(){if(deepAns[deepCur]===null)return;if(deepCur<DQs.length-1){deepCur++;renderDeeper();}else computeResult(true);}
 
 function startLogFromPrepare(){
-  logState={grade:null,terrain:null,result:null,zone:null,sessId:prepSessId};
+  logState={grade:null,terrain:null,result:null,zone:null,sessId:prepSessId,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft'};
   buildGradeGrid(logGradeSystem);
   document.querySelectorAll(".chip[onclick*='selectTerrain']").forEach(b=>b.classList.remove("selected"));
   document.getElementById("btn-sent").classList.remove("selected-send");
@@ -2133,10 +2270,10 @@ function restart(){cur=0;ans={};pauseShown=false;bodyScanShown=false;prepSessId=
 
 // ── FEEDBACK ─────────────────────────────────────────────
 var FBQs=[
-  {text:"Was the flow simple enough you'd actually use this at the base of a route?",key:"simplicity",opts:["Yes — I would open this before climbing","Yes, but it felt slightly long","Maybe — depends on the route","No — too many steps"]},
-  {text:"Did the somatic check-in feel real — did you actually notice something in your body?",key:"somatic_real",opts:["Yes — I noticed something I wasn't aware of before","Somewhat — noticed but not surprising","Not really — I answered but didn't physically feel it","The questions made me more aware than I expected"]},
-  {text:"Did the body scan surface anything you weren't aware of before?",key:"body_scan_real",opts:["Yes — I noticed something I hadn't registered","Somewhat — it prompted awareness but wasn't new","Not really — I tapped through it","Nothing was present to notice"]},
-  {text:"Did the result — seeing the shift described in words — feel accurate?",key:"delta_accurate",opts:["Yes — it described what I actually experienced","Mostly — close but not quite","Not really — the language didn't match","I'm not sure — need more sessions to compare"]}
+  {text:"Which flow did you use most — Log a Climb or Prepare for a Climb?",key:"simplicity",opts:["Log a Climb — after climbing","Prepare for a Climb — before committing","Both equally","Neither yet"]},
+  {text:"Did the somatic check-in feel real — did you notice something in your body?",key:"somatic_real",opts:["Yes — I noticed something I wasn't aware of before","The questions made me more aware than I expected","Somewhat — noticed but not surprising","Not really — I answered but didn't physically feel it"]},
+  {text:"Did the body scan surface anything you weren't aware of before the check-in?",key:"body_scan_real",opts:["Yes — I noticed something I hadn't registered","Somewhat — it prompted awareness but wasn't new","Not really — I tapped through it","Nothing was present to notice"]},
+  {text:"Did the result — seeing your zone and shift described — feel accurate?",key:"delta_accurate",opts:["Yes — it described what I actually experienced","Mostly — close but not quite","Not really — the language didn't match","I'm not sure — need more sessions to compare"]}
 ];
 var fbCur=0,fbAns={};
 function initFeedback(){fbCur=0;fbAns={};document.getElementById("fb-content").style.display="block";document.getElementById("fb-success").style.display="none";renderFb();}
@@ -2169,7 +2306,7 @@ function feedbackNext(){
     var SOMATIC_MAP={"Yes — I noticed something I wasn't aware of before":"yes_noticed","Somewhat — noticed but not surprising":"somewhat","Not really — I answered but didn't physically feel it":"not_really","The questions made me more aware than I expected":"more_aware"};
     var BODYSCAN_MAP={"Yes — I noticed something I hadn't registered":"yes_noticed","Somewhat — it prompted awareness but wasn't new":"somewhat","Not really — I tapped through it":"tapped_through","Nothing was present to notice":"nothing"};
     var DELTA_MAP={"Yes — it described what I actually experienced":"yes_accurate","Mostly — close but not quite":"mostly","Not really — the language didn't match":"not_accurate","I'm not sure — need more sessions to compare":"unsure"};
-    sbI("feedback",{device_id:DID,app_version:"index44",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,body_scan_real:BODYSCAN_MAP[fbAns.body_scan_real]||fbAns.body_scan_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,open_notes:document.getElementById("fb-open-text").value||null});
+    sbI("feedback",{device_id:DID,app_version:"index47",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,body_scan_real:BODYSCAN_MAP[fbAns.body_scan_real]||fbAns.body_scan_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,open_notes:document.getElementById("fb-open-text").value||null});
     document.getElementById("fb-content").style.display="none";
     document.getElementById("fb-success").style.display="block";
   }
@@ -2182,7 +2319,75 @@ function toggleRes(header){
 }
 
 // ── TOAST ─────────────────────────────────────────────────
-function showToast(msg){var t=document.getElementById("toast-el");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200);}
+function showToast(msg){var t=document.getElementById("toast-el");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2200);}
+function showError(msg){var t=document.getElementById("error-toast-el");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},3500);}
+function setSaveInd(id,html){var el=document.getElementById(id);if(el)el.innerHTML=html;}
+
+// ── ROUTE DETAILS FUNCTIONS ──────────────────────────
+var rdHeightUnit='ft';
+function initRouteDetails(){
+  var lbl=document.getElementById("rd-label");
+  if(lbl)lbl.textContent=(logState.grade||"—")+" · "+(logState.terrain||"—");
+  var ni=document.getElementById("rd-route-name");
+  if(ni)ni.value=logState.routeName||"";
+  document.getElementById("rd-outdoor-fields").style.display="none";
+  rdHeightUnit='ft';
+}
+function rdSelectDisc(el,val){
+  el.closest("div").querySelectorAll(".chip").forEach(function(b){b.classList.remove("selected");});
+  el.classList.add("selected");logState.discipline=val;
+  var bg=document.getElementById("rd-bolt-group");
+  if(bg)bg.style.display=val==="Sport"?"block":"none";
+}
+function rdSelectEnv(val){
+  logState.environment=val;
+  document.getElementById("rd-indoor").classList.toggle("selected",val==="indoor");
+  document.getElementById("rd-outdoor").classList.toggle("selected",val==="outdoor");
+  var od=document.getElementById("rd-outdoor-fields");
+  if(od)od.style.display=val==="outdoor"?"flex":"none";
+}
+function rdSelectRock(el,val){
+  el.closest("div").querySelectorAll(".chip").forEach(function(b){b.classList.remove("selected");});
+  el.classList.add("selected");logState.rockType=val;
+}
+function rdAdjBolt(d){
+  if(logState.boltCount===null)logState.boltCount=0;
+  logState.boltCount=Math.max(0,logState.boltCount+d);
+  document.getElementById("rd-bolt-val").textContent=logState.boltCount||"—";
+}
+function rdSetUnit(u){
+  rdHeightUnit=u;
+  document.getElementById("rd-unit-ft").style.background=u==="ft"?"rgba(232,118,58,.12)":"var(--surface)";
+  document.getElementById("rd-unit-ft").style.borderColor=u==="ft"?"var(--accent)":"var(--border)";
+  document.getElementById("rd-unit-ft").style.color=u==="ft"?"var(--accent)":"var(--muted)";
+  document.getElementById("rd-unit-m").style.background=u==="m"?"rgba(232,118,58,.12)":"var(--surface)";
+  document.getElementById("rd-unit-m").style.borderColor=u==="m"?"var(--accent)":"var(--border)";
+  document.getElementById("rd-unit-m").style.color=u==="m"?"var(--accent)":"var(--muted)";
+  document.getElementById("rd-height-unit").textContent=u;
+  if(logState.routeHeight!==null){
+    logState.routeHeight=u==="m"?Math.round(logState.routeHeight*.3048):Math.round(logState.routeHeight*3.28084);
+    document.getElementById("rd-height-val").textContent=logState.routeHeight;
+  }
+}
+function rdAdjHeight(d){
+  var step=rdHeightUnit==="ft"?5:1;
+  if(logState.routeHeight===null)logState.routeHeight=rdHeightUnit==="ft"?50:15;
+  logState.routeHeight=Math.max(0,logState.routeHeight+d*step);
+  document.getElementById("rd-height-val").textContent=logState.routeHeight;
+}
+function saveRouteDetails(){
+  logState.routeName=document.getElementById("rd-route-name").value.trim()||null;
+  logState.routeHeight=logState.routeHeight&&rdHeightUnit==="m"?Math.round(logState.routeHeight*3.28084):logState.routeHeight;
+  if(!logState.sessId){showScreen("screen-reflection");return;}
+  setSaveInd("rd-save-ind","<span class='save-spinner'></span>Saving…");
+  sbI("sessions",{id:logState.sessId,route_name:logState.routeName,discipline:logState.discipline,environment:logState.environment,rock_type:logState.rockType,bolt_count:logState.boltCount,route_height_ft:logState.routeHeight}).then(function(r){
+    setSaveInd("rd-save-ind","");
+    showScreen("screen-reflection");
+  }).catch(function(){
+    setSaveInd("rd-save-ind","");
+    showError("Could not save route details. Please try again.");
+  });
+}
 
 // ── HOW IT WORKS INTERACTIVE ─────────────────────────────
 var hiwFlowData = {
