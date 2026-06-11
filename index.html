@@ -2147,7 +2147,14 @@ function renderFb(){
     prog.style.width=((fbCur/(FBQs.length+1))*100)+"%";
     stepLbl.textContent="Question "+(fbCur+1)+" of "+FBQs.length;
     qEl.textContent=q.text;openEl.style.display="none";
-    optsEl.innerHTML=q.opts.map(o=>'<button class="fb-opt'+(fbAns[q.key]===o?" selected":"")+'" onclick="selectFbOpt(this,\''+q.key+'\',\''+o.replace(/'/g,"\\'")+'\')">'+ o+"</button>").join("");
+        optsEl.innerHTML="";
+    q.opts.forEach(function(o){
+      var btn=document.createElement("button");
+      btn.className="fb-opt"+(fbAns[q.key]===o?" selected":"");
+      btn.textContent=o;
+      btn.onclick=function(){selectFbOpt(btn,q.key,o);};
+      optsEl.appendChild(btn);
+    });;
     nextBtn.className="fb-next-btn"+(fbAns[q.key]?" ready":"");nextBtn.textContent="Continue";
   } else {
     prog.style.width="90%";stepLbl.textContent="Almost done";qEl.textContent="Anything else?";optsEl.innerHTML="";openEl.style.display="block";nextBtn.className="fb-next-btn ready";nextBtn.textContent="Submit";
@@ -2162,7 +2169,7 @@ function feedbackNext(){
     var SOMATIC_MAP={"Yes — I noticed something I wasn't aware of before":"yes_noticed","Somewhat — noticed but not surprising":"somewhat","Not really — I answered but didn't physically feel it":"not_really","The questions made me more aware than I expected":"more_aware"};
     var BODYSCAN_MAP={"Yes — I noticed something I hadn't registered":"yes_noticed","Somewhat — it prompted awareness but wasn't new":"somewhat","Not really — I tapped through it":"tapped_through","Nothing was present to notice":"nothing"};
     var DELTA_MAP={"Yes — it described what I actually experienced":"yes_accurate","Mostly — close but not quite":"mostly","Not really — the language didn't match":"not_accurate","I'm not sure — need more sessions to compare":"unsure"};
-    sbI("feedback",{device_id:DID,app_version:"index42",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,body_scan_real:BODYSCAN_MAP[fbAns.body_scan_real]||fbAns.body_scan_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,open_notes:document.getElementById("fb-open-text").value||null});
+    sbI("feedback",{device_id:DID,app_version:"index44",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,body_scan_real:BODYSCAN_MAP[fbAns.body_scan_real]||fbAns.body_scan_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,open_notes:document.getElementById("fb-open-text").value||null});
     document.getElementById("fb-content").style.display="none";
     document.getElementById("fb-success").style.display="block";
   }
