@@ -886,7 +886,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
             <rect x="0" y="33" width="320" height="34" fill="rgba(245,166,35,.04)"/>
             <rect x="0" y="67" width="320" height="33" fill="rgba(200,245,90,.05)"/>
             <text x="6" y="11" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.5)" letter-spacing=".08em" font-weight="600">PANIC</text>
-            <text x="6" y="52" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.5)" letter-spacing=".08em" font-weight="600">LEARNING</text>
+            <text x="6" y="52" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(245,166,35,.75)" font-weight="600" letter-spacing=".08em" font-weight="600">LEARNING</text>
             <text x="6" y="95" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(200,245,90,.5)" letter-spacing=".08em" font-weight="600">COMFORT</text>
             <polyline points="18,83 42,83 62,17 80,50 100,17 118,50 138,50 158,83 176,83 194,50 214,50 234,50 252,83 272,50 292,50 308,50" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linejoin="round"/>
             <circle cx="18" cy="83" r="4" fill="rgba(200,245,90,.6)"/>
@@ -1513,9 +1513,9 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <rect x="0" y="0" width="320" height="33" fill="rgba(232,68,68,.05)" rx="2"/>
         <rect x="0" y="33" width="320" height="34" fill="rgba(245,166,35,.04)"/>
         <rect x="0" y="67" width="320" height="33" fill="rgba(126,200,122,.05)" rx="2"/>
-        <text x="6" y="12" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(232,68,68,.5)" letter-spacing=".08em" font-weight="600">PANIC</text>
-        <text x="6" y="54" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.5)" letter-spacing=".08em" font-weight="600">LEARNING</text>
-        <text x="6" y="96" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.5)" letter-spacing=".08em" font-weight="600">COMFORT</text>
+        <text x="6" y="12" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(232,68,68,.75)" font-weight="600" letter-spacing=".08em" font-weight="600">PANIC</text>
+        <text x="6" y="54" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(245,166,35,.75)" font-weight="600" letter-spacing=".08em" font-weight="600">LEARNING</text>
+        <text x="6" y="96" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(126,200,122,.75)" font-weight="600" letter-spacing=".08em" font-weight="600">COMFORT</text>
         <g id="proj-arc-dots"></g>
       </svg>
       <div id="proj-arc-insight" style="font-size:13px;color:var(--muted);font-style:italic;margin-top:12px;line-height:1.6;padding:10px 14px;background:rgba(232,118,58,.05);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);display:none;"></div>
@@ -1914,27 +1914,49 @@ function renderRadarSVG(svgId,bdId,tc){
   var tkeys=Object.keys(tc),n=tkeys.length,cx=110,cy=110,R=78;
   var maxC=Math.max.apply(null,Object.values(tc))||1;
   var ang=tkeys.map(function(_,i){return -Math.PI/2+(2*Math.PI*i/n);});
-  var norm=tkeys.map(function(tk){return Math.max(0.06,tc[tk]/maxC);});
+  var norm=tkeys.map(function(tk){return Math.max(0.08,tc[tk]/maxC);});
   var pts=norm.map(function(v,i){return {x:cx+R*v*Math.cos(ang[i]),y:cy+R*v*Math.sin(ang[i])};});
-  var rings=[.25,.5,.75,1].map(function(r2){return '<polygon points="'+ang.map(function(a){return (cx+R*r2*Math.cos(a))+","+(cy+R*r2*Math.sin(a));}).join(" ")+'" fill="none" stroke="rgba(255,255,255,.06)" stroke-width=".5"/>';}).join("");
-  var axes=tkeys.map(function(tk,i){return '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+R*Math.cos(ang[i]))+'" y2="'+(cy+R*Math.sin(ang[i]))+'" stroke="'+(TC_COLORS[tk]||"#888")+'" stroke-width="1" opacity=".3"/>';}).join("");
-  var dots=tkeys.map(function(tk,i){
-    return (tc[tk]>0?'<text x="'+pts[i].x+'" y="'+(pts[i].y-10)+'" text-anchor="middle" font-family="Space Mono,monospace" font-size="9" fill="'+(TC_COLORS[tk]||"#888")+'" font-weight="700">'+tc[tk]+"</text>":"")+
-    '<circle cx="'+pts[i].x+'" cy="'+pts[i].y+'" r="4" fill="'+(TC_COLORS[tk]||"#888")+'" stroke="rgba(26,23,20,.8)" stroke-width="1.5" opacity="'+(tc[tk]>0?.9:.2)+'"/>'+
-    '<text x="'+(cx+(R+18)*Math.cos(ang[i]))+'" y="'+(cy+(R+18)*Math.sin(ang[i])+4)+'" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8.5" fill="rgba(255,255,255,'+(tc[tk]>0?.45:.15)+')">'+tk+"</text>";
+  // Rings — more visible
+  var rings=[.33,.66,1].map(function(r2){
+    return '<polygon points="'+ang.map(function(a){return (cx+R*r2*Math.cos(a))+","+(cy+R*r2*Math.sin(a));}).join(" ")+'" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1"/>';
   }).join("");
+  // Axes — more visible, colored
+  var axes=tkeys.map(function(tk,i){
+    return '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+R*Math.cos(ang[i]))+'" y2="'+(cy+R*Math.sin(ang[i]))+'" stroke="'+(TC_COLORS[tk]||"rgba(255,255,255,.3)")+'" stroke-width="1.5" opacity=".5"/>';
+  }).join("");
+  // Filled polygon — brighter fill and stroke
   var poly=pts.map(function(p){return p.x+","+p.y;}).join(" ");
-  svg.innerHTML=rings+axes+'<polygon points="'+poly+'" fill="rgba(232,118,58,.07)" stroke="#e8763a" stroke-width="1.8" stroke-linejoin="round"/>'+dots;
+  var hasData=tkeys.some(function(tk){return tc[tk]>0;});
+  var polygonEl='<polygon points="'+poly+'" fill="rgba(232,118,58,'+(hasData?.18:.05)+')" stroke="#e8763a" stroke-width="'+(hasData?2.5:1)+'" stroke-linejoin="round" opacity="'+(hasData?1:.4)+'"/>';
+  // Dots + labels — much more visible
+  var dots=tkeys.map(function(tk,i){
+    var hasVal=tc[tk]>0;
+    var dotR=hasVal?5:3;
+    var dotOpacity=hasVal?1:.35;
+    var labelOpacity=hasVal?.85:.3;
+    var col=TC_COLORS[tk]||"#e8763a";
+    return (hasVal?'<text x="'+pts[i].x+'" y="'+(pts[i].y-11)+'" text-anchor="middle" font-family="Space Mono,monospace" font-size="10" fill="'+col+'" font-weight="700">'+tc[tk]+"</text>":"")+
+    '<circle cx="'+pts[i].x+'" cy="'+pts[i].y+'" r="'+dotR+'" fill="'+col+'" opacity="'+dotOpacity+'"/>'+
+    (hasVal?'<circle cx="'+pts[i].x+'" cy="'+pts[i].y+'" r="'+(dotR+4)+'" fill="none" stroke="'+col+'" stroke-width="1" opacity=".3"/>':'')+
+    '<text x="'+(cx+(R+22)*Math.cos(ang[i]))+'" y="'+(cy+(R+22)*Math.sin(ang[i])+4)+'" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9.5" font-weight="600" fill="rgba(255,255,255,'+labelOpacity+')">'+tk+"</text>";
+  }).join("");
+  svg.innerHTML=rings+axes+polygonEl+dots;
   var bd=document.getElementById(bdId);
   if(bd){
     var maxV=Math.max.apply(null,Object.values(tc))||1;
-    bd.innerHTML=tkeys.filter(function(tk){return tc[tk]>0;}).map(function(tk){
-      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+
-      '<div style="width:7px;height:7px;border-radius:50%;background:'+(TC_COLORS[tk]||"#888")+';flex-shrink:0;"></div>'+
-      '<div style="flex:1;"><div style="font-size:13px;font-weight:500;color:var(--text);">'+tk+'</div>'+
-      '<div style="height:3px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:3px;">'+
-      '<div style="height:100%;width:'+Math.round((tc[tk]/maxV)*100)+'%;background:'+(TC_COLORS[tk]||"#888")+';border-radius:99px;opacity:.7;"></div></div></div>'+
-      '<div style="font-size:11px;color:var(--muted);min-width:18px;text-align:right;font-family:Space Mono,monospace;">'+tc[tk]+'</div></div>';
+    var withData=tkeys.filter(function(tk){return tc[tk]>0;});
+    if(!withData.length){
+      bd.innerHTML='<div style="font-size:13px;color:var(--muted);line-height:1.6;">Log climbs with terrain tags to build your radar.</div>';
+      return;
+    }
+    bd.innerHTML=withData.map(function(tk){
+      var w=Math.round((tc[tk]/maxV)*100);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">'+
+      '<div style="width:8px;height:8px;border-radius:50%;background:'+(TC_COLORS[tk]||"#e8763a")+';flex-shrink:0;"></div>'+
+      '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:var(--text);">'+tk+'</div>'+
+      '<div style="height:4px;background:rgba(255,255,255,.1);border-radius:99px;margin-top:4px;">'+
+      '<div style="height:100%;width:'+w+'%;background:'+(TC_COLORS[tk]||"#e8763a")+';border-radius:99px;opacity:.85;"></div></div></div>'+
+      '<div style="font-size:13px;font-weight:700;color:var(--text);min-width:18px;text-align:right;font-family:Space Mono,monospace;">'+tc[tk]+'</div></div>';
     }).join("");
   }
 }
@@ -2149,7 +2171,13 @@ function renderRoutesSection(rows){
   var sec=document.getElementById("real-routes-section");
   var list=document.getElementById("real-routes-list");
   if(!list)return;
-  if(!routeNames.length){if(sec)sec.style.display="none";return;}
+  if(!routeNames.length){
+    if(sec){
+      sec.style.display="block";
+      list.innerHTML='<div style="padding:20px 0;text-align:center;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">No named routes yet</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">After logging a climb, tap <strong style="color:var(--accent);">Add route details</strong> and give it a name. Any named route automatically becomes trackable here.</div></div>';
+    }
+    return;
+  }
   if(sec)sec.style.display="block";
   var ZC={comfort:"#7ec87a",learning:"#f5a623",panic:"#e84444"};
   list.innerHTML='';
