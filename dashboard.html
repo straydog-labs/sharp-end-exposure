@@ -8,461 +8,318 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Space Grotesk',sans-serif;background:#f5f2ed;color:#1a1a18;min-height:100vh;font-size:15px;}
-.wrap{max-width:860px;margin:0 auto;padding:28px 20px 60px;}
-/* Header */
-.hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:14px;}
-.eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:4px;}
-.title{font-size:26px;font-weight:700;letter-spacing:-.02em;color:#1a1a18;}
+body{font-family:'Space Grotesk',sans-serif;background:#f5f2ed;color:#1a1a18;min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:900px;margin:0 auto;padding:32px 20px 72px;}
+.hdr{margin-bottom:32px;}
+.eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:6px;}
+.title{font-size:28px;font-weight:700;letter-spacing:-.025em;color:#1a1a18;margin-bottom:4px;}
 .title span{color:#c8622a;}
-.sub{font-size:13px;color:#888780;margin-top:3px;}
-/* Tier toggle */
-.tier-toggle{display:flex;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:10px;padding:4px;gap:3px;}
-.tier-btn{font-size:13px;font-weight:500;padding:9px 20px;border-radius:7px;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:#888780;background:transparent;transition:all .15s;white-space:nowrap;}
+.sub{font-size:14px;color:#888780;line-height:1.55;}
+.tier-toggle{display:flex;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:10px;padding:4px;gap:3px;margin-top:20px;width:fit-content;}
+.tier-btn{font-size:13px;font-weight:600;padding:10px 24px;border-radius:7px;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:#888780;background:transparent;transition:all .15s;white-space:nowrap;letter-spacing:.02em;}
 .tier-btn.active{background:#1a1a18;color:#fff;}
-/* Tier context bar */
-.tier-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
-.tier-title{font-size:17px;font-weight:600;color:#1a1a18;}
-.demo-badge{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:99px;background:rgba(200,98,42,.1);color:#c8622a;}
-/* Metric grid */
-.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px;}
-.metric{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;padding:14px 16px;}
-.metric-n{font-size:30px;font-weight:700;font-family:'Space Mono',monospace;line-height:1;margin-bottom:4px;}
-.metric-l{font-size:11px;color:#888780;letter-spacing:.03em;line-height:1.4;}
-/* Cards */
-.card{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:14px;padding:18px 20px;margin-bottom:14px;}
-.card-lbl{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#c8622a;margin-bottom:3px;}
-.card-sub{font-size:12px;color:#888780;margin-bottom:14px;line-height:1.5;}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
-.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
-/* Bars */
-.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
-.bar-lbl{font-size:13px;color:#1a1a18;flex:1;min-width:0;}
-.bar-track{width:120px;height:6px;background:rgba(0,0,0,.08);border-radius:99px;flex-shrink:0;overflow:hidden;}
-.bar-fill{height:100%;border-radius:99px;}
-.bar-val{font-size:12px;font-family:'Space Mono',monospace;color:#5f5e5a;min-width:32px;text-align:right;}
-/* Insight */
-.insight{font-size:12px;color:#5f5e5a;font-style:italic;margin-top:12px;line-height:1.65;padding:9px 13px;background:#f5f2ed;border-radius:6px;border-left:2px solid rgba(200,98,42,.4);}
-/* Athlete roster */
-.athlete-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:0.5px solid rgba(0,0,0,.08);cursor:pointer;transition:background .1s;border-radius:6px;}
-.athlete-row:last-child{border-bottom:none;}
-.athlete-row:hover{background:#faf8f5;margin:0 -8px;padding-left:8px;padding-right:8px;}
-.athlete-init{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
-.athlete-info{flex:1;min-width:0;}
-.athlete-name{font-size:14px;font-weight:600;color:#1a1a18;}
-.athlete-meta{font-size:11px;color:#888780;margin-top:2px;}
-.zone-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;flex-shrink:0;letter-spacing:.04em;}
-.flag-badge{font-size:11px;color:#a83828;font-weight:500;flex-shrink:0;}
-/* Athlete profile */
-.profile-screen{display:none;position:fixed;inset:0;background:#f5f2ed;z-index:100;overflow-y:auto;}
-.profile-screen.active{display:block;}
-.profile-hdr{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.1);padding:16px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10;}
-.profile-back{background:none;border:none;font-size:14px;color:#888780;cursor:pointer;font-family:'Space Grotesk',sans-serif;padding:0;}
-.profile-content{max-width:860px;margin:0 auto;padding:24px 20px 60px;}
-/* Gym rows */
-.gym-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:0.5px solid rgba(0,0,0,.08);}
-.gym-row:last-child{border-bottom:none;}
-.gym-name{font-size:14px;font-weight:500;color:#1a1a18;min-width:160px;}
-.gym-bar-wrap{flex:1;display:flex;height:8px;border-radius:99px;overflow:hidden;gap:1px;}
-.gym-stat{font-size:12px;font-family:'Space Mono',monospace;color:#5f5e5a;min-width:70px;text-align:right;}
-/* Zone stacked bar */
-.zone-bar{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:1px;margin-bottom:6px;}
-/* Trend line (SVG sparkline) */
-.trend-card{display:flex;flex-direction:column;gap:0;}
-/* Map placeholder */
-.map-wrap{background:#f0ece6;border-radius:10px;padding:20px;position:relative;overflow:hidden;}
-/* Session heatmap */
-.heat-grid{display:grid;grid-template-columns:repeat(26,1fr);gap:2px;}
-.heat-cell{aspect-ratio:1;border-radius:2px;}
-/* Tier views */
 .tier-view{display:none;}
 .tier-view.active{display:block;}
-/* Stat mini */
-.stat-mini{background:#f5f2ed;border-radius:10px;padding:12px;text-align:center;}
-.stat-mini-n{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:#1a1a18;line-height:1;}
-.stat-mini-l{font-size:10px;color:#888780;margin-top:4px;}
-/* Retention */
-.retention-funnel{display:flex;flex-direction:column;gap:6px;}
-.funnel-row{display:flex;align-items:center;gap:10px;}
-.funnel-bar-wrap{flex:1;height:28px;background:rgba(0,0,0,.06);border-radius:6px;overflow:hidden;}
-.funnel-bar{height:100%;display:flex;align-items:center;padding-left:10px;font-size:12px;font-weight:600;color:#fff;border-radius:6px;}
-/* Month trend */
-.month-bars{display:flex;align-items:flex-end;gap:4px;height:60px;}
-.month-bar{flex:1;border-radius:3px 3px 0 0;min-width:0;}
-.month-lbl{display:flex;gap:4px;margin-top:6px;}
-.month-lbl-item{flex:1;font-size:9px;color:#888780;text-align:center;}
-/* Growth projection */
-.proj-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.06);}
+.tier-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:10px;}
+.tier-title{font-size:18px;font-weight:600;color:#1a1a18;}
+.demo-tag{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:99px;background:rgba(200,98,42,.1);color:#c8622a;}
+.live-tag{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 12px;border-radius:99px;background:rgba(59,109,17,.1);color:#3B6D11;}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:14px;padding:20px 22px;margin-bottom:14px;}
+.card-lbl{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#c8622a;margin-bottom:4px;}
+.card-sub{font-size:13px;color:#888780;margin-bottom:16px;line-height:1.55;}
+.insight{font-size:13px;color:#5f5e5a;font-style:italic;margin-top:14px;line-height:1.7;padding:12px 16px;background:#f5f2ed;border-radius:6px;border-left:2px solid rgba(200,98,42,.4);}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;}
+.metric{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;padding:16px 18px;}
+.metric-n{font-size:32px;font-weight:700;font-family:'Space Mono',monospace;line-height:1;margin-bottom:5px;}
+.metric-l{font-size:12px;color:#888780;line-height:1.4;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.bar-lbl{font-size:14px;color:#1a1a18;flex:1;}
+.bar-track{width:140px;height:7px;background:rgba(0,0,0,.08);border-radius:99px;flex-shrink:0;overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;}
+.bar-val{font-size:13px;font-weight:700;font-family:'Space Mono',monospace;min-width:36px;text-align:right;color:#1a1a18;}
+.athlete-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:0.5px solid rgba(0,0,0,.08);cursor:pointer;transition:all .1s;border-radius:6px;}
+.athlete-row:last-child{border-bottom:none;}
+.athlete-row:hover{background:#faf8f5;padding-left:8px;padding-right:8px;margin:0 -8px;}
+.init{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.aname{font-size:15px;font-weight:600;color:#1a1a18;}
+.ameta{font-size:12px;color:#888780;margin-top:2px;}
+.pill{font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px;flex-shrink:0;}
+.flag{font-size:12px;color:#a83828;font-weight:600;flex-shrink:0;}
+.gym-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:0.5px solid rgba(0,0,0,.08);}
+.gym-row:last-child{border-bottom:none;}
+.gym-name{font-size:14px;font-weight:600;color:#1a1a18;min-width:180px;}
+.gym-city{font-size:12px;color:#888780;}
+.proj-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:0.5px solid rgba(0,0,0,.06);}
 .proj-row:last-child{border-bottom:none;}
-@media(max-width:560px){.two-col{grid-template-columns:1fr;}.three-col{grid-template-columns:1fr 1fr;}.tier-btn{padding:8px 12px;font-size:12px;}.bar-track{width:80px;}}
+.proj-lbl{font-size:14px;color:#1a1a18;min-width:200px;}
+.proj-bar{flex:1;height:8px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;}
+.proj-val{font-size:13px;font-weight:700;font-family:'Space Mono',monospace;color:#c8622a;min-width:52px;text-align:right;}
+.proj-note{font-size:12px;color:#888780;min-width:180px;text-align:right;}
+.heat-grid{display:grid;grid-template-columns:repeat(26,1fr);gap:2px;margin-bottom:10px;}
+.heat-cell{aspect-ratio:1;border-radius:2px;}
+.section-divider{height:1px;background:rgba(0,0,0,.06);margin:6px 0 16px;}
+.profile-screen{display:none;position:fixed;inset:0;background:#f5f2ed;z-index:100;overflow-y:auto;}
+.profile-screen.active{display:block;}
+.profile-hdr{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.1);padding:18px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10;}
+.profile-back{background:none;border:none;font-size:14px;color:#888780;cursor:pointer;font-family:'Space Grotesk',sans-serif;padding:0;}
+.profile-body{max-width:900px;margin:0 auto;padding:28px 24px 60px;}
+.stat-mini{background:#f5f2ed;border-radius:10px;padding:14px;text-align:center;}
+.stat-mini-n{font-size:24px;font-weight:700;font-family:'Space Mono',monospace;line-height:1;}
+.stat-mini-l{font-size:11px;color:#888780;margin-top:5px;letter-spacing:.04em;}
+.safety-big{font-size:80px;font-weight:700;font-family:'Space Mono',monospace;line-height:1;color:#a83828;letter-spacing:-.03em;}
+.honest-badge{background:rgba(59,109,17,.08);border:0.5px solid rgba(59,109,17,.2);border-radius:8px;padding:12px 16px;font-size:13px;color:#3B6D11;line-height:1.6;margin-bottom:14px;}
+@media(max-width:580px){.two-col{grid-template-columns:1fr;}.bar-track{width:80px;}.gym-name{min-width:120px;}.proj-lbl{min-width:130px;}.proj-note{display:none;}.tier-btn{padding:10px 14px;}.safety-big{font-size:56px;}}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- HEADER -->
-  <div class="hdr">
-    <div>
-      <div class="eyebrow">Straydog Labs — Sharp End Exposure</div>
-      <div class="title"><span>Sharp End</span> Exposure</div>
-      <div class="sub">Beta dashboard · demo mode · all data simulated</div>
+<div class="hdr">
+  <div class="eyebrow">Straydog Labs — Sharp End Exposure</div>
+  <div class="title"><span>Sharp End</span> Exposure</div>
+  <div class="sub">Beta dashboard · Coach, Gym, and Industry views · demo data where noted</div>
+  <div class="tier-toggle">
+    <button class="tier-btn active" onclick="setTier('coach',this)">Coach</button>
+    <button class="tier-btn" onclick="setTier('gym',this)">Gym</button>
+    <button class="tier-btn" onclick="setTier('industry',this)">Industry</button>
+  </div>
+</div>
+
+<!-- ══════════ COACH ══════════ -->
+<div class="tier-view active" id="tier-coach">
+  <div class="tier-hdr">
+    <div class="tier-title">Sender One — Coach view</div>
+    <span class="demo-tag">Demo data</span>
+  </div>
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-n" style="color:#c8622a;">8</div><div class="metric-l">Active athletes</div></div>
+    <div class="metric"><div class="metric-n">147</div><div class="metric-l">Sessions logged</div></div>
+    <div class="metric"><div class="metric-n" style="color:#BA7517;">61%</div><div class="metric-l">Learning zone avg</div></div>
+    <div class="metric"><div class="metric-n" style="color:#3B6D11;">72%</div><div class="metric-l">Team send rate</div></div>
+    <div class="metric"><div class="metric-n">4</div><div class="metric-l">Active projects</div></div>
+    <div class="metric"><div class="metric-n" style="color:#a83828;">1</div><div class="metric-l">Needs attention</div></div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">Athlete roster</div>
+    <div class="card-sub">Zone trend over last 5 sessions. Tap any athlete to view their full profile.</div>
+    <div id="roster"></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-lbl">Team zone arc</div>
+      <div class="card-sub">Last 20 sessions across all athletes.</div>
+      <svg width="100%" viewBox="0 0 280 88" style="display:block;overflow:visible;">
+        <rect x="0" y="0" width="280" height="29" fill="rgba(168,56,40,.05)" rx="2"/>
+        <rect x="0" y="29" width="280" height="30" fill="rgba(186,117,23,.04)"/>
+        <rect x="0" y="59" width="280" height="29" fill="rgba(59,109,17,.05)" rx="2"/>
+        <text x="4" y="12" font-size="7" font-family="Space Grotesk,sans-serif" fill="rgba(168,56,40,.6)" font-weight="700" letter-spacing=".06em">PANIC</text>
+        <text x="4" y="48" font-size="7" font-family="Space Grotesk,sans-serif" fill="rgba(186,117,23,.6)" font-weight="700" letter-spacing=".06em">LEARNING</text>
+        <text x="4" y="82" font-size="7" font-family="Space Grotesk,sans-serif" fill="rgba(59,109,17,.6)" font-weight="700" letter-spacing=".06em">COMFORT</text>
+        <polyline points="20,12 38,44 56,12 74,44 92,73 110,44 128,44 146,73 164,44 182,73 200,44 218,44 236,73 254,44 272,73" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="1.5" stroke-linejoin="round"/>
+        <circle cx="20"  cy="12" r="4.5" fill="rgba(168,56,40,.85)"/><circle cx="38" cy="44" r="4.5" fill="rgba(186,117,23,.85)"/>
+        <circle cx="56"  cy="12" r="4.5" fill="rgba(168,56,40,.85)"/><circle cx="74" cy="44" r="4.5" fill="rgba(186,117,23,.85)"/>
+        <circle cx="92"  cy="73" r="4.5" fill="rgba(59,109,17,.8)"/><circle cx="110" cy="44" r="4.5" fill="rgba(186,117,23,.85)"/>
+        <circle cx="128" cy="44" r="4.5" fill="rgba(186,117,23,.85)"/><circle cx="146" cy="73" r="4.5" fill="rgba(59,109,17,.8)"/>
+        <circle cx="164" cy="44" r="4.5" fill="rgba(186,117,23,.85)"/><circle cx="182" cy="73" r="4.5" fill="rgba(59,109,17,.8)"/>
+        <circle cx="200" cy="44" r="4.5" fill="rgba(186,117,23,.85)"/><circle cx="218" cy="44" r="4.5" fill="rgba(186,117,23,.85)"/>
+        <circle cx="236" cy="73" r="4.5" fill="rgba(59,109,17,.8)"/><circle cx="254" cy="44" r="4.5" fill="rgba(186,117,23,.85)"/>
+        <circle cx="272" cy="73" r="6" fill="#BA7517"/><circle cx="272" cy="73" r="10" fill="none" stroke="#BA7517" stroke-width="1.5" opacity=".4"/>
+      </svg>
+      <div class="insight">Panic activation eliminated in last 8 sessions. Team trending toward Learning and Comfort zones.</div>
     </div>
-    <div class="tier-toggle">
-      <button class="tier-btn active" onclick="setTier('coach',this)">Coach</button>
-      <button class="tier-btn" onclick="setTier('gym',this)">Gym</button>
-      <button class="tier-btn" onclick="setTier('industry',this)">Industry</button>
+    <div class="card">
+      <div class="card-lbl">Team breathing</div>
+      <div class="card-sub">Post-climb distribution.</div>
+      <div class="bar-row"><div class="bar-lbl">Easy and steady</div><div class="bar-track"><div class="bar-fill" style="width:52%;background:#3B6D11;opacity:.8;"></div></div><div class="bar-val">52%</div></div>
+      <div class="bar-row"><div class="bar-lbl">Slightly faster</div><div class="bar-track"><div class="bar-fill" style="width:28%;background:#BA7517;opacity:.8;"></div></div><div class="bar-val">28%</div></div>
+      <div class="bar-row"><div class="bar-lbl">Shallow or tight</div><div class="bar-track"><div class="bar-fill" style="width:13%;background:#c8622a;opacity:.8;"></div></div><div class="bar-val">13%</div></div>
+      <div class="bar-row"><div class="bar-lbl">Held breath</div><div class="bar-track"><div class="bar-fill" style="width:7%;background:#a83828;opacity:.8;"></div></div><div class="bar-val">7%</div></div>
+      <div class="insight">80% open breathing. Alex L. accounts for all held-breath reports this month.</div>
     </div>
   </div>
-
-  <!-- ══════════════════════════════════════
-       TIER 1 — COACH
-  ══════════════════════════════════════ -->
-  <div class="tier-view active" id="tier-coach">
-    <div class="tier-bar">
-      <div class="tier-title">Sender One · Coach view</div>
-      <span class="demo-badge">Beta demo</span>
-    </div>
-
-    <div class="metric-grid">
-      <div class="metric"><div class="metric-n" style="color:#c8622a;">8</div><div class="metric-l">Active athletes</div></div>
-      <div class="metric"><div class="metric-n">147</div><div class="metric-l">Sessions logged</div></div>
-      <div class="metric"><div class="metric-n" style="color:#BA7517;">61%</div><div class="metric-l">Learning zone avg</div></div>
-      <div class="metric"><div class="metric-n" style="color:#3B6D11;">72%</div><div class="metric-l">Team send rate</div></div>
-      <div class="metric"><div class="metric-n">4</div><div class="metric-l">Active projects</div></div>
-      <div class="metric"><div class="metric-n" style="color:#a83828;">1</div><div class="metric-l">Needs attention</div></div>
-    </div>
-
-    <!-- Athlete roster -->
-    <div class="card">
-      <div class="card-lbl">Athlete roster</div>
-      <div class="card-sub">Zone trend over last 5 sessions. Tap any athlete to view their full profile.</div>
-      <div id="roster"></div>
-    </div>
-
-    <!-- Team zone arc + breathing -->
-    <div class="two-col">
-      <div class="card">
-        <div class="card-lbl">Team zone arc</div>
-        <div class="card-sub">Last 20 sessions across all athletes.</div>
-        <svg width="100%" viewBox="0 0 280 85" style="display:block;overflow:visible;">
-          <rect x="0" y="0" width="280" height="28" fill="rgba(168,56,40,.05)" rx="2"/>
-          <rect x="0" y="28" width="280" height="29" fill="rgba(186,117,23,.04)"/>
-          <rect x="0" y="57" width="280" height="28" fill="rgba(59,109,17,.05)" rx="2"/>
-          <text x="4" y="11" font-size="6" font-family="Space Grotesk,sans-serif" fill="rgba(168,56,40,.5)" letter-spacing=".06em" font-weight="600">PANIC</text>
-          <text x="4" y="46" font-size="6" font-family="Space Grotesk,sans-serif" fill="rgba(186,117,23,.5)" letter-spacing=".06em" font-weight="600">LEARNING</text>
-          <text x="4" y="80" font-size="6" font-family="Space Grotesk,sans-serif" fill="rgba(59,109,17,.5)" letter-spacing=".06em" font-weight="600">COMFORT</text>
-          <polyline points="20,10 38,42 56,10 74,42 92,71 110,42 128,42 146,71 164,42 182,71 200,42 218,42 236,71 254,42 272,71" fill="none" stroke="rgba(0,0,0,.06)" stroke-width="1.5" stroke-linejoin="round"/>
-          <circle cx="20" cy="10" r="4" fill="rgba(168,56,40,.8)"/>
-          <circle cx="38" cy="42" r="4" fill="rgba(186,117,23,.8)"/>
-          <circle cx="56" cy="10" r="4" fill="rgba(168,56,40,.8)"/>
-          <circle cx="74" cy="42" r="4" fill="rgba(186,117,23,.8)"/>
-          <circle cx="92" cy="71" r="4" fill="rgba(59,109,17,.7)"/>
-          <circle cx="110" cy="42" r="4" fill="rgba(186,117,23,.8)"/>
-          <circle cx="128" cy="42" r="4" fill="rgba(186,117,23,.8)"/>
-          <circle cx="146" cy="71" r="4" fill="rgba(59,109,17,.7)"/>
-          <circle cx="164" cy="42" r="4" fill="rgba(186,117,23,.8)"/>
-          <circle cx="182" cy="71" r="4" fill="rgba(59,109,17,.7)"/>
-          <circle cx="200" cy="42" r="4" fill="rgba(186,117,23,.8)"/>
-          <circle cx="218" cy="42" r="4" fill="rgba(186,117,23,.8)"/>
-          <circle cx="236" cy="71" r="4" fill="rgba(59,109,17,.7)"/>
-          <circle cx="254" cy="42" r="4" fill="rgba(186,117,23,.8)"/>
-          <circle cx="272" cy="71" r="5" fill="#BA7517"/>
-          <circle cx="272" cy="71" r="9" fill="none" stroke="#BA7517" stroke-width="1.5" opacity=".4"/>
-        </svg>
-        <div class="insight">Team trending toward Comfort and Learning. Panic activation concentrated in sessions 1–6, eliminated in the last 8.</div>
-      </div>
-      <div class="card">
-        <div class="card-lbl">Team breathing</div>
-        <div class="card-sub">Post-climb distribution across all athletes.</div>
-        <div class="bar-row"><div class="bar-lbl">Easy and steady</div><div class="bar-track"><div class="bar-fill" style="width:52%;background:#3B6D11;opacity:.75;"></div></div><div class="bar-val">52%</div></div>
-        <div class="bar-row"><div class="bar-lbl">Slightly faster</div><div class="bar-track"><div class="bar-fill" style="width:28%;background:#BA7517;opacity:.75;"></div></div><div class="bar-val">28%</div></div>
-        <div class="bar-row"><div class="bar-lbl">Shallow or tight</div><div class="bar-track"><div class="bar-fill" style="width:13%;background:#c8622a;opacity:.75;"></div></div><div class="bar-val">13%</div></div>
-        <div class="bar-row"><div class="bar-lbl">Held breath</div><div class="bar-track"><div class="bar-fill" style="width:7%;background:#a83828;opacity:.75;"></div></div><div class="bar-val">7%</div></div>
-        <div class="insight">80% of sessions show open breathing. Alex L. accounts for all held-breath reports this month.</div>
-      </div>
-    </div>
-
-    <!-- Session activity heatmap -->
-    <div class="card">
-      <div class="card-lbl">Team activity — last 26 weeks</div>
-      <div class="card-sub">Session frequency across the team. Darker = more sessions that week.</div>
-      <div class="heat-grid" id="heat-grid"></div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:#888780;">
-        <span>Less</span>
-        <div style="width:10px;height:10px;border-radius:2px;background:rgba(200,98,42,.1);"></div>
-        <div style="width:10px;height:10px;border-radius:2px;background:rgba(200,98,42,.3);"></div>
-        <div style="width:10px;height:10px;border-radius:2px;background:rgba(200,98,42,.55);"></div>
-        <div style="width:10px;height:10px;border-radius:2px;background:rgba(200,98,42,.8);"></div>
-        <span>More</span>
-      </div>
-    </div>
-
-    <!-- Active projects -->
-    <div class="card">
-      <div class="card-lbl">Active projects — team</div>
-      <div class="card-sub">Named routes with 2+ sessions logged across all athletes.</div>
-      <div id="coach-projects"></div>
+  <div class="card">
+    <div class="card-lbl">Session activity — last 26 weeks</div>
+    <div class="card-sub">Team session frequency. Darker = more sessions that week.</div>
+    <div class="heat-grid" id="heat-grid"></div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#888780;">
+      <span>Less</span>
+      <div style="width:10px;height:10px;border-radius:2px;background:rgba(200,98,42,.1);"></div>
+      <div style="width:10px;height:10px;border-radius:2px;background:rgba(200,98,42,.3);"></div>
+      <div style="width:10px;height:10px;border-radius:2px;background:rgba(200,98,42,.55);"></div>
+      <div style="width:10px;height:10px;border-radius:2px;background:rgba(200,98,42,.85);"></div>
+      <span>More</span>
     </div>
   </div>
+  <div class="card">
+    <div class="card-lbl">Active projects — team</div>
+    <div class="card-sub">Named routes with 2+ sessions logged.</div>
+    <div id="coach-projects"></div>
+  </div>
+</div>
 
-  <!-- ══════════════════════════════════════
-       TIER 2 — GYM
-  ══════════════════════════════════════ -->
-  <div class="tier-view" id="tier-gym">
-    <div class="tier-bar">
-      <div class="tier-title">Sender One · Gym overview</div>
-      <span class="demo-badge">Beta demo · projected data</span>
-    </div>
-
-    <div class="metric-grid">
-      <div class="metric"><div class="metric-n" style="color:#c8622a;">284</div><div class="metric-l">Active members</div></div>
-      <div class="metric"><div class="metric-n">1,847</div><div class="metric-l">Sessions logged</div></div>
-      <div class="metric"><div class="metric-n" style="color:#BA7517;">58%</div><div class="metric-l">Learning zone avg</div></div>
-      <div class="metric"><div class="metric-n" style="color:#3B6D11;">69%</div><div class="metric-l">Overall send rate</div></div>
-      <div class="metric"><div class="metric-n">4.2</div><div class="metric-l">Avg sessions / member</div></div>
-      <div class="metric"><div class="metric-n" style="color:#a83828;">14%</div><div class="metric-l">Panic zone rate</div></div>
-    </div>
-
-    <!-- Month trend + retention -->
-    <div class="two-col">
-      <div class="card">
-        <div class="card-lbl">Session volume — last 6 months</div>
-        <div class="card-sub">Month-over-month growth.</div>
-        <div class="month-bars" id="month-bars"></div>
-        <div class="month-lbl" id="month-lbls"></div>
-        <div class="insight">31% growth over 6 months. November spike correlates with new route set on the overhang wall.</div>
-      </div>
-      <div class="card">
-        <div class="card-lbl">Member retention funnel</div>
-        <div class="card-sub">How many members return after their first session.</div>
-        <div class="retention-funnel">
-          <div class="funnel-row">
-            <div style="font-size:12px;color:#5f5e5a;min-width:80px;">1st session</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%;background:#1a1a18;">284 members</div></div>
-          </div>
-          <div class="funnel-row">
-            <div style="font-size:12px;color:#5f5e5a;min-width:80px;">2nd session</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:74%;background:#c8622a;">211 · 74%</div></div>
-          </div>
-          <div class="funnel-row">
-            <div style="font-size:12px;color:#5f5e5a;min-width:80px;">5+ sessions</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:43%;background:#BA7517;">122 · 43%</div></div>
-          </div>
-          <div class="funnel-row">
-            <div style="font-size:12px;color:#5f5e5a;min-width:80px;">10+ sessions</div>
-            <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:22%;background:#3B6D11;">62 · 22%</div></div>
-          </div>
-        </div>
-        <div class="insight">Members who reach 5+ sessions have a 3× higher likelihood of becoming regulars. Early engagement is the key intervention point.</div>
-      </div>
-    </div>
-
-    <!-- Zone distribution -->
+<!-- ══════════ GYM ══════════ -->
+<div class="tier-view" id="tier-gym">
+  <div class="tier-hdr">
+    <div class="tier-title">Sender One — Gym overview</div>
+    <span class="demo-tag">Demo data · projected</span>
+  </div>
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-n" style="color:#c8622a;">284</div><div class="metric-l">Active members</div></div>
+    <div class="metric"><div class="metric-n">1,847</div><div class="metric-l">Sessions logged</div></div>
+    <div class="metric"><div class="metric-n" style="color:#BA7517;">58%</div><div class="metric-l">Learning zone avg</div></div>
+    <div class="metric"><div class="metric-n" style="color:#3B6D11;">69%</div><div class="metric-l">Overall send rate</div></div>
+    <div class="metric"><div class="metric-n">4.2</div><div class="metric-l">Avg sessions / member</div></div>
+    <div class="metric"><div class="metric-n" style="color:#a83828;">14%</div><div class="metric-l">Panic zone rate</div></div>
+  </div>
+  <div class="two-col">
     <div class="card">
-      <div class="card-lbl">Zone distribution — all member sessions</div>
-      <div class="card-sub">Activation profile across your membership this month. A healthy gym shows Panic below 20%.</div>
-      <div style="margin-bottom:10px;">
-        <div class="zone-bar" style="height:16px;">
-          <div style="width:28%;background:#3B6D11;opacity:.8;border-radius:99px 0 0 99px;"></div>
-          <div style="width:58%;background:#BA7517;opacity:.8;"></div>
-          <div style="width:14%;background:#a83828;opacity:.8;border-radius:0 99px 99px 0;"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;">
-          <span style="color:#3B6D11;font-weight:600;">Comfort 28%</span>
-          <span style="color:#BA7517;font-weight:600;">Learning 58%</span>
-          <span style="color:#a83828;font-weight:600;">Panic 14%</span>
-        </div>
-      </div>
-      <div class="insight">Panic rate of 14% is below the 20% threshold associated with route-setting miscalibration. Learning zone dominance suggests routes are appropriately challenging.</div>
+      <div class="card-lbl">Session volume — 6 months</div>
+      <div class="card-sub">Month-over-month growth.</div>
+      <div style="display:flex;align-items:flex-end;gap:5px;height:72px;margin-bottom:8px;" id="month-bars"></div>
+      <div style="display:flex;gap:5px;" id="month-lbls"></div>
+      <div class="insight">31% growth over 6 months. November spike follows new overhang wall route set.</div>
     </div>
-
-    <!-- Send rate + heatmap -->
-    <div class="two-col">
-      <div class="card">
-        <div class="card-lbl">Send rate by discipline</div>
-        <div class="card-sub">Completion rate per climbing style.</div>
-        <div class="bar-row"><div class="bar-lbl">Top rope</div><div class="bar-track"><div class="bar-fill" style="width:84%;background:#3B6D11;opacity:.8;"></div></div><div class="bar-val">84%</div></div>
-        <div class="bar-row"><div class="bar-lbl">Boulder</div><div class="bar-track"><div class="bar-fill" style="width:71%;background:#3B6D11;opacity:.7;"></div></div><div class="bar-val">71%</div></div>
-        <div class="bar-row"><div class="bar-lbl">Sport lead</div><div class="bar-track"><div class="bar-fill" style="width:67%;background:#BA7517;opacity:.8;"></div></div><div class="bar-val">67%</div></div>
-        <div class="insight">Sport lead send rate below boulder and top rope. Lead fall practice may be a programming opportunity.</div>
-      </div>
-      <div class="card">
-        <div class="card-lbl">Engagement by experience</div>
-        <div class="card-sub">Sessions logged by member tenure.</div>
-        <div class="bar-row"><div class="bar-lbl">New (&lt;1 mo)</div><div class="bar-track"><div class="bar-fill" style="width:38%;background:#c8622a;opacity:.7;"></div></div><div class="bar-val">38%</div></div>
-        <div class="bar-row"><div class="bar-lbl">Growing (1–3 mo)</div><div class="bar-track"><div class="bar-fill" style="width:32%;background:#BA7517;opacity:.8;"></div></div><div class="bar-val">32%</div></div>
-        <div class="bar-row"><div class="bar-lbl">Regular (3–6 mo)</div><div class="bar-track"><div class="bar-fill" style="width:18%;background:#3B6D11;opacity:.8;"></div></div><div class="bar-val">18%</div></div>
-        <div class="bar-row"><div class="bar-lbl">Core (6+ mo)</div><div class="bar-track"><div class="bar-fill" style="width:12%;background:#3B6D11;opacity:.9;"></div></div><div class="bar-val">12%</div></div>
-        <div class="insight">Core members (6+ months) show 23% higher send rates. Engagement drives measurable performance improvement.</div>
-      </div>
-    </div>
-
-    <!-- Zone x terrain heatmap -->
     <div class="card">
-      <div class="card-lbl">Zone × terrain heatmap</div>
-      <div class="card-sub">Which terrain features produce elevated activation across your membership. Cell intensity = session frequency at that intersection.</div>
+      <div class="card-lbl">Member retention</div>
+      <div class="card-sub">How many members return after first session.</div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;"><span style="color:#1a1a18;">1st session</span><span style="font-weight:700;font-family:Space Mono,monospace;">284</span></div><div style="height:8px;background:rgba(0,0,0,.08);border-radius:99px;"><div style="height:100%;width:100%;background:#1a1a18;border-radius:99px;opacity:.7;"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;"><span style="color:#1a1a18;">2nd session</span><span style="font-weight:700;font-family:Space Mono,monospace;">74%</span></div><div style="height:8px;background:rgba(0,0,0,.08);border-radius:99px;"><div style="height:100%;width:74%;background:#c8622a;border-radius:99px;opacity:.8;"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;"><span style="color:#1a1a18;">5+ sessions</span><span style="font-weight:700;font-family:Space Mono,monospace;">43%</span></div><div style="height:8px;background:rgba(0,0,0,.08);border-radius:99px;"><div style="height:100%;width:43%;background:#BA7517;border-radius:99px;opacity:.8;"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;"><span style="color:#1a1a18;">10+ sessions</span><span style="font-weight:700;font-family:Space Mono,monospace;">22%</span></div><div style="height:8px;background:rgba(0,0,0,.08);border-radius:99px;"><div style="height:100%;width:22%;background:#3B6D11;border-radius:99px;opacity:.8;"></div></div></div>
+      </div>
+      <div class="insight">Members reaching 5+ sessions show 23% higher send rates and significantly higher membership renewal.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-lbl">Zone distribution — all member sessions</div>
+    <div class="card-sub">Activation profile across your membership. Panic below 20% indicates well-calibrated route setting.</div>
+    <div style="display:flex;height:18px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:10px;">
+      <div style="width:28%;background:#3B6D11;opacity:.8;border-radius:99px 0 0 99px;"></div>
+      <div style="width:58%;background:#BA7517;opacity:.8;"></div>
+      <div style="width:14%;background:#a83828;opacity:.8;border-radius:0 99px 99px 0;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;">
+      <span style="color:#3B6D11;">Comfort 28%</span>
+      <span style="color:#BA7517;">Learning 58%</span>
+      <span style="color:#a83828;">Panic 14%</span>
+    </div>
+    <div class="insight">Panic rate of 14% is below the 20% threshold. Learning zone dominance suggests routes are appropriately challenging for your membership base.</div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-lbl">Send rate by discipline</div>
+      <div class="card-sub">Completion rate per climbing style.</div>
+      <div class="bar-row"><div class="bar-lbl">Top rope</div><div class="bar-track"><div class="bar-fill" style="width:84%;background:#3B6D11;opacity:.85;"></div></div><div class="bar-val">84%</div></div>
+      <div class="bar-row"><div class="bar-lbl">Boulder</div><div class="bar-track"><div class="bar-fill" style="width:71%;background:#3B6D11;opacity:.75;"></div></div><div class="bar-val">71%</div></div>
+      <div class="bar-row"><div class="bar-lbl">Sport lead</div><div class="bar-track"><div class="bar-fill" style="width:67%;background:#BA7517;opacity:.8;"></div></div><div class="bar-val">67%</div></div>
+      <div class="insight">Sport lead send rate below boulder and top rope. Lead fall comfort may be a programming opportunity.</div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Zone × terrain</div>
+      <div class="card-sub">Which features produce elevated activation.</div>
       <div id="gym-heatmap"></div>
-      <div class="insight">Roof terrain produces disproportionate Panic activation. Overhang is your highest-volume Learning-zone terrain — well calibrated for skill development. Consider adding instructional signage at Roof features.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ INDUSTRY ══════════ -->
+<div class="tier-view" id="tier-industry">
+  <div class="tier-hdr">
+    <div class="tier-title">CWA — Industry view</div>
+    <span class="demo-tag">Demo · early signal data</span>
+  </div>
+
+  <div class="honest-badge">
+    This view shows where Sharp End Exposure is headed — not current scale. Current state: handful of beta testers, real somatic data, early signal. The correlations shown are directional findings, not statistically conclusive. The value is in the methodology and the dataset it's building.
+  </div>
+
+  <div class="metric-grid">
+    <div class="metric"><div class="metric-n" style="color:#c8622a;">Beta</div><div class="metric-l">Current stage — public launch imminent</div></div>
+    <div class="metric"><div class="metric-n">Real</div><div class="metric-l">Somatic data from actual climbers</div></div>
+    <div class="metric"><div class="metric-n" style="color:#BA7517;">Early</div><div class="metric-l">Signal correlations — tracking toward significance</div></div>
+    <div class="metric"><div class="metric-n" style="color:#3B6D11;">Novel</div><div class="metric-l">No comparable somatic climbing dataset exists</div></div>
+  </div>
+
+  <!-- SAFETY FINDING -->
+  <div class="card">
+    <div class="card-lbl">Primary safety signal</div>
+    <div style="display:flex;align-items:flex-start;gap:32px;flex-wrap:wrap;margin-bottom:0;">
+      <div>
+        <div class="safety-big">78%</div>
+        <div style="font-size:14px;color:#888780;margin-top:10px;line-height:1.65;max-width:280px;">of reported incidents were preceded by a Panic-zone session in the 48 hours prior.</div>
+        <div style="margin-top:10px;font-size:12px;color:#888780;font-style:italic;">Early signal — not yet statistically conclusive. Tracking toward significance as dataset grows.</div>
+      </div>
+      <div style="flex:1;min-width:240px;padding-top:6px;">
+        <div style="font-size:14px;font-weight:600;color:#1a1a18;margin-bottom:14px;">What this could mean for CWA</div>
+        <div style="font-size:14px;color:#5f5e5a;line-height:1.8;">
+          <div style="margin-bottom:10px;display:flex;gap:10px;"><span style="color:#c8622a;flex-shrink:0;">→</span><span>Psychological readiness is measurable — and may predict incidents before they happen</span></div>
+          <div style="margin-bottom:10px;display:flex;gap:10px;"><span style="color:#c8622a;flex-shrink:0;">→</span><span>A readiness protocol could become part of CWA safety standard discussion</span></div>
+          <div style="display:flex;gap:10px;"><span style="color:#c8622a;flex-shrink:0;">→</span><span>At scale, the dataset becomes publishable-grade and supports evidence-based coach education</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="insight">The correlation strengthens with every session logged. Public launch is the fastest path to statistical significance — not a gym pilot, but thousands of individual climbers logging their own data voluntarily.</div>
+  </div>
+
+  <!-- COACH IMPACT + WHAT IT TAKES -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-lbl">Coach impact — early signal</div>
+      <div class="card-sub">Activation outcomes over 10+ sessions: coached vs self-directed.</div>
+      <div class="bar-row"><div class="bar-lbl">With coach</div><div class="bar-track"><div class="bar-fill" style="width:82%;background:#3B6D11;opacity:.85;"></div></div><div class="bar-val" style="color:#3B6D11;">82%</div></div>
+      <div class="bar-row"><div class="bar-lbl" style="color:#888780;">Self-directed</div><div class="bar-track"><div class="bar-fill" style="width:64%;background:#BA7517;opacity:.7;"></div></div><div class="bar-val">64%</div></div>
+      <div style="font-size:11px;color:#888780;margin-top:6px;">Metric: Learning + Comfort zone % over 10+ sessions</div>
+      <div class="insight">18-point gap in activation outcomes. Quantifiable ROI for CWA coach certification programs.</div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">What makes the data meaningful</div>
+      <div class="card-sub">Dataset thresholds and what becomes possible at each stage.</div>
+      <div id="proj-list"></div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════
-       TIER 3 — INDUSTRY
-  ══════════════════════════════════════ -->
-  <div class="tier-view" id="tier-industry">
-    <div class="tier-bar">
-      <div class="tier-title">CWA · Industry view</div>
-      <span class="demo-badge">Beta demo · projected data</span>
-    </div>
-
-    <div class="metric-grid">
-      <div class="metric"><div class="metric-n" style="color:#c8622a;">12</div><div class="metric-l">Participating gyms</div></div>
-      <div class="metric"><div class="metric-n">24,840</div><div class="metric-l">Sessions logged</div></div>
-      <div class="metric"><div class="metric-n">8,920</div><div class="metric-l">Unique climbers</div></div>
-      <div class="metric"><div class="metric-n" style="color:#BA7517;">56%</div><div class="metric-l">Learning zone avg</div></div>
-      <div class="metric"><div class="metric-n" style="color:#3B6D11;">71%</div><div class="metric-l">Industry send rate</div></div>
-      <div class="metric"><div class="metric-n" style="color:#a83828;">13%</div><div class="metric-l">Avg Panic rate</div></div>
-    </div>
-
-    <!-- US Map -->
-    <div class="card">
-      <div class="card-lbl">Geographic distribution — participating gyms</div>
-      <div class="card-sub">12 CWA member facilities currently in beta. Each dot = one gym. Color = Panic zone rate vs industry average.</div>
-      <div class="map-wrap">
-        <svg width="100%" viewBox="0 0 600 360" style="display:block;">
-          <!-- Simplified US outline -->
-          <path d="M 80 80 L 90 60 L 140 50 L 200 55 L 260 50 L 310 45 L 360 48 L 400 55 L 430 60 L 450 75 L 460 95 L 455 120 L 440 145 L 420 165 L 390 180 L 360 200 L 340 220 L 330 250 L 310 270 L 280 280 L 250 275 L 220 260 L 200 250 L 180 240 L 150 235 L 120 230 L 100 220 L 85 205 L 75 185 L 70 160 L 72 130 L 78 100 Z" fill="#ece9e4" stroke="rgba(0,0,0,.12)" stroke-width="1"/>
-          <!-- Florida peninsula -->
-          <path d="M 310 270 L 330 290 L 325 320 L 310 330 L 300 310 L 295 285 Z" fill="#ece9e4" stroke="rgba(0,0,0,.12)" stroke-width="1"/>
-          <!-- Gym dots — color = panic rate (green=below avg, red=above avg) -->
-          <!-- LA - Sender One -->
-          <circle cx="88" cy="170" r="8" fill="rgba(200,98,42,.85)" stroke="#fff" stroke-width="1.5"/>
-          <text x="88" y="188" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">LA</text>
-          <!-- Denver - Movement -->
-          <circle cx="200" cy="155" r="8" fill="rgba(59,109,17,.8)" stroke="#fff" stroke-width="1.5"/>
-          <text x="200" y="173" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">DEN</text>
-          <!-- Brooklyn -->
-          <circle cx="388" cy="105" r="8" fill="rgba(168,56,40,.85)" stroke="#fff" stroke-width="1.5"/>
-          <text x="388" y="123" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">NYC</text>
-          <!-- San Diego - Mesa Rim -->
-          <circle cx="98" cy="195" r="8" fill="rgba(59,109,17,.8)" stroke="#fff" stroke-width="1.5"/>
-          <text x="98" y="213" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">SD</text>
-          <!-- Seattle -->
-          <circle cx="92" cy="72" r="8" fill="rgba(59,109,17,.75)" stroke="#fff" stroke-width="1.5"/>
-          <text x="92" y="90" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">SEA</text>
-          <!-- Chicago -->
-          <circle cx="310" cy="118" r="8" fill="rgba(186,117,23,.8)" stroke="#fff" stroke-width="1.5"/>
-          <text x="310" y="136" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">CHI</text>
-          <!-- Austin -->
-          <circle cx="228" cy="230" r="8" fill="rgba(186,117,23,.8)" stroke="#fff" stroke-width="1.5"/>
-          <text x="228" y="248" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">AUS</text>
-          <!-- Atlanta -->
-          <circle cx="330" cy="210" r="8" fill="rgba(59,109,17,.75)" stroke="#fff" stroke-width="1.5"/>
-          <text x="330" y="228" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">ATL</text>
-          <!-- Boston -->
-          <circle cx="415" cy="90" r="8" fill="rgba(59,109,17,.75)" stroke="#fff" stroke-width="1.5"/>
-          <text x="415" y="108" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">BOS</text>
-          <!-- SLC -->
-          <circle cx="158" cy="140" r="8" fill="rgba(186,117,23,.8)" stroke="#fff" stroke-width="1.5"/>
-          <text x="158" y="158" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">SLC</text>
-          <!-- Portland -->
-          <circle cx="86" cy="90" r="8" fill="rgba(59,109,17,.75)" stroke="#fff" stroke-width="1.5"/>
-          <text x="86" y="108" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">PDX</text>
-          <!-- DC -->
-          <circle cx="372" cy="132" r="8" fill="rgba(186,117,23,.8)" stroke="#fff" stroke-width="1.5"/>
-          <text x="372" y="150" text-anchor="middle" font-size="8" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">DC</text>
-          <!-- Legend -->
-          <circle cx="490" cy="40" r="7" fill="rgba(59,109,17,.8)" stroke="#fff" stroke-width="1"/>
-          <text x="502" y="44" font-size="9" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">Below avg Panic</text>
-          <circle cx="490" cy="60" r="7" fill="rgba(186,117,23,.8)" stroke="#fff" stroke-width="1"/>
-          <text x="502" y="64" font-size="9" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">Near avg Panic</text>
-          <circle cx="490" cy="80" r="7" fill="rgba(168,56,40,.85)" stroke="#fff" stroke-width="1"/>
-          <text x="502" y="84" font-size="9" font-family="Space Grotesk,sans-serif" fill="#5f5e5a">Above avg Panic</text>
-        </svg>
-      </div>
-      <div class="insight">3 facilities showing above-average Panic rates (NYC, LA). Both are high-density urban gyms with a higher proportion of new lead climbers — population mix is likely a factor, not route setting alone.</div>
-    </div>
-
-    <!-- Gym benchmark table -->
-    <div class="card">
-      <div class="card-lbl">Gym benchmark — zone profiles</div>
-      <div class="card-sub">Each facility's activation distribution vs industry average. Anonymized in production — shown with names for demo purposes.</div>
-      <div id="gym-table"></div>
-    </div>
-
-    <!-- Safety + coach impact -->
-    <div class="two-col">
-      <div class="card">
-        <div class="card-lbl">Safety signal</div>
-        <div class="card-sub">Panic-zone sessions preceding reported incidents.</div>
-        <div style="text-align:center;padding:16px 0 10px;">
-          <div style="font-size:52px;font-weight:700;font-family:'Space Mono',monospace;color:#a83828;line-height:1;">78%</div>
-          <div style="font-size:12px;color:#888780;margin-top:8px;line-height:1.6;">of reported incidents<br>preceded by a Panic-zone session<br>in the 48 hours prior</div>
-        </div>
-        <div class="insight">Strong correlation between Panic-zone activation and incident occurrence. This is the empirical foundation for a CWA psychological readiness standard.</div>
-      </div>
-      <div class="card">
-        <div class="card-lbl">Coach impact</div>
-        <div class="card-sub">Athletes with coaches vs self-directed, measured over 10+ sessions.</div>
-        <div style="margin:8px 0 14px;">
-          <div class="bar-row"><div class="bar-lbl">With coach</div><div class="bar-track"><div class="bar-fill" style="width:82%;background:#3B6D11;opacity:.8;"></div></div><div class="bar-val" style="color:#3B6D11;">82%</div></div>
-          <div class="bar-row"><div class="bar-lbl">Self-directed</div><div class="bar-track"><div class="bar-fill" style="width:64%;background:#BA7517;opacity:.7;"></div></div><div class="bar-val">64%</div></div>
-          <div style="font-size:10px;color:#888780;margin-top:4px;">Metric: Learning + Comfort zone % over 10+ sessions</div>
-        </div>
-        <div class="insight">Coached athletes show 18% better activation outcomes. Supports the value proposition of CWA coach certification programs.</div>
-      </div>
-    </div>
-
-    <!-- Growth projection -->
-    <div class="card">
-      <div class="card-lbl">Growth projection — CWA scale</div>
-      <div class="card-sub">What the dataset looks like as adoption grows across CWA's 870 member gyms.</div>
-      <div id="growth-proj"></div>
-      <div class="insight">At 10% CWA adoption (87 gyms), Sharp End Exposure becomes the largest anonymized somatic readiness dataset in climbing — a research asset with no comparable precedent.</div>
-    </div>
-
-    <!-- Research potential -->
-    <div class="three-col">
-      <div class="stat-mini"><div class="stat-mini-n" style="color:#c8622a;">24K+</div><div class="stat-mini-l">Somatic sessions (current)</div></div>
-      <div class="stat-mini"><div class="stat-mini-n" style="color:#c8622a;">200K+</div><div class="stat-mini-l">Projected at 50 gyms</div></div>
-      <div class="stat-mini"><div class="stat-mini-n" style="color:#c8622a;">1.7M+</div><div class="stat-mini-l">Projected at 870 gyms</div></div>
-    </div>
+  <!-- GYM PROFILES — honest framing -->
+  <div class="card">
+    <div class="card-lbl">What gym-level data looks like — projected</div>
+    <div class="card-sub">Panic-zone rate per facility vs industry average. At scale, this becomes a programming intelligence tool for gym owners and a benchmark tool for CWA.</div>
+    <div id="gym-list"></div>
+    <div class="insight">10 of 12 projected gyms at or below threshold. One facility showing elevated rate — the kind of early signal that enables proactive coaching intervention rather than reactive incident response.</div>
   </div>
 
 </div>
+</div>
 
-<!-- ATHLETE PROFILE SCREEN -->
+<!-- ATHLETE PROFILE -->
 <div class="profile-screen" id="profile-screen">
   <div class="profile-hdr">
-    <button class="profile-back" onclick="closeProfile()">← Back to roster</button>
-    <div id="profile-hdr-name" style="font-size:16px;font-weight:600;color:#1a1a18;"></div>
+    <button class="profile-back" onclick="closeProfile()">← Roster</button>
+    <div id="profile-hdr-name" style="font-size:17px;font-weight:700;color:#1a1a18;"></div>
   </div>
-  <div class="profile-content" id="profile-content"></div>
+  <div class="profile-body" id="profile-body"></div>
 </div>
 
 <script>
-// ── DATA ─────────────────────────────────────────────────
+var ZC={comfort:'#3B6D11',learning:'#BA7517',panic:'#a83828'};
 var athletes=[
-  {init:"SM",name:"Sarah M.",color:"rgba(59,109,17,.12)",textColor:"#3B6D11",project:"The Naked Edge",grade:"5.12b",sessions:14,lastLogged:"2 days ago",trend:"Comfort ↑",trendCls:"#3B6D11",trendBg:"rgba(59,109,17,.1)",flag:false,
-   zones:[{z:"panic",d:"Apr 2"},{z:"learning",d:"Apr 9"},{z:"learning",d:"Apr 16"},{z:"comfort",d:"Apr 23"},{z:"comfort",d:"Apr 30"},{z:"comfort",d:"May 7"},{z:"learning",d:"May 14"},{z:"comfort",d:"May 21"},{z:"comfort",d:"May 28"},{z:"comfort",d:"Jun 4"}],
-   breath:{"Easy and steady":6,"Slightly faster":3,"Shallow or tight":1},sent:10,attempts:14},
-  {init:"JK",name:"Jake K.",color:"rgba(186,117,23,.12)",textColor:"#BA7517",project:"Crimson Tide",grade:"5.13a",sessions:22,lastLogged:"Today",trend:"Learning →",trendCls:"#BA7517",trendBg:"rgba(186,117,23,.1)",flag:false,
-   zones:[{z:"panic",d:"Mar 5"},{z:"panic",d:"Mar 12"},{z:"learning",d:"Mar 19"},{z:"panic",d:"Mar 26"},{z:"learning",d:"Apr 2"},{z:"learning",d:"Apr 9"},{z:"learning",d:"Apr 16"},{z:"learning",d:"Apr 23"},{z:"comfort",d:"Apr 30"},{z:"learning",d:"May 7"}],
-   breath:{"Easy and steady":8,"Slightly faster":9,"Shallow or tight":4,"I held my breath":1},sent:13,attempts:22},
-  {init:"AL",name:"Alex L.",color:"rgba(168,56,40,.12)",textColor:"#a83828",project:"Project Slab",grade:"5.11d",sessions:9,lastLogged:"5 days ago",trend:"Panic ↓",trendCls:"#a83828",trendBg:"rgba(168,56,40,.08)",flag:true,
-   zones:[{z:"panic",d:"May 1"},{z:"panic",d:"May 8"},{z:"panic",d:"May 15"},{z:"learning",d:"May 22"},{z:"panic",d:"May 29"},{z:"panic",d:"Jun 5"}],
-   breath:{"Slightly faster":2,"Shallow or tight":2,"I held my breath":2},sent:2,attempts:9},
-  {init:"MR",name:"Maya R.",color:"rgba(59,109,17,.12)",textColor:"#3B6D11",project:"V8 Compression",grade:"V8",sessions:18,lastLogged:"Yesterday",trend:"Comfort ↑",trendCls:"#3B6D11",trendBg:"rgba(59,109,17,.1)",flag:false,
-   zones:[{z:"learning",d:"Apr 1"},{z:"panic",d:"Apr 8"},{z:"learning",d:"Apr 15"},{z:"learning",d:"Apr 22"},{z:"comfort",d:"Apr 29"},{z:"comfort",d:"May 6"},{z:"comfort",d:"May 13"},{z:"learning",d:"May 20"},{z:"comfort",d:"May 27"},{z:"comfort",d:"Jun 3"}],
-   breath:{"Easy and steady":9,"Slightly faster":7,"Shallow or tight":2},sent:14,attempts:18},
-  {init:"TP",name:"Tom P.",color:"rgba(186,117,23,.12)",textColor:"#BA7517",project:"Cathedral",grade:"5.12c",sessions:11,lastLogged:"3 days ago",trend:"Learning →",trendCls:"#BA7517",trendBg:"rgba(186,117,23,.1)",flag:false,
-   zones:[{z:"panic",d:"Apr 10"},{z:"learning",d:"Apr 17"},{z:"learning",d:"Apr 24"},{z:"learning",d:"May 1"},{z:"comfort",d:"May 8"},{z:"learning",d:"May 15"},{z:"learning",d:"May 22"},{z:"learning",d:"May 29"}],
-   breath:{"Easy and steady":4,"Slightly faster":5,"Shallow or tight":2},sent:7,attempts:11},
+  {init:'SM',name:'Sarah M.',col:'rgba(59,109,17,.12)',tc:'#3B6D11',grade:'5.12b',proj:'The Naked Edge',sessions:14,last:'2 days ago',trend:'Comfort ↑',trendC:'#3B6D11',trendBg:'rgba(59,109,17,.1)',flag:false,
+   zones:['panic','learning','learning','comfort','comfort','comfort','learning','comfort','comfort','comfort'],
+   breath:{'Easy and steady':6,'Slightly faster':3,'Shallow or tight':1},sent:10,attempts:14},
+  {init:'JK',name:'Jake K.',col:'rgba(186,117,23,.12)',tc:'#BA7517',grade:'5.13a',proj:'Crimson Tide',sessions:22,last:'Today',trend:'Learning →',trendC:'#BA7517',trendBg:'rgba(186,117,23,.1)',flag:false,
+   zones:['panic','panic','learning','panic','learning','learning','learning','learning','comfort','learning'],
+   breath:{'Easy and steady':8,'Slightly faster':9,'Shallow or tight':4,'I held my breath':1},sent:13,attempts:22},
+  {init:'AL',name:'Alex L.',col:'rgba(168,56,40,.12)',tc:'#a83828',grade:'5.11d',proj:'Project Slab',sessions:9,last:'5 days ago',trend:'Panic ↓',trendC:'#a83828',trendBg:'rgba(168,56,40,.08)',flag:true,
+   zones:['panic','panic','panic','learning','panic','panic'],
+   breath:{'Slightly faster':2,'Shallow or tight':2,'I held my breath':2},sent:2,attempts:9},
+  {init:'MR',name:'Maya R.',col:'rgba(59,109,17,.12)',tc:'#3B6D11',grade:'V8',proj:'V8 Compression',sessions:18,last:'Yesterday',trend:'Comfort ↑',trendC:'#3B6D11',trendBg:'rgba(59,109,17,.1)',flag:false,
+   zones:['learning','panic','learning','learning','comfort','comfort','comfort','learning','comfort','comfort'],
+   breath:{'Easy and steady':9,'Slightly faster':7,'Shallow or tight':2},sent:14,attempts:18},
+  {init:'TP',name:'Tom P.',col:'rgba(186,117,23,.12)',tc:'#BA7517',grade:'5.12c',proj:'Cathedral',sessions:11,last:'3 days ago',trend:'Learning →',trendC:'#BA7517',trendBg:'rgba(186,117,23,.1)',flag:false,
+   zones:['panic','learning','learning','learning','comfort','learning','learning','learning'],
+   breath:{'Easy and steady':4,'Slightly faster':5,'Shallow or tight':2},sent:7,attempts:11},
 ];
-var ZC={comfort:"#3B6D11",learning:"#BA7517",panic:"#a83828"};
-var ZBg={comfort:"rgba(59,109,17,.08)",learning:"rgba(186,117,23,.08)",panic:"rgba(168,56,40,.06)"};
 
-// ── TIER TOGGLE ──────────────────────────────────────────
 function setTier(id,btn){
   document.querySelectorAll('.tier-btn').forEach(function(b){b.classList.remove('active');});
   document.querySelectorAll('.tier-view').forEach(function(v){v.classList.remove('active');});
@@ -470,225 +327,173 @@ function setTier(id,btn){
   document.getElementById('tier-'+id).classList.add('active');
 }
 
-// ── COACH — ROSTER ───────────────────────────────────────
 function buildRoster(){
   var el=document.getElementById('roster');if(!el)return;
-  el.innerHTML='';
   athletes.forEach(function(a,i){
     var row=document.createElement('div');row.className='athlete-row';
     row.onclick=function(){openProfile(i);};
     row.innerHTML=
-      '<div class="athlete-init" style="background:'+a.color+';color:'+a.textColor+';">'+a.init+'</div>'+
-      '<div class="athlete-info"><div class="athlete-name">'+a.name+'</div>'+
-      '<div class="athlete-meta">'+a.grade+' project · '+a.sessions+' sessions · last logged '+a.lastLogged+'</div></div>'+
-      '<span class="zone-pill" style="background:'+a.trendBg+';color:'+a.trendCls+';">'+a.trend+'</span>'+
-      (a.flag?'<span class="flag-badge">⚑ 3+ Panic</span>':'');
+      '<div class="init" style="background:'+a.col+';color:'+a.tc+';">'+a.init+'</div>'+
+      '<div style="flex:1;"><div class="aname">'+a.name+'</div>'+
+      '<div class="ameta">'+a.grade+' · '+a.sessions+' sessions · last logged '+a.last+'</div></div>'+
+      '<span class="pill" style="background:'+a.trendBg+';color:'+a.trendC+';">'+a.trend+'</span>'+
+      (a.flag?'<span class="flag">⚑ 3+ Panic</span>':'');
     el.appendChild(row);
   });
 }
 
-// ── COACH — HEATMAP ──────────────────────────────────────
 function buildHeatmap(){
   var el=document.getElementById('heat-grid');if(!el)return;
   var vals=[2,3,1,4,2,5,3,4,6,5,4,7,8,6,5,9,7,8,10,8,7,9,11,10,9,8];
   var max=Math.max.apply(null,vals);
   el.innerHTML=vals.map(function(v){
-    var alpha=0.08+((v/max)*0.72);
-    return '<div class="heat-cell" style="background:rgba(200,98,42,'+alpha.toFixed(2)+');" title="'+v+' sessions"></div>';
+    return '<div class="heat-cell" style="background:rgba(200,98,42,'+(0.08+(v/max)*0.75).toFixed(2)+');" title="'+v+' sessions"></div>';
   }).join('');
 }
 
-// ── COACH — PROJECTS ─────────────────────────────────────
 function buildCoachProjects(){
   var el=document.getElementById('coach-projects');if(!el)return;
-  var projects=[
-    {name:"Crimson Tide",athlete:"Jake K.",grade:"5.13a",sessions:8,status:"Projecting",sc:"#BA7517",sbg:"rgba(186,117,23,.1)"},
-    {name:"The Naked Edge",athlete:"Sarah M.",grade:"5.12b",sessions:6,status:"Sent ✓",sc:"#3B6D11",sbg:"rgba(59,109,17,.1)"},
-    {name:"Cathedral",athlete:"Tom P.",grade:"5.12c",sessions:5,status:"Projecting",sc:"#BA7517",sbg:"rgba(186,117,23,.1)"},
-    {name:"Project Slab",athlete:"Alex L.",grade:"5.11d",sessions:4,status:"Stalled",sc:"#a83828",sbg:"rgba(168,56,40,.08)"},
+  var ps=[
+    {name:'Crimson Tide',athlete:'Jake K.',grade:'5.13a',sessions:8,s:'Projecting',sc:'#BA7517',sbg:'rgba(186,117,23,.1)'},
+    {name:'The Naked Edge',athlete:'Sarah M.',grade:'5.12b',sessions:6,s:'Sent ✓',sc:'#3B6D11',sbg:'rgba(59,109,17,.1)'},
+    {name:'Cathedral',athlete:'Tom P.',grade:'5.12c',sessions:5,s:'Projecting',sc:'#BA7517',sbg:'rgba(186,117,23,.1)'},
+    {name:'Project Slab',athlete:'Alex L.',grade:'5.11d',sessions:4,s:'Stalled',sc:'#a83828',sbg:'rgba(168,56,40,.08)'},
   ];
-  el.innerHTML=projects.map(function(p){
-    return '<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:0.5px solid rgba(0,0,0,.08);">'+
-      '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#1a1a18;">'+p.name+'</div>'+
-      '<div style="font-size:11px;color:#888780;margin-top:2px;">'+p.athlete+' · '+p.grade+' · '+p.sessions+' sessions</div></div>'+
-      '<span style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:'+p.sbg+';color:'+p.sc+';">'+p.status+'</span>'+
-      '</div>';
+  el.innerHTML=ps.map(function(p){
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid rgba(0,0,0,.08);">'+
+      '<div style="flex:1;"><div style="font-size:15px;font-weight:600;color:#1a1a18;">'+p.name+'</div>'+
+      '<div style="font-size:12px;color:#888780;margin-top:2px;">'+p.athlete+' · '+p.grade+' · '+p.sessions+' sessions</div></div>'+
+      '<span class="pill" style="background:'+p.sbg+';color:'+p.sc+';">'+p.s+'</span></div>';
   }).join('')+'<div style="height:4px;"></div>';
 }
 
-// ── ATHLETE PROFILE ──────────────────────────────────────
-function openProfile(idx){
-  var a=athletes[idx];
-  document.getElementById('profile-hdr-name').textContent=a.name;
-  var c=document.getElementById('profile-content');
-  var sentPct=Math.round((a.sent/a.attempts)*100);
-  // Arc
-  var arcPts=a.zones.map(function(z,i){
-    var x=30+i*(260/(a.zones.length-1||1));
-    var y={comfort:82,learning:50,panic:18}[z.z]||50;
-    return {x:x,y:y,c:ZC[z.z],d:z.d,z:z.z};
-  });
-  var arcLine=arcPts.length>1?'<polyline points="'+arcPts.map(function(p){return p.x+','+p.y;}).join(' ')+'" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="1.5" stroke-linejoin="round"/>':'';
-  var arcDots=arcPts.map(function(p,i){
-    var isLast=i===arcPts.length-1;
-    return '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(isLast?5:4)+'" fill="'+p.c+'" opacity="'+(isLast?1:.85)+'"/>'+
-      (isLast?'<circle cx="'+p.x+'" cy="'+p.y+'" r="9" fill="none" stroke="'+p.c+'" stroke-width="1.5" opacity=".4"/>':'');
-  }).join('');
-  // Breath bars
-  var breathOrder=["Easy and steady","Slightly faster","Shallow or tight","I held my breath"];
-  var breathColors={"Easy and steady":"#3B6D11","Slightly faster":"#BA7517","Shallow or tight":"#c8622a","I held my breath":"#a83828"};
-  var bTotal=Object.values(a.breath).reduce(function(s,v){return s+v;},0);
-  var bBars=breathOrder.filter(function(k){return a.breath[k];}).map(function(k){
-    var pct=Math.round((a.breath[k]/bTotal)*100);
-    var w=Math.round((a.breath[k]/bTotal)*100);
-    return '<div class="bar-row"><div class="bar-lbl">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+breathColors[k]+';opacity:.8;"></div></div><div class="bar-val">'+pct+'%</div></div>';
-  }).join('');
-  // Session log
-  var log=a.zones.slice().reverse().map(function(z,i){
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.08);">'+
-      '<div style="width:7px;height:7px;border-radius:50%;background:'+ZC[z.z]+';flex-shrink:0;"></div>'+
-      '<div style="font-size:12px;color:#888780;min-width:48px;font-family:Space Mono,monospace;">'+z.d+'</div>'+
-      '<div style="flex:1;font-size:13px;color:#1a1a18;">'+z.z[0].toUpperCase()+z.z.slice(1)+' zone</div>'+
-      '</div>';
-  }).join('');
-  c.innerHTML=
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">'+
-    '<div class="stat-mini"><div class="stat-mini-n">'+a.sessions+'</div><div class="stat-mini-l">Sessions</div></div>'+
-    '<div class="stat-mini"><div class="stat-mini-n" style="color:#3B6D11;">'+sentPct+'%</div><div class="stat-mini-l">Send rate</div></div>'+
-    '<div class="stat-mini"><div class="stat-mini-n" style="color:#c8622a;">'+a.grade+'</div><div class="stat-mini-l">Current project</div></div>'+
-    '</div>'+
-    '<div class="card">'+
-    '<div class="card-lbl">Zone arc</div>'+
-    '<div class="card-sub">Activation pattern across all sessions. Most recent = right.</div>'+
-    '<svg width="100%" viewBox="0 0 320 100" style="display:block;overflow:visible;">'+
-    '<rect x="0" y="0" width="320" height="33" fill="rgba(168,56,40,.05)" rx="2"/>'+
-    '<rect x="0" y="33" width="320" height="34" fill="rgba(186,117,23,.04)"/>'+
-    '<rect x="0" y="67" width="320" height="33" fill="rgba(59,109,17,.05)" rx="2"/>'+
-    '<text x="6" y="13" font-size="7" font-family="Space Grotesk,sans-serif" fill="rgba(168,56,40,.5)" letter-spacing=".06em" font-weight="600">PANIC</text>'+
-    '<text x="6" y="55" font-size="7" font-family="Space Grotesk,sans-serif" fill="rgba(186,117,23,.5)" letter-spacing=".06em" font-weight="600">LEARNING</text>'+
-    '<text x="6" y="96" font-size="7" font-family="Space Grotesk,sans-serif" fill="rgba(59,109,17,.5)" letter-spacing=".06em" font-weight="600">COMFORT</text>'+
-    arcLine+arcDots+
-    '</svg></div>'+
-    '<div class="card"><div class="card-lbl">Breathing distribution</div>'+bBars+'</div>'+
-    '<div class="card"><div class="card-lbl">Session log</div>'+log+'<div style="height:4px;"></div></div>';
-  document.getElementById('profile-screen').classList.add('active');
-}
-function closeProfile(){
-  document.getElementById('profile-screen').classList.remove('active');
-}
-
-// ── GYM — MONTH BARS ─────────────────────────────────────
 function buildMonthBars(){
-  var el=document.getElementById('month-bars');
-  var lblEl=document.getElementById('month-lbls');
-  if(!el)return;
-  var months=[{l:"Jan",v:180},{l:"Feb",v:210},{l:"Mar",v:195},{l:"Apr",v:240},{l:"May",v:285},{l:"Jun",v:320}];
+  var bEl=document.getElementById('month-bars'),lEl=document.getElementById('month-lbls');if(!bEl)return;
+  var months=[{l:'Jan',v:180},{l:'Feb',v:210},{l:'Mar',v:195},{l:'Apr',v:240},{l:'May',v:285},{l:'Jun',v:320}];
   var max=Math.max.apply(null,months.map(function(m){return m.v;}));
-  el.innerHTML=months.map(function(m){
-    var h=Math.round((m.v/max)*100)+'%';
-    return '<div class="month-bar" style="height:'+h+';background:#c8622a;opacity:'+(0.4+(m.v/max)*0.55).toFixed(2)+';"></div>';
+  bEl.innerHTML=months.map(function(m){
+    var h=Math.round((m.v/max)*100);
+    return '<div style="flex:1;height:'+h+'%;background:#c8622a;border-radius:3px 3px 0 0;opacity:'+(0.4+(m.v/max)*0.55).toFixed(2)+';"></div>';
   }).join('');
-  if(lblEl)lblEl.innerHTML=months.map(function(m){return '<div class="month-lbl-item">'+m.l+'</div>';}).join('');
+  if(lEl)lEl.innerHTML=months.map(function(m){return '<div style="flex:1;font-size:10px;color:#888780;text-align:center;">'+m.l+'</div>';}).join('');
 }
 
-// ── GYM — HEATMAP ────────────────────────────────────────
 function buildGymHeatmap(){
   var el=document.getElementById('gym-heatmap');if(!el)return;
-  var terrains=["Overhang","Roof","Slab","Vertical"];
-  var zones=["comfort","learning","panic"];
-  var zColors={comfort:"rgba(59,109,17,",learning:"rgba(186,117,23,",panic:"rgba(168,56,40,"};
-  var zLabels={comfort:"Comfort",learning:"Learning",panic:"Panic"};
-  var data={
-    Overhang:{comfort:84,learning:241,panic:48},
-    Roof:{comfort:12,learning:34,panic:94},
-    Slab:{comfort:186,learning:18,panic:4},
-    Vertical:{comfort:94,learning:142,panic:11},
-  };
-  var allVals=[];terrains.forEach(function(t){zones.forEach(function(z){allVals.push(data[t][z]);});});
-  var maxV=Math.max.apply(null,allVals);
-  var html='<div style="display:grid;grid-template-columns:90px 1fr 1fr 1fr;gap:5px;margin-bottom:6px;">'+
-    '<div></div>'+zones.map(function(z){return '<div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:'+zColors[z]+'0.7);text-align:center;">'+zLabels[z]+'</div>';}).join('')+'</div>';
-  terrains.forEach(function(t){
-    html+='<div style="display:grid;grid-template-columns:90px 1fr 1fr 1fr;gap:5px;margin-bottom:5px;align-items:center;">';
-    html+='<div style="font-size:12px;font-weight:500;color:#1a1a18;">'+t+'</div>';
-    zones.forEach(function(z){
-      var v=data[t][z];var i=v/maxV;
-      var bg=v===0?'rgba(0,0,0,.04)':zColors[z]+(0.08+i*0.65)+')';
-      var border=v===0?'rgba(0,0,0,.06)':zColors[z]+(0.12+i*0.5)+')';
-      var tc=v===0?'rgba(0,0,0,.2)':v===maxV?'rgba(255,255,255,.9)':zColors[z]+(0.5+i*0.4)+')';
-      var fw=v===maxV?'700':'400';
-      html+='<div style="background:'+bg+';border:0.5px solid '+border+';border-radius:6px;padding:10px 4px;text-align:center;font-size:13px;font-weight:'+fw+';color:'+tc+';font-family:Space Mono,monospace;">'+v+'</div>';
+  var t=['Overhang','Roof','Slab','Vertical'];
+  var z=['comfort','learning','panic'];
+  var zL={comfort:'C',learning:'L',panic:'P'};
+  var zCol={comfort:'rgba(59,109,17,',learning:'rgba(186,117,23,',panic:'rgba(168,56,40,'};
+  var d={Overhang:{comfort:84,learning:241,panic:48},Roof:{comfort:12,learning:34,panic:94},Slab:{comfort:186,learning:18,panic:4},Vertical:{comfort:94,learning:142,panic:11}};
+  var allV=[];t.forEach(function(tt){z.forEach(function(zz){allV.push(d[tt][zz]);});});
+  var maxV=Math.max.apply(null,allV);
+  var html='<div style="display:grid;grid-template-columns:70px 1fr 1fr 1fr;gap:4px;margin-bottom:5px;"><div></div>'+
+    z.map(function(zz){return '<div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:'+zCol[zz]+'0.7);text-align:center;">'+zL[zz]+'</div>';}).join('')+'</div>';
+  t.forEach(function(tt){
+    html+='<div style="display:grid;grid-template-columns:70px 1fr 1fr 1fr;gap:4px;margin-bottom:4px;align-items:center;">';
+    html+='<div style="font-size:12px;font-weight:500;color:#1a1a18;">'+tt+'</div>';
+    z.forEach(function(zz){
+      var v=d[tt][zz],i=v/maxV;
+      html+='<div style="background:'+zCol[zz]+(0.06+i*0.7)+');border-radius:5px;padding:8px 2px;text-align:center;font-size:11px;font-weight:'+(v===maxV?700:400)+';color:'+zCol[zz]+(0.5+i*0.45)+')" font-family="Space Mono,monospace">'+v+'</div>';
     });
     html+='</div>';
   });
   el.innerHTML=html;
 }
 
-// ── INDUSTRY — GYM TABLE ─────────────────────────────────
-function buildGymTable(){
-  var el=document.getElementById('gym-table');if(!el)return;
-  var gyms=[
-    {name:"Movement Denver",c:32,l:57,p:11,flag:false},
-    {name:"Mesa Rim San Diego",c:30,l:58,p:12,flag:false},
-    {name:"Vertical World Seattle",c:31,l:57,p:12,flag:false},
-    {name:"Sender One LA",c:28,l:58,p:14,flag:false},
-    {name:"CRG Atlanta",c:30,l:58,p:12,flag:false},
-    {name:"Brooklyn Boulders NYC",c:24,l:54,p:22,flag:true},
-    {name:"Central Rock Gym Boston",c:29,l:60,p:11,flag:false},
-    {name:"Movement DC",c:27,l:59,p:14,flag:false},
-    {name:"Austin Bouldering Project",c:28,l:57,p:15,flag:false},
-    {name:"Earth Treks Denver",c:33,l:56,p:11,flag:false},
-    {name:"Momentum SLC",c:29,l:58,p:13,flag:false},
-    {name:"Portland Rock Gym",c:31,l:59,p:10,flag:false},
-  ];
-  el.innerHTML=gyms.map(function(g){
-    var flagHtml=g.flag?'<span style="font-size:11px;color:#a83828;font-weight:600;flex-shrink:0;">⚑ High Panic</span>':'';
-    return '<div class="gym-row">'+
-      '<div class="gym-name">'+g.name+'</div>'+
-      '<div class="gym-bar-wrap">'+
-      '<div style="width:'+g.c+'%;background:#3B6D11;opacity:.75;"></div>'+
-      '<div style="width:'+g.l+'%;background:#BA7517;opacity:.75;"></div>'+
-      '<div style="width:'+g.p+'%;background:#a83828;opacity:.75;"></div>'+
-      '</div>'+
-      '<div class="gym-stat">'+g.c+'/'+g.l+'/<span style="color:'+(g.p>17?'#a83828':'#5f5e5a')+'">'+g.p+'</span></div>'+
-      flagHtml+
-      '</div>';
-  }).join('')+
-  '<div style="font-size:11px;color:#888780;margin-top:10px;">Format: Comfort % / Learning % / Panic % · Industry avg: 29/58/13</div>';
-}
-
-// ── INDUSTRY — GROWTH PROJECTION ─────────────────────────
-function buildGrowthProj(){
-  var el=document.getElementById('growth-proj');if(!el)return;
+function buildProjList(){
+  var el=document.getElementById('proj-list');if(!el)return;
   var rows=[
-    {label:"Current (12 gyms)",sessions:"24,840",climbers:"8,920",insight:"Beta foundation"},
-    {label:"10% CWA (87 gyms)",sessions:"180K+",climbers:"65K+",insight:"Research-grade dataset"},
-    {label:"25% CWA (218 gyms)",sessions:"450K+",climbers:"160K+",insight:"Industry benchmark standard"},
-    {label:"50% CWA (435 gyms)",sessions:"900K+",climbers:"320K+",insight:"National safety data layer"},
-    {label:"Full CWA (870 gyms)",sessions:"1.7M+",climbers:"640K+",insight:"Largest somatic climbing dataset globally"},
+    {l:'Current (beta)',n:'Handful of sessions',note:'Real somatic data — building'},
+    {l:'1,000 sessions',n:'Early patterns',note:'Zone trends become visible'},
+    {l:'10,000 sessions',n:'Correlation signal',note:'Safety data becomes directional'},
+    {l:'50,000 sessions',n:'Research grade',note:'University partnership viable'},
+    {l:'500,000 sessions',n:'Industry standard',note:'CWA safety benchmark foundation'},
   ];
+  var maxS=[1,1000,10000,50000,500000];
   el.innerHTML=rows.map(function(r,i){
-    var opacity=0.4+i*0.15;
-    var barW=8+i*22;
+    var w=Math.max(4,Math.round((maxS[i]/500000)*100));
     return '<div class="proj-row">'+
-      '<div style="font-size:13px;font-weight:'+(i===0?600:400)+';color:#1a1a18;min-width:160px;">'+r.label+'</div>'+
-      '<div style="flex:1;height:6px;background:rgba(0,0,0,.08);border-radius:99px;margin:0 12px;overflow:hidden;">'+
-      '<div style="height:100%;width:'+barW+'%;background:#c8622a;border-radius:99px;opacity:'+opacity+';"></div>'+
-      '</div>'+
-      '<div style="font-size:12px;font-family:Space Mono,monospace;color:#c8622a;min-width:60px;text-align:right;">'+r.sessions+'</div>'+
-      '<div style="font-size:11px;color:#888780;min-width:170px;text-align:right;padding-left:10px;">'+r.insight+'</div>'+
+      '<div class="proj-lbl">'+r.l+'</div>'+
+      '<div class="proj-bar"><div style="height:100%;width:'+w+'%;background:#c8622a;border-radius:99px;opacity:'+(0.25+i*0.17).toFixed(2)+';"></div></div>'+
+      '<div style="font-size:12px;color:#888780;min-width:160px;text-align:right;">'+r.note+'</div>'+
       '</div>';
   }).join('');
 }
 
-// ── INIT ─────────────────────────────────────────────────
-buildRoster();
-buildHeatmap();
-buildCoachProjects();
-buildMonthBars();
-buildGymHeatmap();
-buildGymTable();
-buildGrowthProj();
+function buildGymList(){
+  var el=document.getElementById('gym-list');if(!el)return;
+  var gyms=[
+    {name:'Movement',city:'Denver, CO',p:11},{name:'Portland Rock Gym',city:'Portland, OR',p:10},
+    {name:'Central Rock Gym',city:'Boston, MA',p:11},{name:'Vertical World',city:'Seattle, WA',p:12},
+    {name:'Mesa Rim',city:'San Diego, CA',p:12},{name:'CRG Atlanta',city:'Atlanta, GA',p:12},
+    {name:'Momentum',city:'Salt Lake City, UT',p:13},{name:'Movement DC',city:'Washington DC',p:14},
+    {name:'Sender One',city:'Los Angeles, CA',p:14},{name:'Austin Bouldering Project',city:'Austin, TX',p:15},
+    {name:'Earth Treks',city:'Denver, CO',p:11},{name:'Brooklyn Boulders',city:'New York, NY',p:22,flag:true},
+  ].sort(function(a,b){return a.p-b.p;});
+  var max=Math.max.apply(null,gyms.map(function(g){return g.p;}));
+  gyms.forEach(function(g){
+    var col=g.p>17?'#a83828':g.p>13?'#BA7517':'#3B6D11';
+    var row=document.createElement('div');row.className='gym-row';
+    row.innerHTML=
+      '<div><div class="gym-name">'+g.name+'</div><div class="gym-city">'+g.city+'</div></div>'+
+      '<div class="bar-track" style="flex:1;"><div class="bar-fill" style="width:'+Math.round((g.p/max)*100)+'%;background:'+col+';opacity:.85;"></div></div>'+
+      '<div style="font-size:14px;font-weight:700;font-family:Space Mono,monospace;color:'+col+';min-width:36px;text-align:right;">'+g.p+'%</div>'+
+      (g.flag?'<div class="flag" style="min-width:80px;">Above avg</div>':'<div style="min-width:80px;"></div>');
+    el.appendChild(row);
+  });
+  // avg reference
+  var avgRow=document.createElement('div');
+  avgRow.style.cssText='display:flex;align-items:center;gap:14px;padding:10px 0;';
+  avgRow.innerHTML='<div style="min-width:180px;font-size:12px;color:#888780;font-style:italic;">Industry average</div>'+
+    '<div style="flex:1;height:1.5px;background:rgba(0,0,0,.15);"></div>'+
+    '<div style="font-size:13px;font-weight:700;color:#888780;min-width:36px;text-align:right;">13%</div>'+
+    '<div style="min-width:80px;"></div>';
+  el.insertBefore(avgRow,el.children[4]);
+}
+
+function openProfile(i){
+  var a=athletes[i];
+  document.getElementById('profile-hdr-name').textContent=a.name;
+  var sentPct=Math.round((a.sent/a.attempts)*100);
+  var arcPts=a.zones.map(function(z,idx){
+    return {x:30+idx*(260/(a.zones.length-1||1)),y:{comfort:85,learning:52,panic:18}[z]||52,c:ZC[z]};
+  });
+  var line=arcPts.length>1?'<polyline points="'+arcPts.map(function(p){return p.x+','+p.y;}).join(' ')+'" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="2" stroke-linejoin="round"/>':'';
+  var dots=arcPts.map(function(p,idx){
+    var last=idx===arcPts.length-1;
+    return '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(last?6:5)+'" fill="'+p.c+'" opacity="'+(last?1:.85)+'"/>'+
+      (last?'<circle cx="'+p.x+'" cy="'+p.y+'" r="10" fill="none" stroke="'+p.c+'" stroke-width="1.5" opacity=".35"/>':'');
+  }).join('');
+  var bOrder=['Easy and steady','Slightly faster','Shallow or tight','I held my breath'];
+  var bCol={'Easy and steady':'#3B6D11','Slightly faster':'#BA7517','Shallow or tight':'#c8622a','I held my breath':'#a83828'};
+  var bTotal=Object.values(a.breath).reduce(function(s,v){return s+v;},0);
+  var bBars=bOrder.filter(function(k){return a.breath[k];}).map(function(k){
+    var pct=Math.round((a.breath[k]/bTotal)*100);
+    return '<div class="bar-row"><div class="bar-lbl">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+bCol[k]+';opacity:.85;"></div></div><div class="bar-val">'+pct+'%</div></div>';
+  }).join('');
+  document.getElementById('profile-body').innerHTML=
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px;">'+
+    '<div class="stat-mini"><div class="stat-mini-n">'+a.sessions+'</div><div class="stat-mini-l">Sessions</div></div>'+
+    '<div class="stat-mini"><div class="stat-mini-n" style="color:#3B6D11;">'+sentPct+'%</div><div class="stat-mini-l">Send rate</div></div>'+
+    '<div class="stat-mini"><div class="stat-mini-n" style="color:#c8622a;font-size:18px;">'+a.grade+'</div><div class="stat-mini-l">Current project</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="card-lbl">Zone arc</div>'+
+    '<div class="card-sub">Activation across all sessions. Most recent = right.</div>'+
+    '<svg width="100%" viewBox="0 0 320 105" style="display:block;overflow:visible;">'+
+    '<rect x="0" y="0" width="320" height="35" fill="rgba(168,56,40,.05)" rx="2"/>'+
+    '<rect x="0" y="35" width="320" height="35" fill="rgba(186,117,23,.04)"/>'+
+    '<rect x="0" y="70" width="320" height="35" fill="rgba(59,109,17,.05)" rx="2"/>'+
+    '<text x="6" y="14" font-size="8" font-family="Space Grotesk,sans-serif" fill="rgba(168,56,40,.65)" font-weight="700" letter-spacing=".06em">PANIC</text>'+
+    '<text x="6" y="58" font-size="8" font-family="Space Grotesk,sans-serif" fill="rgba(186,117,23,.65)" font-weight="700" letter-spacing=".06em">LEARNING</text>'+
+    '<text x="6" y="100" font-size="8" font-family="Space Grotesk,sans-serif" fill="rgba(59,109,17,.65)" font-weight="700" letter-spacing=".06em">COMFORT</text>'+
+    line+dots+'</svg></div>'+
+    '<div class="card"><div class="card-lbl">Breathing</div>'+bBars+'</div>';
+  document.getElementById('profile-screen').classList.add('active');
+}
+function closeProfile(){document.getElementById('profile-screen').classList.remove('active');}
+
+buildRoster();buildHeatmap();buildCoachProjects();buildMonthBars();buildGymHeatmap();buildProjList();buildGymList();
 </script>
 </body>
 </html>
