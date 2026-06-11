@@ -2157,7 +2157,12 @@ function selectFbOpt(el,key,val){fbAns[key]=val;renderFb();}
 function feedbackNext(){
   if(fbCur<FBQs.length){fbCur++;renderFb();}
   else{
-    sbI("feedback",{device_id:DID,sessions:null,simplicity:fbAns.simplicity,somatic_real:fbAns.somatic_real,body_scan:fbAns.body_scan_real,delta_accurate:fbAns.delta_accurate,open_notes:document.getElementById("fb-open-text").value||null});
+    // Map full text answers to short codes for the viewer
+    var SIMPLICITY_MAP={"Yes — I would open this before climbing":"yes_would","Yes, but it felt slightly long":"yes_long","Maybe — depends on the route":"maybe","No — too many steps":"no"};
+    var SOMATIC_MAP={"Yes — I noticed something I wasn't aware of before":"yes_noticed","Somewhat — noticed but not surprising":"somewhat","Not really — I answered but didn't physically feel it":"not_really","The questions made me more aware than I expected":"more_aware"};
+    var BODYSCAN_MAP={"Yes — I noticed something I hadn't registered":"yes_noticed","Somewhat — it prompted awareness but wasn't new":"somewhat","Not really — I tapped through it":"tapped_through","Nothing was present to notice":"nothing"};
+    var DELTA_MAP={"Yes — it described what I actually experienced":"yes_accurate","Mostly — close but not quite":"mostly","Not really — the language didn't match":"not_accurate","I'm not sure — need more sessions to compare":"unsure"};
+    sbI("feedback",{device_id:DID,app_version:"index42",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,body_scan_real:BODYSCAN_MAP[fbAns.body_scan_real]||fbAns.body_scan_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,open_notes:document.getElementById("fb-open-text").value||null});
     document.getElementById("fb-content").style.display="none";
     document.getElementById("fb-success").style.display="block";
   }
