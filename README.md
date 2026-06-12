@@ -8,19 +8,19 @@
 
 ## What it is
 
-Sharp End Exposure is a somatic readiness tool for climbers. Before committing to a route, it guides you through a brief body-state check-in — breathing, gut sensation, physical tension — and maps your activation level to one of three zones: Comfort, Learning, or Panic.
-
-After the climb, it captures what actually happened in your body. Over time, those sessions build a personal dataset: your activation patterns, your somatic signals before a send, how your breathing changes on routes at your limit.
+Sharp End Exposure is a somatic readiness tool for climbers. It helps you notice what your body is already telling you — before you commit to a route, and after you climb it. Over time, sessions build a personal dataset: your activation patterns, breathing responses, and how your body changes on routes at your limit.
 
 It is not a decision-maker. It is a noticing tool. The decision stays with the climber.
 
 ---
 
-## Two ways in
+## Three ways in
 
-**Prepare** — before you commit. A somatic check-in that surfaces body-state data before you leave the ground. Takes 60 seconds.
+**Prepare** — before you commit. A somatic check-in while you're still deciding whether to attempt a route. Breathing, gut sensation, route thinking. The shift between first and second check-in is the signal. Takes 60 seconds.
 
-**Log a Climb** — after you climb. Grade, terrain, result. Then an optional Go Deeper flow: breathing, gut, crux response, body state. Optional route details: discipline, environment, rock type, bolt count, height.
+**Log a Climb** — after you climb. Grade, terrain, result. Then optionally Go Deeper: breathing, gut, crux response, body state. Add route details: discipline, environment, rock type, bolt count, height.
+
+**Start a Project** — for routes you're working over multiple sessions. Name it, set it up with full route details. Every session links to it automatically. Watch your zone arc, breathing patterns, and session focus evolve across attempts.
 
 ---
 
@@ -29,13 +29,14 @@ It is not a decision-maker. It is a noticing tool. The decision stays with the c
 Logged sessions build a personal intelligence layer:
 
 - **Zone arc** — activation pattern across all sessions over time
-- **Terrain radar** — where you spend your volume
+- **Terrain radar** — where you spend your volume and how activated you are
 - **Grade range** — session frequency by grade, color-coded by zone
-- **Zone × terrain heatmap** — which terrain features produce elevated activation
+- **Zone × terrain heatmap** — which features spike your activation
 - **Breathing pattern** — post-climb respiratory distribution
 - **Completion by zone** — send rate mapped to activation state
+- **Routes & Projects** — any named route becomes trackable automatically
 
-**Project tracking** — any named route becomes trackable automatically. The project detail screen shows zone arc for that specific route, a comparison against your overall patterns, a trend card (first N vs last N sessions), breathing distribution, and a full session log.
+**Project detail screen** — zone arc for that specific route, session focus distribution (what you worked on each attempt), comparison vs your overall patterns, trend card (first N vs last N sessions), breathing across attempts, full session log.
 
 ---
 
@@ -56,19 +57,32 @@ Key research anchors: Damasio (1994), Kabat-Zinn (1990), Levine (1997), Price & 
 ## Built with
 
 - **GitHub Pages** — single `index.html`, zero build step
-- **Supabase** — anonymous session tracking via device ID
-- **Vanilla JS** — no framework
+- **Supabase** — anonymous session tracking via device ID (`see_did`)
+- **Vanilla JS** — no framework, no dependencies
 - **Space Grotesk + Space Mono** — typography
+
+**Supabase tables:** `sessions`, `projects`, `falls`, `post_climb`, `incidents`, `feedback`, `post_climb_incidents`
+
+---
+
+## GTM strategy
+
+Public-first, industry-second. Three stages:
+
+1. **Public release** → organic dataset from everyday climbers
+2. **Sender One informal pilot** → proof of model with a real gym
+3. **CWA conversation** → institutional adoption, safety standard potential
+
+The dashboard (`dashboard.html`) is a vision document for stages 2–3 — not current state. The 78% incident/Panic correlation is an early signal, not yet statistically conclusive. Credibility via intellectual honesty, not inflated projections.
 
 ---
 
 ## Status
 
-Beta. Active development. Not yet publicly launched.
+Beta. Active development. Public launch imminent.
 
 **Straydog Labs** — [straydog-labs.github.io](https://straydog-labs.github.io)
 
 ---
 
 *"Expose your edge. Own your decision."*
-
