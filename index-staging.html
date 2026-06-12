@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>Sharp End Exposure</title>
+<title>[Staging] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -516,20 +516,55 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <button class="chip" onclick="selectFocus(this,'general')">General attempt</button>
     </div>
   </div>
+  <!-- Edit sheet (slides up) -->
+  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;color:var(--text);">Edit this climb</div>
+      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;padding:6px 12px;cursor:pointer;">Done</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Grade</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="edit-grade-chips"></div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Terrain</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+      <button class="chip" onclick="editSelectTerrain(this,'Slab')">Slab</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Vertical')">Vertical</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Overhang')">Overhang</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Roof')">Roof</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Arête')">Arête</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Dihedral')">Dihedral</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Crack')">Crack</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Result</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button id="edit-btn-sent" onclick="editSelectResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
+      <button id="edit-btn-attempt" onclick="editSelectResult('attempt')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Attempt</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
+    <input id="edit-route-name" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
+    <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
+  </div>
+
   <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
+    <!-- Primary actions -->
     <button class="action-btn primary-action" onclick="startDeeper()" style="display:flex;align-items:center;justify-content:space-between;">
       <div style="text-align:left;">
-        <div style="font-size:16px;font-weight:600;">Go Deeper</div>
-        <div style="font-size:13px;color:var(--muted);font-weight:400;margin-top:2px;">What happened in your body?</div>
+        <div style="font-size:16px;font-weight:600;">Go Deeper →</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.6);font-weight:400;margin-top:2px;">What happened in your body? 4 questions.</div>
       </div>
-      <span style="color:var(--accent);font-size:20px;">→</span>
     </button>
-    <button class="action-btn" onclick="showScreen('screen-route-details')" style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="text-align:left;">
-        <div style="font-size:16px;font-weight:600;">Add route details</div>
-        <div style="font-size:13px;color:var(--muted);font-weight:400;margin-top:2px;">Discipline · environment · rock type</div>
-      </div>
-      <span style="color:var(--accent);font-size:20px;">→</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="action-btn" onclick="showScreen('screen-route-details')" style="text-align:center;">
+        <div style="font-size:14px;font-weight:600;">Add details</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Name · discipline</div>
+      </button>
+      <button class="action-btn" onclick="openStartProjectFromLog()" style="text-align:center;border-color:rgba(126,200,122,.4);background:rgba(126,200,122,.06);">
+        <div style="font-size:14px;font-weight:600;color:#7ec87a;">Start project</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Track this route</div>
+      </button>
+    </div>
+    <button class="action-btn" onclick="openEditSheet()" style="display:flex;align-items:center;justify-content:space-between;border-color:var(--border2);">
+      <div style="font-size:14px;font-weight:600;color:var(--muted);">Edit this climb</div>
+      <span style="color:var(--muted);font-size:16px;">✎</span>
     </button>
     <div class="divider-label">or</div>
     <button class="action-btn" onclick="logAnother()">Log another climb</button>
@@ -632,11 +667,21 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="question-card">
+      <!-- Breath wave illustration -->
+      <svg width="100%" viewBox="0 0 280 48" style="display:block;margin-bottom:14px;opacity:.6;">
+        <!-- Calm wave -->
+        <path d="M10,24 C28,12 46,36 64,24 C82,12 100,36 118,24 C136,12 154,36 172,24 C190,12 208,36 226,24 C244,12 262,36 270,24" fill="none" stroke="rgba(126,200,122,.8)" stroke-width="2" stroke-linecap="round"/>
+        <text x="140" y="44" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.6)" letter-spacing=".06em">BREATH PATTERN</text>
+      </svg>
       <div class="q-number">Breathing</div>
       <div class="q-text-dark">How was your breathing during this climb?</div>
       <div class="q-context" onclick="toggleCtx('ctx1','ctx1-arrow')">
         <span class="q-context-toggle" id="ctx1-arrow">▶</span>
-        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx1"> — Breathing pattern is one of the earliest signals of activation state. The shift between relaxed and restricted breathing indicates where you were in your exposure zone.</span></span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx1"> — Breathing is one of the earliest signals of activation state. Restricted or held breath indicates elevated perceived demand.</span></span>
+      </div>
+      <div id="ctx1-sci" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Breath rate is a measurable proxy for autonomic arousal — one of the earliest physiological signals of threat response. <em style="color:var(--muted2);">Garfinkel &amp; Critchley, 2015.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q1')">Easy and steady</button>
@@ -665,11 +710,25 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="question-card">
+      <!-- Gut/body silhouette -->
+      <svg width="100%" viewBox="0 0 280 52" style="display:block;margin-bottom:14px;opacity:.6;">
+        <!-- Simple torso outline -->
+        <ellipse cx="140" cy="26" rx="38" ry="22" fill="none" stroke="rgba(245,166,35,.3)" stroke-width="1.5"/>
+        <!-- Gut region highlighted -->
+        <ellipse cx="140" cy="30" rx="18" ry="10" fill="rgba(245,166,35,.15)" stroke="rgba(245,166,35,.6)" stroke-width="1.5"/>
+        <!-- Pulse rings from gut -->
+        <ellipse cx="140" cy="30" rx="24" ry="14" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="140" y="48" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(245,166,35,.6)" letter-spacing=".06em">SOMATIC MARKER</text>
+      </svg>
       <div class="q-number">Gut sensation</div>
       <div class="q-text-dark">Any gut sensation before or on the climb?</div>
       <div class="q-context" onclick="toggleCtx('ctx2','ctx2-arrow')">
         <span class="q-context-toggle" id="ctx2-arrow">▶</span>
-        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx2"> — Gut sensation can be an early somatic signal. Some climbers notice it, others don't — your experience may differ.</span></span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx2"> — Gut sensation fires as a pre-conscious decision marker. Some climbers notice it clearly, others don't — your experience may differ.</span></span>
+      </div>
+      <div id="ctx2-sci" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Gut sensation functions as a pre-conscious somatic marker — patients without this signal made systematically worse decisions even when they knew the correct choice. <em style="color:var(--muted2);">Damasio, 1994.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q2')">Settled, neutral</button>
@@ -697,11 +756,33 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="question-card">
+      <!-- Yerkes-Dodson mini curve -->
+      <svg width="100%" viewBox="0 0 280 60" style="display:block;margin-bottom:14px;opacity:.7;">
+        <defs><marker id="arr-yd" markerWidth="6" markerHeight="5" refX="4" refY="2.5" orient="auto"><polygon points="0 0,6 2.5,0 5" fill="rgba(255,255,255,.3)"/></marker></defs>
+        <!-- Zone bands -->
+        <rect x="20" y="4" width="56" height="48" fill="rgba(126,200,122,.07)" rx="3"/>
+        <rect x="78" y="0" width="124" height="56" fill="rgba(245,166,35,.07)" rx="3"/>
+        <rect x="204" y="4" width="56" height="48" fill="rgba(232,68,68,.07)" rx="3"/>
+        <!-- Curve -->
+        <path d="M20,50 Q60,4 140,4 Q220,4 260,50" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2" stroke-linecap="round"/>
+        <!-- Crux dot — near L/P boundary -->
+        <circle cx="210" cy="14" r="5" fill="#f5a623"/>
+        <circle cx="210" cy="14" r="8" fill="none" stroke="#f5a623" stroke-width="1" opacity=".4"/>
+        <!-- Labels -->
+        <text x="48" y="54" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(126,200,122,.7)">Comfort</text>
+        <text x="140" y="54" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(245,166,35,.7)">Learning</text>
+        <text x="232" y="54" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(232,68,68,.7)">Panic</text>
+        <text x="210" y="9" text-anchor="middle" font-family="Space Mono,monospace" font-size="7" fill="#f5a623">crux</text>
+      </svg>
       <div class="q-number">Crux moment</div>
       <div class="q-text-dark">Was there a moment that stood out — a hesitation, a decision point?</div>
       <div class="q-context" onclick="toggleCtx('ctx3','ctx3-arrow')">
         <span class="q-context-toggle" id="ctx3-arrow">▶</span>
-        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx3"> — Crux moments are where risk perception peaks. Noticing your response there builds pattern awareness over time.</span></span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx3"> — Crux moments are where risk perception peaks and activation spikes. Noticing your response there builds pattern awareness over time.</span></span>
+      </div>
+      <div id="ctx3-sci" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Performance follows an inverted-U curve relative to arousal — the crux is often where you cross into over-activation. Conscious monitoring at that point is the skill. <em style="color:var(--muted2);">Yerkes &amp; Dodson, 1908. Beilock &amp; Carr, 2001.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I paused</button>
@@ -729,11 +810,26 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="question-card">
+      <!-- Mini concentric rings -->
+      <svg width="100%" viewBox="0 0 280 56" style="display:block;margin-bottom:14px;opacity:.65;">
+        <circle cx="140" cy="28" r="26" fill="rgba(232,68,68,.1)" stroke="rgba(232,68,68,.3)" stroke-width="1"/>
+        <circle cx="140" cy="28" r="18" fill="rgba(245,166,35,.12)" stroke="rgba(245,166,35,.35)" stroke-width="1"/>
+        <circle cx="140" cy="28" r="10" fill="rgba(126,200,122,.16)" stroke="rgba(126,200,122,.45)" stroke-width="1"/>
+        <text x="140" y="31" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.8)" font-weight="600">C</text>
+        <text x="140" y="21" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6.5" fill="rgba(245,166,35,.7)">L</text>
+        <text x="140" y="8" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(232,68,68,.7)">P</text>
+        <text x="80" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.6)">Comfort</text>
+        <text x="200" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(232,68,68,.6)">Panic</text>
+      </svg>
       <div class="q-number">Body state</div>
       <div class="q-text-dark">How did your body feel for most of this climb?</div>
       <div class="q-context" onclick="toggleCtx('ctx4','ctx4-arrow')">
         <span class="q-context-toggle" id="ctx4-arrow">▶</span>
-        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx4"> — Rather than asking you to classify your zone, this asks what you noticed. Your body data maps to a zone — you just report what was there.</span></span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx4"> — This asks what you noticed, not what zone you were in. Your body data maps to a zone — you just report what was there.</span></span>
+      </div>
+      <div id="ctx4-sci" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Interoceptive accuracy — the ability to notice what your body is doing — is measurable and trainable. This question builds that skill over time. <em style="color:var(--muted2);">Price &amp; Hooven, 2018.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q4','comfort')">Settled and in control</button>
@@ -755,7 +851,16 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
   <div class="content">
-    <div class="screen-title">Reflection logged.<span class="sub">Your data is building a picture.</span></div>
+    <!-- Route context -->
+    <div style="display:flex;align-items:center;gap:12px;padding:4px 0 16px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+      <div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--accent);line-height:1;" id="reflect-grade">—</div>
+      <div>
+        <div style="font-size:16px;font-weight:600;color:var(--text);" id="reflect-terrain">—</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px;" id="reflect-result-lbl">—</div>
+      </div>
+      <div style="margin-left:auto;" id="reflect-zone-pill"></div>
+    </div>
+    <div class="screen-title" style="font-size:24px;">Reflection logged.<span class="sub" style="font-size:16px;">Your data is building a picture.</span></div>
 
     <!-- ZONE MAP -->
     <div class="insight-card">
@@ -1265,21 +1370,1604 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="q-text">Full body scan</div>
     <div class="q-hint">Take three slow breaths. Starting at the top of your head, scan downward. Tap any region where you notice something.</div>
     <div class="q-body-note" style="display:block;">Tension, soreness, tightness, fatigue — any sensation counts. You are not looking for pain. You are looking for holding patterns you might not have noticed yet.</div>
-    <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:20px;">
+    <div style="margin-bottom:20px;">
+      <!-- Full-width body map -->
+      <svg id="scan-body-svg" width="100%" viewBox="0 0 320 420" style="display:block;max-width:380px;margin:0 auto;touch-action:manipulation;">
+        <defs>
+          <filter id="glow-f"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <!-- HEAD / NECK -->
+        <g id="scan-z-head" onclick="scanToggle('head')" style="cursor:pointer;">
+          <!-- Head circle -->
+          <ellipse cx="160" cy="52" rx="46" ry="48" id="scan-bg-head" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Neck -->
+          <rect x="144" y="95" width="32" height="22" rx="4" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <!-- Face details -->
+          <ellipse cx="148" cy="48" rx="5" ry="6" fill="rgba(255,255,255,.06)"/>
+          <ellipse cx="172" cy="48" rx="5" ry="6" fill="rgba(255,255,255,.06)"/>
+          <path d="M150 68 Q160 74 170 68" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linecap="round"/>
+          <text x="160" y="110" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="rgba(255,255,255,.35)" id="scan-lbl-head">head · neck</text>
+        </g>
+
+        <!-- SHOULDERS / ARMS -->
+        <g id="scan-z-shoulders" onclick="scanToggle('shoulders')" style="cursor:pointer;">
+          <!-- Left arm -->
+          <rect x="14" y="118" width="60" height="120" rx="28" id="scan-bg-shoulders-l" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Right arm -->
+          <rect x="246" y="118" width="60" height="120" rx="28" id="scan-bg-shoulders-r" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Shoulder caps -->
+          <ellipse cx="90" cy="122" rx="28" ry="16" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <ellipse cx="230" cy="122" rx="28" ry="16" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <text x="44" y="186" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(255,255,255,.3)">arm</text>
+          <text x="276" y="186" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(255,255,255,.3)">arm</text>
+          <text x="160" y="128" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="rgba(255,255,255,.35)" id="scan-lbl-shoulders">shoulders</text>
+        </g>
+
+        <!-- CHEST / UPPER BACK -->
+        <g id="scan-z-chest" onclick="scanToggle('chest')" style="cursor:pointer;">
+          <rect x="88" y="118" width="144" height="100" rx="14" id="scan-bg-chest" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Chest detail lines -->
+          <line x1="160" y1="130" x2="160" y2="210" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+          <path d="M110 148 Q130 142 160 145 Q190 142 210 148" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+          <text x="160" y="175" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="rgba(255,255,255,.35)" id="scan-lbl-chest">chest · upper back</text>
+        </g>
+
+        <!-- CORE / LOWER BACK -->
+        <g id="scan-z-core" onclick="scanToggle('core')" style="cursor:pointer;">
+          <rect x="96" y="222" width="128" height="90" rx="12" id="scan-bg-core" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <text x="160" y="273" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="rgba(255,255,255,.35)" id="scan-lbl-core">core · lower back</text>
+        </g>
+
+        <!-- HIPS / LEGS / FEET -->
+        <g id="scan-z-lower" onclick="scanToggle('lower')" style="cursor:pointer;">
+          <!-- Left leg -->
+          <rect x="96" y="316" width="56" height="96" rx="26" id="scan-bg-lower-l" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Right leg -->
+          <rect x="168" y="316" width="56" height="96" rx="26" id="scan-bg-lower-r" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Hip connector -->
+          <rect x="100" y="312" width="120" height="24" rx="6" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+          <text x="160" y="308" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="rgba(255,255,255,.35)" id="scan-lbl-lower">hips · legs · feet</text>
+        </g>
+
+        <!-- Tap hint -->
+        <text x="160" y="415" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(255,255,255,.2)" letter-spacing=".06em">TAP TO SELECT · TAP AGAIN TO CLEAR</text>
+      </svg>
+
+      <!-- Selected regions display -->
+      <div id="scan-selections" style="font-size:14px;color:var(--accent);min-height:22px;text-align:center;margin-top:4px;font-weight:600;"></div>
+    </div>
+    <div id="scan-q2-wrap" style="display:none;">
+      <div style="font-size:15px;font-weight:600;margin-bottom:10px;">What are you noticing most?</div>
+      <div class="options" id="scan-q2-opts"></div>
+    </div>
+    <div id="scan-q3-wrap" style="display:none;margin-top:16px;">
+      <div style="font-size:15px;font-weight:600;margin-bottom:10px;">Is this typical for you before climbing?</div>
+      <div class="options" id="scan-q3-opts"></div>
+    </div>
+    <div class="nav" style="margin-top:20px;">
+      <button class="btn" onclick="skipBodyScan()">Skip</button>
+      <button class="btn btn-p" id="scan-continue" onclick="continueFromScan()" disabled>Continue</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     HOW IT WORKS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-hiw" style="padding-bottom:0;">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+  </div>
+  <div class="content">
+    <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Straydog Labs</div>
+    <div class="screen-title" style="font-size:30px;">How It Works</div>
+    <div style="font-size:16px;color:var(--muted);margin-top:8px;margin-bottom:28px;line-height:1.55;">From the moment you see a route — to what your data tells you about your climbing.</div>
+
+    <!-- ── RIVER CONFLUENCE DIAGRAM ── -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:20px;">
+      <div style="padding:16px 18px 12px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">Every session flows into the same picture.</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.5;">Three entry points. One dataset. Your awareness builds over time — the goal is to eventually run this check-in without the app.</div>
+      </div>
+      <svg width="100%" viewBox="0 0 340 300" style="display:block;max-width:380px;margin:0 auto;">
+        <!-- Stream 1: LOG (left) -->
+        <rect x="8" y="8" width="96" height="54" rx="12" fill="rgba(232,118,58,.15)" stroke="#e8763a" stroke-width="1.5"/>
+        <text x="56" y="30" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#e8763a" font-weight="700">LOG</text>
+        <text x="56" y="46" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(232,118,58,.7)">after you climb</text>
+        <!-- Go Deeper sub-label -->
+        <rect x="14" y="66" width="84" height="22" rx="6" fill="rgba(232,118,58,.08)" stroke="rgba(232,118,58,.3)" stroke-width="1"/>
+        <text x="56" y="81" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(232,118,58,.7)">→ Go Deeper (optional)</text>
+
+        <!-- Stream 2: PREPARE (center-left) -->
+        <rect x="122" y="8" width="96" height="54" rx="12" fill="rgba(200,245,90,.08)" stroke="rgba(200,245,90,.4)" stroke-width="1.5"/>
+        <text x="170" y="30" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#c8f55a" font-weight="700">PREPARE</text>
+        <text x="170" y="46" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(200,245,90,.6)">before you commit</text>
+        <!-- Somatic check sub-label -->
+        <rect x="128" y="66" width="84" height="22" rx="6" fill="rgba(200,245,90,.05)" stroke="rgba(200,245,90,.2)" stroke-width="1"/>
+        <text x="170" y="81" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(200,245,90,.6)">somatic check-in</text>
+
+        <!-- Stream 3: PROJECT (right) -->
+        <rect x="236" y="8" width="96" height="54" rx="12" fill="rgba(126,200,122,.1)" stroke="rgba(126,200,122,.4)" stroke-width="1.5"/>
+        <text x="284" y="30" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#7ec87a" font-weight="700">PROJECT</text>
+        <text x="284" y="46" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(126,200,122,.65)">name a route</text>
+        <!-- Track over time sub-label -->
+        <rect x="242" y="66" width="84" height="22" rx="6" fill="rgba(126,200,122,.06)" stroke="rgba(126,200,122,.25)" stroke-width="1"/>
+        <text x="284" y="81" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.65)">track every session</text>
+
+        <!-- River tributaries converging -->
+        <path d="M56,92 Q56,130 170,148" fill="none" stroke="rgba(232,118,58,.5)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M170,92 L170,148" fill="none" stroke="rgba(200,245,90,.4)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M284,92 Q284,130 170,148" fill="none" stroke="rgba(126,200,122,.5)" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- Confluence pool -->
+        <ellipse cx="170" cy="158" rx="60" ry="16" fill="rgba(232,118,58,.12)" stroke="rgba(232,118,58,.3)" stroke-width="1.5"/>
+        <text x="170" y="162" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#e8763a" font-weight="700">YOUR PICTURE</text>
+
+        <!-- River flowing down to outputs -->
+        <path d="M170,174 L170,198" fill="none" stroke="rgba(232,118,58,.4)" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- Split to My Sessions + Projects -->
+        <path d="M170,198 Q100,198 80,218" fill="none" stroke="rgba(245,166,35,.5)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M170,198 Q240,198 260,218" fill="none" stroke="rgba(126,200,122,.5)" stroke-width="2" stroke-linecap="round"/>
+
+        <!-- My Sessions box -->
+        <rect x="18" y="218" width="124" height="48" rx="12" fill="rgba(245,166,35,.1)" stroke="rgba(245,166,35,.35)" stroke-width="1.5"/>
+        <text x="80" y="238" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#f5a623" font-weight="700">MY SESSIONS</text>
+        <text x="80" y="254" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(245,166,35,.6)">patterns · arc · radar</text>
+
+        <!-- Projects box -->
+        <rect x="198" y="218" width="124" height="48" rx="12" fill="rgba(126,200,122,.1)" stroke="rgba(126,200,122,.35)" stroke-width="1.5"/>
+        <text x="260" y="238" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#7ec87a" font-weight="700">PROJECTS</text>
+        <text x="260" y="254" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(126,200,122,.6)">route · focus · zone arc</text>
+
+        <!-- Feedback loop arrow back up -->
+        <path d="M80,266 Q20,285 20,160 Q20,100 40,80" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="8" y="185" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(255,255,255,.2)" transform="rotate(-90,8,185)">insight feeds back</text>
+
+        <!-- Responsibility note -->
+        <text x="170" y="290" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(255,255,255,.2)" letter-spacing=".04em">All decisions remain with the climber.</text>
+      </svg>
+    </div>TYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>[Staging] Sharp End Exposure</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Sandstone dark — warm slate, not pure black */
+  --bg:#2a2420;--surface:#3a3228;--surface2:#463e34;--border:#5a5248;--border2:#6a6258;
+  --text:#ffffff;--muted:#e8ddd4;--muted2:#c0b8ae;
+  /* Sandstone accent palette — Red River Gorge / Obed */
+  --accent:#e8763a;--accent-light:#f08c52;--accent-dim:rgba(232,118,58,.15);
+  --panic:#e84444;--learning:#f5a623;--comfort:#7ec87a;
+  --panic-dim:rgba(232,68,68,.12);--learning-dim:rgba(245,166,35,.12);--comfort-dim:rgba(126,200,122,.12);
+  --footer-h:0px;
+  --safe-bottom:0px;
+  /* legacy vars remapped */
+  --rope:#e8763a;--rope-light:#f08c52;
+  --ink:#f2ede6;--ink2:#a09890;--ink3:#7a7268;
+  --btn-bg:#363028;
+}
+html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;font-size:18px;line-height:1.65;font-weight:500;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
+.app{max-width:640px;margin:0 auto;padding:0}
+
+/* ── SCREENS ── */
+.screen{display:none}.screen.active{display:block}
+
+/* ── BETA BADGE ── */
+.beta-badge{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(232,118,58,.12);color:var(--accent);border:1px solid rgba(232,118,58,.25);border-radius:4px;padding:2px 6px;margin-left:8px;vertical-align:middle;}
+
+/* ── FOOTER NAV ── */
+.footer-nav{position:static;top:0;left:0;right:0;background:rgba(42,36,32,.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;backdrop-filter:blur(12px);z-index:100;padding:0;min-height:52px;}
+.footer-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:500;letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:8px 10px;-webkit-tap-highlight-color:transparent;transition:color .12s;min-width:56px;}
+.footer-btn svg{width:20px;height:20px;}
+.footer-btn.active{color:var(--accent);}
+
+/* ── PAGE HEADER ── */
+.page-header{padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;}
+.wordmark{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.wordmark span{color:var(--accent);}
+.back-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;-webkit-tap-highlight-color:transparent;}
+
+/* ── CONTENT WRAPPER ── */
+.content{padding:20px 20px 24px;display:flex;flex-direction:column;gap:20px;}
+.screen-title{font-size:28px;font-weight:700;letter-spacing:-.025em;line-height:1.15;}
+.screen-title .sub{display:block;font-size:18px;font-weight:600;color:var(--muted);margin-top:8px;line-height:1.4;}
+
+/* ── HOME ── */
+.home-shell{min-height:calc(100vh - 52px);display:flex;flex-direction:column;justify-content:space-between;padding:36px 20px 24px;}
+.home-brand{display:flex;flex-direction:column;gap:14px;}
+.home-wordmark{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.home-wordmark span{color:var(--accent);}
+.home-tagline{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1.12;}
+.home-tagline em{font-style:normal;color:var(--accent);}
+.home-actions{display:flex;flex-direction:column;gap:12px;}
+.home-btn{background:var(--surface);border:1px solid var(--border);border-radius:18px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;padding:24px 22px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;text-align:left;display:flex;align-items:center;justify-content:space-between;}
+.home-btn .btn-label{display:flex;flex-direction:column;gap:3px;}
+.home-btn .btn-sub{font-size:14px;font-weight:600;color:var(--muted);}
+.home-btn .btn-arrow{color:var(--accent);font-size:22px;}
+.home-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.home-btn.primary .btn-sub{color:rgba(255,255,255,.75);}
+.home-btn.primary .btn-arrow{color:#fff;}
+.home-btn:active{transform:scale(.98);}
+.hiw-link{text-align:center;}
+.hiw-link button{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:8px;-webkit-tap-highlight-color:transparent;}
+
+/* ── FIELDS ── */
+.field-group{display:flex;flex-direction:column;gap:10px;}
+.field-label{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text);}
+
+/* ── GRADE TOGGLE ── */
+.grade-toggle{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px;}
+.discipline-chips{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.disc-btn{background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:500;padding:14px 12px;text-align:left;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;gap:3px;}
+.disc-btn .disc-label{font-size:15px;font-weight:600;}
+.disc-btn .disc-sub{font-size:12px;color:var(--muted);}
+.disc-btn.selected{background:rgba(232,118,58,.12);border-color:var(--accent);}
+.disc-btn.selected .disc-label{color:var(--accent);}
+.env-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.env-btn{background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:16px;text-align:center;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;}
+.env-btn.selected{background:rgba(232,118,58,.12);border-color:var(--accent);color:var(--accent);}
+.route-name-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:16px;outline:none;transition:border-color .15s;}
+.route-name-input:focus{border-color:var(--accent);}
+.route-name-input::placeholder{color:var(--muted);}
+.stepper{display:flex;align-items:center;gap:12px;}
+.stepper-btn{width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;transition:all .12s;}
+.stepper-btn:active{background:var(--surface2);}
+.stepper-val{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);min-width:60px;text-align:center;}
+.stepper-unit{font-size:13px;color:var(--muted);}
+.rock-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.rock-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--muted);font-size:13px;padding:8px 14px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;}
+.rock-chip.selected{background:rgba(232,118,58,.12);border-color:var(--accent);color:var(--accent);}
+.deeper2-header{background:rgba(126,200,122,.06);border-bottom:1px solid rgba(126,200,122,.15);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.deeper2-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--comfort);}
+.unit-toggle{display:flex;gap:4px;}
+.unit-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;transition:all .12s;}
+.unit-btn.active{background:rgba(232,118,58,.12);border-color:var(--accent);color:var(--accent);}
+.route-suggestion{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:4px;font-size:14px;cursor:pointer;display:none;}
+.route-suggestion:hover{background:var(--surface);}
+.toggle-btn{background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;padding:10px 4px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;text-align:center;line-height:1.3;}
+.toggle-btn .sys-name{display:block;font-size:13px;font-weight:700;color:var(--muted);}
+.toggle-btn .sys-label{display:block;font-size:10px;margin-top:1px;}
+.toggle-btn.active{background:#7e766e;border-color:var(--accent);}
+.toggle-btn.active .sys-name{color:var(--accent);}
+.toggle-btn.active .sys-label{color:var(--text);}
+
+/* ── GRADE GRID ── */
+.grade-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
+.grade-btn{background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:'Space Mono',monospace;font-size:14px;font-weight:500;padding:11px 6px;text-align:center;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;white-space:nowrap;}
+.grade-btn:active{transform:scale(.95);}
+.grade-btn.sel,.grade-btn.selected{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+
+/* ── CHIPS ── */
+.terrain-chips,.response-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:16px;padding:12px 20px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;white-space:nowrap;font-weight:500;}
+.chip:active{transform:scale(.95);}
+.chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
+
+/* ── RESULT BTNS ── */
+.result-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.result-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;padding:20px 12px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;line-height:1.2;}
+.result-btn .emoji{font-size:24px;display:block;margin-bottom:6px;}
+.result-btn:active{transform:scale(.97);}
+.result-btn.selected-send{background:var(--accent);border-color:var(--accent);color:#0f0f0f;}
+.result-btn.selected-attempt{background:transparent;border-color:var(--learning);color:var(--learning);}
+
+/* ── LOG BTN ── */
+.log-btn{margin:0 20px 24px;background:var(--accent);border:none;border-radius:14px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:20px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;opacity:.25;pointer-events:none;width:calc(100% - 40px);}
+.log-btn.ready{opacity:1;pointer-events:all;}
+.log-btn.ready:active{transform:scale(.98);}
+
+/* ── CARDS ── */
+.insight-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;}
+.insight-label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+.insight-text{font-size:15px;line-height:1.6;}
+
+/* ── TICK MARK ── */
+.tick-mark{border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;animation:pop .35s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ── RESULT BADGES ── */
+.climb-result-badge{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border-radius:20px;}
+.badge-sent{background:var(--accent);color:#0f0f0f;}
+.badge-attempt{background:transparent;border:1px solid var(--learning);color:var(--learning);}
+
+/* ── ZONE PILLS ── */
+.zone-pill{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-top:6px;}
+.zone-comfort{background:rgba(232,118,58,.12);color:var(--accent);border:1px solid rgba(232,118,58,.25);}
+.zone-learning{background:rgba(245,166,35,.12);color:var(--learning);border:1px solid rgba(245,166,35,.25);}
+.zone-panic{background:rgba(255,92,58,.12);color:var(--panic);border:1px solid rgba(255,92,58,.25);}
+
+/* ── ACTION STACK ── */
+.action-stack{margin:0 20px 24px;display:flex;flex-direction:column;gap:10px;}
+.action-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;padding:18px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;text-align:center;}
+.action-btn:active{transform:scale(.98);background:#7e766e;}
+.action-btn.primary-action{background:#363028;border-color:var(--border);}
+.action-btn .arrow{color:var(--accent);margin-left:6px;}
+.divider-label{text-align:center;font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+
+/* ── GO DEEPER ── */
+.deeper-header{background:#2a2420;border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.deeper-climb-label{font-family:'Space Mono',monospace;font-size:13px;color:var(--accent);font-weight:700;}
+.deeper-progress{font-size:11px;color:var(--muted);letter-spacing:.06em;}
+.question-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;}
+.q-number{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);}
+.q-text-dark{font-size:22px;font-weight:700;line-height:1.3;color:var(--text);}
+.q-context{font-size:13px;color:var(--muted);line-height:1.5;cursor:pointer;display:flex;align-items:flex-start;gap:6px;}
+.q-context-toggle{color:var(--accent);font-size:11px;flex-shrink:0;margin-top:2px;}
+.q-context-text{display:none;}
+.q-context-text.open{display:inline;}
+.next-btn{background:var(--accent);border:none;border-radius:14px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:18px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;margin:0 20px 24px;opacity:.25;pointer-events:none;width:calc(100% - 40px);}
+.next-btn.ready{opacity:1;pointer-events:all;}
+.next-btn.ready:active{transform:scale(.98);}
+
+/* ── FALL/INCIDENT ── */
+.incident-header{background:rgba(255,92,58,.06);border-bottom:1px solid rgba(255,92,58,.15);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.incident-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--panic);}
+
+/* ── REFLECTION ── */
+.nav-visual-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.nav-visual-card:active{transform:scale(.98);background:#7e766e;}
+.nav-visual-body{flex:1;min-width:0;}
+.nav-visual-label{font-size:16px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.nav-visual-sub{font-size:13px;color:var(--muted);}
+.nav-visual-arrow{color:var(--accent);font-size:22px;flex-shrink:0;}
+
+/* ── MY SESSIONS ── */
+.climb-list-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.climb-list-row:last-of-type{border-bottom:none;}
+.climb-list-grade{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--accent);min-width:52px;}
+.climb-list-detail{flex:1;display:flex;align-items:center;gap:8px;font-size:14px;}
+.climb-list-zone{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:10px;}
+.climb-list-result{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+.climb-list-result.sent{color:var(--accent);}
+.climb-list-result.attempt{color:var(--learning);}
+
+/* ── PREPARE FLOW (index35 adapted) ── */
+.progress-bar{height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-bottom:20px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);border-radius:1px;transition:width .4s ease;}
+.phase-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.phase-tag{padding:2px 9px;border-radius:99px;font-size:10px;font-weight:500;letter-spacing:.06em;}
+.pt-somatic{background:rgba(200,245,90,.1);color:#8aaa20;}
+.pt-context{background:rgba(200,98,42,.1);color:#c8852a;}
+.pt-route{background:rgba(100,140,200,.1);color:#6a8ac8;}
+.pt-fall{background:rgba(100,140,200,.1);color:#6a8ac8;}
+.pt-climb{background:rgba(200,245,90,.1);color:#8aaa20;}
+.pt-inj{background:rgba(255,92,58,.1);color:var(--panic);}
+.pt-fb{background:rgba(88,88,88,.12);color:#888;}
+.q-text{font-size:24px;font-weight:700;line-height:1.3;margin-bottom:8px;color:var(--text);}
+.q-hint{font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:300;line-height:1.55;}
+.q-body-note{font-size:13px;color:var(--muted);margin-bottom:20px;font-weight:300;line-height:1.6;padding:10px 14px;background:rgba(200,98,42,.06);border-radius:6px;border-left:2px solid rgba(200,98,42,.3);font-style:italic;}
+.options{display:flex;flex-direction:column;gap:8px;}
+.option{display:flex;align-items:flex-start;gap:14px;padding:18px 18px;border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;background:var(--surface);}
+.option:active{background:#7e766e;}
+.option.selected{border-color:var(--accent);background:rgba(200,245,90,.05);}
+.opt-marker{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.option.selected .opt-marker{background:var(--accent);border-color:var(--accent);}
+.option.selected .opt-marker::after{content:"";width:6px;height:6px;border-radius:50%;background:#0f0f0f;}
+.opt-label{font-size:17px;line-height:1.5;font-weight:500;color:var(--text);}
+.opt-sub{font-size:14px;color:var(--muted);margin-top:3px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Space Grotesk',sans-serif;}
+.btn:active{transform:scale(.98);}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-p:disabled{opacity:.3;cursor:not-allowed;}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-bottom:8px;}
+.zone-badge{display:inline-block;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;}
+.z-comfort{background:rgba(126,200,122,.12);color:var(--comfort);}
+.z-learning{background:rgba(245,166,35,.12);color:var(--learning);}
+.z-panic{background:rgba(232,68,68,.12);color:var(--panic);}
+.delta-card{border-radius:12px;padding:18px;margin-bottom:16px;border:1px solid;}
+.delta-shifted{background:rgba(255,92,58,.05);border-color:rgba(255,92,58,.2);}
+.delta-mild{background:rgba(245,166,35,.05);border-color:rgba(245,166,35,.2);}
+.delta-stable{background:rgba(200,245,90,.05);border-color:rgba(200,245,90,.2);}
+.delta-eyebrow{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:8px;}
+.delta-shifted .delta-eyebrow{color:var(--panic);}
+.delta-mild .delta-eyebrow{color:var(--learning);}
+.delta-stable .delta-eyebrow{color:var(--accent);}
+.delta-headline{font-size:16px;font-weight:500;line-height:1.4;margin-bottom:10px;color:var(--text);}
+.delta-body{font-size:13px;font-weight:300;line-height:1.75;color:var(--muted);}
+.delta-compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.delta-col-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.delta-col-val{font-size:12px;color:var(--text);line-height:1.5;}
+.result-hero{margin:-20px -20px 16px;padding:20px;border-radius:12px 12px 0 0;}
+.card{border:1px solid var(--border);border-radius:12px;padding:14px 18px;background:var(--surface);margin-top:10px;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.next-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;transition:all .15s;}
+.next-card:active{background:#7e766e;}
+.next-card-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+.next-card-body{flex:1;}
+.next-card-title{font-size:14px;font-weight:500;color:var(--text);}
+.next-card-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+.ci-orange{background:rgba(200,98,42,.15);color:#c8852a;}
+.ci-blue{background:rgba(100,140,200,.15);color:#6a8ac8;}
+.ci-green{background:rgba(200,245,90,.12);color:#8aaa20;}
+.ci-red{background:rgba(255,92,58,.12);color:var(--panic);}
+.pulse-wrap{width:88px;height:88px;border-radius:50%;border:1.5px solid rgba(200,245,90,.3);margin:0 auto 24px;display:flex;align-items:center;justify-content:center;position:relative;}
+.pulse-wrap::before{content:"";position:absolute;inset:-10px;border-radius:50%;border:1px solid rgba(200,245,90,.15);animation:pulseOut 2.8s ease-out infinite;}
+.pulse-wrap::after{content:"";position:absolute;inset:-20px;border-radius:50%;border:1px solid rgba(200,245,90,.07);animation:pulseOut 2.8s ease-out infinite .6s;}
+@keyframes pulseOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.5)}}
+.pulse-inner{width:52px;height:52px;border-radius:50%;background:rgba(200,245,90,.1);border:1.5px solid rgba(200,245,90,.3);display:flex;align-items:center;justify-content:center;}
+.pulse-dot{width:18px;height:18px;border-radius:50%;background:var(--accent);animation:breathe 4s ease-in-out infinite;}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.2);opacity:1}}
+.pause-eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
+.pause-title{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin-bottom:16px;}
+.pause-divider{height:1px;background:var(--border);margin:16px 0;}
+.pause-body{font-size:15px;color:var(--muted);font-weight:300;line-height:1.9;}
+.hist-entry{padding:14px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;cursor:pointer;}
+.hist-entry:last-child{border-bottom:none;}
+.hist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.hist-info{flex:1;}
+.hist-title{font-size:14px;font-weight:500;color:var(--text);}
+.hist-sub{font-size:13px;color:var(--muted);margin-top:2px;line-height:1.4;}
+.fall-entry{padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.fall-entry:last-child{border-bottom:none;}
+.fe-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.fe-info{flex:1;}
+.fe-title{font-size:13px;font-weight:500;color:var(--text);}
+.fe-sub{font-size:13px;color:var(--muted);margin-top:2px;}
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 6px;text-align:center;}
+.stat-num{font-size:22px;font-weight:600;line-height:1;margin-bottom:3px;color:var(--text);}
+.stat-lbl{font-size:9px;color:var(--muted);letter-spacing:.04em;line-height:1.3;}
+.ta-note{min-height:64px;background:var(--surface);width:100%;font-size:14px;font-family:'Space Grotesk',sans-serif;padding:10px 12px;border:1px solid var(--border);border-radius:8px;color:var(--text);resize:vertical;line-height:1.5;}
+.ta-note:focus{outline:none;border-color:var(--accent);}
+.sci-note{font-size:11px;color:var(--muted);font-style:italic;line-height:1.6;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:6px;border-left:2px solid rgba(200,245,90,.25);margin-top:10px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+.save-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(232,118,58,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-toast{position:fixed;bottom:20px;left:16px;right:16px;background:rgba(232,68,68,.95);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;}
+.error-toast.show{opacity:1;}
+.toast.show{opacity:1;}
+.save-ind{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;min-height:16px;}
+.warn-box{font-size:12px;color:var(--panic);background:rgba(255,92,58,.06);border:1px solid rgba(255,92,58,.2);border-radius:8px;padding:10px 14px;margin-top:10px;line-height:1.6;}
+.empty-state{text-align:center;padding:3rem 0;color:var(--muted);}
+.pattern-line{font-size:12px;color:var(--muted);font-weight:300;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:6px;border-left:2px solid var(--accent);display:none;}
+.dummy-banner{font-size:11px;color:var(--learning);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:6px;padding:6px 12px;text-align:center;margin-bottom:12px;}
+
+/* ── RESEARCH / HIW CARDS ── */
+.res-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;}
+.res-card-header{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.res-card-header:active{background:#7e766e;}
+.res-card-icon{width:48px;height:48px;border-radius:10px;overflow:hidden;flex-shrink:0;}
+.res-card-meta{flex:1;min-width:0;}
+.res-card-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:3px;}
+.res-card-title{font-size:15px;font-weight:600;line-height:1.3;color:var(--text);}
+.res-card-sub{font-size:12px;color:var(--muted);line-height:1.5;margin-top:3px;}
+.res-card-chevron{color:var(--accent);font-size:18px;flex-shrink:0;transition:transform .2s;}
+.res-card-chevron.open{transform:rotate(90deg);}
+.res-card-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border);}
+.res-card-body.open{display:block;}
+.res-card-body p{font-size:13px;color:var(--muted);line-height:1.75;margin-top:14px;}
+.res-study{padding:12px 0;border-bottom:1px solid var(--border);}
+.res-study:last-child{border-bottom:none;}
+.res-study-header{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px;}
+.res-year{font-size:10px;background:rgba(255,255,255,.07);color:var(--muted);padding:2px 8px;border-radius:99px;font-weight:500;}
+.res-author{font-size:11px;color:var(--muted);}
+.res-study-text{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:6px;}
+.res-apply{font-size:12px;color:var(--muted);line-height:1.6;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:6px;border-left:2px solid rgba(200,245,90,.3);}
+.zone-explainer-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:10px;}
+.zone-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;}
+.zone-dot-sm{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+
+/* ── FEEDBACK ── */
+.fb-progress{height:3px;background:var(--border);border-radius:2px;margin:16px 0;}
+.fb-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;}
+.fb-q-text{font-size:18px;font-weight:600;line-height:1.35;margin-bottom:20px;color:var(--text);}
+.fb-opts{display:flex;flex-direction:column;gap:10px;}
+.fb-opt{background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:14px 16px;cursor:pointer;text-align:left;transition:all .12s;-webkit-tap-highlight-color:transparent;}
+.fb-opt.selected{border-color:var(--accent);color:var(--accent);background:rgba(200,245,90,.06);}
+.fb-opt:active{transform:scale(.98);}
+.fb-textarea{background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:14px 16px;width:100%;min-height:100px;resize:none;outline:none;}
+.fb-textarea:focus{border-color:var(--accent);}
+.fb-next-btn{background:var(--accent);border:none;border-radius:12px;color:#0f0f0f;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:16px;cursor:pointer;width:100%;margin-top:16px;margin-bottom:8px;opacity:.3;pointer-events:none;-webkit-tap-highlight-color:transparent;}
+.fb-next-btn.ready{opacity:1;pointer-events:all;}
+.fb-success{text-align:center;padding:40px 0;display:none;}
+</style>
+</head>
+<body>
+<div class="app">
+<div id="toast-el" class="toast"></div>
+<div id="error-toast-el" class="error-toast"></div>
+
+<!-- ═══════════════════════════════════════
+     TOP NAV
+═══════════════════════════════════════ -->
+<nav class="footer-nav">
+  <button class="footer-btn" id="fnav-sessions" onclick="showScreen('screen-sessions')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    My Sessions
+  </button>
+  <button class="footer-btn" id="fnav-projects" onclick="showScreen('screen-projects')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20L8 8l4 6 3-4 6 10H3z"/></svg>
+    Projects
+  </button>
+  <button class="footer-btn" id="fnav-hiw" onclick="showScreen('screen-hiw')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+    How It Works
+  </button>
+  <button class="footer-btn" id="fnav-research" onclick="showScreen('screen-research')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    Research
+  </button>
+  <button class="footer-btn" id="fnav-feedback" onclick="showScreen('screen-feedback')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Feedback
+  </button>
+</nav>
+
+<!-- ═══════════════════════════════════════
+     HOME
+═══════════════════════════════════════ -->
+<div class="screen active" id="screen-home">
+  <div class="home-shell">
+    <div>
+      <div class="home-brand">
+        <div class="home-wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+        <div class="home-tagline">Know your body.<br><em>Own your decision.</em></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <div class="home-actions">
+        <button class="home-btn primary" onclick="showScreen('screen-log')">
+          <div class="btn-label"><span>Log a climb</span><span class="btn-sub">After you climb</span></div>
+          <span class="btn-arrow">→</span>
+        </button>
+        <button class="home-btn" onclick="startPrepare()">
+          <div class="btn-label"><span>Prepare for a climb</span><span class="btn-sub">Before you commit</span></div>
+          <span class="btn-arrow">→</span>
+        </button>
+        <button class="home-btn" onclick="showScreen('screen-start-project')" style="border-color:rgba(126,200,122,.4);background:rgba(126,200,122,.06);">
+          <div class="btn-label"><span style="color:var(--comfort);">Start a project</span><span class="btn-sub">Name it. Track everything.</span></div>
+          <span class="btn-arrow" style="color:var(--comfort);">→</span>
+        </button>
+      </div>
+      <div class="hiw-link"><button onclick="showScreen('screen-hiw')">How it works</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     LOG A CLIMB
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-log">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Log a climb<span class="sub">Grade · terrain · result.</span></div>
+
+    <div class="field-group">
+      <div class="field-label">Grade</div>
+      <div class="grade-toggle">
+        <button class="toggle-btn" onclick="setGradeSystem('V')" id="btn-V"><span class="sys-name">V</span><span class="sys-label">Hueco</span></button>
+        <button class="toggle-btn active" onclick="setGradeSystem('YDS')" id="btn-YDS"><span class="sys-name">5.x</span><span class="sys-label">Yosemite</span></button>
+        <button class="toggle-btn" onclick="setGradeSystem('FR')" id="btn-FR"><span class="sys-name">6a+</span><span class="sys-label">French</span></button>
+        <button class="toggle-btn" onclick="setGradeSystem('UK')" id="btn-UK"><span class="sys-name">E1</span><span class="sys-label">UK Tech</span></button>
+      </div>
+      <div class="grade-grid" id="grade-grid"></div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Terrain feature</div>
+      <div class="terrain-chips">
+        <button class="chip" onclick="selectTerrain(this,'Slab')">Slab</button>
+        <button class="chip" onclick="selectTerrain(this,'Vertical')">Vertical</button>
+        <button class="chip" onclick="selectTerrain(this,'Overhang')">Overhang</button>
+        <button class="chip" onclick="selectTerrain(this,'Roof')">Roof</button>
+        <button class="chip" onclick="selectTerrain(this,'Arête')">Arête</button>
+        <button class="chip" onclick="selectTerrain(this,'Dihedral')">Dihedral</button>
+        <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Result</div>
+      <div class="result-row">
+        <button class="result-btn" id="btn-sent" onclick="selectResult('sent')"><span class="emoji">✓</span>Sent</button>
+        <button class="result-btn" id="btn-attempt" onclick="selectResult('attempt')"><span class="emoji">◎</span>Attempt</button>
+      </div>
+    </div>
+  </div>
+  <div style="height:24px"></div>
+  <button class="log-btn" id="log-btn" onclick="logClimb()">Log climb</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     LOGGED — CELEBRATION
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-celebrate">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+    <div style="display:flex;flex-direction:column;gap:12px;padding-top:4px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="tick-mark" style="width:40px;height:40px;flex-shrink:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <p style="font-size:18px;font-weight:700;color:var(--text);">Logged.</p>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-family:'Space Mono',monospace;font-size:36px;font-weight:700;color:var(--accent);line-height:1;" id="card-grade-big">—</div>
+          <div style="font-size:15px;color:var(--muted);margin-top:5px;" id="card-terrain-big">—</div>
+        </div>
+        <div class="climb-result-badge" id="card-badge-big">—</div>
+      </div>
+    </div>
+
+    <!-- TERRAIN SPIDER MAP -->
+    <div class="insight-card">
+      <div class="insight-label">Terrain map</div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <svg id="log-radar-svg" width="140" height="140" viewBox="0 0 220 220" style="flex-shrink:0;"></svg>
+        <div style="flex:1;" id="log-radar-breakdown"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;font-style:italic;line-height:1.5;" id="log-radar-insight"></div>
+    </div>
+
+    <!-- GRADE BAR -->
+    <div class="insight-card">
+      <div class="insight-label">Grade range</div>
+      <div id="grade-bar-container"></div>
+    </div>
+
+    <!-- STAT CARD -->
+    <div class="insight-card" style="display:flex;align-items:center;gap:14px;">
+      <div style="font-size:32px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);flex-shrink:0;line-height:1;" id="stat-number">1</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);" id="stat-label">—</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px;" id="stat-sub">—</div>
+      </div>
+    </div>
+    <div class="save-ind" id="log-save-ind"></div>
+  </div>
+  <div style="height:16px"></div>
+  <!-- Session focus — shown when logging against a project -->
+  <div id="session-focus-block" style="display:none;padding:0 20px 16px;">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Today's focus</div>
+    <div style="font-size:15px;color:var(--muted);margin-bottom:12px;">What are you working on this session?</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;" id="focus-chips">
+      <button class="chip" onclick="selectFocus(this,'crux_movement')">Crux movement</button>
+      <button class="chip" onclick="selectFocus(this,'clipping')">Clipping position</button>
+      <button class="chip" onclick="selectFocus(this,'footwork')">Footwork</button>
+      <button class="chip" onclick="selectFocus(this,'fear_management')">Fear management</button>
+      <button class="chip" onclick="selectFocus(this,'fitness')">Fitness / endurance</button>
+      <button class="chip" onclick="selectFocus(this,'route_reading')">Route reading</button>
+      <button class="chip" onclick="selectFocus(this,'fall_practice')">Fall practice</button>
+      <button class="chip" onclick="selectFocus(this,'general')">General attempt</button>
+    </div>
+  </div>
+  <!-- Edit sheet (slides up) -->
+  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;color:var(--text);">Edit this climb</div>
+      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;padding:6px 12px;cursor:pointer;">Done</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Grade</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="edit-grade-chips"></div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Terrain</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+      <button class="chip" onclick="editSelectTerrain(this,'Slab')">Slab</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Vertical')">Vertical</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Overhang')">Overhang</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Roof')">Roof</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Arête')">Arête</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Dihedral')">Dihedral</button>
+      <button class="chip" onclick="editSelectTerrain(this,'Crack')">Crack</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Result</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button id="edit-btn-sent" onclick="editSelectResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
+      <button id="edit-btn-attempt" onclick="editSelectResult('attempt')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Attempt</button>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
+    <input id="edit-route-name" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
+    <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
+  </div>
+
+  <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
+    <!-- Primary actions -->
+    <button class="action-btn primary-action" onclick="startDeeper()" style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="text-align:left;">
+        <div style="font-size:16px;font-weight:600;">Go Deeper →</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.6);font-weight:400;margin-top:2px;">What happened in your body? 4 questions.</div>
+      </div>
+    </button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="action-btn" onclick="showScreen('screen-route-details')" style="text-align:center;">
+        <div style="font-size:14px;font-weight:600;">Add details</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Name · discipline</div>
+      </button>
+      <button class="action-btn" onclick="openStartProjectFromLog()" style="text-align:center;border-color:rgba(126,200,122,.4);background:rgba(126,200,122,.06);">
+        <div style="font-size:14px;font-weight:600;color:#7ec87a;">Start project</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Track this route</div>
+      </button>
+    </div>
+    <button class="action-btn" onclick="openEditSheet()" style="display:flex;align-items:center;justify-content:space-between;border-color:var(--border2);">
+      <div style="font-size:14px;font-weight:600;color:var(--muted);">Edit this climb</div>
+      <span style="color:var(--muted);font-size:16px;">✎</span>
+    </button>
+    <div class="divider-label">or</div>
+    <button class="action-btn" onclick="logAnother()">Log another climb</button>
+    <button class="action-btn" onclick="showScreen('screen-home')" style="color:var(--muted);border-color:transparent;background:transparent;font-size:14px;">← Home</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     ROUTE DETAILS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-route-details">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-celebrate')">← Back</button>
+  </div>
+  <div class="deeper-header">
+    <span class="deeper-climb-label" id="rd-label">—</span>
+    <span class="deeper-progress">Route context</span>
+  </div>
+  <div class="content">
+    <div class="field-group">
+      <div class="field-label">Route name <span style="color:var(--muted);font-weight:400;letter-spacing:0;text-transform:none;font-size:12px;">— optional</span></div>
+      <input style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:16px;outline:none;transition:border-color .15s;" id="rd-route-name" type="text" placeholder="e.g. Ticks Are For Kids, Project slab..." oninput="logState.routeName=this.value.trim()||null"/>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Discipline</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="rdSelectDisc(this,'Sport')"><strong style="display:block;font-size:15px;">Sport</strong><span style="font-size:12px;color:var(--muted);">Bolted routes</span></button>
+        <button class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="rdSelectDisc(this,'Trad')"><strong style="display:block;font-size:15px;">Trad</strong><span style="font-size:12px;color:var(--muted);">Self-placed gear</span></button>
+        <button class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="rdSelectDisc(this,'Boulder')"><strong style="display:block;font-size:15px;">Boulder</strong><span style="font-size:12px;color:var(--muted);">No rope</span></button>
+        <button class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="rdSelectDisc(this,'Top Rope')"><strong style="display:block;font-size:15px;">Top Rope</strong><span style="font-size:12px;color:var(--muted);">Protected above</span></button>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Environment</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button class="chip" id="rd-indoor" onclick="rdSelectEnv('indoor')" style="padding:16px;border-radius:12px;">Indoor</button>
+        <button class="chip" id="rd-outdoor" onclick="rdSelectEnv('outdoor')" style="padding:16px;border-radius:12px;">Outdoor</button>
+      </div>
+    </div>
+    <div id="rd-outdoor-fields" style="display:none;flex-direction:column;gap:20px;">
+      <div class="field-group">
+        <div class="field-label">Rock type</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="chip" onclick="rdSelectRock(this,'Sandstone')">Sandstone</button>
+          <button class="chip" onclick="rdSelectRock(this,'Limestone')">Limestone</button>
+          <button class="chip" onclick="rdSelectRock(this,'Granite')">Granite</button>
+          <button class="chip" onclick="rdSelectRock(this,'Basalt')">Basalt</button>
+          <button class="chip" onclick="rdSelectRock(this,'Quartzite')">Quartzite</button>
+          <button class="chip" onclick="rdSelectRock(this,'Conglomerate')">Conglomerate</button>
+          <button class="chip" onclick="rdSelectRock(this,'Gneiss')">Gneiss</button>
+          <button class="chip" onclick="rdSelectRock(this,'Schist')">Schist</button>
+          <button class="chip" onclick="rdSelectRock(this,'Rhyolite')">Rhyolite</button>
+          <button class="chip" onclick="rdSelectRock(this,'Tuff')">Tuff</button>
+          <button class="chip" onclick="rdSelectRock(this,'Gabbro')">Gabbro</button>
+          <button class="chip" onclick="rdSelectRock(this,'Unknown')">Unknown</button>
+        </div>
+      </div>
+      <div class="field-group" id="rd-bolt-group" style="display:none;">
+        <div class="field-label">Bolt count</div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button onclick="rdAdjBolt(-1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+          <div style="text-align:center;"><div id="rd-bolt-val" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;text-align:center;">—</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">bolts</div></div>
+          <button onclick="rdAdjBolt(1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Route height</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:13px;color:var(--muted);">Approximate</span>
+          <div style="display:flex;gap:4px;">
+            <button id="rd-unit-ft" onclick="rdSetUnit('ft')" style="background:rgba(232,118,58,.12);border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;">ft</button>
+            <button id="rd-unit-m" onclick="rdSetUnit('m')" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;">m</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button onclick="rdAdjHeight(-1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+          <div style="text-align:center;"><div id="rd-height-val" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;text-align:center;">—</div><div id="rd-height-unit" style="font-size:13px;color:var(--muted);margin-top:2px;">ft</div></div>
+          <button onclick="rdAdjHeight(1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="save-ind" id="rd-save-ind"></div>
+  </div>
+  <div style="height:24px"></div>
+  <button class="log-btn ready" onclick="saveRouteDetails()">Save details</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     GO DEEPER — Q1 BREATHING
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-q1">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-celebrate')">← Back</button>
+  </div>
+  <div class="deeper-header">
+    <span class="deeper-climb-label" id="q1-label">—</span>
+    <span class="deeper-progress">1 of 4</span>
+  </div>
+  <div class="content">
+    <div class="question-card">
+      <!-- Breath wave illustration -->
+      <svg width="100%" viewBox="0 0 280 48" style="display:block;margin-bottom:14px;opacity:.6;">
+        <!-- Calm wave -->
+        <path d="M10,24 C28,12 46,36 64,24 C82,12 100,36 118,24 C136,12 154,36 172,24 C190,12 208,36 226,24 C244,12 262,36 270,24" fill="none" stroke="rgba(126,200,122,.8)" stroke-width="2" stroke-linecap="round"/>
+        <text x="140" y="44" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.6)" letter-spacing=".06em">BREATH PATTERN</text>
+      </svg>
+      <div class="q-number">Breathing</div>
+      <div class="q-text-dark">How was your breathing during this climb?</div>
+      <div class="q-context" onclick="toggleCtx('ctx1','ctx1-arrow')">
+        <span class="q-context-toggle" id="ctx1-arrow">▶</span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx1"> — Breathing is one of the earliest signals of activation state. Restricted or held breath indicates elevated perceived demand.</span></span>
+      </div>
+      <div id="ctx1-sci" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Breath rate is a measurable proxy for autonomic arousal — one of the earliest physiological signals of threat response. <em style="color:var(--muted2);">Garfinkel &amp; Critchley, 2015.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">→ Research</button>
+      </div>
+      <div class="response-chips">
+        <button class="chip" onclick="selectDeepChip(this,'q1')">Easy and steady</button>
+        <button class="chip" onclick="selectDeepChip(this,'q1')">Slightly faster</button>
+        <button class="chip" onclick="selectDeepChip(this,'q1')">Shallow or tight</button>
+        <button class="chip" onclick="selectDeepChip(this,'q1')">I held my breath</button>
+        <button class="chip" onclick="selectDeepChip(this,'q1')">Didn't notice</button>
+      </div>
+    </div>
+  </div>
+  <div style="height:24px"></div>
+  <button class="next-btn" id="next-q1" onclick="showScreen('screen-q2')">Next →</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     GO DEEPER — Q2 GUT
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-q2">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-q1')">← Back</button>
+  </div>
+  <div class="deeper-header">
+    <span class="deeper-climb-label" id="q2-label">—</span>
+    <span class="deeper-progress">2 of 4</span>
+  </div>
+  <div class="content">
+    <div class="question-card">
+      <!-- Gut/body silhouette -->
+      <svg width="100%" viewBox="0 0 280 52" style="display:block;margin-bottom:14px;opacity:.6;">
+        <!-- Simple torso outline -->
+        <ellipse cx="140" cy="26" rx="38" ry="22" fill="none" stroke="rgba(245,166,35,.3)" stroke-width="1.5"/>
+        <!-- Gut region highlighted -->
+        <ellipse cx="140" cy="30" rx="18" ry="10" fill="rgba(245,166,35,.15)" stroke="rgba(245,166,35,.6)" stroke-width="1.5"/>
+        <!-- Pulse rings from gut -->
+        <ellipse cx="140" cy="30" rx="24" ry="14" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="140" y="48" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(245,166,35,.6)" letter-spacing=".06em">SOMATIC MARKER</text>
+      </svg>
+      <div class="q-number">Gut sensation</div>
+      <div class="q-text-dark">Any gut sensation before or on the climb?</div>
+      <div class="q-context" onclick="toggleCtx('ctx2','ctx2-arrow')">
+        <span class="q-context-toggle" id="ctx2-arrow">▶</span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx2"> — Gut sensation fires as a pre-conscious decision marker. Some climbers notice it clearly, others don't — your experience may differ.</span></span>
+      </div>
+      <div id="ctx2-sci" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Gut sensation functions as a pre-conscious somatic marker — patients without this signal made systematically worse decisions even when they knew the correct choice. <em style="color:var(--muted2);">Damasio, 1994.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">→ Research</button>
+      </div>
+      <div class="response-chips">
+        <button class="chip" onclick="selectDeepChip(this,'q2')">Settled, neutral</button>
+        <button class="chip" onclick="selectDeepChip(this,'q2')">Mild flutter</button>
+        <button class="chip" onclick="selectDeepChip(this,'q2')">Noticeable tension</button>
+        <button class="chip" onclick="selectDeepChip(this,'q2')">Didn't notice</button>
+      </div>
+    </div>
+  </div>
+  <div style="height:24px"></div>
+  <button class="next-btn" id="next-q2" onclick="showScreen('screen-q3')">Next →</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     GO DEEPER — Q3 CRUX
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-q3">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-q2')">← Back</button>
+  </div>
+  <div class="deeper-header">
+    <span class="deeper-climb-label" id="q3-label">—</span>
+    <span class="deeper-progress">3 of 4</span>
+  </div>
+  <div class="content">
+    <div class="question-card">
+      <!-- Yerkes-Dodson mini curve -->
+      <svg width="100%" viewBox="0 0 280 60" style="display:block;margin-bottom:14px;opacity:.7;">
+        <defs><marker id="arr-yd" markerWidth="6" markerHeight="5" refX="4" refY="2.5" orient="auto"><polygon points="0 0,6 2.5,0 5" fill="rgba(255,255,255,.3)"/></marker></defs>
+        <!-- Zone bands -->
+        <rect x="20" y="4" width="56" height="48" fill="rgba(126,200,122,.07)" rx="3"/>
+        <rect x="78" y="0" width="124" height="56" fill="rgba(245,166,35,.07)" rx="3"/>
+        <rect x="204" y="4" width="56" height="48" fill="rgba(232,68,68,.07)" rx="3"/>
+        <!-- Curve -->
+        <path d="M20,50 Q60,4 140,4 Q220,4 260,50" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2" stroke-linecap="round"/>
+        <!-- Crux dot — near L/P boundary -->
+        <circle cx="210" cy="14" r="5" fill="#f5a623"/>
+        <circle cx="210" cy="14" r="8" fill="none" stroke="#f5a623" stroke-width="1" opacity=".4"/>
+        <!-- Labels -->
+        <text x="48" y="54" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(126,200,122,.7)">Comfort</text>
+        <text x="140" y="54" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(245,166,35,.7)">Learning</text>
+        <text x="232" y="54" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(232,68,68,.7)">Panic</text>
+        <text x="210" y="9" text-anchor="middle" font-family="Space Mono,monospace" font-size="7" fill="#f5a623">crux</text>
+      </svg>
+      <div class="q-number">Crux moment</div>
+      <div class="q-text-dark">Was there a moment that stood out — a hesitation, a decision point?</div>
+      <div class="q-context" onclick="toggleCtx('ctx3','ctx3-arrow')">
+        <span class="q-context-toggle" id="ctx3-arrow">▶</span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx3"> — Crux moments are where risk perception peaks and activation spikes. Noticing your response there builds pattern awareness over time.</span></span>
+      </div>
+      <div id="ctx3-sci" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Performance follows an inverted-U curve relative to arousal — the crux is often where you cross into over-activation. Conscious monitoring at that point is the skill. <em style="color:var(--muted2);">Yerkes &amp; Dodson, 1908. Beilock &amp; Carr, 2001.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">→ Research</button>
+      </div>
+      <div class="response-chips">
+        <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I paused</button>
+        <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I backed off</button>
+        <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I pushed through</button>
+        <button class="chip" onclick="selectDeepChip(this,'q3')">No standout moment</button>
+      </div>
+    </div>
+  </div>
+  <div style="height:24px"></div>
+  <button class="next-btn" id="next-q3" onclick="showScreen('screen-q4')">Next →</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     GO DEEPER — Q4 BODY STATE
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-q4">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-q3')">← Back</button>
+  </div>
+  <div class="deeper-header">
+    <span class="deeper-climb-label" id="q4-label">—</span>
+    <span class="deeper-progress">4 of 4</span>
+  </div>
+  <div class="content">
+    <div class="question-card">
+      <!-- Mini concentric rings -->
+      <svg width="100%" viewBox="0 0 280 56" style="display:block;margin-bottom:14px;opacity:.65;">
+        <circle cx="140" cy="28" r="26" fill="rgba(232,68,68,.1)" stroke="rgba(232,68,68,.3)" stroke-width="1"/>
+        <circle cx="140" cy="28" r="18" fill="rgba(245,166,35,.12)" stroke="rgba(245,166,35,.35)" stroke-width="1"/>
+        <circle cx="140" cy="28" r="10" fill="rgba(126,200,122,.16)" stroke="rgba(126,200,122,.45)" stroke-width="1"/>
+        <text x="140" y="31" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.8)" font-weight="600">C</text>
+        <text x="140" y="21" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6.5" fill="rgba(245,166,35,.7)">L</text>
+        <text x="140" y="8" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(232,68,68,.7)">P</text>
+        <text x="80" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.6)">Comfort</text>
+        <text x="200" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(232,68,68,.6)">Panic</text>
+      </svg>
+      <div class="q-number">Body state</div>
+      <div class="q-text-dark">How did your body feel for most of this climb?</div>
+      <div class="q-context" onclick="toggleCtx('ctx4','ctx4-arrow')">
+        <span class="q-context-toggle" id="ctx4-arrow">▶</span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx4"> — This asks what you noticed, not what zone you were in. Your body data maps to a zone — you just report what was there.</span></span>
+      </div>
+      <div id="ctx4-sci" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Interoceptive accuracy — the ability to notice what your body is doing — is measurable and trainable. This question builds that skill over time. <em style="color:var(--muted2);">Price &amp; Hooven, 2018.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">→ Research</button>
+      </div>
+      <div class="response-chips">
+        <button class="chip" onclick="selectDeepChip(this,'q4','comfort')">Settled and in control</button>
+        <button class="chip" onclick="selectDeepChip(this,'q4','learning')">Activated but manageable</button>
+        <button class="chip" onclick="selectDeepChip(this,'q4','panic')">Tight and reactive</button>
+        <button class="chip" onclick="selectDeepChip(this,'q4','unsure')">Hard to read</button>
+      </div>
+    </div>
+  </div>
+  <div style="height:24px"></div>
+  <button class="next-btn" id="next-q4" onclick="finishDeeper()">See reflection →</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     REFLECTION
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-reflection">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+    <!-- Route context -->
+    <div style="display:flex;align-items:center;gap:12px;padding:4px 0 16px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+      <div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--accent);line-height:1;" id="reflect-grade">—</div>
+      <div>
+        <div style="font-size:16px;font-weight:600;color:var(--text);" id="reflect-terrain">—</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px;" id="reflect-result-lbl">—</div>
+      </div>
+      <div style="margin-left:auto;" id="reflect-zone-pill"></div>
+    </div>
+    <div class="screen-title" style="font-size:24px;">Reflection logged.<span class="sub" style="font-size:16px;">Your data is building a picture.</span></div>
+
+    <!-- ZONE MAP -->
+    <div class="insight-card">
+      <div class="insight-label">Zone signal</div>
+      <div style="display:flex;gap:16px;align-items:center;">
+        <div style="flex-shrink:0;">
+          <svg id="zone-map-svg" width="110" height="110" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="90" fill="rgba(255,92,58,.06)" stroke="rgba(255,92,58,.18)" stroke-width="1"/>
+            <circle cx="100" cy="100" r="60" fill="rgba(245,166,35,.08)" stroke="rgba(245,166,35,.2)" stroke-width="1"/>
+            <circle cx="100" cy="100" r="30" fill="rgba(200,245,90,.12)" stroke="rgba(200,245,90,.25)" stroke-width="1"/>
+            <text x="100" y="104" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(200,245,90,.8)" font-weight="500">Comfort</text>
+            <text x="100" y="76" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(245,166,35,.75)">Learning</text>
+            <text x="100" y="28" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.7)">Panic</text>
+            <circle id="zone-dot" cx="100" cy="100" r="7" fill="#c8f55a" opacity="0"/>
+            <circle id="zone-dot-ring" cx="100" cy="100" r="13" fill="none" stroke="#c8f55a" stroke-width="1.5" opacity="0"/>
+          </svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;line-height:1.6;color:var(--text);" id="insight-text">—</div>
+          <div id="zone-pill-container" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+
+      <!-- Mini zone reminder -->
+      <div style="display:flex;align-items:center;gap:2px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="flex:2;height:6px;background:rgba(126,200,122,.5);border-radius:3px 0 0 3px;"></div>
+        <div style="flex:1;height:6px;background:rgba(180,210,80,.5);"></div>
+        <div style="flex:3;height:6px;background:rgba(245,166,35,.6);"></div>
+        <div style="flex:1;height:6px;background:rgba(232,118,58,.45);"></div>
+        <div style="flex:2;height:6px;background:rgba(232,68,68,.4);border-radius:0 3px 3px 0;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <div style="font-size:9px;font-weight:700;color:rgba(126,200,122,.7);letter-spacing:.04em;">Comfort</div>
+        <div style="font-size:9px;font-weight:700;color:rgba(245,166,35,.7);letter-spacing:.04em;">Learning</div>
+        <div style="font-size:9px;font-weight:700;color:rgba(232,68,68,.6);letter-spacing:.04em;">Panic</div>
+      </div>
+    <!-- SESSION ARC -->
+    <div class="insight-card">
+      <div class="insight-label">Session arc</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;">Each dot is one session. Oldest left, latest right.</div>
+      <svg id="river-svg" width="100%" viewBox="0 0 320 100" style="display:block;overflow:visible;">
+        <rect x="0" y="66" width="320" height="34" fill="rgba(200,245,90,.04)"/>
+        <rect x="0" y="33" width="320" height="33" fill="rgba(245,166,35,.04)"/>
+        <rect x="0" y="0" width="320" height="33" fill="rgba(255,92,58,.04)"/>
+        <text x="6" y="11" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.4)" letter-spacing=".06em">PANIC</text>
+        <text x="6" y="52" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.4)" letter-spacing=".06em">LEARNING</text>
+        <text x="6" y="95" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(200,245,90,.4)" letter-spacing=".06em">COMFORT</text>
+        <circle cx="60" cy="82" r="4" fill="rgba(200,245,90,.5)"/>
+        <circle cx="110" cy="75" r="4" fill="rgba(200,245,90,.5)"/>
+        <circle cx="160" cy="48" r="4" fill="rgba(245,166,35,.6)"/>
+        <circle cx="210" cy="40" r="4" fill="rgba(245,166,35,.6)"/>
+        <circle cx="260" cy="55" r="4" fill="rgba(245,166,35,.6)"/>
+        <circle id="river-current-dot" cx="300" cy="82" r="5.5" fill="#c8f55a"/>
+        <circle cx="300" cy="82" r="9" fill="none" stroke="rgba(200,245,90,.3)" stroke-width="1.5" id="river-current-ring"/>
+        <polyline points="60,82 110,75 160,48 210,40 260,55 300,82" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5" stroke-linejoin="round" id="river-line"/>
+      </svg>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;font-style:italic;line-height:1.5;" id="river-insight">Your sessions build here as you log more climbs.</div>
+    </div>
+
+    <!-- MY SESSIONS NAV CARD -->
+    <div class="nav-visual-card" onclick="showScreen('screen-sessions')">
       <div style="flex-shrink:0;">
-        <svg id="scan-body-svg" width="110" height="240" viewBox="0 0 130 278" style="display:block;">
-          <g id="scan-z-head" onclick="scanToggle('head')" style="cursor:pointer;"><rect x="47" y="5" width="36" height="40" rx="18" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width=".75" id="scan-bg-head"/><text x="65" y="29" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(255,255,255,.4)" id="scan-lbl-head">head · neck</text></g>
-          <rect x="62" y="45" width="6" height="10" rx="3" fill="rgba(255,255,255,.06)"/>
-          <g id="scan-z-shoulders" onclick="scanToggle('shoulders')" style="cursor:pointer;"><rect x="6" y="55" width="118" height="48" rx="12" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width=".75" id="scan-bg-shoulders"/><text x="65" y="83" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(255,255,255,.4)" id="scan-lbl-shoulders">shoulders · arms</text></g>
-          <g id="scan-z-chest" onclick="scanToggle('chest')" style="cursor:pointer;"><rect x="20" y="107" width="90" height="44" rx="10" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width=".75" id="scan-bg-chest"/><text x="65" y="133" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(255,255,255,.4)" id="scan-lbl-chest">chest · upper back</text></g>
-          <g id="scan-z-core" onclick="scanToggle('core')" style="cursor:pointer;"><rect x="26" y="155" width="78" height="42" rx="9" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width=".75" id="scan-bg-core"/><text x="65" y="180" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(255,255,255,.4)" id="scan-lbl-core">core · lower back</text></g>
-          <g id="scan-z-lower" onclick="scanToggle('lower')" style="cursor:pointer;"><rect x="16" y="201" width="98" height="46" rx="10" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width=".75" id="scan-bg-lower"/><text x="65" y="228" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(255,255,255,.4)" id="scan-lbl-lower">hips · legs · feet</text></g>
+        <svg width="48" height="48" viewBox="0 0 96 96">
+          <circle cx="48" cy="48" r="44" fill="rgba(200,245,90,.06)" stroke="rgba(200,245,90,.15)" stroke-width="1"/>
+          <line x1="48" y1="10" x2="48" y2="86" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <line x1="10" y1="48" x2="86" y2="48" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <polygon points="48,22 74,48 48,68 22,48" fill="rgba(200,245,90,.15)" stroke="#c8f55a" stroke-width="1.5" stroke-linejoin="round"/>
+          <circle cx="48" cy="22" r="3" fill="#c8f55a"/>
+          <circle cx="74" cy="48" r="3" fill="#c8f55a"/>
+          <circle cx="48" cy="68" r="3" fill="#c8f55a"/>
+          <circle cx="22" cy="48" r="3" fill="#c8f55a"/>
         </svg>
       </div>
-      <div style="flex:1;padding-top:8px;">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6;">Tap regions where you notice something. Tapping again clears.</div>
-        <div id="scan-selections" style="font-size:13px;color:var(--accent);min-height:20px;"></div>
+      <div class="nav-visual-body">
+        <div class="nav-visual-label">My sessions</div>
+        <div class="nav-visual-sub">Terrain map · zone arc · climb history</div>
       </div>
+      <div class="nav-visual-arrow">›</div>
+    </div>
+  </div>
+  <div style="height:20px"></div>
+  <div class="action-stack">
+    <button class="action-btn primary-action" onclick="logAnother()">Log another climb <span class="arrow">→</span></button>
+    <button class="action-btn" onclick="showScreen('screen-home')" style="color:var(--muted);border-color:transparent;background:transparent;font-size:14px;">← Home</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     FALL / INCIDENT (attempts only)
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-incident">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-reflection')">← Skip</button>
+  </div>
+  <div class="incident-header">
+    <span class="incident-label">What happened</span>
+    <span class="deeper-progress" id="incident-progress">—</span>
+  </div>
+  <div class="content" id="incident-content">
+    <!-- rendered by JS -->
+  </div>
+  <div style="height:24px"></div>
+  <button class="next-btn" id="incident-next-btn" onclick="incidentNext()">Next →</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MY SESSIONS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-sessions" style="padding-bottom:0;">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">My sessions<span class="sub">Your climbing data, mapped.</span></div>
+
+    <!-- ── PREVIEW SECTION ── -->
+    <div id="sessions-preview-section">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;padding:0 4px;">Preview · 20 sessions</div>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <div style="opacity:.65;">
+
+        <!-- PREVIEW STAT STRIP -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+          <div class="insight-card" style="padding:16px;position:relative;">
+            <div class="insight-label" style="margin-bottom:6px;">Total logged</div>
+            <div style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">20</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">climbs</div>
+            <div style="position:absolute;bottom:12px;right:12px;font-size:10px;color:var(--accent);opacity:.7;">↑ yours builds here</div>
+          </div>
+          <div class="insight-card" style="padding:16px;">
+            <div class="insight-label" style="margin-bottom:6px;">Send rate</div>
+            <div style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">68%</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">of attempts sent</div>
+          </div>
+          <div class="insight-card" style="padding:16px;">
+            <div class="insight-label" style="margin-bottom:6px;">Most time in</div>
+            <div style="font-size:22px;font-weight:700;color:#f5a623;line-height:1;margin-top:2px;">Learning</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">55% of sessions</div>
+          </div>
+          <div class="insight-card" style="padding:16px;">
+            <div class="insight-label" style="margin-bottom:6px;">Hardest send</div>
+            <div style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">5.11c</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">Overhang · Learning</div>
+          </div>
+        </div>
+
+        <!-- PREVIEW ZONE ARC -->
+        <div class="insight-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+            <div>
+              <div class="insight-label">Zone arc</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px;line-height:1.5;">Each point represents one session. Vertical position indicates activation zone at time of logging.</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);text-align:right;line-height:1.5;font-style:italic;">← panic spikes<br>early, then settles</div>
+          </div>
+          <svg width="100%" viewBox="0 0 320 100" style="display:block;overflow:visible;">
+            <rect x="0" y="0" width="320" height="33" fill="rgba(255,92,58,.05)"/>
+            <rect x="0" y="33" width="320" height="34" fill="rgba(245,166,35,.04)"/>
+            <rect x="0" y="67" width="320" height="33" fill="rgba(200,245,90,.05)"/>
+            <text x="6" y="11" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.5)" letter-spacing=".08em" font-weight="600">PANIC</text>
+            <text x="6" y="52" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(245,166,35,.75)" font-weight="600" letter-spacing=".08em" font-weight="600">LEARNING</text>
+            <text x="6" y="95" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(200,245,90,.5)" letter-spacing=".08em" font-weight="600">COMFORT</text>
+            <polyline points="18,83 42,83 62,17 80,50 100,17 118,50 138,50 158,83 176,83 194,50 214,50 234,50 252,83 272,50 292,50 308,50" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linejoin="round"/>
+            <circle cx="18" cy="83" r="4" fill="rgba(200,245,90,.6)"/>
+            <circle cx="42" cy="83" r="4" fill="rgba(200,245,90,.6)"/>
+            <circle cx="62" cy="17" r="4" fill="rgba(255,92,58,.7)"/>
+            <circle cx="80" cy="50" r="4" fill="rgba(245,166,35,.7)"/>
+            <circle cx="100" cy="17" r="4" fill="rgba(255,92,58,.7)"/>
+            <circle cx="118" cy="50" r="4" fill="rgba(245,166,35,.7)"/>
+            <circle cx="138" cy="50" r="4" fill="rgba(245,166,35,.7)"/>
+            <circle cx="158" cy="83" r="4" fill="rgba(200,245,90,.6)"/>
+            <circle cx="176" cy="83" r="4" fill="rgba(200,245,90,.6)"/>
+            <circle cx="194" cy="50" r="4" fill="rgba(245,166,35,.7)"/>
+            <circle cx="214" cy="50" r="4" fill="rgba(245,166,35,.7)"/>
+            <circle cx="234" cy="50" r="4" fill="rgba(245,166,35,.7)"/>
+            <circle cx="252" cy="83" r="4" fill="rgba(200,245,90,.6)"/>
+            <circle cx="272" cy="50" r="4" fill="rgba(245,166,35,.7)"/>
+            <circle cx="292" cy="50" r="4" fill="rgba(245,166,35,.7)"/>
+            <circle cx="308" cy="50" r="5.5" fill="#f5a623"/>
+            <circle cx="308" cy="50" r="9" fill="none" stroke="#f5a623" stroke-width="1.5" opacity=".4"/>
+          </svg>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6;padding:8px 12px;background:rgba(232,118,58,.04);border-radius:6px;border-left:2px solid rgba(232,118,58,.2);font-style:italic;">Panic-zone activation concentrated in sessions 3 and 5. Activation has remained within the Learning zone for the most recent 8 sessions — consistent with progressive exposure adaptation.</div>
+        </div>
+
+        <!-- PREVIEW TERRAIN RADAR -->
+        <div class="insight-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+            <div>
+              <div class="insight-label">Terrain experience</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px;">Where your volume is — and where the gaps are.</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);text-align:right;line-height:1.5;font-style:italic;">Crack &amp; Arête —<br>insufficient data</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <svg id="preview-radar-svg" width="160" height="160" viewBox="0 0 220 220" style="flex-shrink:0;"></svg>
+            <div id="preview-radar-breakdown" style="flex:1;min-width:0;"></div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6;padding:8px 12px;background:rgba(232,118,58,.04);border-radius:6px;border-left:2px solid rgba(232,118,58,.2);font-style:italic;">Session volume concentrated in Overhang terrain. Crack and Arête represent exposure gaps — terrain types with insufficient data to identify activation patterns.</div>
+        </div>
+
+        <!-- PREVIEW GRADE DISTRIBUTION -->
+        <div class="insight-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div class="insight-label">Grade range</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px;">Session volume by grade. Bar height = frequency. Color = most common activation zone at that grade.</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);text-align:right;line-height:1.5;font-style:italic;">Activation shifts at<br>5.10c → 5.11</div>
+          </div>
+          <div id="preview-grade-dist" style="display:flex;align-items:flex-end;gap:5px;height:72px;"></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;margin-bottom:8px;line-height:1.6;padding:8px 12px;background:rgba(232,118,58,.04);border-radius:6px;border-left:2px solid rgba(232,118,58,.2);font-style:italic;">Grade progression evident — volume concentrated at 5.10d–5.11b. Activation zone shifts from Comfort to Learning at 5.10c. Panic-zone incidence increases at 5.11c and above.</div>
+          <div style="display:flex;gap:12px;margin-top:10px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--accent);"><div style="width:8px;height:8px;border-radius:2px;background:var(--accent);opacity:.7;"></div>Comfort</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#f5a623;"><div style="width:8px;height:8px;border-radius:2px;background:#f5a623;opacity:.7;"></div>Learning</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#ff5c3a;"><div style="width:8px;height:8px;border-radius:2px;background:#ff5c3a;opacity:.7;"></div>Panic</div>
+          </div>
+        </div>
+
+        <!-- PREVIEW ZONE BY TERRAIN -->
+        <div class="insight-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div class="insight-label">Zone × terrain</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px;">Cell intensity reflects session frequency at each terrain–zone intersection.</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);text-align:right;line-height:1.5;font-style:italic;">Roof — Panic in<br>3 of 4 sessions</div>
+          </div>
+          <div id="preview-zone-terrain"></div>
+        </div>
+
+        <!-- PREVIEW BREATHING -->
+        <div class="insight-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div class="insight-label">Breathing pattern</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px;">Post-climb respiratory state distribution across Go Deeper sessions.</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);text-align:right;line-height:1.5;font-style:italic;">Restricted breathing<br>co-occurs with Panic</div>
+          </div>
+          <div id="preview-breath-bars"></div>
+        </div>
+
+        <!-- PREVIEW SEND VS ATTEMPT -->
+        <div class="insight-card" style="margin-bottom:16px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div class="insight-label">Completion by zone</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px;">Relationship between activation state and climb completion rate.</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted);text-align:right;line-height:1.5;font-style:italic;">Completion rate<br>varies by zone</div>
+          </div>
+          <div id="preview-sent-breakdown"></div>
+        </div>
+
+      </div><!-- end opacity wrapper -->
+    </div><!-- end preview section -->
+
+    <!-- ── YOUR DATA SECTION ── -->
+    <div style="display:flex;align-items:center;gap:10px;margin:24px 0 20px;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);white-space:nowrap;padding:0 4px;">Your data</div>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+
+    <div id="your-data-section">
+      <!-- Routes section — appears when named routes exist -->
+      <div id="real-routes-section" style="display:none;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">Routes &amp; Projects</div>
+        <button onclick="showScreen('screen-start-project')" style="background:rgba(126,200,122,.15);border:1px solid rgba(126,200,122,.4);border-radius:10px;color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:8px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;">+ Start a project</button>
+      </div>
+        <div class="insight-card" style="padding:0 18px;" id="real-routes-list"></div>
+      </div>
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div class="insight-card" style="padding:16px;">
+          <div class="insight-label" style="margin-bottom:6px;">Total logged</div>
+          <div id="real-total" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">climbs</div>
+        </div>
+        <div class="insight-card" style="padding:16px;">
+          <div class="insight-label" style="margin-bottom:6px;">Send rate</div>
+          <div id="real-sent" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">—</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">of attempts sent</div>
+        </div>
+      </div>
+
+      <!-- Real zone arc -->
+      <div class="insight-card" style="margin-bottom:16px;">
+        <div class="insight-label" style="margin-bottom:10px;">Zone arc</div>
+        <svg id="river-svg-sessions" width="100%" viewBox="0 0 320 100" style="display:block;overflow:visible;">
+          <rect x="0" y="0" width="320" height="33" fill="rgba(255,92,58,.05)"/>
+          <rect x="0" y="33" width="320" height="34" fill="rgba(245,166,35,.04)"/>
+          <rect x="0" y="67" width="320" height="33" fill="rgba(200,245,90,.05)"/>
+          <text x="6" y="11" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.4)" letter-spacing=".06em">PANIC</text>
+          <text x="6" y="52" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.4)" letter-spacing=".06em">LEARNING</text>
+          <text x="6" y="95" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(200,245,90,.4)" letter-spacing=".06em">COMFORT</text>
+          <g id="arc-dots-real"></g>
+        </svg>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;" id="sessions-arc-insight">Log climbs to build your arc.</div>
+      </div>
+
+      <!-- Real terrain radar -->
+      <div class="insight-card" style="margin-bottom:16px;">
+        <div class="insight-label" style="margin-bottom:14px;">Terrain experience</div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <svg id="radar-svg" width="160" height="160" viewBox="0 0 220 220" style="flex-shrink:0;"></svg>
+          <div style="flex:1;min-width:0;" id="radar-breakdown"></div>
+        </div>
+        <div id="radar-insight" style="font-size:12px;color:var(--muted);font-style:italic;line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:none;"></div>
+      </div>
+
+      <!-- Real climbs list -->
+      <div class="insight-card">
+        <div class="insight-label" style="margin-bottom:14px;">Recent climbs</div>
+        <div id="sessions-climb-list"><div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     PREPARE FOR A CLIMB — ANCHOR/SOMATIC
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-prepare">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Prepare for a climb<span class="sub">Before you commit — a somatic check-in.</span></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;">
+      <div class="pause-eyebrow">Before anything else</div>
+      <div style="font-size:17px;font-weight:600;margin-bottom:12px;line-height:1.3;">Take one breath.<br>Notice your body right now.</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px;">This tool starts with your body — before you think about the route, the grade, or anything else. Your gut and breath are already reporting something. This helps you hear it.</div>
+      <div class="pulse-wrap">
+        <div class="pulse-inner"><div class="pulse-dot"></div></div>
+      </div>
+      <button class="btn btn-p" onclick="startPrepareFlow()" style="width:100%;justify-content:center;padding:16px;font-size:15px;border-radius:10px;margin-top:8px;">Start check-in →</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;line-height:1.6;">Self-reported data only · Not a clinical assessment · ~3 minutes</div>
+  </div>
+</div>
+
+<!-- PREPARE — ASSESSMENT QUESTIONS -->
+<div class="screen" id="s-assess">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-prepare')">← Back</button>
+  </div>
+  <div class="content">
+    <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+    <div class="phase-label" id="phase-lbl"></div>
+    <div class="q-text" id="q-text"></div>
+    <div class="q-hint" id="q-hint"></div>
+    <div id="q-body-note" class="q-body-note" style="display:none"></div>
+    <div id="q-wrap"></div>
+    <div class="nav">
+      <button class="btn" id="btn-back" onclick="goBack()">Back</button>
+      <button class="btn btn-p" id="btn-next" onclick="goNext()" disabled>Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREPARE — PAUSE SCREEN -->
+<div class="screen" id="s-pause">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;">
+      <div class="pause-eyebrow">Stop. Check in.</div>
+      <div style="font-size:17px;font-weight:600;margin-bottom:12px;line-height:1.3;">You just thought through this route.<br>Take one breath.</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:24px;">Notice if anything has shifted in your breath or gut since you started. The next two questions ask exactly this. The pause is the point — not the questions.</div>
+      <div class="pulse-wrap">
+        <div class="pulse-inner"><div class="pulse-dot"></div></div>
+      </div>
+      <div class="sci-note" style="margin-top:20px;">Somatic attention before a decision improves decision quality by activating pre-decision physiological markers. <em>Damasio, A.R. (1994). Descartes' Error.</em></div>
+      <button class="btn btn-p" onclick="dismissPause()" style="width:100%;justify-content:center;padding:16px;font-size:15px;border-radius:10px;margin-top:20px;">Ready — check in →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREPARE — RESULT -->
+<div class="screen" id="s-result">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+  </div>
+  <div class="content">
+    <div id="pattern-line" class="pattern-line"></div>
+    <div class="result-hero" id="result-hero">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="ct-tag-result" style="display:none"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div class="zone-badge" id="zone-badge"></div>
+        <span id="refined-lbl" style="display:none;font-size:11px;color:var(--accent);">Route-refined</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);font-weight:300;line-height:1.5;" id="res-subtitle"></div>
+    </div>
+
+
+      <!-- Mini zone reminder -->
+      <div style="display:flex;align-items:center;gap:2px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="flex:2;height:6px;background:rgba(126,200,122,.5);border-radius:3px 0 0 3px;"></div>
+        <div style="flex:1;height:6px;background:rgba(180,210,80,.5);"></div>
+        <div style="flex:3;height:6px;background:rgba(245,166,35,.6);"></div>
+        <div style="flex:1;height:6px;background:rgba(232,118,58,.45);"></div>
+        <div style="flex:2;height:6px;background:rgba(232,68,68,.4);border-radius:0 3px 3px 0;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <div style="font-size:9px;font-weight:700;color:rgba(126,200,122,.7);letter-spacing:.04em;">Comfort</div>
+        <div style="font-size:9px;font-weight:700;color:rgba(245,166,35,.7);letter-spacing:.04em;">Learning</div>
+        <div style="font-size:9px;font-weight:700;color:rgba(232,68,68,.6);letter-spacing:.04em;">Panic</div>
+      </div>
+    <div id="delta-card" class="delta-card delta-stable">
+      <div class="delta-eyebrow" id="delta-eyebrow">What your body reported</div>
+      <div class="delta-headline" id="delta-headline"></div>
+      <div class="delta-body" id="delta-body"></div>
+      <div class="delta-compare">
+        <div><div class="delta-col-label">Before route thinking</div><div class="delta-col-val" id="delta-before"></div></div>
+        <div><div class="delta-col-label">After route thinking</div><div class="delta-col-val" id="delta-after"></div></div>
+      </div>
+    </div>
+
+    <div id="body-scan-note" style="display:none;font-size:12px;color:var(--muted);padding:8px 14px;border-radius:6px;background:rgba(200,98,42,.05);border-left:2px solid rgba(200,98,42,.3);margin-bottom:16px;line-height:1.5;font-weight:300;"></div>
+
+    <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:20px;">
+      <div style="flex-shrink:0;">
+        <svg id="result-zone-map" width="120" height="120" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="90" fill="rgba(255,92,58,.06)" stroke="rgba(255,92,58,.18)" stroke-width=".5"/>
+          <circle cx="100" cy="100" r="60" fill="rgba(245,166,35,.08)" stroke="rgba(245,166,35,.2)" stroke-width=".5"/>
+          <circle cx="100" cy="100" r="30" fill="rgba(200,245,90,.12)" stroke="rgba(200,245,90,.25)" stroke-width=".5"/>
+          <text x="100" y="104" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(200,245,90,.8)" font-weight="500">Comfort</text>
+          <text x="100" y="76" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(245,166,35,.75)">Learning</text>
+          <text x="100" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.7)">Panic</text>
+          <circle id="zone-dot" cx="100" cy="100" r="7" fill="#c8f55a" opacity="0"/>
+          <circle id="zone-dot-ring" cx="100" cy="100" r="12" fill="none" stroke="#c8f55a" stroke-width="1.5" opacity="0"/>
+        </svg>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;line-height:1.75;color:var(--muted);font-weight:300;" id="g-text"></div>
+        <div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:8px;line-height:1.6;padding-top:8px;border-top:1px solid var(--border);" id="g-process"></div>
+      </div>
+    </div>
+
+    <div id="small-step" style="display:none;border:1px solid rgba(255,92,58,.25);border-radius:12px;padding:16px;background:rgba(255,92,58,.04);margin-bottom:14px;">
+      <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--panic);margin-bottom:8px;">Consider a reduced-demand variant</div>
+      <div style="font-size:13px;color:var(--muted);font-weight:300;line-height:1.6;">Identify a version of this challenge within the learning zone. Research shows deliberate practice at the learning edge produces faster adaptation. <em>Ericsson, K.A. (1993).</em></div>
+    </div>
+
+    <div class="divider"></div>
+    <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Next</div>
+
+    <button class="btn btn-p" onclick="startLogFromPrepare()" style="width:100%;justify-content:center;padding:14px 20px;font-size:15px;margin-bottom:10px;border-radius:10px;">Log this climb after →</button>
+
+    <div id="deeper-gate" style="margin-bottom:14px;">
+      <button class="btn" onclick="startDeeperPrepare()" style="width:100%;justify-content:center;font-size:13px;margin-bottom:6px;">Route Analysis →</button>
+      <div style="font-size:11px;color:var(--muted);text-align:center;">10 route-specific questions refine your zone placement</div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);text-align:center;line-height:1.6;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">Sharp End Exposure records self-reported readiness data. Not a clinical assessment. All decisions remain with the climber.</div>
+    <div class="save-ind" id="save-ind"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+      <button class="btn" onclick="restart()" style="font-size:13px;color:var(--muted);">Start over</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREPARE — ROUTE ANALYSIS (DEEPER) -->
+<div class="screen" id="s-deeper">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="show('s-result')">← Back</button>
+  </div>
+  <div class="content">
+    <div class="progress-bar"><div class="progress-fill" id="deep-prog"></div></div>
+    <div class="phase-label" id="deep-phase-lbl"></div>
+    <div class="q-text" id="deep-q-text"></div>
+    <div class="q-hint" id="deep-q-hint"></div>
+    <div id="deep-q-wrap"></div>
+    <div class="nav">
+      <button class="btn" id="deep-back" onclick="deepBack()">Back</button>
+      <button class="btn btn-p" id="deep-next" onclick="deepNext()" disabled>Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREPARE — BODY SCAN -->
+<div class="screen" id="s-body-scan">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+    <div class="progress-bar"><div class="progress-fill" style="width:27%"></div></div>
+    <div class="phase-label">Step 3 of 11 <span class="phase-tag pt-somatic">Body scan</span></div>
+    <div class="q-text">Full body scan</div>
+    <div class="q-hint">Take three slow breaths. Starting at the top of your head, scan downward. Tap any region where you notice something.</div>
+    <div class="q-body-note" style="display:block;">Tension, soreness, tightness, fatigue — any sensation counts. You are not looking for pain. You are looking for holding patterns you might not have noticed yet.</div>
+    <div style="margin-bottom:20px;">
+      <!-- Full-width body map -->
+      <svg id="scan-body-svg" width="100%" viewBox="0 0 320 420" style="display:block;max-width:380px;margin:0 auto;touch-action:manipulation;">
+        <defs>
+          <filter id="glow-f"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <!-- HEAD / NECK -->
+        <g id="scan-z-head" onclick="scanToggle('head')" style="cursor:pointer;">
+          <!-- Head circle -->
+          <ellipse cx="160" cy="52" rx="46" ry="48" id="scan-bg-head" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Neck -->
+          <rect x="144" y="95" width="32" height="22" rx="4" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <!-- Face details -->
+          <ellipse cx="148" cy="48" rx="5" ry="6" fill="rgba(255,255,255,.06)"/>
+          <ellipse cx="172" cy="48" rx="5" ry="6" fill="rgba(255,255,255,.06)"/>
+          <path d="M150 68 Q160 74 170 68" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linecap="round"/>
+          <text x="160" y="110" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="rgba(255,255,255,.35)" id="scan-lbl-head">head · neck</text>
+        </g>
+
+        <!-- SHOULDERS / ARMS -->
+        <g id="scan-z-shoulders" onclick="scanToggle('shoulders')" style="cursor:pointer;">
+          <!-- Left arm -->
+          <rect x="14" y="118" width="60" height="120" rx="28" id="scan-bg-shoulders-l" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Right arm -->
+          <rect x="246" y="118" width="60" height="120" rx="28" id="scan-bg-shoulders-r" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Shoulder caps -->
+          <ellipse cx="90" cy="122" rx="28" ry="16" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <ellipse cx="230" cy="122" rx="28" ry="16" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <text x="44" y="186" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(255,255,255,.3)">arm</text>
+          <text x="276" y="186" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(255,255,255,.3)">arm</text>
+          <text x="160" y="128" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="rgba(255,255,255,.35)" id="scan-lbl-shoulders">shoulders</text>
+        </g>
+
+        <!-- CHEST / UPPER BACK -->
+        <g id="scan-z-chest" onclick="scanToggle('chest')" style="cursor:pointer;">
+          <rect x="88" y="118" width="144" height="100" rx="14" id="scan-bg-chest" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Chest detail lines -->
+          <line x1="160" y1="130" x2="160" y2="210" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+          <path d="M110 148 Q130 142 160 145 Q190 142 210 148" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1"/>
+          <text x="160" y="175" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="rgba(255,255,255,.35)" id="scan-lbl-chest">chest · upper back</text>
+        </g>
+
+        <!-- CORE / LOWER BACK -->
+        <g id="scan-z-core" onclick="scanToggle('core')" style="cursor:pointer;">
+          <rect x="96" y="222" width="128" height="90" rx="12" id="scan-bg-core" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <text x="160" y="273" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="rgba(255,255,255,.35)" id="scan-lbl-core">core · lower back</text>
+        </g>
+
+        <!-- HIPS / LEGS / FEET -->
+        <g id="scan-z-lower" onclick="scanToggle('lower')" style="cursor:pointer;">
+          <!-- Left leg -->
+          <rect x="96" y="316" width="56" height="96" rx="26" id="scan-bg-lower-l" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Right leg -->
+          <rect x="168" y="316" width="56" height="96" rx="26" id="scan-bg-lower-r" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <!-- Hip connector -->
+          <rect x="100" y="312" width="120" height="24" rx="6" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+          <text x="160" y="308" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="rgba(255,255,255,.35)" id="scan-lbl-lower">hips · legs · feet</text>
+        </g>
+
+        <!-- Tap hint -->
+        <text x="160" y="415" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(255,255,255,.2)" letter-spacing=".06em">TAP TO SELECT · TAP AGAIN TO CLEAR</text>
+      </svg>
+
+      <!-- Selected regions display -->
+      <div id="scan-selections" style="font-size:14px;color:var(--accent);min-height:22px;text-align:center;margin-top:4px;font-weight:600;"></div>
     </div>
     <div id="scan-q2-wrap" style="display:none;">
       <div style="font-size:15px;font-weight:600;margin-bottom:10px;">What are you noticing most?</div>
@@ -1359,7 +3047,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
     </div>
 
-    <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">The session arc</div>
+    <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">The session arc — from first look to lasting insight</div>
 
     <!-- ── TOPO ── -->
     <div style="position:relative;padding-left:52px;">
@@ -1380,11 +3068,11 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
       <!-- ② PREPARE -->
       <div style="position:relative;margin-bottom:8px;">
-        <div style="position:absolute;left:-40px;top:14px;width:24px;height:24px;border-radius:50%;background:#e8763a;border:2px solid #e8763a;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;color:#fff;z-index:2;">②</div>
-        <div onclick="hiwTog('prep')" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.4);border-radius:16px;padding:16px 18px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e8763a;margin-bottom:4px;">Prepare for a Climb — optional</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:18px;font-weight:700;color:var(--text);flex:1;">Somatic check-in</div><span id="hc-prep" style="font-size:18px;color:var(--muted);margin-left:12px;transition:transform .2s;flex-shrink:0;">›</span></div>
-          <div style="font-size:15px;font-weight:500;color:var(--muted);margin-top:4px;">60 seconds. What is your body already telling you?</div>
+        <div style="position:absolute;left:-40px;top:14px;width:24px;height:24px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;color:var(--muted);z-index:2;">④</div>
+        <div onclick="hiwTog('prep')" style="background:rgba(200,245,90,.06);border:1px solid rgba(200,245,90,.25);border-radius:16px;padding:18px 20px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(200,245,90,.7);margin-bottom:6px;">③ Prepare — optional, powerful</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:20px;font-weight:700;color:var(--text);flex:1;">Before you commit — check in.</div><span id="hc-prep" style="font-size:20px;color:var(--muted);margin-left:12px;transition:transform .2s;flex-shrink:0;">›</span></div>
+          <div style="font-size:15px;font-weight:500;color:var(--muted);margin-top:6px;">Breath. Gut. Route thinking. Second check-in. Zone result.</div>
           <div id="hd-prep" style="display:none;padding-top:12px;border-top:1px solid rgba(232,118,58,.2);margin-top:12px;">
             <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
               <div style="display:flex;gap:10px;font-size:15px;color:var(--text);"><span style="color:#e8763a;font-weight:700;font-family:'Space Mono',monospace;min-width:18px;">1</span>How is your breathing right now?</div>
@@ -1410,11 +3098,11 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
       <!-- ④ LOG A CLIMB -->
       <div style="position:relative;margin-bottom:8px;">
-        <div style="position:absolute;left:-40px;top:14px;width:24px;height:24px;border-radius:50%;background:#e8763a;border:2px solid #e8763a;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;color:#fff;z-index:2;">④</div>
-        <div onclick="hiwTog('log')" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.4);border-radius:16px;padding:16px 18px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e8763a;margin-bottom:4px;">Log a Climb</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:18px;font-weight:700;color:var(--text);flex:1;">Record what happened</div><span id="hc-log" style="font-size:18px;color:var(--muted);margin-left:12px;transition:transform .2s;flex-shrink:0;">›</span></div>
-          <div style="font-size:15px;font-weight:500;color:var(--muted);margin-top:4px;">Grade · terrain · result. Then Go Deeper.</div>
+        <div style="position:absolute;left:-40px;top:14px;width:24px;height:24px;border-radius:50%;background:#e8763a;border:2px solid #e8763a;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;color:#fff;z-index:2;">②</div>
+        <div onclick="hiwTog('log')" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.4);border-radius:16px;padding:18px 20px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e8763a;margin-bottom:6px;">② Log a Climb — the primary habit</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:20px;font-weight:700;color:var(--text);flex:1;">You climbed it. Now log it.</div><span id="hc-log" style="font-size:20px;color:var(--muted);margin-left:12px;transition:transform .2s;flex-shrink:0;">›</span></div>
+          <div style="font-size:15px;font-weight:500;color:var(--muted);margin-top:6px;">60 seconds. Grade · terrain · result. Go Deeper is optional but powerful.</div>
           <div id="hd-log" style="display:none;padding-top:12px;border-top:1px solid rgba(232,118,58,.2);margin-top:12px;">
             <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
               <div style="display:flex;gap:10px;font-size:15px;color:var(--text);"><span style="color:#e8763a;font-weight:700;font-family:'Space Mono',monospace;min-width:18px;">1</span>Grade + terrain + sent or attempt</div>
@@ -1625,10 +3313,10 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Straydog Labs</div>
     <div class="screen-title" style="font-size:30px;letter-spacing:-.02em;">The Research</div>
     <div style="font-size:14px;color:var(--muted);line-height:1.65;margin-top:-16px;">Ten studies across four themes. Every design decision maps directly to peer-reviewed science.</div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><circle cx="32" cy="32" r="4" fill="#f5a623"/><circle cx="32" cy="32" r="11" fill="none" stroke="#f5a623" stroke-width="1.5" opacity=".7"/><circle cx="32" cy="32" r="18" fill="none" stroke="#f5a623" stroke-width="1" opacity=".4"/><circle cx="32" cy="32" r="26" fill="none" stroke="#f5a623" stroke-width=".75" opacity=".2"/><text x="32" y="57" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="#f5a623" letter-spacing=".08em" opacity=".8">GUT · BREATH</text></svg></div><div class="res-card-meta"><div class="res-card-label">Somatic signals</div><div class="res-card-title">The body is already reporting</div><div class="res-card-sub">Breath and gut register threat before conscious awareness. Biology, not metaphor — and trainable.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">2017</span><span class="res-author">Lisa Feldman Barrett — How Emotions Are Made</span></div><div class="res-study-text">Emotions are not hardwired reactions — they are constructed from interoceptive signals, past experience, and cultural context. The same physiological activation can be experienced as excitement or terror depending on how the brain interprets it.</div><div class="res-apply">Why the tool never labels somatic signals as "fear." Restricted breathing is described as restricted breathing — not as danger.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1994</span><span class="res-author">Antonio Damasio — Descartes' Error</span></div><div class="res-study-text">Gut sensation functions as a pre-conscious decision marker. Patients with damaged somatic signal pathways made systematically worse decisions — even when they could explain the correct choice.</div><div class="res-apply">The pause screen creates conditions where gut markers can register before the second check-in. Gut shift is the primary pre-decision data point.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2015</span><span class="res-author">Sarah Garfinkel &amp; Hugo Critchley — Biological Psychology</span></div><div class="res-study-text">Interoceptive accuracy varies across individuals, including along neurodivergent lines, and is measurable and trainable over time.</div><div class="res-apply">Why "not paying attention to my breath" is a valid response — not a failure. The tool trains the noticing, not the result.</div></div></div></div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#0a120a"/><rect x="0" y="30" width="22" height="34" fill="#c8f55a" opacity=".1"/><rect x="22" y="16" width="20" height="48" fill="#f5a623" opacity=".1"/><rect x="42" y="30" width="22" height="34" fill="#ff5c3a" opacity=".1"/><path d="M4 54 Q20 4 32 4 Q44 4 60 54" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2.2" stroke-linecap="round"/><circle cx="38" cy="14" r="3.5" fill="#f5a623" stroke="rgba(15,15,15,.8)" stroke-width="1.5"/></svg></div><div class="res-card-meta"><div class="res-card-label">Arousal &amp; performance</div><div class="res-card-title">There is an optimal activation window — and it varies by person</div><div class="res-card-sub">Too little produces disengagement. Too much produces breakdown.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1908</span><span class="res-author">Yerkes &amp; Dodson — Journal of Comparative Neurology</span></div><div class="res-study-text">Performance follows an inverted-U curve relative to arousal. The optimal window varies by task complexity — fine motor and judgment tasks require lower arousal.</div><div class="res-apply">Zone placement is a readout of where you sit on the arousal axis relative to this route today — not a capability ranking.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2001</span><span class="res-author">Sian Beilock &amp; Thomas Carr — Journal of Experimental Psychology</span></div><div class="res-study-text">When pressure activates conscious monitoring of automated movement, expert performance breaks down across sports and genders.</div><div class="res-apply">Why "distracted" and "reactive" are the panic-zone failure modes.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Claude Steele — American Psychologist, Stanford</span></div><div class="res-study-text">Identity threat raises activation and impairs performance independently of actual capability.</div><div class="res-apply">Why zone placement carries no value judgment and language throughout is deliberately neutral.</div></div></div></div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#081208"/><circle cx="32" cy="32" r="3.5" fill="#c8f55a"/><circle cx="32" cy="32" r="8" fill="none" stroke="#c8f55a" stroke-width="1.8"/><circle cx="32" cy="32" r="13.5" fill="none" stroke="#c8f55a" stroke-width=".8" opacity=".35"/><circle cx="16" cy="16" r="3.5" fill="rgba(255,255,255,.15)"/><circle cx="48" cy="16" r="3.5" fill="rgba(255,255,255,.15)"/><circle cx="16" cy="48" r="3.5" fill="rgba(255,255,255,.15)"/><circle cx="48" cy="48" r="3.5" fill="rgba(255,255,255,.15)"/></svg></div><div class="res-card-meta"><div class="res-card-label">Deliberate practice</div><div class="res-card-title">What you notice during practice determines what you keep</div><div class="res-card-sub">Volume does not predict adaptation. Directed attention does.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1993</span><span class="res-author">Ericsson, Krampe &amp; Tesch-Römer — Psychological Review</span></div><div class="res-study-text">Expert performance requires deliberate practice: structured repetition with specific process variables identified in advance and immediate feedback. Passive repetition produces plateaus, not expertise.</div><div class="res-apply">The process intention question is the direct application. Comfort zone guidance notes passive repetition produces limited transfer.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2006</span><span class="res-author">Carol Dweck — Mindset</span></div><div class="res-study-text">A fixed-capability belief produces worse outcomes than a growth belief. Fixed mindset increases performance anxiety.</div><div class="res-apply">Why zone placement is never framed as a capability measure.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2003</span><span class="res-author">Arno Ilgner — The Rock Warrior's Way</span></div><div class="res-study-text">Conscious risk-taking is a learnable skill. The decision not to attempt is as informative as the decision to proceed. <em style="color:var(--muted)">Practitioner framework, not a controlled study.</em></div><div class="res-apply">Did Not Attempt is a first-class option. Motivation is assessed because conscious vs. reactive motivation produces different learning outcomes.</div></div></div></div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><rect x="28" y="4" width="8" height="9" rx="4" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".75"/><rect x="18" y="14" width="28" height="11" rx="5" fill="#f5a623" opacity=".7"/><rect x="22" y="26" width="20" height="10" rx="4" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".75"/><rect x="23" y="37" width="18" height="9" rx="4" fill="#f5a623" opacity=".4"/><rect x="20" y="47" width="24" height="12" rx="5" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".75"/><text x="32" y="61" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="#f5a623" opacity=".8">body scan</text></svg></div><div class="res-card-meta"><div class="res-card-label">Body scanning</div><div class="res-card-title">The body holds what the mind hasn't noticed yet</div><div class="res-card-sub">Tension, fatigue, and holding patterns in specific regions are data.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1990</span><span class="res-author">Jon Kabat-Zinn — Full Catastrophe Living</span></div><div class="res-study-text">Mindfulness-Based Stress Reduction centres the body scan as a core practice. Hundreds of RCTs document measurable increases in body awareness and reductions in stress-related holding.</div><div class="res-apply">The body scan follows the MBSR sequence. Nothing to report is equally valid — it records a clean baseline.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Peter Levine — Waking the Tiger</span></div><div class="res-study-text">Unresolved activation is held in specific tissue regions as chronic muscular tension below the conscious awareness threshold.</div><div class="res-apply">Why tension before a trad lead reads differently from tension after a gym session.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2014</span><span class="res-author">Bessel van der Kolk — The Body Keeps the Score</span></div><div class="res-study-text">Repeated overwhelming experiences without conscious processing can condition the nervous system toward threat response rather than adaptation. The body encodes these patterns below conscious awareness.</div><div class="res-apply">Why the tool distinguishes conscious Panic-zone entry from reactive Panic — and why the process prompt asks "is this a conscious decision?" not "are you scared?"</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2018</span><span class="res-author">Cynthia Price &amp; Carol Hooven — Frontiers in Psychology</span></div><div class="res-study-text">Interoceptive awareness skills are teachable and directly improve emotion regulation and decision-making.</div><div class="res-apply">Why the body scan asks two follow-up questions: what are you noticing, and is this typical? Characterising sensation is where the skill develops.</div></div><div class="sci-note">Sharp End Exposure collects self-reported readiness data. Not a clinical assessment. All decisions remain with the climber.</div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><path d="M6,32 C12,20 18,44 24,32 C30,20 36,44 42,32 C48,20 54,44 58,32" fill="none" stroke="#f5a623" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="48" rx="10" ry="6" fill="rgba(245,166,35,.15)" stroke="#f5a623" stroke-width="1" opacity=".6"/><text x="32" y="12" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="#f5a623" letter-spacing=".06em" opacity=".7">BREATH · GUT</text></svg></div><div class="res-card-meta"><div class="res-card-label">Somatic signals</div><div class="res-card-title">The body is already reporting</div><div class="res-card-sub">Breath and gut register threat before conscious awareness — the same signals you track in Go Deeper.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">2017</span><span class="res-author">Lisa Feldman Barrett — How Emotions Are Made</span></div><div class="res-study-text">Emotions are not hardwired reactions — they are constructed from interoceptive signals, past experience, and cultural context. The same physiological activation can be experienced as excitement or terror depending on how the brain interprets it.</div><div class="res-apply">Why the tool never labels somatic signals as "fear." Restricted breathing is described as restricted breathing — not as danger.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1994</span><span class="res-author">Antonio Damasio — Descartes' Error</span></div><div class="res-study-text">Gut sensation functions as a pre-conscious decision marker. Patients with damaged somatic signal pathways made systematically worse decisions — even when they could explain the correct choice.</div><div class="res-apply">The pause screen creates conditions where gut markers can register before the second check-in. Gut shift is the primary pre-decision data point.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2015</span><span class="res-author">Sarah Garfinkel &amp; Hugo Critchley — Biological Psychology</span></div><div class="res-study-text">Interoceptive accuracy varies across individuals, including along neurodivergent lines, and is measurable and trainable over time.</div><div class="res-apply">Why "not paying attention to my breath" is a valid response — not a failure. The tool trains the noticing, not the result.</div></div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#0a120a"/><rect x="2" y="28" width="18" height="34" fill="rgba(126,200,122,.12)" rx="2"/><rect x="22" y="14" width="20" height="48" fill="rgba(245,166,35,.12)" rx="2"/><rect x="44" y="28" width="18" height="34" fill="rgba(232,68,68,.12)" rx="2"/><path d="M4,56 Q16,4 32,4 Q48,4 60,56" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="4" r="3" fill="#f5a623"/><text x="11" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(126,200,122,.7)">C</text><text x="32" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(245,166,35,.7)">L</text><text x="53" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(232,68,68,.7)">P</text></svg></div><div class="res-card-meta"><div class="res-card-label">Arousal &amp; performance</div><div class="res-card-title">There is an optimal activation window</div><div class="res-card-sub">The same curve behind the three zones — Comfort, Learning, Panic. You see it every time you get a result.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1908</span><span class="res-author">Yerkes &amp; Dodson — Journal of Comparative Neurology</span></div><div class="res-study-text">Performance follows an inverted-U curve relative to arousal. The optimal window varies by task complexity — fine motor and judgment tasks require lower arousal.</div><div class="res-apply">Zone placement is a readout of where you sit on the arousal axis relative to this route today — not a capability ranking.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2001</span><span class="res-author">Sian Beilock &amp; Thomas Carr — Journal of Experimental Psychology</span></div><div class="res-study-text">When pressure activates conscious monitoring of automated movement, expert performance breaks down across sports and genders.</div><div class="res-apply">Why "distracted" and "reactive" are the panic-zone failure modes.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Claude Steele — American Psychologist, Stanford</span></div><div class="res-study-text">Identity threat raises activation and impairs performance independently of actual capability.</div><div class="res-apply">Why zone placement carries no value judgment and language throughout is deliberately neutral.</div></div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#081208"/><!-- dot strip showing session arc --><rect x="4" y="20" width="56" height="12" fill="rgba(232,68,68,.06)" rx="2"/><rect x="4" y="32" width="56" height="12" fill="rgba(245,166,35,.06)"/><rect x="4" y="44" width="56" height="12" fill="rgba(126,200,122,.06)" rx="2"/><circle cx="10" cy="50" r="3" fill="rgba(232,68,68,.7)"/><circle cx="20" cy="38" r="3" fill="rgba(245,166,35,.7)"/><circle cx="30" cy="38" r="3" fill="rgba(245,166,35,.7)"/><circle cx="40" cy="50" r="3" fill="rgba(126,200,122,.7)"/><circle cx="52" cy="50" r="4" fill="#7ec87a"/><circle cx="52" cy="50" r="6.5" fill="none" stroke="#7ec87a" stroke-width="1" opacity=".4"/><polyline points="10,50 20,38 30,38 40,50 52,50" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/></svg></div><div class="res-card-meta"><div class="res-card-label">Deliberate practice</div><div class="res-card-title">What you notice determines what you keep</div><div class="res-card-sub">The session arc in My Sessions visualises this directly — volume alone doesn't predict growth.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1993</span><span class="res-author">Ericsson, Krampe &amp; Tesch-Römer — Psychological Review</span></div><div class="res-study-text">Expert performance requires deliberate practice: structured repetition with specific process variables identified in advance and immediate feedback. Passive repetition produces plateaus, not expertise.</div><div class="res-apply">The process intention question is the direct application. Comfort zone guidance notes passive repetition produces limited transfer.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2006</span><span class="res-author">Carol Dweck — Mindset</span></div><div class="res-study-text">A fixed-capability belief produces worse outcomes than a growth belief. Fixed mindset increases performance anxiety.</div><div class="res-apply">Why zone placement is never framed as a capability measure.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2003</span><span class="res-author">Arno Ilgner — The Rock Warrior's Way</span></div><div class="res-study-text">Conscious risk-taking is a learnable skill. The decision not to attempt is as informative as the decision to proceed. <em style="color:var(--muted)">Practitioner framework, not a controlled study.</em></div><div class="res-apply">Did Not Attempt is a first-class option. Motivation is assessed because conscious vs. reactive motivation produces different learning outcomes.</div></div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><!-- Body outline --><ellipse cx="32" cy="12" rx="8" ry="8" fill="none" stroke="rgba(245,166,35,.4)" stroke-width="1"/><rect x="18" y="20" width="28" height="14" rx="6" fill="rgba(245,166,35,.2)" stroke="#f5a623" stroke-width="1"/><rect x="22" y="34" width="20" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.3)" stroke-width="1"/><rect x="20" y="46" width="10" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1"/><rect x="34" y="46" width="10" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1"/><!-- Scan pulse lines --><line x1="8" y1="27" x2="18" y2="27" stroke="rgba(245,166,35,.4)" stroke-width="1" stroke-dasharray="2,2"/><line x1="46" y1="27" x2="56" y2="27" stroke="rgba(245,166,35,.4)" stroke-width="1" stroke-dasharray="2,2"/></svg></div><div class="res-card-meta"><div class="res-card-label">Body scanning</div><div class="res-card-title">The body holds what the mind hasn't noticed yet</div><div class="res-card-sub">The same body schematic you see in the Prepare flow — backed by 30 years of MBSR research.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1990</span><span class="res-author">Jon Kabat-Zinn — Full Catastrophe Living</span></div><div class="res-study-text">Mindfulness-Based Stress Reduction centres the body scan as a core practice. Hundreds of RCTs document measurable increases in body awareness and reductions in stress-related holding.</div><div class="res-apply">The body scan follows the MBSR sequence. Nothing to report is equally valid — it records a clean baseline.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Peter Levine — Waking the Tiger</span></div><div class="res-study-text">Unresolved activation is held in specific tissue regions as chronic muscular tension below the conscious awareness threshold.</div><div class="res-apply">Why tension before a trad lead reads differently from tension after a gym session.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2014</span><span class="res-author">Bessel van der Kolk — The Body Keeps the Score</span></div><div class="res-study-text">Repeated overwhelming experiences without conscious processing can condition the nervous system toward threat response rather than adaptation. The body encodes these patterns below conscious awareness.</div><div class="res-apply">Why the tool distinguishes conscious Panic-zone entry from reactive Panic — and why the process prompt asks "is this a conscious decision?" not "are you scared?"</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2018</span><span class="res-author">Cynthia Price &amp; Carol Hooven — Frontiers in Psychology</span></div><div class="res-study-text">Interoceptive awareness skills are teachable and directly improve emotion regulation and decision-making.</div><div class="res-apply">Why the body scan asks two follow-up questions: what are you noticing, and is this typical? Characterising sensation is where the skill develops.</div></div><div class="sci-note">Sharp End Exposure collects self-reported readiness data. Not a clinical assessment. All decisions remain with the climber.</div></div></div>
   </div>
 </div>
 
@@ -1641,7 +3329,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
   </div>
   <div class="content">
-    <div class="screen-title">Share feedback<span class="sub">Your feedback helps shape what this becomes.</span></div>
+    <div class="screen-title">Share feedback<span class="sub">2 minutes · shapes what gets built next.</span></div>
     <div id="fb-content">
       <div class="fb-progress"><div class="fb-fill" id="fb-prog" style="width:0%"></div></div>
       <div style="font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;" id="fb-step-lbl">Question 1 of 4</div>
@@ -1653,9 +3341,20 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <button class="fb-next-btn" id="fb-next-btn" onclick="feedbackNext()">Continue</button>
     </div>
     <div class="fb-success" id="fb-success">
-      <div style="font-size:48px;margin-bottom:16px;">✓</div>
-      <div style="font-size:20px;font-weight:600;margin-bottom:8px;">Thank you.</div>
-      <div style="font-size:14px;color:var(--muted);line-height:1.6;">This goes directly to the team. It shapes what gets built next.</div>
+      <!-- Zone dot animation — playful, on-brand -->
+      <svg width="120" height="120" viewBox="0 0 200 200" style="margin:0 auto 20px;display:block;">
+        <circle cx="100" cy="100" r="90" fill="rgba(126,200,122,.06)" stroke="rgba(126,200,122,.15)" stroke-width="1"/>
+        <circle cx="100" cy="100" r="60" fill="rgba(126,200,122,.08)" stroke="rgba(126,200,122,.2)" stroke-width="1"/>
+        <circle cx="100" cy="100" r="30" fill="rgba(126,200,122,.15)" stroke="rgba(126,200,122,.4)" stroke-width="1.5"/>
+        <circle cx="100" cy="52" r="10" fill="#7ec87a"/>
+        <circle cx="100" cy="52" r="16" fill="none" stroke="#7ec87a" stroke-width="2" opacity=".4"/>
+        <circle cx="100" cy="52" r="22" fill="none" stroke="#7ec87a" stroke-width="1" opacity=".2"/>
+        <text x="100" y="104" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.7)" font-weight="600">Learning fringe</text>
+        <text x="100" y="40" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#7ec87a">your feedback</text>
+      </svg>
+      <div style="font-size:22px;font-weight:700;margin-bottom:8px;color:var(--text);">Thank you.</div>
+      <div style="font-size:15px;color:var(--muted);line-height:1.65;max-width:280px;margin:0 auto;">This goes directly to the team. It shapes what gets built next.</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:20px;font-style:italic;">Your feedback landed in the Learning fringe — where the most useful things happen.</div>
     </div>
   </div>
 </div>
@@ -2228,6 +3927,10 @@ function selectDeepChip(el,group,zone){
 function toggleCtx(id,arrowId){
   var el=document.getElementById(id),arrow=document.getElementById(arrowId);
   el.classList.toggle("open");arrow.textContent=el.classList.contains("open")?"▼":"▶";
+  // Show science panel when context is open
+  var sciId=arrowId.replace("-arrow","").replace("ctx","ctx")+"-sci";
+  var sci=document.getElementById(sciId);
+  if(sci)sci.style.display=el.classList.contains("open")?"block":"none";
 }
 
 function finishDeeper(){
@@ -2249,10 +3952,23 @@ function finishDeeper(){
   riverDot.setAttribute("cy",z.riverY);riverDot.setAttribute("fill",z.dotColor);
   riverRing.setAttribute("cy",z.riverY);
   document.getElementById("river-line").setAttribute("points","60,82 110,75 160,48 210,40 260,55 300,"+z.riverY);
-  document.getElementById("river-insight").textContent="Latest session: "+z.label+".";
+  var insightMap={comfort:"Comfort zone — familiar territory. The Learning fringe is always available when you choose it.",learning:"Learning zone — at the edge of current experience. This is where adaptation happens.",panic:"Panic zone — perceived demand exceeded current experience. Was this a conscious choice, or a reactive one? Both are data.",unsure:"Signal unclear — noticing that is data too."};document.getElementById("river-insight").textContent=insightMap[logState.zone]||"Latest session logged.";
   // Save deeper data to Supabase
   if(logState.sessId){
     sbI("sessions",{id:logState.sessId,breathing_post:deepAnswers.q1||null,gut_post:deepAnswers.q2||null,crux_response:deepAnswers.q3||null,body_state:logState.zone,session_focus:logState.sessionFocus||null});
+  }
+  // Populate reflection route context
+  var rg=document.getElementById("reflect-grade");
+  var rt=document.getElementById("reflect-terrain");
+  var rrl=document.getElementById("reflect-result-lbl");
+  var rzp=document.getElementById("reflect-zone-pill");
+  if(rg)rg.textContent=logState.grade||"—";
+  if(rt)rt.textContent=logState.terrain||"—";
+  if(rrl)rrl.textContent=logState.result==="sent"?"Sent ✓":"Attempt";
+  if(rzp){
+    var zLabel=logState.zone?logState.zone[0].toUpperCase()+logState.zone.slice(1)+" zone":"";
+    var zColor=logState.zone==="comfort"?"#7ec87a":logState.zone==="panic"?"#e84444":"#f5a623";
+    rzp.innerHTML=zLabel?'<span style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:99px;background:rgba(200,200,200,.1);color:'+zColor+';">'+zLabel+'</span>':"";
   }
   // If attempt, show incident flow
   if(logState.result==="attempt"){showScreen("screen-incident");initIncident();}
@@ -2301,6 +4017,81 @@ function incidentNext(){
 }
 
 // ── LOG ANOTHER ──────────────────────────────────────────
+function openEditSheet(){
+  var sheet=document.getElementById("edit-sheet");
+  if(!sheet)return;
+  // Populate grade chips
+  var gc=document.getElementById("edit-grade-chips");
+  if(gc&&!gc.children.length){
+    var grades=gradeSystems[logGradeSystem]||gradeSystems.YDS;
+    grades.forEach(function(g){
+      var b=document.createElement("button");
+      b.className="chip"+(logState.grade===g?" selected":"");
+      b.textContent=g;
+      b.onclick=function(){
+        gc.querySelectorAll(".chip").forEach(function(x){x.classList.remove("selected");});
+        b.classList.add("selected");logState.grade=g;
+      };
+      gc.appendChild(b);
+    });
+  }
+  // Populate terrain selection
+  var terrainBtns=sheet.querySelectorAll(".chip[onclick*='editSelectTerrain']");
+  terrainBtns.forEach(function(b){
+    b.classList.toggle("selected",b.textContent===logState.terrain);
+  });
+  // Result
+  document.getElementById("edit-btn-sent").style.background=logState.result==="sent"?"var(--accent)":"var(--surface2)";
+  document.getElementById("edit-btn-sent").style.color=logState.result==="sent"?"#fff":"var(--text)";
+  document.getElementById("edit-btn-attempt").style.background=logState.result==="attempt"?"rgba(245,166,35,.2)":"var(--surface2)";
+  document.getElementById("edit-btn-attempt").style.color=logState.result==="attempt"?"#f5a623":"var(--text)";
+  // Route name
+  var rni=document.getElementById("edit-route-name");
+  if(rni)rni.value=logState.routeName||"";
+  sheet.style.display="block";
+}
+function editSelectTerrain(el,val){
+  el.closest("div").querySelectorAll(".chip").forEach(function(b){b.classList.remove("selected");});
+  el.classList.add("selected");logState.terrain=val;
+}
+function editSelectResult(val){
+  logState.result=val;
+  document.getElementById("edit-btn-sent").style.background=val==="sent"?"var(--accent)":"var(--surface2)";
+  document.getElementById("edit-btn-sent").style.color=val==="sent"?"#fff":"var(--text)";
+  document.getElementById("edit-btn-attempt").style.background=val==="attempt"?"rgba(245,166,35,.2)":"var(--surface2)";
+  document.getElementById("edit-btn-attempt").style.color=val==="attempt"?"#f5a623":"var(--text)";
+}
+function saveEditedClimb(){
+  if(logState.sessId){
+    sbI("sessions",{id:logState.sessId,grade_value:logState.grade,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":"attempt",route_name:logState.routeName||null}).then(function(){
+      showToast("Climb updated");
+      renderLogCelebration();
+    });
+  }
+  document.getElementById("edit-sheet").style.display="none";
+}
+function openStartProjectFromLog(){
+  // Pre-fill project with current climb data
+  currentProjectName=logState.routeName||null;
+  currentProjectId=null;
+  showScreen("screen-start-project");
+  // Pre-fill name if available
+  setTimeout(function(){
+    var nameEl=document.getElementById("sp-name");
+    if(nameEl&&logState.routeName)nameEl.value=logState.routeName;
+    // Pre-fill grade
+    if(logState.grade){
+      spState.gradeSystem=logGradeSystem;
+      spSetGradeSys(logGradeSystem);
+      spState.grade=logState.grade;
+      document.querySelectorAll("#sp-grade-grid .grade-btn").forEach(function(b){
+        b.classList.toggle("selected",b.textContent===logState.grade);
+      });
+    }
+    spCheckReady();
+  },100);
+}
+
 function logAnother(){
   logState={grade:null,terrain:null,result:null,zone:null,sessId:null,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft',sessionFocus:null};
   buildGradeGrid(logGradeSystem);
@@ -3454,12 +5245,22 @@ function showBodyScan(){showScreen("s-body-scan");bodyScanZones=[];bodyScanQ2=nu
 function scanToggle(zone){
   var idx=bodyScanZones.indexOf(zone);
   if(idx>=0)bodyScanZones.splice(idx,1);else bodyScanZones.push(zone);
+  var active=bodyScanZones.includes(zone);
   var zones=["head","shoulders","chest","core","lower"];
-  zones.forEach(z=>{
-    var bg=document.getElementById("scan-bg-"+z),lbl=document.getElementById("scan-lbl-"+z);
-    var active=bodyScanZones.includes(z);
-    if(bg){bg.setAttribute("fill",active?"rgba(245,166,35,.2)":"rgba(255,255,255,.05)");bg.setAttribute("stroke",active?"#f5a623":"rgba(255,255,255,.15)");}
-    if(lbl)lbl.setAttribute("fill",active?"#f5a623":"rgba(255,255,255,.4)");
+  // Element IDs vary by zone — update all elements for this zone
+  var allEls=["scan-bg-"+zone,"scan-bg-"+zone+"-l","scan-bg-"+zone+"-r","scan-lbl-"+zone];
+  zones.forEach(function(z){
+    var isActive=bodyScanZones.includes(z);
+    var els=["scan-bg-"+z,"scan-bg-"+z+"-l","scan-bg-"+z+"-r"];
+    els.forEach(function(id){
+      var el=document.getElementById(id);
+      if(!el)return;
+      el.setAttribute("fill",isActive?"rgba(245,166,35,.2)":"rgba(255,255,255,.05)");
+      el.setAttribute("stroke",isActive?"#f5a623":"rgba(255,255,255,.15)");
+      el.setAttribute("stroke-width",isActive?"2.5":"1.5");
+    });
+    var lbl=document.getElementById("scan-lbl-"+z);
+    if(lbl)lbl.setAttribute("fill",isActive?"#f5a623":"rgba(255,255,255,.35)");
   });
   updateScanUI();
 }
@@ -3468,20 +5269,17 @@ function updateScanUI(){
   if(sel)sel.textContent=bodyScanZones.length?bodyScanZones.join(", "):"Nothing selected";
   var q2=document.getElementById("scan-q2-wrap");
   if(q2)q2.style.display=bodyScanZones.length>0?"block":"none";
-  if(bodyScanZones.length>0&&!document.getElementById("scan-q2-opts").children.length){
-    var opts=["Tension / holding","Soreness","Tightness","Fatigue","Something else","Nothing specific"];
-    var c=document.createElement("div");c.className="options";c.style.gap="6px";
-    opts.forEach(o=>{var el=document.createElement("div");el.className="option";el.style.padding="10px 14px";el.innerHTML="<div class='opt-marker'></div><div class='opt-label' style='font-size:13px'>"+o+"</div>";el.onclick=()=>{document.querySelectorAll("#scan-q2-opts .option").forEach(x=>x.classList.remove("selected"));el.classList.add("selected");bodyScanQ2=o;var q3w=document.getElementById("scan-q3-wrap");if(q3w)q3w.style.display=(o==="Nothing specific")?"none":"block";updateScanContinue();};c.appendChild(el);});
-    document.getElementById("scan-q2-opts").appendChild(c);
+  if(bodyScanZones.length>0){
+    var q2opts=document.getElementById("scan-q2-opts");
+    if(!q2opts.children.length){
+      var opts=["Tension / holding","Soreness","Tightness","Fatigue","Something else","Nothing specific"];
+      var c=document.createElement("div");c.className="options";c.style.gap="6px";
+      opts.forEach(function(o){var el=document.createElement("div");el.className="option";el.style.padding="10px 14px";el.innerHTML="<div class='opt-marker'></div><div class='opt-label' style='font-size:13px'>"+o+"</div>";el.onclick=function(){document.querySelectorAll("#scan-q2-opts .option").forEach(function(x){x.classList.remove("selected");});el.classList.add("selected");bodyScanQ2=o;var q3w=document.getElementById("scan-q3-wrap");if(q3w)q3w.style.display=(o==="Nothing specific")?"none":"block";if(o!=="Nothing specific"&&!document.getElementById("scan-q3-opts").children.length){var opts3=["Yes — this is how I usually feel","Somewhat — slightly more than usual","No — this is new today","Not sure"];var c3=document.createElement("div");c3.className="options";c3.style.gap="6px";opts3.forEach(function(o3){var el3=document.createElement("div");el3.className="option";el3.style.padding="10px 14px";el3.innerHTML="<div class='opt-marker'></div><div class='opt-label' style='font-size:13px'>"+o3+"</div>";el3.onclick=function(){document.querySelectorAll("#scan-q3-opts .option").forEach(function(x){x.classList.remove("selected");});el3.classList.add("selected");bodyScanQ3=o3;updateScanContinue();};c3.appendChild(el3);});document.getElementById("scan-q3-opts").appendChild(c3);}updateScanContinue();};c.appendChild(el);});
+      q2opts.appendChild(c);
+    }
   }
   if(bodyScanQ2&&bodyScanQ2!=="Nothing specific"){
     var q3=document.getElementById("scan-q3-wrap");if(q3)q3.style.display="block";
-    if(!document.getElementById("scan-q3-opts").children.length){
-      var opts3=["Yes — this is how I usually feel","Somewhat — slightly more than usual","No — this is new today","Not sure"];
-      var c3=document.createElement("div");c3.className="options";c3.style.gap="6px";
-      opts3.forEach(o=>{var el=document.createElement("div");el.className="option";el.style.padding="10px 14px";el.innerHTML="<div class='opt-marker'></div><div class='opt-label' style='font-size:13px'>"+o+"</div>";el.onclick=()=>{document.querySelectorAll("#scan-q3-opts .option").forEach(x=>x.classList.remove("selected"));el.classList.add("selected");bodyScanQ3=o;updateScanContinue();};c3.appendChild(el);});
-      document.getElementById("scan-q3-opts").appendChild(c3);
-    }
   }
   updateScanContinue();
 }
@@ -3489,7 +5287,7 @@ function updateScanContinue(){
   var btn=document.getElementById("scan-continue");
   var nothingSpecific=bodyScanQ2==="Nothing specific";
   if(btn)btn.disabled=!(bodyScanZones.length===0||(bodyScanQ2&&(bodyScanQ3||nothingSpecific)));
-  if(btn&&bodyScanZones.length===0)btn.disabled=false;
+  if(btn&&(bodyScanZones.length===0||nothingSpecific))btn.disabled=false;
 }
 function skipBodyScan(){window.bodyScanData=null;cur++;render();showScreen("s-assess");}
 function continueFromScan(){
@@ -3591,10 +5389,11 @@ function restart(){cur=0;ans={};pauseShown=false;bodyScanShown=false;prepSessId=
 
 // ── FEEDBACK ─────────────────────────────────────────────
 var FBQs=[
-  {text:"Which did you use most?",key:"simplicity",opts:["Log a Climb — after climbing","Prepare — before committing","Both equally","Neither yet"]},
-  {text:"Did the somatic check-in feel real?",key:"somatic_real",opts:["Yes — I noticed something I wasn't aware of before","The questions made me more aware than I expected","Somewhat — noticed but not surprising","Not really — I answered but didn't physically feel it"]},
-  {text:"Did your zone result feel accurate?",key:"delta_accurate",opts:["Yes — it described what I actually experienced","Mostly — close but not quite","Not really — the language didn't match","I'm not sure — need more sessions to compare"]},
-  {text:"Did you try project tracking?",key:"project_useful",opts:["Yes — very useful","Yes — too early to tell","Not yet","Couldn't find it"]}
+  {text:"Which did you use most?",key:"simplicity",icon:"📊",opts:["Log a Climb — after climbing","Prepare — before committing","Both equally","Neither yet"]},
+  {text:"Did the somatic check-in feel real?",key:"somatic_real",icon:"🫁",opts:["Yes — I noticed something I wasn't aware of before","The questions made me more aware than I expected","Somewhat — noticed but not surprising","Not really — I answered but didn't physically feel it"]},
+  {text:"Did the result change what you decided to do on the route?",key:"delta_accurate",icon:"🧭",opts:["Yes — I adjusted my approach","Yes — I decided not to attempt it","Somewhat — it confirmed what I already felt","Not really — I wasn't sure what to do with it"]},
+  {text:"Did you notice anything about your body you weren't already aware of?",key:"body_awareness",icon:"🔍",opts:["Yes — something I hadn't noticed before","Somewhat — sharpened existing awareness","Not this time — but I can see how it would build","Not really"]},
+  {text:"Did you try project tracking?",key:"project_useful",icon:"🏔",opts:["Yes — very useful","Yes — too early to tell","Not yet","Couldn't find it"]}
 ];
 var fbCur=0,fbAns={};
 function initFeedback(){fbCur=0;fbAns={};document.getElementById("fb-content").style.display="block";document.getElementById("fb-success").style.display="none";renderFb();}
@@ -3602,20 +5401,27 @@ function renderFb(){
   var prog=document.getElementById("fb-prog"),stepLbl=document.getElementById("fb-step-lbl"),qEl=document.getElementById("fb-q"),optsEl=document.getElementById("fb-opts"),openEl=document.getElementById("fb-open"),nextBtn=document.getElementById("fb-next-btn");
   if(fbCur<FBQs.length){
     var q=FBQs[fbCur];
+    // Progress rings
     prog.style.width=((fbCur/(FBQs.length+1))*100)+"%";
-    stepLbl.textContent="Question "+(fbCur+1)+" of "+FBQs.length;
+    stepLbl.textContent=(q.icon||"")+" Question "+(fbCur+1)+" of "+FBQs.length;
     qEl.textContent=q.text;openEl.style.display="none";
-        optsEl.innerHTML="";
+    optsEl.innerHTML="";
     q.opts.forEach(function(o){
       var btn=document.createElement("button");
       btn.className="fb-opt"+(fbAns[q.key]===o?" selected":"");
       btn.textContent=o;
       btn.onclick=function(){selectFbOpt(btn,q.key,o);};
       optsEl.appendChild(btn);
-    });;
+    });
+    // Skip link
+    var skip=document.createElement("button");
+    skip.style.cssText="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;margin-top:8px;text-decoration:underline;text-underline-offset:3px;padding:4px 0;";
+    skip.textContent="Skip this question";
+    skip.onclick=function(){feedbackNext();};
+    optsEl.appendChild(skip);
     nextBtn.className="fb-next-btn"+(fbAns[q.key]?" ready":"");nextBtn.textContent="Continue";
   } else {
-    prog.style.width="90%";stepLbl.textContent="Almost done";qEl.textContent="Anything else?";optsEl.innerHTML="";openEl.style.display="block";nextBtn.className="fb-next-btn ready";nextBtn.textContent="Submit";
+    prog.style.width="90%";stepLbl.textContent="✍ Almost done";qEl.textContent="Anything else you want to share?";optsEl.innerHTML="";openEl.style.display="block";nextBtn.className="fb-next-btn ready";nextBtn.textContent="Submit feedback";
   }
 }
 function selectFbOpt(el,key,val){fbAns[key]=val;renderFb();}
@@ -3627,7 +5433,7 @@ function feedbackNext(){
     var SOMATIC_MAP={"Yes — I noticed something I wasn't aware of before":"yes_noticed","The questions made me more aware than I expected":"more_aware","Somewhat — noticed but not surprising":"somewhat","Not really — I answered but didn't physically feel it":"not_really"};
     var DELTA_MAP={"Yes — it described what I actually experienced":"yes_accurate","Mostly — close but not quite":"mostly","Not really — the language didn't match":"not_accurate","I'm not sure — need more sessions to compare":"unsure"};
     var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn't find it":"didnt_find"};
-    var payload={device_id:DID,app_version:"index68",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
+    var payload={device_id:DID,app_version:"index69",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
     sbI("feedback",payload).then(function(saved){
       if(saved&&saved.id){
         document.getElementById("fb-content").style.display="none";
