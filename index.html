@@ -356,6 +356,10 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
     My Sessions
   </button>
+  <button class="footer-btn" id="fnav-projects" onclick="showScreen('screen-projects')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    Projects
+  </button>
   <button class="footer-btn" id="fnav-hiw" onclick="showScreen('screen-hiw')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
     How It Works
@@ -1541,7 +1545,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 <div class="screen" id="screen-project" style="padding-bottom:0;">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-sessions')">← My Sessions</button>
+    <button class="back-btn" onclick="showScreen('screen-projects')">← Projects</button>
   </div>
 
   <!-- HERO HEADER -->
@@ -1638,6 +1642,45 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <div id="proj-session-log"></div>
     </div>
 
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     PROJECTS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-projects">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Projects<span class="sub">Routes you're working.</span></div>
+
+    <!-- Active projects -->
+    <div id="projects-active-section">
+      <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--comfort);margin-bottom:12px;">Active</div>
+      <div id="projects-active-list">
+        <div style="text-align:center;padding:24px 0;font-size:15px;color:var(--muted);">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Sent projects -->
+    <div id="projects-sent-section" style="display:none;margin-top:24px;">
+      <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;">Sent</div>
+      <div id="projects-sent-list"></div>
+    </div>
+
+    <!-- Archived projects -->
+    <div id="projects-archived-section" style="display:none;margin-top:24px;">
+      <div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);margin-bottom:12px;">Archived</div>
+      <div id="projects-archived-list"></div>
+    </div>
+
+    <!-- Start new -->
+    <div style="margin-top:24px;">
+      <button onclick="showScreen('screen-start-project')" style="width:100%;background:rgba(126,200,122,.1);border:1px solid rgba(126,200,122,.4);border-radius:14px;color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;">+ Start a new project</button>
+    </div>
   </div>
 </div>
 
@@ -1758,10 +1801,11 @@ function showScreen(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   var el=document.getElementById(id);if(el)el.classList.add("active");
   window.scrollTo(0,0);
-  var map={"screen-sessions":"fnav-sessions","screen-hiw":"fnav-hiw","screen-research":"fnav-research","screen-feedback":"fnav-feedback"};
+  var map={"screen-sessions":"fnav-sessions","screen-projects":"fnav-projects","screen-hiw":"fnav-hiw","screen-research":"fnav-research","screen-feedback":"fnav-feedback"};
   document.querySelectorAll(".footer-btn").forEach(b=>b.classList.remove("active"));
   if(map[id])document.getElementById(map[id]).classList.add("active");
   if(id==="screen-sessions")loadSessionsScreen();
+  if(id==="screen-projects")loadProjectsScreen();
   if(id==="screen-feedback")initFeedback();
   if(id==="screen-route-details")initRouteDetails();
   if(id==="screen-celebrate")showFocusBlockIfProject();
@@ -2917,6 +2961,64 @@ function spAdjHeight(d){
   document.getElementById('sp-height-val').textContent=spState.routeHeight;
 }
 
+function loadProjectsScreen(){
+  var activeList=document.getElementById('projects-active-list');
+  var sentList=document.getElementById('projects-sent-list');
+  var archivedList=document.getElementById('projects-archived-list');
+  var sentSec=document.getElementById('projects-sent-section');
+  var archSec=document.getElementById('projects-archived-section');
+  if(activeList)activeList.innerHTML='<div style="text-align:center;padding:24px 0;font-size:15px;color:var(--muted);">Loading...</div>';
+
+  sbS('projects',{device_id:'eq.'+DID,limit:50}).then(function(projs){
+    if(!projs||!projs.length){
+      if(activeList)activeList.innerHTML=
+        '<div style="padding:32px 0;text-align:center;">'+
+        '<div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px;">No projects yet</div>'+
+        '<div style="font-size:15px;color:var(--muted);line-height:1.6;">Name a route and track every session,<br>focus, and zone shift across attempts.</div>'+
+        '</div>';
+      return;
+    }
+
+    var active=projs.filter(function(p){return p.status==='active';});
+    var sent=projs.filter(function(p){return p.status==='sent';});
+    var archived=projs.filter(function(p){return p.status==='abandoned';});
+
+    function projectCard(p){
+      var statusColor=p.status==='sent'?'#7ec87a':p.status==='abandoned'?'var(--muted2)':'#f5a623';
+      var statusLabel=p.status==='sent'?'Sent ✓':p.status==='abandoned'?'Archived':'Active';
+      var meta=[p.grade_value,p.discipline,p.environment].filter(Boolean).join(' · ');
+      var safeName=p.route_name.replace(/'/g,"\\'");
+      return '<div onclick="openProject(\''+safeName+'\')" style="display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;">'+
+        '<div style="flex:1;min-width:0;">'+
+        '<div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:3px;">'+p.route_name+'</div>'+
+        (meta?'<div style="font-size:14px;color:var(--muted);">'+meta+'</div>':'')+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">'+
+        '<span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(126,200,122,.1);color:'+statusColor+';">'+statusLabel+'</span>'+
+        '<span style="font-size:22px;color:var(--accent);">›</span>'+
+        '</div></div>';
+    }
+
+    if(activeList){
+      if(active.length){
+        activeList.innerHTML=active.map(projectCard).join('');
+      } else {
+        activeList.innerHTML='<div style="padding:16px 0;font-size:15px;color:var(--muted);">No active projects.</div>';
+      }
+    }
+    if(sentList&&sent.length){
+      sentSec.style.display='block';
+      sentList.innerHTML=sent.map(projectCard).join('');
+    }
+    if(archivedList&&archived.length){
+      archSec.style.display='block';
+      archivedList.innerHTML=archived.map(projectCard).join('');
+    }
+  }).catch(function(){
+    if(activeList)activeList.innerHTML='<div style="padding:16px 0;font-size:15px;color:var(--muted);">Could not load projects.</div>';
+  });
+}
+
 function submitProject(){
   spState.name=document.getElementById('sp-name').value.trim()||null;
   if(!spState.name){showError('Please enter a route name.');return;}
@@ -2941,10 +3043,10 @@ function submitProject(){
       currentProjectName=projectName;
       spState={name:null,grade:null,gradeSystem:'YDS',discipline:null,environment:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft'};
       showToast('Project started — go climb it!');
-      openProjectById(saved.id,projectName);
+      showScreen('screen-projects');
     } else {
       showToast('Project started!');
-      showScreen('screen-sessions');
+      showScreen('screen-projects');
     }
   }).catch(function(){
     setSaveInd('sp-save-ind','');
@@ -3239,7 +3341,7 @@ function feedbackNext(){
     var BODYSCAN_MAP={"Yes — I noticed something I hadn't registered":"yes_noticed","Somewhat — it prompted awareness but wasn't new":"somewhat","Not really — I tapped through it":"tapped_through","Nothing was present to notice":"nothing"};
     var DELTA_MAP={"Yes — it described what I actually experienced":"yes_accurate","Mostly — close but not quite":"mostly","Not really — the language didn't match":"not_accurate","I'm not sure — need more sessions to compare":"unsure"};
     var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn't find it":"didnt_find"};
-    sbI("feedback",{device_id:DID,app_version:"index59",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null});
+    sbI("feedback",{device_id:DID,app_version:"index61",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null});
     document.getElementById("fb-content").style.display="none";
     document.getElementById("fb-success").style.display="block";
   }
