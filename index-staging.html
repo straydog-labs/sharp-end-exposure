@@ -3623,12 +3623,21 @@ function feedbackNext(){
   if(fbCur<FBQs.length){fbCur++;renderFb();}
   else{
     // Map full text answers to short codes for the viewer
-    var SIMPLICITY_MAP={"Yes — I would open this before climbing":"yes_would","Yes, but it felt slightly long":"yes_long","Maybe — depends on the route":"maybe","No — too many steps":"no"};
-    var SOMATIC_MAP={"Yes — I noticed something I wasn't aware of before":"yes_noticed","Somewhat — noticed but not surprising":"somewhat","Not really — I answered but didn't physically feel it":"not_really","The questions made me more aware than I expected":"more_aware"};
-    var BODYSCAN_MAP={"Yes — I noticed something I hadn't registered":"yes_noticed","Somewhat — it prompted awareness but wasn't new":"somewhat","Not really — I tapped through it":"tapped_through","Nothing was present to notice":"nothing"};
+    var SIMPLICITY_MAP={"Log a Climb — after climbing":"log","Prepare — before committing":"prepare","Both equally":"both","Neither yet":"neither"};
+    var SOMATIC_MAP={"Yes — I noticed something I wasn't aware of before":"yes_noticed","The questions made me more aware than I expected":"more_aware","Somewhat — noticed but not surprising":"somewhat","Not really — I answered but didn't physically feel it":"not_really"};
     var DELTA_MAP={"Yes — it described what I actually experienced":"yes_accurate","Mostly — close but not quite":"mostly","Not really — the language didn't match":"not_accurate","I'm not sure — need more sessions to compare":"unsure"};
     var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn't find it":"didnt_find"};
-    sbI("feedback",{device_id:DID,app_version:"index68",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null});
+    var payload={device_id:DID,app_version:"index68",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
+    sbI("feedback",payload).then(function(saved){
+      if(saved&&saved.id){
+        document.getElementById("fb-content").style.display="none";
+        document.getElementById("fb-success").style.display="block";
+      } else {
+        showError("Feedback could not be saved. Please try again.");
+      }
+    }).catch(function(){
+      showError("Feedback could not be saved. Check your connection.");
+    });
     document.getElementById("fb-content").style.display="none";
     document.getElementById("fb-success").style.display="block";
   }
