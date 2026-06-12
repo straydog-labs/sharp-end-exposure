@@ -78,7 +78,7 @@ body{font-family:'Space Grotesk',sans-serif;background:#f5f2ed;color:#1a1a18;min
 <div class="hdr">
   <div class="eyebrow">Straydog Labs — Sharp End Exposure</div>
   <div class="title"><span>Sharp End</span> Exposure</div>
-  <div class="sub">Beta dashboard · Coach, Gym, and Industry views · demo data where noted</div>
+  <div class="sub">Beta dashboard · Coach, Gym, and Industry views · demo data where noted · index54</div>
   <div class="tier-toggle">
     <button class="tier-btn active" onclick="setTier('coach',this)">Coach</button>
     <button class="tier-btn" onclick="setTier('gym',this)">Gym</button>
@@ -99,6 +99,31 @@ body{font-family:'Space Grotesk',sans-serif;background:#f5f2ed;color:#1a1a18;min
     <div class="metric"><div class="metric-n" style="color:#3B6D11;">72%</div><div class="metric-l">Team send rate</div></div>
     <div class="metric"><div class="metric-n">4</div><div class="metric-l">Active projects</div></div>
     <div class="metric"><div class="metric-n" style="color:#a83828;">1</div><div class="metric-l">Needs attention</div></div>
+  </div>
+
+  <!-- PROJECT TRACKING -->
+  <div class="card">
+    <div class="card-lbl">Active projects — team</div>
+    <div class="card-sub">Named routes with 2+ sessions. Session focus distribution shows what each athlete is working on.</div>
+    <div id="coach-projects-full"></div>
+  </div>
+
+  <!-- FOCUS DISTRIBUTION -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-lbl">Session focus — team-wide</div>
+      <div class="card-sub">What athletes are working on across all sessions.</div>
+      <div id="focus-dist"></div>
+    </div>
+    <div class="card">
+      <div class="card-lbl">Project send rate</div>
+      <div class="card-sub">Of projects started, how many reached a send.</div>
+      <div style="text-align:center;padding:16px 0;">
+        <div style="font-size:48px;font-weight:700;font-family:'Space Mono',monospace;color:#3B6D11;line-height:1;">33%</div>
+        <div style="font-size:13px;color:#888780;margin-top:6px;">1 of 3 active projects sent</div>
+      </div>
+      <div class="insight">Projects averaging 5.7 sessions before send. Fear management focus correlates with Panic-zone activation in 4 of 5 instances.</div>
+    </div>
   </div>
   <div class="card">
     <div class="card-lbl">Athlete roster</div>
@@ -493,7 +518,47 @@ function openProfile(i){
 }
 function closeProfile(){document.getElementById('profile-screen').classList.remove('active');}
 
-buildRoster();buildHeatmap();buildCoachProjects();buildMonthBars();buildGymHeatmap();buildProjList();buildGymList();
+buildRoster();buildHeatmap();buildCoachProjects();buildCoachProjectsFull();buildFocusDist();buildMonthBars();buildGymHeatmap();buildProjList();buildGymList();
+
+function buildCoachProjectsFull(){
+  var el=document.getElementById('coach-projects-full');if(!el)return;
+  var ps=[
+    {name:'Crimson Tide',athlete:'Jake K.',grade:'5.13a',sessions:8,focus:'Fear management',zone:'Learning',status:'Projecting',sc:'#BA7517',sbg:'rgba(186,117,23,.1)'},
+    {name:'The Naked Edge',athlete:'Sarah M.',grade:'5.12b',sessions:6,focus:'Crux movement',zone:'Comfort',status:'Sent ✓',sc:'#3B6D11',sbg:'rgba(59,109,17,.1)'},
+    {name:'Project Slab',athlete:'Alex L.',grade:'5.11d',sessions:4,focus:'Fear management',zone:'Panic',status:'Stalled',sc:'#a83828',sbg:'rgba(168,56,40,.08)'},
+  ];
+  el.innerHTML=ps.map(function(p){
+    return '<div style="display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:0.5px solid rgba(0,0,0,.08);">'+
+      '<div style="flex:1;">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">'+
+      '<div style="font-size:15px;font-weight:600;color:#1a1a18;">'+p.name+'</div>'+
+      '<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:'+p.sbg+';color:'+p.sc+';">'+p.status+'</span></div>'+
+      '<div style="font-size:12px;color:#888780;">'+p.athlete+' · '+p.grade+' · '+p.sessions+' sessions</div>'+
+      '<div style="display:flex;gap:6px;margin-top:6px;">'+
+      '<span style="font-size:11px;padding:3px 9px;border-radius:99px;background:#f5f2ed;color:#5f5e5a;">Focus: '+p.focus+'</span>'+
+      '<span style="font-size:11px;padding:3px 9px;border-radius:99px;background:#f5f2ed;color:'+
+        (p.zone==='Panic'?'#a83828':p.zone==='Comfort'?'#3B6D11':'#BA7517')+
+      ';">'+p.zone+' zone</span></div></div></div>';
+  }).join('')+'<div style="height:4px;"></div>';
+}
+
+function buildFocusDist(){
+  var el=document.getElementById('focus-dist');if(!el)return;
+  var focuses=[
+    {label:'Fear management',count:12,col:'#a83828'},
+    {label:'Crux movement',count:9,col:'#c8622a'},
+    {label:'Footwork',count:7,col:'#BA7517'},
+    {label:'Route reading',count:5,col:'#3B6D11'},
+    {label:'Fall practice',count:4,col:'#BA7517'},
+    {label:'General attempt',count:8,col:'#888780'},
+  ];
+  var max=Math.max.apply(null,focuses.map(function(f){return f.count;}));
+  el.innerHTML=focuses.map(function(f){
+    return '<div class="bar-row"><div class="bar-lbl">'+f.label+'</div>'+
+      '<div class="bar-track"><div class="bar-fill" style="width:'+Math.round((f.count/max)*100)+'%;background:'+f.col+';opacity:.8;"></div></div>'+
+      '<div class="bar-val">'+f.count+'</div></div>';
+  }).join('');
+}
 </script>
 </body>
 </html>
