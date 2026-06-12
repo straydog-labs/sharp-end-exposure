@@ -73,7 +73,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
 /* ── FIELDS ── */
 .field-group{display:flex;flex-direction:column;gap:10px;}
-.field-label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text);}
+.field-label{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text);}
 
 /* ── GRADE TOGGLE ── */
 .grade-toggle{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px;}
@@ -1687,8 +1687,8 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
     </div>
 
-    <!-- Outdoor details -->
-    <div id="sp-outdoor-fields" style="display:none;flex-direction:column;gap:18px;">
+    <!-- Rock type — outdoor only -->
+    <div id="sp-rock-group" style="display:none;">
       <div class="field-group">
         <div class="field-label">Rock type</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
@@ -1706,6 +1706,10 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
           <button class="chip" onclick="spPickRock(this,'Unknown')">Unknown</button>
         </div>
       </div>
+    </div>
+
+    <!-- Bolt count + height — show for both indoor and outdoor once env selected -->
+    <div id="sp-extra-fields" style="display:none;flex-direction:column;gap:18px;">
       <div class="field-group" id="sp-bolt-group" style="display:none;">
         <div class="field-label">Bolt count</div>
         <div style="display:flex;align-items:center;gap:14px;">
@@ -1714,7 +1718,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
           <button onclick="spAdjBolt(1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
         </div>
       </div>
-      <div class="field-group">
+      <div class="field-group" id="sp-height-group">
         <div class="field-label">Route height</div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <span style="font-size:14px;color:var(--muted);">Approximate</span>
@@ -2414,10 +2418,27 @@ function renderRoutesSection(rows){
   var list=document.getElementById("real-routes-list");
   if(!list)return;
   if(!routeNames.length){
-    if(sec){
-      sec.style.display="block";
-      list.innerHTML='<div style="padding:20px 0;text-align:center;"><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">No named routes yet</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">After logging a climb, tap <strong style="color:var(--accent);">Add route details</strong> and give it a name. Any named route automatically becomes trackable here.</div></div>';
-    }
+    // Also check projects table for any started projects
+    sbS("projects",{device_id:"eq."+DID,limit:20}).then(function(projs){
+      if(projs&&projs.length){
+        if(sec)sec.style.display="block";
+        list.innerHTML=projs.map(function(p){
+          var statusColor=p.status==="sent"?"#7ec87a":p.status==="abandoned"?"#888780":"#f5a623";
+          var statusLabel=p.status==="sent"?"Sent ✓":p.status==="abandoned"?"Archived":"Projecting";
+          return '<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="openProject(\''+p.route_name+'\')">'+ 
+            '<div style="width:10px;height:10px;border-radius:50%;background:'+statusColor+';flex-shrink:0;"></div>'+ 
+            '<div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);">'+p.route_name+'</div>'+ 
+            '<div style="font-size:13px;color:var(--muted);margin-top:2px;">'+(p.grade_value||"")+(p.discipline?" · "+p.discipline:"")+"</div></div>"+ 
+            '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(126,200,122,.12);color:'+statusColor+';">'+statusLabel+'</span>'+ 
+            '<div style="color:var(--accent);font-size:18px;margin-left:4px;">›</div></div>';
+        }).join("")+'<div style="height:4px;"></div>';
+      } else {
+        if(sec){
+          sec.style.display="block";
+          list.innerHTML='<div style="padding:20px 0;text-align:center;"><div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">No projects yet</div><div style="font-size:14px;color:var(--muted);line-height:1.6;">Tap <strong style="color:var(--comfort);">Start a project</strong> on the home screen to begin tracking a route.</div></div>';
+        }
+      }
+    });
     return;
   }
   if(sec)sec.style.display="block";
@@ -2853,8 +2874,16 @@ function spPickEnv(val){
   spState.environment=val;
   document.getElementById('sp-env-in').classList.toggle('selected',val==='indoor');
   document.getElementById('sp-env-out').classList.toggle('selected',val==='outdoor');
-  var od=document.getElementById('sp-outdoor-fields');
-  if(od)od.style.display=val==='outdoor'?'flex':'none';
+  // Rock type only shows for outdoor
+  var rockGrp=document.getElementById('sp-rock-group');
+  if(rockGrp)rockGrp.style.display=val==='outdoor'?'block':'none';
+  // Bolt count and height show for both
+  var boltGrp=document.getElementById('sp-bolt-group');
+  var heightGrp=document.getElementById('sp-height-group');
+  var extraFields=document.getElementById('sp-extra-fields');
+  if(extraFields)extraFields.style.display='flex';
+  if(boltGrp&&spState.discipline==='Sport')boltGrp.style.display='block';
+  if(heightGrp)heightGrp.style.display='block';
 }
 
 function spPickRock(el,val){
@@ -2929,7 +2958,8 @@ function initStartProject(){
   spState={name:null,grade:null,gradeSystem:'YDS',discipline:null,environment:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft'};
   document.getElementById('sp-submit-btn').style.opacity='0.3';
   document.getElementById('sp-submit-btn').style.pointerEvents='none';
-  document.getElementById('sp-outdoor-fields').style.display='none';
+  var rg=document.getElementById('sp-rock-group');if(rg)rg.style.display='none';
+  var ef=document.getElementById('sp-extra-fields');if(ef)ef.style.display='none';
   document.getElementById('sp-env-in').classList.remove('selected');
   document.getElementById('sp-env-out').classList.remove('selected');
   ['V','YDS','FR','UK'].forEach(function(s){
