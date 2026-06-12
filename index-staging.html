@@ -1137,14 +1137,15 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
   <div class="content">
-    <div style="padding:16px 0;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;">
       <div class="pause-eyebrow">Stop. Check in.</div>
-      <div class="pause-title">You just thought<br>through this route.</div>
-      <div class="pause-divider"></div>
-      <div class="pause-body">Before the next question —<br>take a breath right now.<br><br>Notice if anything has shifted<br>in your breath or gut<br>since you started.</div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.65;margin:20px 0;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:8px;">The next two questions ask exactly this. The pause is the point — not the questions.</div>
-      <div class="sci-note">Somatic attention before a decision improves decision quality by activating pre-decision physiological markers. <em>Damasio, A.R. (1994). Descartes' Error.</em></div>
-      <button class="btn btn-p" onclick="dismissPause()" style="padding:14px 28px;font-size:14px;margin-top:24px;">Ready — check in →</button>
+      <div style="font-size:17px;font-weight:600;margin-bottom:12px;line-height:1.3;">You just thought through this route.<br>Take one breath.</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:24px;">Notice if anything has shifted in your breath or gut since you started. The next two questions ask exactly this. The pause is the point — not the questions.</div>
+      <div class="pulse-wrap">
+        <div class="pulse-inner"><div class="pulse-dot"></div></div>
+      </div>
+      <div class="sci-note" style="margin-top:20px;">Somatic attention before a decision improves decision quality by activating pre-decision physiological markers. <em>Damasio, A.R. (1994). Descartes' Error.</em></div>
+      <button class="btn btn-p" onclick="dismissPause()" style="width:100%;justify-content:center;padding:16px;font-size:15px;border-radius:10px;margin-top:20px;">Ready — check in →</button>
     </div>
   </div>
 </div>
@@ -3470,10 +3471,10 @@ function updateScanUI(){
   if(bodyScanZones.length>0&&!document.getElementById("scan-q2-opts").children.length){
     var opts=["Tension / holding","Soreness","Tightness","Fatigue","Something else","Nothing specific"];
     var c=document.createElement("div");c.className="options";c.style.gap="6px";
-    opts.forEach(o=>{var el=document.createElement("div");el.className="option";el.style.padding="10px 14px";el.innerHTML="<div class='opt-marker'></div><div class='opt-label' style='font-size:13px'>"+o+"</div>";el.onclick=()=>{document.querySelectorAll("#scan-q2-opts .option").forEach(x=>x.classList.remove("selected"));el.classList.add("selected");bodyScanQ2=o;updateScanContinue();};c.appendChild(el);});
+    opts.forEach(o=>{var el=document.createElement("div");el.className="option";el.style.padding="10px 14px";el.innerHTML="<div class='opt-marker'></div><div class='opt-label' style='font-size:13px'>"+o+"</div>";el.onclick=()=>{document.querySelectorAll("#scan-q2-opts .option").forEach(x=>x.classList.remove("selected"));el.classList.add("selected");bodyScanQ2=o;var q3w=document.getElementById("scan-q3-wrap");if(q3w)q3w.style.display=(o==="Nothing specific")?"none":"block";updateScanContinue();};c.appendChild(el);});
     document.getElementById("scan-q2-opts").appendChild(c);
   }
-  if(bodyScanQ2){
+  if(bodyScanQ2&&bodyScanQ2!=="Nothing specific"){
     var q3=document.getElementById("scan-q3-wrap");if(q3)q3.style.display="block";
     if(!document.getElementById("scan-q3-opts").children.length){
       var opts3=["Yes — this is how I usually feel","Somewhat — slightly more than usual","No — this is new today","Not sure"];
@@ -3486,7 +3487,8 @@ function updateScanUI(){
 }
 function updateScanContinue(){
   var btn=document.getElementById("scan-continue");
-  if(btn)btn.disabled=!(bodyScanZones.length===0||(bodyScanQ2&&bodyScanQ3));
+  var nothingSpecific=bodyScanQ2==="Nothing specific";
+  if(btn)btn.disabled=!(bodyScanZones.length===0||(bodyScanQ2&&(bodyScanQ3||nothingSpecific)));
   if(btn&&bodyScanZones.length===0)btn.disabled=false;
 }
 function skipBodyScan(){window.bodyScanData=null;cur++;render();showScreen("s-assess");}
@@ -3626,7 +3628,7 @@ function feedbackNext(){
     var BODYSCAN_MAP={"Yes — I noticed something I hadn't registered":"yes_noticed","Somewhat — it prompted awareness but wasn't new":"somewhat","Not really — I tapped through it":"tapped_through","Nothing was present to notice":"nothing"};
     var DELTA_MAP={"Yes — it described what I actually experienced":"yes_accurate","Mostly — close but not quite":"mostly","Not really — the language didn't match":"not_accurate","I'm not sure — need more sessions to compare":"unsure"};
     var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn't find it":"didnt_find"};
-    sbI("feedback",{device_id:DID,app_version:"index67",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null});
+    sbI("feedback",{device_id:DID,app_version:"index68",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null});
     document.getElementById("fb-content").style.display="none";
     document.getElementById("fb-success").style.display="block";
   }
