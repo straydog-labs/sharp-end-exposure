@@ -13,7 +13,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   /* Sandstone dark — warm slate, not pure black */
-  --bg:#2a2420;--surface:#3a3228;--surface2:#463e34;--border:#5a5248;--border2:#6a6258;
+  --bg:#2a2420;--surface:#3a3228;--surface2:#463e34;--surface3:#524840;--border:#5a5248;--border2:#6a6258;
+  --t-xl:28px;--t-lg:22px;--t-md:17px;--t-sm:14px;--t-xs:12px;--t-2xs:10px;
+  --r-xl:18px;--r-lg:14px;--r-md:10px;--r-sm:8px;--r-xs:6px;
   --text:#ffffff;--muted:#e8ddd4;--muted2:#c0b8ae;
   /* Sandstone accent palette — Red River Gorge / Obed */
   --accent:#e8763a;--accent-light:#f08c52;--accent-dim:rgba(232,118,58,.15);
@@ -297,6 +299,8 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .error-toast{position:fixed;bottom:20px;left:16px;right:16px;background:rgba(232,68,68,.95);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;}
 .error-toast.show{opacity:1;}
 .toast.show{opacity:1;}
+.skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface3) 50%,var(--surface) 75%);background-size:200% 100%;animation:skeleton-shimmer 1.4s infinite;border-radius:var(--r-sm);}
+@keyframes skeleton-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 .save-ind{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;min-height:16px;}
 .warn-box{font-size:12px;color:var(--panic);background:rgba(255,92,58,.06);border:1px solid rgba(255,92,58,.2);border-radius:8px;padding:10px 14px;margin-top:10px;line-height:1.6;}
 .empty-state{text-align:center;padding:3rem 0;color:var(--muted);}
@@ -385,18 +389,30 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <div class="home-tagline">Know your body.<br><em>Own your decision.</em></div>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:24px;">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <!-- Insight card — hidden until sessions load -->
+      <div id="home-insight-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
+        <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="home-insight-label">Last session</div>
+        <div style="font-size:var(--t-sm);color:var(--text);line-height:1.55;font-weight:500;" id="home-insight-text">Loading...</div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;" id="home-insight-meta"></div>
+      </div>
+      <!-- First-time card — shown when 0 sessions -->
+      <div id="home-first-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
+        <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Welcome</div>
+        <div style="font-size:var(--t-sm);color:var(--text);line-height:1.6;font-weight:500;">Log a climb after you finish it. Over time, the app maps how your body responds to different routes, grades, and terrain.</div>
+        <div style="font-size:var(--t-xs);color:var(--muted);margin-top:8px;line-height:1.5;">The goal: eventually run this check-in mentally, without the app.</div>
+      </div>
       <div class="home-actions">
         <button class="home-btn primary" onclick="showScreen('screen-log')">
-          <div class="btn-label"><span>Log a climb</span><span class="btn-sub">After you climb</span></div>
+          <div class="btn-label"><span>Log a climb</span><span class="btn-sub">After you climb · builds your picture</span></div>
           <span class="btn-arrow">→</span>
         </button>
         <button class="home-btn" onclick="startPrepare()">
-          <div class="btn-label"><span>Prepare for a climb</span><span class="btn-sub">Before you commit</span></div>
+          <div class="btn-label"><span>Prepare for a climb</span><span class="btn-sub">Before you commit · somatic check-in</span></div>
           <span class="btn-arrow">→</span>
         </button>
         <button class="home-btn" onclick="showScreen('screen-start-project')" style="border-color:rgba(126,200,122,.4);background:rgba(126,200,122,.06);">
-          <div class="btn-label"><span style="color:var(--comfort);">Start a project</span><span class="btn-sub">Name it. Track everything.</span></div>
+          <div class="btn-label"><span style="color:var(--comfort);">Start a project</span><span class="btn-sub">Name it. Track every session.</span></div>
           <span class="btn-arrow" style="color:var(--comfort);">→</span>
         </button>
       </div>
@@ -414,9 +430,28 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
   </div>
   <div class="content">
-    <div class="screen-title">Log a climb<span class="sub">Grade · terrain · result.</span></div>
+    <div class="screen-title">Log a climb<span class="sub">What just happened out there?</span></div>
 
+    <!-- RESULT FIRST — outcome leads -->
     <div class="field-group">
+      <div class="field-label">Result</div>
+      <div class="result-row">
+        <button class="result-btn" id="btn-sent" onclick="selectResult('sent')"><span class="emoji">✓</span>Sent</button>
+        <button class="result-btn" id="btn-attempt" onclick="selectResult('attempt')"><span class="emoji">◎</span>Attempt</button>
+        <button class="result-btn" id="btn-dna" onclick="selectResult('dna')"><span class="emoji">—</span>Backed off</button>
+      </div>
+    </div>
+
+    <!-- ROUTE NAME — fades in after result -->
+    <div class="field-group" id="log-rname-group" style="display:none;animation:fadeUp .25s ease;">
+      <div class="field-label">Route name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
+      <input id="log-rname-input" type="text" placeholder="e.g. Ticks Are For Kids..." autocomplete="off"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;"
+        oninput="logState.routeName=this.value.trim()||null"/>
+    </div>
+
+    <!-- GRADE — appears after result -->
+    <div class="field-group" id="log-grade-group" style="display:none;animation:fadeUp .25s ease;">
       <div class="field-label">Grade</div>
       <div class="grade-toggle">
         <button class="toggle-btn" onclick="setGradeSystem('V')" id="btn-V"><span class="sys-name">V</span><span class="sys-label">Hueco</span></button>
@@ -426,8 +461,10 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
       <div class="grade-grid" id="grade-grid"></div>
     </div>
+
+    <!-- TERRAIN — always visible -->
     <div class="field-group">
-      <div class="field-label">Terrain feature</div>
+      <div class="field-label">Terrain</div>
       <div class="terrain-chips">
         <button class="chip" onclick="selectTerrain(this,'Slab')">Slab</button>
         <button class="chip" onclick="selectTerrain(this,'Vertical')">Vertical</button>
@@ -438,11 +475,17 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
       </div>
     </div>
-    <div class="field-group">
-      <div class="field-label">Result</div>
-      <div class="result-row">
-        <button class="result-btn" id="btn-sent" onclick="selectResult('sent')"><span class="emoji">✓</span>Sent</button>
-        <button class="result-btn" id="btn-attempt" onclick="selectResult('attempt')"><span class="emoji">◎</span>Attempt</button>
+
+    <!-- TRACK AS PROJECT -->
+    <div class="field-group" id="log-project-group" style="display:none;animation:fadeUp .25s ease;">
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:rgba(126,200,122,.06);border:1px solid rgba(126,200,122,.25);border-radius:var(--r-lg);cursor:pointer;" onclick="toggleLogProject()">
+        <div id="log-proj-check" style="width:22px;height:22px;border-radius:6px;border:2px solid rgba(126,200,122,.5);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;">
+          <svg id="log-proj-tick" width="12" height="12" viewBox="0 0 12 12" style="display:none;"><polyline points="2,6 5,9 10,3" fill="none" stroke="#7ec87a" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div style="font-size:var(--t-sm);font-weight:600;color:#7ec87a;">Track as project</div>
+          <div style="font-size:var(--t-xs);color:var(--muted);margin-top:2px;">Log every session on this route and see how your zone shifts</div>
+        </div>
       </div>
     </div>
   </div>
@@ -458,19 +501,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
   <div class="content">
-    <div style="display:flex;flex-direction:column;gap:12px;padding-top:4px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div class="tick-mark" style="width:40px;height:40px;flex-shrink:0;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#0f0f0f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <p style="font-size:18px;font-weight:700;color:var(--text);">Logged.</p>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-family:'Space Mono',monospace;font-size:36px;font-weight:700;color:var(--accent);line-height:1;" id="card-grade-big">—</div>
-          <div style="font-size:15px;color:var(--muted);margin-top:5px;" id="card-terrain-big">—</div>
-        </div>
+    <!-- HEADLINE — grade · terrain · zone -->
+    <div style="padding:8px 0 16px;">
+      <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Logged.</div>
+      <div style="font-family:'Space Mono',monospace;font-size:38px;font-weight:700;color:var(--text);line-height:1;margin-bottom:6px;" id="card-grade-big">—</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="font-size:var(--t-md);color:var(--muted);font-weight:500;" id="card-terrain-big">—</div>
         <div class="climb-result-badge" id="card-badge-big">—</div>
+        <div id="cel-zone-pill"></div>
       </div>
     </div>
 
@@ -545,29 +583,49 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
 
   <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
+    <!-- WHAT'S NEXT — no nudge, three paths -->
+    <div style="font-size:var(--t-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">What's next?</div>
+
     <button class="action-btn primary-action" onclick="startDeeper()" style="display:flex;align-items:center;justify-content:space-between;">
       <div style="text-align:left;">
-        <div style="font-size:17px;font-weight:700;">Go Deeper →</div>
-        <div style="font-size:13px;color:rgba(255,255,255,.65);margin-top:2px;">What happened in your body? 4 questions.</div>
+        <div style="font-size:var(--t-md);font-weight:700;">Already climbed it → Go Deeper</div>
+        <div style="font-size:var(--t-xs);color:rgba(255,255,255,.6);margin-top:3px;">4 questions · what happened in your body?</div>
       </div>
+      <span style="font-size:20px;flex-shrink:0;margin-left:12px;">→</span>
     </button>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+    <button class="action-btn" onclick="celebrateGoClimb()" style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="text-align:left;">
+        <div style="font-size:var(--t-md);font-weight:600;">Go climb it</div>
+        <div style="font-size:var(--t-xs);color:var(--muted);margin-top:3px;">Come back after · log your reflection</div>
+      </div>
+      <span style="font-size:20px;color:var(--muted);flex-shrink:0;margin-left:12px;">→</span>
+    </button>
+
+    <button class="action-btn" onclick="celebrateBackOff()" style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="text-align:left;">
+        <div style="font-size:var(--t-md);font-weight:600;">Back off · different decision</div>
+        <div style="font-size:var(--t-xs);color:var(--muted);margin-top:3px;">Stepping back is a conscious risk decision</div>
+      </div>
+      <span style="font-size:20px;color:var(--muted);flex-shrink:0;margin-left:12px;">→</span>
+    </button>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
       <button class="action-btn" onclick="showScreen('screen-route-details')" style="text-align:left;padding:14px 16px;">
-        <div style="font-size:14px;font-weight:700;">Add details</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Name · discipline</div>
+        <div style="font-size:var(--t-sm);font-weight:600;">Add details</div>
+        <div style="font-size:var(--t-xs);color:var(--muted);margin-top:2px;">Name · discipline</div>
       </button>
       <button class="action-btn" onclick="openStartProjectFromLog()" style="text-align:left;padding:14px 16px;border-color:rgba(126,200,122,.4);background:rgba(126,200,122,.06);">
-        <div style="font-size:14px;font-weight:700;color:#7ec87a;">Start project</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Track this route</div>
+        <div style="font-size:var(--t-sm);font-weight:600;color:#7ec87a;">Start project</div>
+        <div style="font-size:var(--t-xs);color:var(--muted);margin-top:2px;">Track this route</div>
       </button>
     </div>
-    <button class="action-btn" onclick="openEditSheet()" style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:14px;color:var(--muted);">Edit this climb</div>
+    <button class="action-btn" onclick="openEditSheet()" style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+      <div style="font-size:var(--t-sm);color:var(--muted);">Edit this climb</div>
       <span style="color:var(--muted);font-size:15px;">✎</span>
     </button>
-    <div class="divider-label">or</div>
-    <button class="action-btn" onclick="logAnother()">Log another climb</button>
-    <button class="action-btn" onclick="showScreen('screen-home')" style="color:var(--muted);border-color:transparent;background:transparent;font-size:14px;">← Home</button>
+    <button class="action-btn" onclick="logAnother()" style="margin-top:4px;">Log another climb</button>
+    <button class="action-btn" onclick="showScreen('screen-home')" style="color:var(--muted);border-color:transparent;background:transparent;font-size:var(--t-sm);">← Home</button>
   </div>
 </div>
 
@@ -677,7 +735,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <span class="q-context-toggle" id="ctx1-arrow">▶</span>
         <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx1"> — Breath rate is one of the earliest signals of activation state. Restricted or held breath indicates elevated perceived demand.</span></span>
       </div>
-      <div id="ctx1-sci" style="display:none;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+      <div id="ctx1-sci" style="display:block;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
         <div style="font-size:12px;color:var(--muted);line-height:1.6;">Breath rate is a measurable proxy for autonomic arousal — one of the earliest physiological signals of threat response. <em style="color:var(--muted2);">Garfinkel &amp; Critchley, 2015.</em></div>
         <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
@@ -720,7 +778,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <span class="q-context-toggle" id="ctx2-arrow">▶</span>
         <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx2"> — Gut sensation fires as a pre-conscious decision marker. Some climbers notice it clearly, others don't — your experience may differ.</span></span>
       </div>
-      <div id="ctx2-sci" style="display:none;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+      <div id="ctx2-sci" style="display:block;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
         <div style="font-size:12px;color:var(--muted);line-height:1.6;">Gut sensation functions as a pre-conscious somatic marker — patients without this signal made systematically worse decisions even knowing the correct choice. <em style="color:var(--muted2);">Damasio, 1994.</em></div>
         <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
@@ -768,14 +826,16 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <span class="q-context-toggle" id="ctx3-arrow">▶</span>
         <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx3"> — Crux moments are where activation spikes and risk perception peaks. Noticing your response builds pattern awareness over time.</span></span>
       </div>
-      <div id="ctx3-sci" style="display:none;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+      <div id="ctx3-sci" style="display:block;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
         <div style="font-size:12px;color:var(--muted);line-height:1.6;">Performance peaks at optimal arousal then drops. The crux is often where you cross into over-activation — conscious monitoring at that point is the skill. <em style="color:var(--muted2);">Yerkes &amp; Dodson, 1908. Beilock &amp; Carr, 2001.</em></div>
         <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I paused</button>
+        <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I hesitated then committed</button>
         <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I backed off</button>
         <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I pushed through</button>
+        <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I panicked but recovered</button>
         <button class="chip" onclick="selectDeepChip(this,'q3')">No standout moment</button>
       </div>
     </div>
@@ -814,7 +874,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <span class="q-context-toggle" id="ctx4-arrow">▶</span>
         <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx4"> — This asks what you noticed, not what zone you were in. Your body data maps to a zone — you just report what was there.</span></span>
       </div>
-      <div id="ctx4-sci" style="display:none;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+      <div id="ctx4-sci" style="display:block;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
         <div style="font-size:12px;color:var(--muted);line-height:1.6;">Interoceptive accuracy — the ability to notice body signals — is trainable. This question builds that skill over time. <em style="color:var(--muted2);">Price &amp; Hooven, 2018.</em></div>
         <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
@@ -965,7 +1025,30 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
   </div>
   <div class="content">
-    <div class="screen-title">My sessions<span class="sub">Your climbing data, mapped.</span></div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+      <div class="screen-title" style="margin-bottom:0;">My sessions</div>
+      <div style="font-size:var(--t-xs);color:var(--muted);" id="sess-total-count"></div>
+    </div>
+    <div style="font-size:var(--t-xs);color:var(--muted);margin-bottom:16px;">Your climbing data, mapped.</div>
+
+    <!-- ── AI INSIGHT CARD ── -->
+    <div id="ai-insight-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">Pattern insight</div>
+      </div>
+      <div style="font-size:var(--t-sm);color:var(--text);line-height:1.6;font-weight:500;" id="ai-insight-text">Analyzing your sessions...</div>
+      <button id="ai-say-more-btn" onclick="toggleAiMore()" style="display:none;margin-top:10px;background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:var(--t-xs);font-weight:700;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px;">Say more →</button>
+      <div id="ai-more-text" style="display:none;margin-top:10px;font-size:var(--t-xs);color:var(--muted);line-height:1.65;border-top:1px solid var(--border);padding-top:10px;"></div>
+    </div>
+
+    <!-- ── EMPTY STATE (< 5 sessions) ── -->
+    <div id="sessions-empty-state" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:28px;margin-bottom:12px;">📊</div>
+      <div style="font-size:var(--t-md);font-weight:700;color:var(--text);margin-bottom:8px);">Your picture is building.</div>
+      <div style="font-size:var(--t-sm);color:var(--muted);line-height:1.6;" id="sessions-empty-text">Log 5 sessions to unlock zone distribution, terrain patterns, and grade range.</div>
+      <button onclick="showScreen('screen-log')" style="margin-top:16px;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);font-weight:700;padding:12px 24px;cursor:pointer;">Log a climb →</button>
+    </div>
 
     <!-- ── PREVIEW SECTION ── -->
     <div id="sessions-preview-section">
@@ -2215,7 +2298,10 @@ function showScreen(id){
   document.querySelectorAll(".footer-btn").forEach(b=>b.classList.remove("active"));
   if(map[id])document.getElementById(map[id]).classList.add("active");
   if(id==="screen-sessions")loadSessionsScreen();
+  if(id==="screen-home")loadHomeInsight();
   if(id==="screen-projects")loadProjectsScreen();
+  // Load home insight on initial page load
+  setTimeout(loadHomeInsight, 200);
   if(id==="screen-feedback")initFeedback();
   if(id==="screen-route-details")initRouteDetails();
   if(id==="screen-celebrate")showFocusBlockIfProject();
@@ -2226,7 +2312,7 @@ function showScreen(id){
 function show(id){showScreen(id);}
 
 // ── LOG A CLIMB STATE ────────────────────────────────────
-var logState={grade:null,terrain:null,result:null,zone:null,sessId:null,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft',sessionFocus:null};
+var logState={grade:null,terrain:null,result:null,zone:null,sessId:null,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft',sessionFocus:null,trackAsProject:false};
 var previousRoutes=[];
 var logGradeSystem="YDS";
 var gradeSystems={
@@ -2267,9 +2353,12 @@ function selectTerrain(el,val){
 }
 function selectResult(val){
   logState.result=val;
-  document.getElementById("btn-sent").classList.remove("selected-send");
-  document.getElementById("btn-attempt").classList.remove("selected-attempt");
-  document.getElementById(val==="sent"?"btn-sent":"btn-attempt").classList.add(val==="sent"?"selected-send":"selected-attempt");
+  document.querySelectorAll('.result-btn').forEach(function(b){b.classList.remove('selected-send','selected-attempt');});
+  if(val==='sent')document.getElementById('btn-sent').classList.add('selected-send');
+  else if(val==='attempt')document.getElementById('btn-attempt').classList.add('selected-attempt');
+  else if(val==='dna'){var db=document.getElementById('btn-dna');if(db)db.classList.add('selected-attempt');}
+  var gg=document.getElementById('log-grade-group');var rg=document.getElementById('log-rname-group');var pg=document.getElementById('log-project-group');
+  if(gg)gg.style.display='block';if(rg)rg.style.display='block';if(pg)pg.style.display='block';
   checkLogReady();
 }
 function checkLogReady(){
@@ -2278,6 +2367,7 @@ function checkLogReady(){
 
 function logClimb(){
   if(!logState.grade||!logState.terrain||!logState.result)return;
+  var ri=document.getElementById('log-rname-input');if(ri&&ri.value.trim())logState.routeName=ri.value.trim();
   renderLogCelebration();
   showScreen("screen-celebrate");
   // Save to Supabase
@@ -2357,19 +2447,19 @@ function renderLogCelebration(){
         "</div>";
     }).join("")+
   "</div>"+
-  '<div style="font-size:10px;color:var(--muted);margin-top:6px;font-style:italic;">'+g+" · "+logGradeSystem+" scale · current session highlighted</div>";
+  '<div style="font-size:10px;color:var(--muted);margin-top:6px;font-style:italic;">'+g+" . "+logGradeSystem+" scale . current session highlighted</div>";
 
   // Stat card
   var tc=(history[t]||0);
   document.getElementById("stat-number").textContent=tc;
   document.getElementById("stat-label").textContent=t+" sessions logged";
-  document.getElementById("stat-sub").textContent=r==="sent"?"Sent ✓":"Attempt — data either way";
+  document.getElementById("stat-sub").textContent=r==="sent"?"Sent ✓":"Attempt -- data either way";
 }
 
 // ── GO DEEPER ────────────────────────────────────────────
 var deepAnswers={};
 function startDeeper(){
-  var label=logState.grade+" · "+logState.terrain;
+  var label=logState.grade+" . "+logState.terrain;
   ["q1","q2","q3","q4"].forEach(q=>{var el=document.getElementById(q+"-label");if(el)el.textContent=label;});
   document.querySelectorAll(".response-chips .chip").forEach(c=>c.classList.remove("selected"));
   ["next-q1","next-q2","next-q3","next-q4"].forEach(id=>document.getElementById(id).classList.remove("ready"));
@@ -2393,10 +2483,10 @@ function toggleCtx(id,arrowId){
 
 function finishDeeper(){
   var zoneMap={
-    comfort:{text:"Your body reported settled and in control — that maps to the Comfort zone. These sessions show what's becoming automatic for you.",cls:"zone-comfort",label:"Comfort zone",dotX:100,dotY:100,dotColor:"#c8f55a",riverY:82},
-    learning:{text:"Your body reported activated but manageable — that maps to the Learning zone. This is where adaptation happens.",cls:"zone-learning",label:"Learning zone",dotX:100,dotY:68,dotColor:"#f5a623",riverY:50},
-    panic:{text:"Your body reported tight and reactive — that maps to the Panic zone. Noticing what takes you there is how you start to work with it over time.",cls:"zone-panic",label:"Panic zone",dotX:100,dotY:28,dotColor:"#ff5c3a",riverY:16},
-    unsure:{text:"Your body was hard to read on this one. That's valid data too — ambiguous activation is worth tracking as your picture builds.",cls:"zone-learning",label:"Signal unclear",dotX:100,dotY:68,dotColor:"#f5a623",riverY:50}
+    comfort:{text:"Your body reported settled and in control -- that maps to the Comfort zone. These sessions show what's becoming automatic for you.",cls:"zone-comfort",label:"Comfort zone",dotX:100,dotY:100,dotColor:"#c8f55a",riverY:82},
+    learning:{text:"Your body reported activated but manageable -- that maps to the Learning zone. This is where adaptation happens.",cls:"zone-learning",label:"Learning zone",dotX:100,dotY:68,dotColor:"#f5a623",riverY:50},
+    panic:{text:"Your body reported tight and reactive -- that maps to the Panic zone. Noticing what takes you there is how you start to work with it over time.",cls:"zone-panic",label:"Panic zone",dotX:100,dotY:28,dotColor:"#ff5c3a",riverY:16},
+    unsure:{text:"Your body was hard to read on this one. That's valid data too -- ambiguous activation is worth tracking as your picture builds.",cls:"zone-learning",label:"Signal unclear",dotX:100,dotY:68,dotColor:"#f5a623",riverY:50}
   };
   var z=zoneMap[logState.zone]||zoneMap.unsure;
   document.getElementById("insight-text").textContent=z.text;
@@ -2410,7 +2500,7 @@ function finishDeeper(){
   riverDot.setAttribute("cy",z.riverY);riverDot.setAttribute("fill",z.dotColor);
   riverRing.setAttribute("cy",z.riverY);
   document.getElementById("river-line").setAttribute("points","60,82 110,75 160,48 210,40 260,55 300,"+z.riverY);
-  var insightMap={comfort:"Comfort zone — familiar territory. The Learning fringe is available when you choose to step toward it.",learning:"Learning zone — at the edge of current experience. This is where adaptation happens.",panic:"Panic zone — perceived demand exceeded current experience. Was this a conscious step or a reactive one? Both are data.",unsure:"Signal unclear — noticing that is data too."};document.getElementById("river-insight").textContent=insightMap[logState.zone]||"Latest session logged.";
+  var insightMap={comfort:"Comfort zone -- familiar territory. The Learning fringe is available when you choose to step toward it.",learning:"Learning zone -- at the edge of current experience. This is where adaptation happens.",panic:"Panic zone -- perceived demand exceeded current experience. Was this a conscious step or a reactive one? Both are data.",unsure:"Signal unclear -- noticing that is data too."};document.getElementById("river-insight").textContent=insightMap[logState.zone]||"Latest session logged.";
   // Save deeper data to Supabase
   if(logState.sessId){
     sbI("sessions",{id:logState.sessId,breathing_post:deepAnswers.q1||null,gut_post:deepAnswers.q2||null,crux_response:deepAnswers.q3||null,body_state:logState.zone,session_focus:logState.sessionFocus||null});
@@ -2418,8 +2508,8 @@ function finishDeeper(){
   // Populate reflection route context
   var rg=document.getElementById("reflect-grade");var rt=document.getElementById("reflect-terrain");
   var rrl=document.getElementById("reflect-result-lbl");var rzp=document.getElementById("reflect-zone-pill");
-  if(rg)rg.textContent=logState.grade||"—";
-  if(rt)rt.textContent=logState.terrain||"—";
+  if(rg)rg.textContent=logState.grade||"--";
+  if(rt)rt.textContent=logState.terrain||"--";
   if(rrl)rrl.textContent=logState.result==="sent"?"Sent ✓":"Attempt";
   if(rzp){var zLbl=logState.zone?logState.zone[0].toUpperCase()+logState.zone.slice(1)+" zone":"";var zCol=logState.zone==="comfort"?"#7ec87a":logState.zone==="panic"?"#e84444":"#f5a623";rzp.innerHTML=zLbl?'<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(200,200,200,.1);color:'+zCol+';">'+zLbl+'</span>':"";}
   // If attempt, show incident flow
@@ -2429,10 +2519,10 @@ function finishDeeper(){
 
 // ── FALL / INCIDENT FLOW ─────────────────────────────────
 var incidentQ=[
-  {id:"what_happened",label:"What happened",text:"What happened on the attempt?",opts:["Slipped off","Got pumped","Fear — I backed off","Bailed consciously","Something else"]},
+  {id:"what_happened",label:"What happened",text:"What happened on the attempt?",opts:["Slipped off","Got pumped","Fear -- I backed off","Bailed consciously","Something else"]},
   {id:"where_on_route",label:"Where on the route",text:"Where on the route did it happen?",opts:["At the crux","Mid-route","Near the top","At the start","Not sure"]},
-  {id:"body_position",label:"Body position",text:"What was your body position at that moment?",opts:["Overextended / off-balance","Solid but physically failed","Tense / rigid","Controlled — mental decision","Not sure"]},
-  {id:"first_time",label:"First time",text:"Was this a first time on this type of move or route?",opts:["Yes — completely new territory","Similar but not identical","No — I've done this before","Not sure"]},
+  {id:"body_position",label:"Body position",text:"What was your body position at that moment?",opts:["Overextended / off-balance","Solid but physically failed","Tense / rigid","Controlled -- mental decision","Not sure"]},
+  {id:"first_time",label:"First time",text:"Was this a first time on this type of move or route?",opts:["Yes -- completely new territory","Similar but not identical","No -- I've done this before","Not sure"]},
   {id:"breathing_during",label:"Breathing",text:"What was your breathing like in the moment?",opts:["Held my breath","Shallow and fast","Open and steady","Didn't notice"]}
 ];
 var incidentCur=0,incidentAns={};
@@ -2469,6 +2559,14 @@ function incidentNext(){
 }
 
 // ── LOG ANOTHER ──────────────────────────────────────────
+function celebrateGoClimb(){
+  showToast("Come back after you climb and log your reflection.");
+  setTimeout(function(){showScreen('screen-home');},1200);
+}
+function celebrateBackOff(){
+  showToast("Stepping back is a conscious risk decision -- that's data too.");
+  setTimeout(function(){showScreen('screen-home');},1400);
+}
 function openEditSheet(){
   var sheet=document.getElementById("edit-sheet");if(!sheet)return;
   var gc=document.getElementById("edit-grade-chips");
@@ -2513,8 +2611,20 @@ function openStartProjectFromLog(){
     spCheckReady();
   },100);
 }
+function toggleLogProject(){
+  logState.trackAsProject=!logState.trackAsProject;
+  var check=document.getElementById('log-proj-check');
+  var tick=document.getElementById('log-proj-tick');
+  if(check){check.style.background=logState.trackAsProject?'rgba(126,200,122,.2)':'transparent';check.style.borderColor=logState.trackAsProject?'#7ec87a':'rgba(126,200,122,.5)';}
+  if(tick)tick.style.display=logState.trackAsProject?'block':'none';
+}
 function logAnother(){
-  logState={grade:null,terrain:null,result:null,zone:null,sessId:null,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft',sessionFocus:null};
+  logState={grade:null,terrain:null,result:null,zone:null,sessId:null,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft',sessionFocus:null,trackAsProject:false};
+  var gg=document.getElementById('log-grade-group');var rg=document.getElementById('log-rname-group');var pg=document.getElementById('log-project-group');
+  if(gg)gg.style.display='none';if(rg)rg.style.display='none';if(pg)pg.style.display='none';
+  var ri=document.getElementById('log-rname-input');if(ri)ri.value='';
+  var pc=document.getElementById('log-proj-check');var pt=document.getElementById('log-proj-tick');
+  if(pc){pc.style.background='transparent';pc.style.borderColor='rgba(126,200,122,.5)';}if(pt)pt.style.display='none';
   buildGradeGrid(logGradeSystem);
   document.querySelectorAll(".chip[onclick*='selectTerrain']").forEach(b=>b.classList.remove("selected"));
   document.getElementById("btn-sent").classList.remove("selected-send");
@@ -2524,11 +2634,113 @@ function logAnother(){
 }
 
 // ── MY SESSIONS SCREEN ───────────────────────────────────
+function generateRuleBasedInsight(sessions){
+  if(!sessions||!sessions.length)return{short:"No sessions yet. Log your first climb to start building your picture.",long:null};
+  var total=sessions.length;
+  var zones=sessions.map(function(s){return s.baseline_zone;}).filter(Boolean);
+  var comfort=zones.filter(function(z){return z==='comfort';}).length;
+  var learning=zones.filter(function(z){return z==='learning';}).length;
+  var panic=zones.filter(function(z){return z==='panic';}).length;
+  var last3=zones.slice(-3);
+  var lastZone=zones[zones.length-1]||'unknown';
+  var panicPct=Math.round(panic/zones.length*100);
+  var learningPct=Math.round(learning/zones.length*100);
+  var short='',long='';
+  // Trend analysis
+  var recentPanic=last3.filter(function(z){return z==='panic';}).length;
+  var recentLearning=last3.filter(function(z){return z==='learning';}).length;
+  if(total<3){short="Your picture is just starting. Each session adds signal -- the patterns will emerge.";long=null;}
+  else if(recentLearning>=2&&panic>0){short="Your last few sessions are in the Learning zone -- the conscious step is working. Earlier Panic spikes show where the edge was.";long="Consistent Learning-zone activation after earlier Panic spikes is the signal of progressive exposure adaptation. The nervous system is recalibrating.";}
+  else if(recentPanic>=2){short="Panic-zone activation in recent sessions. Worth asking: conscious choice or reactive? Both are data -- but only one builds the skill.";long="Repeated unprocessed Panic experiences can condition avoidance rather than growth. If this route is at your limit, consider a deliberate step back to the Learning fringe.";}
+  else if(learningPct>=55){short="You're spending most sessions in the Learning zone -- "+learningPct+"% of "+total+" logged. That's the deliberate practice window.";long="Consistent Learning-zone activation across "+total+" sessions suggests you're selecting routes well relative to current experience. The arc should show gradual outward movement.";}
+  else if(comfort>=learning&&comfort>=panic){short="Most sessions in Comfort -- "+Math.round(comfort/zones.length*100)+"%. The Learning fringe is always available when you choose to step toward it.";long="High Comfort-zone frequency can indicate deliberate recovery climbing, or routes that no longer challenge current experience. Neither is wrong -- but the data is worth noticing.";}
+  else{short="Your last session: "+lastZone+" zone. "+total+" sessions logged. The picture builds with each one.";long=null;}
+  return{short:short,long:long};
+}
+
+async function generateAiInsight(sessions){
+  if(!sessions||sessions.length<3)return null;
+  var summary=sessions.slice(-10).map(function(s){return(s.baseline_zone||'?')+' . '+(s.grade_value||'?')+' . '+(s.tag||'?');}).join(', ');
+  try{
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:200,
+        system:"You are a sport psychology data analyst for a climbing app. Given a climber's recent session data (zone, grade, terrain), write ONE insight sentence (max 25 words) about activation pattern. Be specific, use Comfort/Learning/Panic zones. No fluff. Second sentence for say more (max 40 words). JSON only: {\"short\":\"...\",\"long\":\"...\"}",
+
+        messages:[{role:'user',content:'Recent sessions (newest last): '+summary}]
+      })
+    });
+    var data=await resp.json();
+    var txt=data.content&&data.content[0]&&data.content[0].text;
+    if(txt){var parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());return parsed;}
+  }catch(e){console.warn('AI insight failed, using rule-based',e);}
+  return null;
+}
+
+function toggleAiMore(){
+  var more=document.getElementById('ai-more-text');
+  var btn=document.getElementById('ai-say-more-btn');
+  if(!more||!btn)return;
+  var open=more.style.display==='block';
+  more.style.display=open?'none':'block';
+  btn.textContent=open?'Say more →':'Show less ↑';
+}
+
+async function loadHomeInsight(){
+  var card=document.getElementById('home-insight-card');
+  var firstCard=document.getElementById('home-first-card');
+  if(!card||!firstCard)return;
+  var sessions=await sbS('sessions',{device_id:'eq.'+DID,order:'created_at.asc',limit:50});
+  if(!sessions||!sessions.length){firstCard.style.display='block';return;}
+  card.style.display='block';
+  var insight=generateRuleBasedInsight(sessions);
+  var lastS=sessions[sessions.length-1];
+  document.getElementById('home-insight-text').textContent=insight.short;
+  var meta=document.getElementById('home-insight-meta');
+  if(meta&&lastS){
+    var zc=lastS.baseline_zone==='comfort'?'#7ec87a':lastS.baseline_zone==='panic'?'#e84444':'#f5a623';
+    meta.innerHTML=(lastS.grade_value?'<span style="font-family:Space Mono,monospace;font-size:13px;color:var(--accent);">'+lastS.grade_value+'</span>':'')+
+      (lastS.tag?'<span style="font-size:12px;color:var(--muted);">'+lastS.tag+'</span>':'')+
+      (lastS.baseline_zone?'<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;background:rgba(200,200,200,.1);color:'+zc+';">'+lastS.baseline_zone+'</span>':'');
+  }
+  // Try AI insight in background
+  generateAiInsight(sessions).then(function(aiR){
+    if(aiR&&aiR.short)document.getElementById('home-insight-text').textContent=aiR.short;
+  });
+}
+
 function loadSessionsScreen(){
-  sbS("sessions",{device_id:"eq."+DID,limit:50}).then(function(rows){
-    // Cache unique route names for autocomplete
+  sbS("sessions",{device_id:"eq."+DID,limit:200,order:"created_at.asc"}).then(function(rows){
     previousRoutes=[...new Set((rows||[]).filter(function(r){return r.route_name;}).map(function(r){return r.route_name;}))];
     var real=rows&&rows.length?rows.filter(function(r){return r.grade_value;}):[];
+    // Session count
+    var countEl=document.getElementById('sess-total-count');
+    if(countEl&&rows&&rows.length)countEl.textContent=rows.length+' session'+(rows.length===1?'':'s');
+    // AI insight card
+    var aiCard=document.getElementById('ai-insight-card');
+    var emptyState=document.getElementById('sessions-empty-state');
+    var emptyTxt=document.getElementById('sessions-empty-text');
+    if(rows&&rows.length>=1&&aiCard){
+      aiCard.style.display='block';
+      var ruleInsight=generateRuleBasedInsight(rows);
+      document.getElementById('ai-insight-text').textContent=ruleInsight.short;
+      var sayMore=document.getElementById('ai-say-more-btn');
+      var moreText=document.getElementById('ai-more-text');
+      if(ruleInsight.long&&sayMore&&moreText){sayMore.style.display='block';moreText.textContent=ruleInsight.long;}
+      generateAiInsight(rows).then(function(aiR){
+        if(aiR&&aiR.short){
+          document.getElementById('ai-insight-text').textContent=aiR.short;
+          if(aiR.long&&sayMore&&moreText){sayMore.style.display='block';moreText.textContent=aiR.long;}
+        }
+      });
+    }
+    if(rows&&rows.length<5&&emptyState){
+      emptyState.style.display='block';
+      if(emptyTxt){var left=5-rows.length;emptyTxt.textContent='Log '+(left===1?'1 more session':left+' more sessions')+' to unlock zone distribution, terrain patterns, and grade range.';}
+    }
     renderSessionsPreview();
     renderRealData(real);
     renderRoutesSection(real);
@@ -2539,23 +2751,23 @@ function loadSessionsScreen(){
 var PREVIEW_DATA=[
   {g:"5.9",t:"Slab",z:"comfort",r:"sent",b:"Easy and steady",cr:"No standout moment",d:"Jan 3"},
   {g:"5.10a",t:"Vertical",z:"comfort",r:"sent",b:"Easy and steady",cr:"No standout moment",d:"Jan 5"},
-  {g:"5.10c",t:"Overhang",z:"panic",r:"attempt",b:"I held my breath",cr:"Yes — I backed off",d:"Jan 8"},
-  {g:"5.10b",t:"Vertical",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes — I pushed through",d:"Jan 10"},
-  {g:"5.10c",t:"Overhang",z:"panic",r:"attempt",b:"Shallow or tight",cr:"Yes — I paused",d:"Jan 12"},
-  {g:"5.10d",t:"Overhang",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes — I pushed through",d:"Jan 15"},
+  {g:"5.10c",t:"Overhang",z:"panic",r:"attempt",b:"I held my breath",cr:"Yes -- I backed off",d:"Jan 8"},
+  {g:"5.10b",t:"Vertical",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes -- I pushed through",d:"Jan 10"},
+  {g:"5.10c",t:"Overhang",z:"panic",r:"attempt",b:"Shallow or tight",cr:"Yes -- I paused",d:"Jan 12"},
+  {g:"5.10d",t:"Overhang",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes -- I pushed through",d:"Jan 15"},
   {g:"5.10b",t:"Slab",z:"comfort",r:"sent",b:"Easy and steady",cr:"No standout moment",d:"Jan 17"},
-  {g:"5.11a",t:"Overhang",z:"learning",r:"attempt",b:"Slightly faster",cr:"Yes — I paused",d:"Jan 20"},
+  {g:"5.11a",t:"Overhang",z:"learning",r:"attempt",b:"Slightly faster",cr:"Yes -- I paused",d:"Jan 20"},
   {g:"5.10d",t:"Vertical",z:"comfort",r:"sent",b:"Easy and steady",cr:"No standout moment",d:"Jan 22"},
-  {g:"5.11b",t:"Overhang",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes — I pushed through",d:"Jan 25"},
-  {g:"5.11a",t:"Arête",z:"learning",r:"attempt",b:"Slightly faster",cr:"Yes — I paused",d:"Jan 27"},
+  {g:"5.11b",t:"Overhang",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes -- I pushed through",d:"Jan 25"},
+  {g:"5.11a",t:"Arête",z:"learning",r:"attempt",b:"Slightly faster",cr:"Yes -- I paused",d:"Jan 27"},
   {g:"5.10c",t:"Crack",z:"comfort",r:"sent",b:"Easy and steady",cr:"No standout moment",d:"Jan 29"},
-  {g:"5.11c",t:"Roof",z:"panic",r:"attempt",b:"I held my breath",cr:"Yes — I backed off",d:"Feb 1"},
-  {g:"5.11b",t:"Overhang",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes — I pushed through",d:"Feb 3"},
-  {g:"5.11c",t:"Overhang",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes — I pushed through",d:"Feb 6"},
+  {g:"5.11c",t:"Roof",z:"panic",r:"attempt",b:"I held my breath",cr:"Yes -- I backed off",d:"Feb 1"},
+  {g:"5.11b",t:"Overhang",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes -- I pushed through",d:"Feb 3"},
+  {g:"5.11c",t:"Overhang",z:"learning",r:"sent",b:"Slightly faster",cr:"Yes -- I pushed through",d:"Feb 6"},
   {g:"5.11b",t:"Vertical",z:"comfort",r:"sent",b:"Easy and steady",cr:"No standout moment",d:"Feb 8"},
-  {g:"5.11c",t:"Roof",z:"panic",r:"attempt",b:"Shallow or tight",cr:"Yes — I backed off",d:"Feb 10"},
-  {g:"5.11d",t:"Overhang",z:"learning",r:"attempt",b:"Slightly faster",cr:"Yes — I paused",d:"Feb 12"},
-  {g:"5.11c",t:"Overhang",z:"learning",r:"sent",b:"Easy and steady",cr:"Yes — I pushed through",d:"Feb 14"},
+  {g:"5.11c",t:"Roof",z:"panic",r:"attempt",b:"Shallow or tight",cr:"Yes -- I backed off",d:"Feb 10"},
+  {g:"5.11d",t:"Overhang",z:"learning",r:"attempt",b:"Slightly faster",cr:"Yes -- I paused",d:"Feb 12"},
+  {g:"5.11c",t:"Overhang",z:"learning",r:"sent",b:"Easy and steady",cr:"Yes -- I pushed through",d:"Feb 14"},
   {g:"5.11c",t:"Overhang",z:"learning",r:"sent",b:"Easy and steady",cr:"No standout moment",d:"Feb 16"}
 ];
 
@@ -2613,19 +2825,19 @@ function renderRadarSVG(svgId,bdId,tc){
   var ang=tkeys.map(function(_,i){return -Math.PI/2+(2*Math.PI*i/n);});
   var norm=tkeys.map(function(tk){return Math.max(0.08,tc[tk]/maxC);});
   var pts=norm.map(function(v,i){return {x:cx+R*v*Math.cos(ang[i]),y:cy+R*v*Math.sin(ang[i])};});
-  // Rings — more visible
+  // Rings -- more visible
   var rings=[.33,.66,1].map(function(r2){
     return '<polygon points="'+ang.map(function(a){return (cx+R*r2*Math.cos(a))+","+(cy+R*r2*Math.sin(a));}).join(" ")+'" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1"/>';
   }).join("");
-  // Axes — more visible, colored
+  // Axes -- more visible, colored
   var axes=tkeys.map(function(tk,i){
     return '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+R*Math.cos(ang[i]))+'" y2="'+(cy+R*Math.sin(ang[i]))+'" stroke="'+(TC_COLORS[tk]||"rgba(255,255,255,.3)")+'" stroke-width="1.5" opacity=".5"/>';
   }).join("");
-  // Filled polygon — brighter fill and stroke
+  // Filled polygon -- brighter fill and stroke
   var poly=pts.map(function(p){return p.x+","+p.y;}).join(" ");
   var hasData=tkeys.some(function(tk){return tc[tk]>0;});
   var polygonEl='<polygon points="'+poly+'" fill="rgba(232,118,58,'+(hasData?.18:.05)+')" stroke="#e8763a" stroke-width="'+(hasData?2.5:1)+'" stroke-linejoin="round" opacity="'+(hasData?1:.4)+'"/>';
-  // Dots + labels — much more visible
+  // Dots + labels -- much more visible
   var dots=tkeys.map(function(tk,i){
     var hasVal=tc[tk]>0;
     var dotR=hasVal?5:3;
@@ -2712,12 +2924,12 @@ function renderZoneByTerrain(elId,data){
       var textColor=val===0?'rgba(255,255,255,.2)':val===maxVal?'rgba(255,255,255,.9)':zColors[z]+(0.5+intensity*0.4)+')';
       var fw=val===maxVal?'700':'400';
       html+='<div style="background:'+bg+';border:1px solid '+border+';border-radius:6px;padding:10px 4px;text-align:center;">';
-      html+='<div style="font-size:13px;font-weight:'+fw+';color:'+textColor+';font-family:Space Mono,monospace;">'+(val>0?val:'—')+'</div>';
+      html+='<div style="font-size:13px;font-weight:'+fw+';color:'+textColor+';font-family:Space Mono,monospace;">'+(val>0?val:'--')+'</div>';
       html+='</div>';
     });
     html+='</div>';
   });
-  html+='<div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;padding:8px 12px;background:rgba(232,118,58,.04);border-radius:6px;border-left:2px solid rgba(232,118,58,.2);font-style:italic;">Cell intensity reflects session frequency at each terrain–zone intersection. Correlation only — terrain type does not cause activation state.</div>';
+  html+='<div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;padding:8px 12px;background:rgba(232,118,58,.04);border-radius:6px;border-left:2px solid rgba(232,118,58,.2);font-style:italic;">Cell intensity reflects session frequency at each terrain-zone intersection. Correlation only -- terrain type does not cause activation state.</div>';
   el.innerHTML=html;
 }
 
@@ -2801,7 +3013,7 @@ function renderRealData(rows){
       var sents=rows.filter(function(r){return r.baseline_zone==="sent";}).length;
       el_sent.textContent=Math.round((sents/total)*100)+"%";
     } else {
-      el_sent.textContent="—";
+      el_sent.textContent="--";
     }
   }
   // Arc
@@ -2837,13 +3049,13 @@ function renderSessionsRadar(rows,showDummy){
   }
 }
 
-function renderSessionsArc(rows,showDummy){}// kept for compatibility — real arc handled in renderRealData
+function renderSessionsArc(rows,showDummy){}// kept for compatibility -- real arc handled in renderRealData
 
 function renderSessionsList(rows){
   var list=document.getElementById("sessions-climb-list");if(!list)return;
   var real=rows.filter(function(r){return r.grade_value;});
   if(!real.length){list.innerHTML='<div style="text-align:center;padding:24px 0;font-size:15px;color:var(--muted);">Log your first climb to start building history.</div>';return;}
-  // Show even 1 session — every session counts
+  // Show even 1 session -- every session counts
   var ZN={comfort:"zone-comfort",learning:"zone-learning",panic:"zone-panic"};
   list.innerHTML=real.slice(0,15).map(function(r){
     var z=r.deeper_zone||r.baseline_zone||"learning";
@@ -2852,8 +3064,8 @@ function renderSessionsList(rows){
       '<button onclick="event.stopPropagation();openProject(\''+( r.route_name||"").replace(/'/g,"\\'")+'\')" style="background:rgba(126,200,122,.1);border:1px solid rgba(126,200,122,.3);border-radius:8px;color:#7ec87a;font-family:Space Grotesk,sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;">Project ›</button>':
       "";
     return '<div class="climb-list-row" style="flex-wrap:wrap;gap:8px;">'+
-    '<div class="climb-list-grade">'+(r.grade_value||"—")+'</div>'+
-    '<div class="climb-list-detail" style="flex:1;min-width:0;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;">'+(r.route_name||r.tag||"—")+'</span><span class="climb-list-zone '+(ZN[z]||"zone-learning")+'">'+(z[0].toUpperCase()+z.slice(1))+'</span></div>'+
+    '<div class="climb-list-grade">'+(r.grade_value||"--")+'</div>'+
+    '<div class="climb-list-detail" style="flex:1;min-width:0;"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;">'+(r.route_name||r.tag||"--")+'</span><span class="climb-list-zone '+(ZN[z]||"zone-learning")+'">'+(z[0].toUpperCase()+z.slice(1))+'</span></div>'+
     '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'+
     (projBtn?projBtn:"")+
     '<div class="climb-list-result '+(r.baseline_zone==="sent"?"sent":"attempt")+'">'+(r.baseline_zone==="sent"?"Sent":"Attempt")+'</div>'+
@@ -2963,7 +3175,7 @@ function renderRoutesSection(rows){
           return '<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="openProject(\''+p.route_name+'\')">'+ 
             '<div style="width:10px;height:10px;border-radius:50%;background:'+statusColor+';flex-shrink:0;"></div>'+ 
             '<div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:600;color:var(--text);">'+p.route_name+'</div>'+ 
-            '<div style="font-size:13px;color:var(--muted);margin-top:2px;">'+(p.grade_value||"")+(p.discipline?" · "+p.discipline:"")+"</div></div>"+ 
+            '<div style="font-size:13px;color:var(--muted);margin-top:2px;">'+(p.grade_value||"")+(p.discipline?" . "+p.discipline:"")+"</div></div>"+ 
             '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(126,200,122,.12);color:'+statusColor+';">'+statusLabel+'</span>'+ 
             '<div style="color:var(--accent);font-size:18px;margin-left:4px;">›</div></div>';
         }).join("")+'<div style="height:4px;"></div>';
@@ -2984,7 +3196,7 @@ function renderRoutesSection(rows){
     var sent=r.sessions.some(function(s){return s.baseline_zone==="sent";});
     var lastZone=r.sessions[0]?r.sessions[0].deeper_zone||r.sessions[0].baseline_zone||"learning":"learning";
     var dotColor=ZC[lastZone]||ZC.learning;
-    var meta=[r.grade,r.discipline,r.rock].filter(Boolean).join(" · ")+" · "+r.sessions.length+" session"+(r.sessions.length!==1?"s":"");
+    var meta=[r.grade,r.discipline,r.rock].filter(Boolean).join(" . ")+" . "+r.sessions.length+" session"+(r.sessions.length!==1?"s":"");
     var row=document.createElement("div");
     row.style.cssText="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;";
     (function(n){row.onclick=function(){openProject(n);};})(name);
@@ -3041,7 +3253,7 @@ function renderProjectScreen(name,rows,allRows,proj){
   var days=first?Math.max(1,Math.round((Date.now()-new Date(first.created_at))/(1000*60*60*24))):0;
 
   // Hero
-  document.getElementById("proj-grade").textContent=first?first.grade_value||"—":"—";
+  document.getElementById("proj-grade").textContent=first?first.grade_value||"--":"--";
   document.getElementById("proj-name").textContent=name;
   var badge=document.getElementById("proj-status-badge");
   if(sent){badge.textContent="Sent ✓";badge.style.background="rgba(126,200,122,.12)";badge.style.color="#7ec87a";}
@@ -3106,7 +3318,7 @@ function renderProjectScreen(name,rows,allRows,proj){
     '<text x="'+cx+'" y="'+cy+'" dy="-5" text-anchor="middle" font-size="18" font-family="Space Mono,monospace" font-weight="700" fill="rgba(255,255,255,.85)">'+bTotal+'</text>'+
     '<text x="'+cx+'" y="'+cy+'" dy="12" text-anchor="middle" font-size="9" font-family="Space Grotesk,sans-serif" fill="rgba(255,255,255,.3)">sessions</text>';
     if(bleg)bleg.innerHTML=breathOrder.filter(function(k){return breathData[k];}).map(function(k){
-      return '<div><span style="color:'+breathColors[k]+';">●</span>&nbsp;'+k+' — <strong style="color:var(--text);">'+breathData[k]+'</strong></div>';
+      return '<div><span style="color:'+breathColors[k]+';">●</span>&nbsp;'+k+' -- <strong style="color:var(--text);">'+breathData[k]+'</strong></div>';
     }).join("");
     // Insight
     var bi=document.getElementById("proj-breath-insight");
@@ -3147,7 +3359,7 @@ function renderProjectScreen(name,rows,allRows,proj){
         var firstState=byDate[0]?byDate[0].body_state||"learning":"learning";
         var lastState=byDate[byDate.length-1]?byDate[byDate.length-1].body_state||"learning":"learning";
         if(firstState!==lastState)bsIns.textContent="Body state shifted from "+bodyLabels[firstState]+" (session 1) to "+bodyLabels[lastState]+" (most recent). Pattern visible across "+bsTotal+" sessions.";
-        else bsIns.textContent="Consistent body state across sessions on this route — "+bodyLabels[lastState]+".";
+        else bsIns.textContent="Consistent body state across sessions on this route -- "+bodyLabels[lastState]+".";
         bsIns.style.display="block";
       }
     } else {
@@ -3162,8 +3374,8 @@ function renderProjectScreen(name,rows,allRows,proj){
     logEl.innerHTML=byDate.map(function(r,i){
       var z=r.deeper_zone||r.baseline_zone||"learning";
       var sent=r.baseline_zone==="sent";
-      var d=r.created_at?new Date(r.created_at).toLocaleDateString([],{month:"short",day:"numeric"}):"—";
-      var details=[r.breathing_post,r.body_state?({comfort:"Settled",learning:"Activated",panic:"Tight",unsure:"Unclear"}[r.body_state]||r.body_state):null].filter(Boolean).join(" · ");
+      var d=r.created_at?new Date(r.created_at).toLocaleDateString([],{month:"short",day:"numeric"}):"--";
+      var details=[r.breathing_post,r.body_state?({comfort:"Settled",learning:"Activated",panic:"Tight",unsure:"Unclear"}[r.body_state]||r.body_state):null].filter(Boolean).join(" . ");
       return '<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);">'+
         '<div style="width:8px;height:8px;border-radius:50%;background:'+(ZDot[z]||ZDot.learning)+';flex-shrink:0;"></div>'+
         '<div style="font-size:12px;color:var(--muted);min-width:44px;font-family:Space Mono,monospace;">'+d+'</div>'+
@@ -3278,7 +3490,7 @@ function renderProjectScreen(name,rows,allRows,proj){
         '</div>'+
         '</div>';
     }
-    // Zone bars — stacked
+    // Zone bars -- stacked
     var zoneHtml='<div style="margin-bottom:16px;">'+
       '<div style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin-bottom:8px;">Zone distribution</div>'+
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'+
@@ -3306,7 +3518,7 @@ function renderProjectScreen(name,rows,allRows,proj){
     if(rP>aP+10)cmpInsight="Panic-zone rate on this route ("+rP+"%) is higher than your overall rate ("+aP+"%). This route is operating at your edge.";
     else if(rC>aC+10)cmpInsight="More Comfort-zone sessions on this route than your overall average. You're dialling this one in.";
     else cmpInsight="Zone distribution on this route is broadly consistent with your overall patterns.";
-    if(routeSentPct<allSentPct-20)cmpInsight+=" Send rate here is lower than your overall average — expected for a project at this grade.";
+    if(routeSentPct<allSentPct-20)cmpInsight+=" Send rate here is lower than your overall average -- expected for a project at this grade.";
     cmpContent.innerHTML=zoneHtml+sep+
       cmpBar("Restricted breathing",routeBreathPct,allBreathPct,"#e8763a")+sep+
       cmpBar("Send rate",routeSentPct,allSentPct,"#7ec87a")+
@@ -3350,9 +3562,9 @@ function renderProjectScreen(name,rows,allRows,proj){
     var lastBreath=last3.filter(function(r){return r.breathing_post==="Shallow or tight"||r.breathing_post==="I held my breath";}).length;
     var trendInsight="";
     if(lastPanic<firstPanic)trendInsight="Panic-zone activation reduced from "+firstPanic+" to "+lastPanic+" sessions in the last block.";
-    else if(lastPanic>firstPanic)trendInsight="Panic-zone activation increased in recent sessions — assess whether conditions or grade are factors.";
+    else if(lastPanic>firstPanic)trendInsight="Panic-zone activation increased in recent sessions -- assess whether conditions or grade are factors.";
     else trendInsight="Zone activation is consistent across early and recent sessions.";
-    if(lastBreath<firstBreath)trendInsight+=" Breathing is opening up — restricted reports dropped from "+firstBreath+" to "+lastBreath+".";
+    if(lastBreath<firstBreath)trendInsight+=" Breathing is opening up -- restricted reports dropped from "+firstBreath+" to "+lastBreath+".";
     trendContent.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">'+f3+l3+'</div>'+
       (trendInsight?'<div style="font-size:13px;color:var(--muted);font-style:italic;line-height:1.65;padding:10px 13px;background:rgba(232,118,58,.05);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">'+trendInsight+'</div>':"");
   }
@@ -3429,7 +3641,7 @@ function spPickRock(el,val){
 function spAdjBolt(d){
   if(spState.boltCount===null)spState.boltCount=0;
   spState.boltCount=Math.max(0,spState.boltCount+d);
-  document.getElementById('sp-bolt-val').textContent=spState.boltCount||'—';
+  document.getElementById('sp-bolt-val').textContent=spState.boltCount||'--';
 }
 
 function spSetUnit(u){
@@ -3477,7 +3689,7 @@ function loadProjectsScreen(){
     function projectCard(p){
       var statusColor=p.status==='sent'?'#7ec87a':p.status==='abandoned'?'var(--muted2)':'#f5a623';
       var statusLabel=p.status==='sent'?'Sent ✓':p.status==='abandoned'?'Archived':'Active';
-      var meta=[p.grade_value,p.discipline,p.environment].filter(Boolean).join(' · ');
+      var meta=[p.grade_value,p.discipline,p.environment].filter(Boolean).join(' . ');
       var safeName=p.route_name.replace(/'/g,"\'");
       var safeId=p.id||'';
       var html='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:8px;overflow:hidden;">';
@@ -3538,7 +3750,7 @@ function submitProject(){
       currentProjectId=saved.id;
       currentProjectName=projectName;
       spState={name:null,grade:null,gradeSystem:'YDS',discipline:null,environment:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft'};
-      showToast('Project started — go climb it!');
+      showToast('Project started -- go climb it!');
       showScreen('screen-projects');
       // Small delay to ensure Supabase write completes before re-fetching
       setTimeout(loadProjectsScreen, 400);
@@ -3590,40 +3802,40 @@ var ZC_MAP={comfort:"#c8f55a",learning:"#f5a623",panic:"#ff5c3a"};
 // ── ASSESSMENT QUESTIONS (from index 35) ─────────────────
 var PAUSE_AFTER_Q=4;
 var Qs=[
-  {id:"breath1",phase:"somatic",text:"Notice your breathing right now.",hint:"Not what you think it should be — what is it actually doing?",bodyNote:"Take a breath before you answer. Report what you observe — not what you expect.",opts:[{l:"Effortless",s:"No effort needed",v:"effortless",sc:1},{l:"Slight effort",s:"Noticeable but manageable",v:"slight",sc:2},{l:"Noticeable effort",s:"Shortened or labored",v:"noticeable",sc:3},{l:"Restricted",s:"Tight or held",v:"restricted",sc:4}]},
-  {id:"gut1",phase:"somatic",text:"Notice your gut right now.",hint:"Tightness, butterflies, pulling — or neutral calm.",bodyNote:"Your gut is already reporting something. What is it?",opts:[{l:"Settled",s:"No sensation",v:"settled",sc:1},{l:"Mild sensation",s:"Butterflies or mild tightness",v:"mild",sc:2},{l:"Unsettled",s:"Noticeable tension",v:"unsettled",sc:3},{l:"Knotted",s:"Tight pulling sensation",v:"knotted",sc:4}]},
+  {id:"breath1",phase:"somatic",text:"Notice your breathing right now.",hint:"Not what you think it should be -- what is it actually doing?",bodyNote:"Take a breath before you answer. Report what you observe -- not what you expect.",opts:[{l:"Effortless",s:"No effort needed",v:"effortless",sc:1},{l:"Slight effort",s:"Noticeable but manageable",v:"slight",sc:2},{l:"Noticeable effort",s:"Shortened or labored",v:"noticeable",sc:3},{l:"Restricted",s:"Tight or held",v:"restricted",sc:4}]},
+  {id:"gut1",phase:"somatic",text:"Notice your gut right now.",hint:"Tightness, butterflies, pulling -- or neutral calm.",bodyNote:"Your gut is already reporting something. What is it?",opts:[{l:"Settled",s:"No sensation",v:"settled",sc:1},{l:"Mild sensation",s:"Butterflies or mild tightness",v:"mild",sc:2},{l:"Unsettled",s:"Noticeable tension",v:"unsettled",sc:3},{l:"Knotted",s:"Tight pulling sensation",v:"knotted",sc:4}]},
   {id:"style",phase:"context",ctx:true,text:"What are you climbing today?",hint:"",opts:[{l:"Top rope",s:"Protected from above",v:"Top rope",sc:0},{l:"Sport lead",s:"Clipping bolts",v:"Sport lead",sc:1},{l:"Trad lead",s:"Self-placed gear",v:"Trad lead",sc:2}]},
-  {id:"experience",phase:"context",text:"How experienced are you in this terrain?",hint:"What you've physically done — not what you know.",opts:[{l:"Extensive experience",s:"Done this many times",v:"extensive",sc:0},{l:"Some experience",s:"Done this a few times",v:"some",sc:1},{l:"Limited experience",s:"Once or twice",v:"limited",sc:2},{l:"First time",s:"No prior experience",v:"first",sc:3}]},
-  {id:"route",phase:"context",text:"First time on this route or something similar?",hint:"Your experience on this specific route matters.",opts:[{l:"No — I know this route",s:"Attempted before",v:"know",sc:0},{l:"Similar but not this one",s:"Comparable terrain",v:"similar",sc:1},{l:"Yes — first attempt",s:"First time on this one",v:"first",sc:2}]},
-  {id:"breath2",phase:"somatic2",text:"Notice your breathing again.",hint:"After thinking through this route — what do you notice now?",bodyNote:"Take a breath before answering. Has anything shifted?",opts:[{l:"Effortless",s:"No effort needed",v:"effortless",sc:1},{l:"Slight effort",s:"Noticeable but manageable",v:"slight",sc:2},{l:"Noticeable effort",s:"Shortened or labored",v:"noticeable",sc:3},{l:"Restricted",s:"Tight or held",v:"restricted",sc:4}]},
+  {id:"experience",phase:"context",text:"How experienced are you in this terrain?",hint:"What you've physically done -- not what you know.",opts:[{l:"Extensive experience",s:"Done this many times",v:"extensive",sc:0},{l:"Some experience",s:"Done this a few times",v:"some",sc:1},{l:"Limited experience",s:"Once or twice",v:"limited",sc:2},{l:"First time",s:"No prior experience",v:"first",sc:3}]},
+  {id:"route",phase:"context",text:"First time on this route or something similar?",hint:"Your experience on this specific route matters.",opts:[{l:"No -- I know this route",s:"Attempted before",v:"know",sc:0},{l:"Similar but not this one",s:"Comparable terrain",v:"similar",sc:1},{l:"Yes -- first attempt",s:"First time on this one",v:"first",sc:2}]},
+  {id:"breath2",phase:"somatic2",text:"Notice your breathing again.",hint:"After thinking through this route -- what do you notice now?",bodyNote:"Take a breath before answering. Has anything shifted?",opts:[{l:"Effortless",s:"No effort needed",v:"effortless",sc:1},{l:"Slight effort",s:"Noticeable but manageable",v:"slight",sc:2},{l:"Noticeable effort",s:"Shortened or labored",v:"noticeable",sc:3},{l:"Restricted",s:"Tight or held",v:"restricted",sc:4}]},
   {id:"gut2",phase:"somatic2",text:"Notice your gut again.",hint:"Has anything shifted since the first gut check?",bodyNote:"This shift is the primary data this tool captures.",opts:[{l:"Settled",s:"No sensation",v:"settled",sc:1},{l:"Mild sensation",s:"Butterflies or mild tightness",v:"mild",sc:2},{l:"Unsettled",s:"Noticeable tension",v:"unsettled",sc:3},{l:"Knotted",s:"Tight pulling sensation",v:"knotted",sc:4}]},
-  {id:"mental",phase:"context",text:"Mental state right now?",hint:"What's actually present — not what should be.",opts:[{l:"Focused and present",v:"focused",sc:1},{l:"Energized",s:"Some activation",v:"energized",sc:2},{l:"Distracted or unsettled",v:"distracted",sc:3},{l:"Anxious",s:"Something feels off",v:"anxious",sc:4}]},
-  {id:"motivation",phase:"context",text:"Why are you attempting this today?",hint:"Your actual motivation — not what seems right.",opts:[{l:"Skill development",s:"Here to learn",v:"skill",sc:0},{l:"Performance goal",s:"Want to send",v:"performance",sc:1},{l:"Curiosity",s:"Want to see how it feels",v:"curiosity",sc:1},{l:"Unclear",s:"Drawn to it, unsure why",v:"unclear",sc:3}]}
+  {id:"mental",phase:"context",text:"Mental state right now?",hint:"What's actually present -- not what should be.",opts:[{l:"Focused and present",v:"focused",sc:1},{l:"Energized",s:"Some activation",v:"energized",sc:2},{l:"Distracted or unsettled",v:"distracted",sc:3},{l:"Anxious",s:"Something feels off",v:"anxious",sc:4}]},
+  {id:"motivation",phase:"context",text:"Why are you attempting this today?",hint:"Your actual motivation -- not what seems right.",opts:[{l:"Skill development",s:"Here to learn",v:"skill",sc:0},{l:"Performance goal",s:"Want to send",v:"performance",sc:1},{l:"Curiosity",s:"Want to see how it feels",v:"curiosity",sc:1},{l:"Unclear",s:"Drawn to it, unsure why",v:"unclear",sc:3}]}
 ];
 
 var DQs=[
-  {text:"How are you approaching this climb?",opts:[{l:"Onsight — no prior beta",sc:2},{l:"Redpoint — I know the moves",sc:0},{l:"Projecting — still working it",sc:1},{l:"Following",sc:-1}]},
-  {text:"Distance between bolts or gear placements?",opts:[{l:"Close — short falls",sc:0},{l:"Normal spacing",sc:1},{l:"Spread out — longer falls",sc:2},{l:"Significant runout",sc:3}]},
-  {text:"The crux fall zone?",hint:"If you come off at the hardest point — what does that fall look like?",opts:[{l:"Well protected — clean fall",sc:0},{l:"Minor concern",sc:1},{l:"The fall at the crux concerns me",sc:2},{l:"The fall could be serious",sc:3}]},
+  {text:"How are you approaching this climb?",opts:[{l:"Onsight -- no prior beta",sc:2},{l:"Redpoint -- I know the moves",sc:0},{l:"Projecting -- still working it",sc:1},{l:"Following",sc:-1}]},
+  {text:"Distance between bolts or gear placements?",opts:[{l:"Close -- short falls",sc:0},{l:"Normal spacing",sc:1},{l:"Spread out -- longer falls",sc:2},{l:"Significant runout",sc:3}]},
+  {text:"The crux fall zone?",hint:"If you come off at the hardest point -- what does that fall look like?",opts:[{l:"Well protected -- clean fall",sc:0},{l:"Minor concern",sc:1},{l:"The fall at the crux concerns me",sc:2},{l:"The fall could be serious",sc:3}]},
   {text:"Visibility of protection from the ground?",opts:[{l:"Full visibility",sc:0},{l:"Mostly visible",sc:1},{l:"Limited visibility",sc:2}]},
-  {text:"Swing or pendulum fall risk?",opts:[{l:"No swing risk — straight line",sc:0},{l:"Minor deviation",sc:1},{l:"Traversing or roof — swing is a factor",sc:2},{l:"Significant swing potential",sc:3}]},
-  {text:"Physical state today?",hint:"Sleep, hydration, warmup.",opts:[{l:"Strong — rested and warmed up",sc:0},{l:"Decent — minor fatigue",sc:1},{l:"Below par — tired",sc:2},{l:"Not great — shouldn't push hard",sc:3}]},
-  {text:"Partner dynamic today?",opts:[{l:"Neutral",sc:0},{l:"Supportive — they match my pace",sc:0},{l:"Pushing — their presence raises my effort",sc:1},{l:"Social pressure to perform",sc:2}]},
-  {text:"Where in your session is this climb?",opts:[{l:"Fresh — first or second route",sc:0},{l:"Mid-session — well warmed up",sc:0},{l:"Later — some fatigue",sc:1},{l:"End of session — significantly fatigued",sc:2}]},
-  {text:"Objective fall consequence?",hint:"Rate the route — not your fear level.",opts:[{l:"Minimal",s:"Short falls, clean landing",sc:0},{l:"Moderate",s:"Falls manageable",sc:1},{l:"Significant",s:"Longer falls, elevated hazard",sc:2},{l:"Severe",s:"High fall distance, serious injury potential",sc:3}]},
-  {text:"What would make this session worthwhile — regardless of outcome?",hint:"Process, not outcome.",opts:[{l:"I climbed deliberately and stayed present",sc:0},{l:"I tried something that genuinely challenged me",sc:0},{l:"I learned something specific about my climbing",sc:0},{l:"I am focused on the send",sc:1}]}
+  {text:"Swing or pendulum fall risk?",opts:[{l:"No swing risk -- straight line",sc:0},{l:"Minor deviation",sc:1},{l:"Traversing or roof -- swing is a factor",sc:2},{l:"Significant swing potential",sc:3}]},
+  {text:"Physical state today?",hint:"Sleep, hydration, warmup.",opts:[{l:"Strong -- rested and warmed up",sc:0},{l:"Decent -- minor fatigue",sc:1},{l:"Below par -- tired",sc:2},{l:"Not great -- shouldn't push hard",sc:3}]},
+  {text:"Partner dynamic today?",opts:[{l:"Neutral",sc:0},{l:"Supportive -- they match my pace",sc:0},{l:"Pushing -- their presence raises my effort",sc:1},{l:"Social pressure to perform",sc:2}]},
+  {text:"Where in your session is this climb?",opts:[{l:"Fresh -- first or second route",sc:0},{l:"Mid-session -- well warmed up",sc:0},{l:"Later -- some fatigue",sc:1},{l:"End of session -- significantly fatigued",sc:2}]},
+  {text:"Objective fall consequence?",hint:"Rate the route -- not your fear level.",opts:[{l:"Minimal",s:"Short falls, clean landing",sc:0},{l:"Moderate",s:"Falls manageable",sc:1},{l:"Significant",s:"Longer falls, elevated hazard",sc:2},{l:"Severe",s:"High fall distance, serious injury potential",sc:3}]},
+  {text:"What would make this session worthwhile -- regardless of outcome?",hint:"Process, not outcome.",opts:[{l:"I climbed deliberately and stayed present",sc:0},{l:"I tried something that genuinely challenged me",sc:0},{l:"I learned something specific about my climbing",sc:0},{l:"I am focused on the send",sc:1}]}
 ];
 
 var G={
-  comfort_deep:{badge:"Comfort zone",bc:"z-comfort",heroB:"rgba(200,245,90,.05)",text:"Reported data places this well within current experience. Movement is familiar here. Skill acquisition is possible with deliberate attention — but passive repetition in the Comfort zone produces limited adaptation. The Learning fringe is available when you choose it.",process:"Name one specific thing to notice on this climb — movement pattern, breath, or grip — rather than an outcome."},
+  comfort_deep:{badge:"Comfort zone",bc:"z-comfort",heroB:"rgba(200,245,90,.05)",text:"Reported data places this well within current experience. Movement is familiar here. Skill acquisition is possible with deliberate attention -- but passive repetition in the Comfort zone produces limited adaptation. The Learning fringe is available when you choose it.",process:"Name one specific thing to notice on this climb -- movement pattern, breath, or grip -- rather than an outcome."},
   comfort_center:{badge:"Comfort zone",bc:"z-comfort",heroB:"rgba(200,245,90,.05)",text:"Reported data places this within current experience. Comfort zone sessions build technique when attention is deliberately directed. Without a specific focus, volume here produces limited transfer.",process:"Identify what you want to notice on this route before you leave the ground."},
-  comfort_learning:{badge:"Comfort zone",bc:"z-comfort",heroB:"rgba(200,245,90,.05)",text:"Reported data places this near the Comfort/Learning fringe — the most productive territory for deliberate practice. Attention is sharpening. This is where skill acquisition accelerates.",process:"Notice what your body reports as you approach the route. That somatic signal is the data."},
-  learning_comfort:{badge:"Learning zone",bc:"z-learning",heroB:"rgba(245,166,35,.05)",text:"Reported data places this at the Learning fringe — where perceived demand slightly exceeds current experience. This is the optimal range for adaptation. Skill acquisition is most likely here.",process:"Identify the most likely challenge point. What does your body report when you consider it right now?"},
-  learning_center:{badge:"Learning zone",bc:"z-learning",heroB:"rgba(245,166,35,.05)",text:"Reported data places activation within the optimal learning window. Demand is high enough to require full engagement — not so high that judgment narrows. This is where the most productive climbing happens.",process:"Determine your response strategy for the anticipated crux before leaving the ground. Commit to it."},
-  learning_panic:{badge:"Learning zone",bc:"z-learning",heroB:"rgba(245,166,35,.05)",text:"Reported data places activation near the Learning/Panic boundary. You are at the edge of the productive window. Attention is heightened — and judgment can start to narrow from here. A conscious decision about engagement is the practice.",process:"Identify the primary risk factor. Make a deliberate decision about proceeding before you leave the ground — not on the wall."},
-  panic_learning:{badge:"Panic zone",bc:"z-panic",heroB:"rgba(255,92,58,.05)",text:"Reported data indicates perceived demand is outpacing current experience. At this activation level, fine motor control narrows, working memory is reduced, and new skill encoding is impaired. These are physiological responses — not indicators of capability. If you did not choose to be here, that is worth noticing.",process:"Is this a conscious risk decision, or did you arrive here reactively? The distinction matters for what you take from this session."},
-  panic_center:{badge:"Panic zone",bc:"z-panic",heroB:"rgba(255,92,58,.05)",text:"Reported data indicates a significant gap between perceived demand and current experience. Skill acquisition is unlikely at this activation level — the nervous system is in a threat response, not a learning state. Repeated unprocessed experiences here can condition avoidance rather than growth. The decision to proceed or step back is entirely yours.",process:"If proceeding — identify one thing you can control right now. If stepping back — that is a conscious risk decision, not a failure."},
-  panic_deep:{badge:"Panic zone",bc:"z-panic",heroB:"rgba(255,92,58,.05)",text:"Reported data indicates a substantial gap between route demands and current experience. At this level, the conditions for skill acquisition are not present. A learning-zone variant is likely to produce more adaptation. If you choose to proceed, do so with full awareness of what your body is reporting — that awareness is what separates conscious risk-taking from reactive exposure.",process:"Notice your breathing before anything else. What is it telling you? That signal arrived before this question did."}
+  comfort_learning:{badge:"Comfort zone",bc:"z-comfort",heroB:"rgba(200,245,90,.05)",text:"Reported data places this near the Comfort/Learning fringe -- the most productive territory for deliberate practice. Attention is sharpening. This is where skill acquisition accelerates.",process:"Notice what your body reports as you approach the route. That somatic signal is the data."},
+  learning_comfort:{badge:"Learning zone",bc:"z-learning",heroB:"rgba(245,166,35,.05)",text:"Reported data places this at the Learning fringe -- where perceived demand slightly exceeds current experience. This is the optimal range for adaptation. Skill acquisition is most likely here.",process:"Identify the most likely challenge point. What does your body report when you consider it right now?"},
+  learning_center:{badge:"Learning zone",bc:"z-learning",heroB:"rgba(245,166,35,.05)",text:"Reported data places activation within the optimal learning window. Demand is high enough to require full engagement -- not so high that judgment narrows. This is where the most productive climbing happens.",process:"Determine your response strategy for the anticipated crux before leaving the ground. Commit to it."},
+  learning_panic:{badge:"Learning zone",bc:"z-learning",heroB:"rgba(245,166,35,.05)",text:"Reported data places activation near the Learning/Panic boundary. You are at the edge of the productive window. Attention is heightened -- and judgment can start to narrow from here. A conscious decision about engagement is the practice.",process:"Identify the primary risk factor. Make a deliberate decision about proceeding before you leave the ground -- not on the wall."},
+  panic_learning:{badge:"Panic zone",bc:"z-panic",heroB:"rgba(255,92,58,.05)",text:"Reported data indicates perceived demand is outpacing current experience. At this activation level, fine motor control narrows, working memory is reduced, and new skill encoding is impaired. These are physiological responses -- not indicators of capability. If you did not choose to be here, that is worth noticing.",process:"Is this a conscious risk decision, or did you arrive here reactively? The distinction matters for what you take from this session."},
+  panic_center:{badge:"Panic zone",bc:"z-panic",heroB:"rgba(255,92,58,.05)",text:"Reported data indicates a significant gap between perceived demand and current experience. Skill acquisition is unlikely at this activation level -- the nervous system is in a threat response, not a learning state. Repeated unprocessed experiences here can condition avoidance rather than growth. The decision to proceed or step back is entirely yours.",process:"If proceeding -- identify one thing you can control right now. If stepping back -- that is a conscious risk decision, not a failure."},
+  panic_deep:{badge:"Panic zone",bc:"z-panic",heroB:"rgba(255,92,58,.05)",text:"Reported data indicates a substantial gap between route demands and current experience. At this level, the conditions for skill acquisition are not present. A learning-zone variant is likely to produce more adaptation. If you choose to proceed, do so with full awareness of what your body is reporting -- that awareness is what separates conscious risk-taking from reactive exposure.",process:"Notice your breathing before anything else. What is it telling you? That signal arrived before this question did."}
 };
 
 function getZone(p){return p<=0.38?"comfort":p<=0.65?"learning":"panic";}
@@ -3668,7 +3880,7 @@ function scanToggle(zone){
   if(idx>=0)bodyScanZones.splice(idx,1);else bodyScanZones.push(zone);
   var active=bodyScanZones.includes(zone);
   var zones=["head","shoulders","chest","core","lower"];
-  // Element IDs vary by zone — update all elements for this zone
+  // Element IDs vary by zone -- update all elements for this zone
   var allEls=["scan-bg-"+zone,"scan-bg-"+zone+"-l","scan-bg-"+zone+"-r","scan-lbl-"+zone];
   zones.forEach(function(z){
     var isActive=bodyScanZones.includes(z);
@@ -3704,7 +3916,7 @@ function updateScanUI(){
           var q3w=document.getElementById("scan-q3-wrap");
           if(q3w)q3w.style.display=(o2txt==="Nothing specific")?"none":"block";
           if(o2txt!=="Nothing specific"&&!document.getElementById("scan-q3-opts").children.length){
-            var opts3=["Yes — this is how I usually feel","Somewhat — slightly more than usual","No — this is new today","Not sure"];
+            var opts3=["Yes -- this is how I usually feel","Somewhat -- slightly more than usual","No -- this is new today","Not sure"];
             var c3=document.createElement("div");c3.className="options";c3.style.gap="6px";
             opts3.forEach(function(o3txt){
               var el3=document.createElement("div");el3.className="option";el3.style.padding="10px 14px";
@@ -3753,24 +3965,24 @@ function computeResult(deeper){
   if(!G[gk])gk=fz+"_center";
   var g=G[gk];
   var b2v=BV[ans.breath2]||2,g2v=GV[ans.gut2]||2,bd=b2v-b1v,gd=g2v-g1v,td=bd+gd;
-  var bl1=BL[ans.breath1]||"—",bl2=BL[ans.breath2]||"—",gl1=GL[ans.gut1]||"—",gl2=GL[ans.gut2]||"—";
+  var bl1=BL[ans.breath1]||"--",bl2=BL[ans.breath2]||"--",gl1=GL[ans.gut1]||"--",gl2=GL[ans.gut2]||"--";
   var dc=document.getElementById("delta-card");
   dc.className="delta-card "+(td>=2?"delta-shifted":td>=1?"delta-mild":"delta-stable");
   document.getElementById("delta-eyebrow").textContent=td>=2?"Significant somatic shift":td>=1?"Mild somatic shift":td<0?"Somatic state settled":"Somatic state consistent";
-  document.getElementById("delta-before").textContent="Breath: "+bl1+" · Gut: "+gl1;
-  document.getElementById("delta-after").textContent="Breath: "+bl2+" · Gut: "+gl2;
+  document.getElementById("delta-before").textContent="Breath: "+bl1+" . Gut: "+gl1;
+  document.getElementById("delta-after").textContent="Breath: "+bl2+" . Gut: "+gl2;
   var hl="",db_="";
-  if(td>=2){hl="Your body shifted meaningfully after thinking through this route.";db_=bd>=2&&gd>=2?"Both signals tightened — breathing moved from "+bl1+" to "+bl2+", gut from "+gl1+" to "+gl2+". When both systems shift together, the body is registering something specific about this route.":bd>=2?"Breathing moved from "+bl1+" to "+bl2+". Breath is one of the first systems to respond to perceived threat.":"Gut sensation moved from "+gl1+" to "+gl2+". Gut sensation is a pre-decision somatic signal (Damasio, 1994) — not a metaphor.";}
-  else if(td>=1){hl="A small shift occurred after thinking through this route.";db_="Signals moved slightly — "+( bd>0?"breathing from "+bl1+" to "+bl2+". ":"")+(gd>0?"Gut from "+gl1+" to "+gl2+".":"")+" Mild shifts can be early signals before fuller activation.";}
+  if(td>=2){hl="Your body shifted meaningfully after thinking through this route.";db_=bd>=2&&gd>=2?"Both signals tightened -- breathing moved from "+bl1+" to "+bl2+", gut from "+gl1+" to "+gl2+". When both systems shift together, the body is registering something specific about this route.":bd>=2?"Breathing moved from "+bl1+" to "+bl2+". Breath is one of the first systems to respond to perceived threat.":"Gut sensation moved from "+gl1+" to "+gl2+". Gut sensation is a pre-decision somatic signal (Damasio, 1994) -- not a metaphor.";}
+  else if(td>=1){hl="A small shift occurred after thinking through this route.";db_="Signals moved slightly -- "+( bd>0?"breathing from "+bl1+" to "+bl2+". ":"")+(gd>0?"Gut from "+gl1+" to "+gl2+".":"")+" Mild shifts can be early signals before fuller activation.";}
   else if(td<0){hl="Your signals softened after thinking through this route.";db_=(bd<0?"Breathing eased from "+bl1+" to "+bl2+". ":"")+(gd<0?"Gut settled from "+gl1+" to "+gl2+". ":"")+"Some climbers find that thinking through a route reduces activation once familiarity registers.";}
-  else{hl="No shift between your first and second check-in.";db_="Breath: "+bl2+". Gut: "+gl2+". Consistent somatic state can indicate clarity about the route — or that the route hasn't fully registered yet.";}
+  else{hl="No shift between your first and second check-in.";db_="Breath: "+bl2+". Gut: "+gl2+". Consistent somatic state can indicate clarity about the route -- or that the route hasn't fully registered yet.";}
   document.getElementById("delta-headline").textContent=hl;
   document.getElementById("delta-body").textContent=db_;
   document.getElementById("zone-badge").textContent=g.badge;
   document.getElementById("zone-badge").className="zone-badge "+g.bc;
   document.getElementById("result-hero").style.background=g.heroB;
   var ct=document.getElementById("ct-tag-result");ct.textContent=ctLabel;ct.style.display=ctLabel?"block":"none";
-  document.getElementById("res-subtitle").textContent=[ans.experience,ans.mental].filter(Boolean).join(" · ");
+  document.getElementById("res-subtitle").textContent=[ans.experience,ans.mental].filter(Boolean).join(" . ");
   document.getElementById("refined-lbl").style.display=deeper?"inline":"none";
   document.getElementById("small-step").style.display=fz==="panic"?"block":"none";
   document.getElementById("deeper-gate").style.display=deeper?"none":"block";
@@ -3833,11 +4045,11 @@ function restart(){cur=0;ans={};pauseShown=false;bodyScanShown=false;prepSessId=
 
 // ── FEEDBACK ─────────────────────────────────────────────
 var FBQs=[
-  {text:"Which did you use most?",key:"simplicity",icon:"📊",opts:["Log a Climb — after climbing","Prepare — before committing","Both equally","Neither yet"]},
-  {text:"Did the somatic check-in feel real?",key:"somatic_real",icon:"🫁",opts:["Yes — I noticed something I wasn’t aware of before","The questions made me more aware than I expected","Somewhat — noticed but not surprising","Not really — I answered but didn’t physically feel it"]},
-  {text:"Did the result change what you decided to do on the route?",key:"delta_accurate",icon:"🧭",opts:["Yes — I adjusted my approach","Yes — I decided not to attempt it","Somewhat — it confirmed what I already felt","Not really — I wasn’t sure what to do with it"]},
-  {text:"Did you notice anything about your body you weren’t already aware of?",key:"body_awareness",icon:"🔍",opts:["Yes — something I hadn’t noticed before","Somewhat — sharpened existing awareness","Not this time — but I can see how it would build","Not really"]},
-  {text:"Did you try project tracking?",key:"project_useful",icon:"🏔",opts:["Yes — very useful","Yes — too early to tell","Not yet","Couldn’t find it"]}
+  {text:"Which did you use most?",key:"simplicity",icon:"📊",opts:["Log a Climb -- after climbing","Prepare -- before committing","Both equally","Neither yet"]},
+  {text:"Did the somatic check-in feel real?",key:"somatic_real",icon:"🫁",opts:["Yes -- I noticed something I wasn\'t aware of before","The questions made me more aware than I expected","Somewhat -- noticed but not surprising","Not really -- I answered but didn\'t physically feel it"]},
+  {text:"Did the result change what you decided to do on the route?",key:"delta_accurate",icon:"🧭",opts:["Yes -- I adjusted my approach","Yes -- I decided not to attempt it","Somewhat -- it confirmed what I already felt","Not really -- I wasn\'t sure what to do with it"]},
+  {text:"Did you notice anything about your body you weren\'t already aware of?",key:"body_awareness",icon:"🔍",opts:["Yes -- something I hadn\'t noticed before","Somewhat -- sharpened existing awareness","Not this time -- but I can see how it would build","Not really"]},
+  {text:"Did you try project tracking?",key:"project_useful",icon:"🏔",opts:["Yes -- very useful","Yes -- too early to tell","Not yet","Couldn\'t find it"]}
 ];
 var fbCur=0,fbAns={};
 function initFeedback(){fbCur=0;fbAns={};document.getElementById("fb-content").style.display="block";document.getElementById("fb-success").style.display="none";renderFb();}
@@ -3870,17 +4082,17 @@ function selectFbOpt(el,key,val){fbAns[key]=val;renderFb();}
 function feedbackNext(){
   if(fbCur<FBQs.length){fbCur++;renderFb();}
   else{
-    var SIMPLICITY_MAP={"Log a Climb — after climbing":"log","Prepare — before committing":"prepare","Both equally":"both","Neither yet":"neither"};
-    var SOMATIC_MAP={"Yes — I noticed something I wasn’t aware of before":"yes_noticed","The questions made me more aware than I expected":"more_aware","Somewhat — noticed but not surprising":"somewhat","Not really — I answered but didn’t physically feel it":"not_really"};
-    var DELTA_MAP={"Yes — I adjusted my approach":"yes_adjusted","Yes — I decided not to attempt it":"yes_didnt_attempt","Somewhat — it confirmed what I already felt":"confirmed","Not really — I wasn’t sure what to do with it":"unsure"};
-    var BODY_MAP={"Yes — something I hadn’t noticed before":"yes_new","Somewhat — sharpened existing awareness":"sharpened","Not this time — but I can see how it would build":"not_yet","Not really":"not_really"};
-    var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn’t find it":"didnt_find"};
-    var payload={device_id:DID,app_version:"index70",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
+    var SIMPLICITY_MAP={"Log a Climb -- after climbing":"log","Prepare -- before committing":"prepare","Both equally":"both","Neither yet":"neither"};
+    var SOMATIC_MAP={"Yes -- I noticed something I wasn\'t aware of before":"yes_noticed","The questions made me more aware than I expected":"more_aware","Somewhat -- noticed but not surprising":"somewhat","Not really -- I answered but didn\'t physically feel it":"not_really"};
+    var DELTA_MAP={"Yes -- I adjusted my approach":"yes_adjusted","Yes -- I decided not to attempt it":"yes_didnt_attempt","Somewhat -- it confirmed what I already felt":"confirmed","Not really -- I wasn\'t sure what to do with it":"unsure"};
+    var BODY_MAP={"Yes -- something I hadn\'t noticed before":"yes_new","Somewhat -- sharpened existing awareness":"sharpened","Not this time -- but I can see how it would build":"not_yet","Not really":"not_really"};
+    var PROJECT_MAP={"Yes -- very useful":"yes_useful","Yes -- too early to tell":"yes_early","Not yet":"not_yet","Couldn\'t find it":"didnt_find"};
+    var payload={device_id:DID,app_version:"index71",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
     if(fbAns.body_awareness&&!payload.open_notes)payload.open_notes="body_awareness: "+(BODY_MAP[fbAns.body_awareness]||fbAns.body_awareness);
     sbI("feedback",payload).then(function(saved){
       document.getElementById("fb-content").style.display="none";
       document.getElementById("fb-success").style.display="block";
-      if(!saved||!saved.id)showError("Feedback may not have saved — check connection.");
+      if(!saved||!saved.id)showError("Feedback may not have saved -- check connection.");
     }).catch(function(){
       document.getElementById("fb-content").style.display="none";
       document.getElementById("fb-success").style.display="block";
@@ -3904,7 +4116,7 @@ function setSaveInd(id,html){var el=document.getElementById(id);if(el)el.innerHT
 var rdHeightUnit='ft';
 function initRouteDetails(){
   var lbl=document.getElementById("rd-label");
-  if(lbl)lbl.textContent=(logState.grade||"—")+" · "+(logState.terrain||"—");
+  if(lbl)lbl.textContent=(logState.grade||"--")+" . "+(logState.terrain||"--");
   var ni=document.getElementById("rd-route-name");
   if(ni)ni.value=logState.routeName||"";
   document.getElementById("rd-outdoor-fields").style.display="none";
@@ -3930,7 +4142,7 @@ function rdSelectRock(el,val){
 function rdAdjBolt(d){
   if(logState.boltCount===null)logState.boltCount=0;
   logState.boltCount=Math.max(0,logState.boltCount+d);
-  document.getElementById("rd-bolt-val").textContent=logState.boltCount||"—";
+  document.getElementById("rd-bolt-val").textContent=logState.boltCount||"--";
 }
 function rdSetUnit(u){
   rdHeightUnit=u;
@@ -3970,19 +4182,19 @@ function saveRouteDetails(){
 var hiwFlowData = {
   prepare: {
     title: "Prepare for a Climb",
-    sub: "Use this before you commit to a route — at the base, before you leave the ground.",
+    sub: "Use this before you commit to a route -- at the base, before you leave the ground.",
     steps: [
-      {icon:"◉", label:"Breath check", text:"What is your breathing doing right now — before you think about the route."},
+      {icon:"◉", label:"Breath check", text:"What is your breathing doing right now -- before you think about the route."},
       {icon:"◎", label:"Gut check", text:"What is your gut reporting. Settled, mild flutter, noticeable tension."},
       {icon:"⊙", label:"Body scan", text:"Head to toe. What are you already holding? Tension in shoulders, chest, core."},
       {icon:"◈", label:"Route context", text:"Style, experience, first time on this. The context that shapes the shift."},
-      {icon:"◉", label:"Second check-in", text:"Breath and gut again — after thinking through the route. The delta is the signal."},
+      {icon:"◉", label:"Second check-in", text:"Breath and gut again -- after thinking through the route. The delta is the signal."},
       {icon:"◆", label:"Zone result", text:"Your specific somatic data mapped to a zone. Not a generic label."}
     ]
   },
   log: {
     title: "Log a Climb",
-    sub: "Use this after you climb — 60 seconds captures what happened and builds your picture.",
+    sub: "Use this after you climb -- 60 seconds captures what happened and builds your picture.",
     steps: [
       {icon:"◈", label:"Grade + system", text:"Yosemite, Hueco, French, or UK Tech. Pick the grade you climbed."},
       {icon:"◎", label:"Terrain feature", text:"Slab, vertical, overhang, roof, arête, dihedral, crack. What the wall demanded."},
