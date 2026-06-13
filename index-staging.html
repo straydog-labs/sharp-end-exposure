@@ -516,20 +516,54 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <button class="chip" onclick="selectFocus(this,'general')">General attempt</button>
     </div>
   </div>
+  <!-- Edit sheet -->
+  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;">Edit this climb</div>
+      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:6px 12px;cursor:pointer;">Done</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Grade</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="edit-grade-chips"></div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Terrain</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+      <button class="chip" onclick="editSelTerrain(this,'Slab')">Slab</button>
+      <button class="chip" onclick="editSelTerrain(this,'Vertical')">Vertical</button>
+      <button class="chip" onclick="editSelTerrain(this,'Overhang')">Overhang</button>
+      <button class="chip" onclick="editSelTerrain(this,'Roof')">Roof</button>
+      <button class="chip" onclick="editSelTerrain(this,'Arête')">Arête</button>
+      <button class="chip" onclick="editSelTerrain(this,'Dihedral')">Dihedral</button>
+      <button class="chip" onclick="editSelTerrain(this,'Crack')">Crack</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Result</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button id="edit-btn-sent" onclick="editSelResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
+      <button id="edit-btn-attempt" onclick="editSelResult('attempt')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Attempt</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
+    <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
+    <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
+  </div>
+
   <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
     <button class="action-btn primary-action" onclick="startDeeper()" style="display:flex;align-items:center;justify-content:space-between;">
       <div style="text-align:left;">
-        <div style="font-size:16px;font-weight:600;">Go Deeper</div>
-        <div style="font-size:13px;color:var(--muted);font-weight:400;margin-top:2px;">What happened in your body?</div>
+        <div style="font-size:17px;font-weight:700;">Go Deeper →</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.65);margin-top:2px;">What happened in your body? 4 questions.</div>
       </div>
-      <span style="color:var(--accent);font-size:20px;">→</span>
     </button>
-    <button class="action-btn" onclick="showScreen('screen-route-details')" style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="text-align:left;">
-        <div style="font-size:16px;font-weight:600;">Add route details</div>
-        <div style="font-size:13px;color:var(--muted);font-weight:400;margin-top:2px;">Discipline · environment · rock type</div>
-      </div>
-      <span style="color:var(--accent);font-size:20px;">→</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <button class="action-btn" onclick="showScreen('screen-route-details')" style="text-align:left;padding:14px 16px;">
+        <div style="font-size:14px;font-weight:700;">Add details</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Name · discipline</div>
+      </button>
+      <button class="action-btn" onclick="openStartProjectFromLog()" style="text-align:left;padding:14px 16px;border-color:rgba(126,200,122,.4);background:rgba(126,200,122,.06);">
+        <div style="font-size:14px;font-weight:700;color:#7ec87a;">Start project</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;">Track this route</div>
+      </button>
+    </div>
+    <button class="action-btn" onclick="openEditSheet()" style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:14px;color:var(--muted);">Edit this climb</div>
+      <span style="color:var(--muted);font-size:15px;">✎</span>
     </button>
     <div class="divider-label">or</div>
     <button class="action-btn" onclick="logAnother()">Log another climb</button>
@@ -632,11 +666,20 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="question-card">
+      <svg width="100%" viewBox="0 0 280 44" style="display:block;margin-bottom:12px;opacity:.55;">
+        <path d="M10,22 C30,8 50,36 70,22 C90,8 110,36 130,22 C150,8 170,36 190,22 C210,8 230,36 250,22 C260,16 268,18 270,22" fill="none" stroke="#7ec87a" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M10,22 C22,14 34,30 46,22 C58,14 66,26 78,22" fill="none" stroke="rgba(232,68,68,.6)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4,3"/>
+        <text x="140" y="40" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.6)" letter-spacing=".08em">BREATH PATTERN</text>
+      </svg>
       <div class="q-number">Breathing</div>
       <div class="q-text-dark">How was your breathing during this climb?</div>
       <div class="q-context" onclick="toggleCtx('ctx1','ctx1-arrow')">
         <span class="q-context-toggle" id="ctx1-arrow">▶</span>
-        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx1"> — Breathing pattern is one of the earliest signals of activation state. The shift between relaxed and restricted breathing indicates where you were in your exposure zone.</span></span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx1"> — Breath rate is one of the earliest signals of activation state. Restricted or held breath indicates elevated perceived demand.</span></span>
+      </div>
+      <div id="ctx1-sci" style="display:none;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Breath rate is a measurable proxy for autonomic arousal — one of the earliest physiological signals of threat response. <em style="color:var(--muted2);">Garfinkel &amp; Critchley, 2015.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q1')">Easy and steady</button>
@@ -665,11 +708,21 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="question-card">
+      <svg width="100%" viewBox="0 0 280 52" style="display:block;margin-bottom:12px;opacity:.55;">
+        <ellipse cx="140" cy="28" rx="44" ry="24" fill="none" stroke="rgba(245,166,35,.3)" stroke-width="1.5"/>
+        <ellipse cx="140" cy="32" rx="22" ry="12" fill="rgba(245,166,35,.12)" stroke="#f5a623" stroke-width="1.5"/>
+        <ellipse cx="140" cy="32" rx="30" ry="17" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="140" y="48" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(245,166,35,.6)" letter-spacing=".08em">SOMATIC MARKER</text>
+      </svg>
       <div class="q-number">Gut sensation</div>
       <div class="q-text-dark">Any gut sensation before or on the climb?</div>
       <div class="q-context" onclick="toggleCtx('ctx2','ctx2-arrow')">
         <span class="q-context-toggle" id="ctx2-arrow">▶</span>
-        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx2"> — Gut sensation can be an early somatic signal. Some climbers notice it, others don't — your experience may differ.</span></span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx2"> — Gut sensation fires as a pre-conscious decision marker. Some climbers notice it clearly, others don't — your experience may differ.</span></span>
+      </div>
+      <div id="ctx2-sci" style="display:none;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Gut sensation functions as a pre-conscious somatic marker — patients without this signal made systematically worse decisions even knowing the correct choice. <em style="color:var(--muted2);">Damasio, 1994.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q2')">Settled, neutral</button>
@@ -697,11 +750,27 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="question-card">
+      <svg width="100%" viewBox="0 0 280 60" style="display:block;margin-bottom:12px;opacity:.6;">
+        <rect x="20" y="6" width="60" height="46" fill="rgba(126,200,122,.07)" rx="3"/>
+        <rect x="82" y="2" width="116" height="50" fill="rgba(245,166,35,.07)" rx="3"/>
+        <rect x="200" y="6" width="60" height="46" fill="rgba(232,68,68,.07)" rx="3"/>
+        <path d="M20,52 Q50,6 140,6 Q230,6 260,52" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="218" cy="16" r="5" fill="#f5a623"/>
+        <circle cx="218" cy="16" r="9" fill="none" stroke="#f5a623" stroke-width="1.5" opacity=".4"/>
+        <text x="50" y="56" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(126,200,122,.7)">Comfort</text>
+        <text x="140" y="56" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(245,166,35,.7)">Learning</text>
+        <text x="230" y="56" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(232,68,68,.7)">Panic</text>
+        <text x="218" y="10" text-anchor="middle" font-family="Space Mono,monospace" font-size="7" fill="#f5a623">crux</text>
+      </svg>
       <div class="q-number">Crux moment</div>
       <div class="q-text-dark">Was there a moment that stood out — a hesitation, a decision point?</div>
       <div class="q-context" onclick="toggleCtx('ctx3','ctx3-arrow')">
         <span class="q-context-toggle" id="ctx3-arrow">▶</span>
-        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx3"> — Crux moments are where risk perception peaks. Noticing your response there builds pattern awareness over time.</span></span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx3"> — Crux moments are where activation spikes and risk perception peaks. Noticing your response builds pattern awareness over time.</span></span>
+      </div>
+      <div id="ctx3-sci" style="display:none;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Performance peaks at optimal arousal then drops. The crux is often where you cross into over-activation — conscious monitoring at that point is the skill. <em style="color:var(--muted2);">Yerkes &amp; Dodson, 1908. Beilock &amp; Carr, 2001.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q3')">Yes — I paused</button>
@@ -729,11 +798,25 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="question-card">
+      <svg width="100%" viewBox="0 0 280 56" style="display:block;margin-bottom:12px;opacity:.6;">
+        <circle cx="140" cy="28" r="26" fill="rgba(232,68,68,.1)" stroke="rgba(232,68,68,.3)" stroke-width="1.5"/>
+        <circle cx="140" cy="28" r="18" fill="rgba(245,166,35,.12)" stroke="rgba(245,166,35,.35)" stroke-width="1.5"/>
+        <circle cx="140" cy="28" r="10" fill="rgba(126,200,122,.18)" stroke="rgba(126,200,122,.5)" stroke-width="1.5"/>
+        <text x="140" y="31" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.9)" font-weight="700">C</text>
+        <text x="140" y="21" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6.5" fill="rgba(245,166,35,.8)">L</text>
+        <text x="140" y="8" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(232,68,68,.7)">P</text>
+        <text x="85" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.65)">Comfort</text>
+        <text x="195" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(232,68,68,.65)">Panic</text>
+      </svg>
       <div class="q-number">Body state</div>
       <div class="q-text-dark">How did your body feel for most of this climb?</div>
       <div class="q-context" onclick="toggleCtx('ctx4','ctx4-arrow')">
         <span class="q-context-toggle" id="ctx4-arrow">▶</span>
-        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx4"> — Rather than asking you to classify your zone, this asks what you noticed. Your body data maps to a zone — you just report what was there.</span></span>
+        <span style="color:var(--muted);">Why this matters<span class="q-context-text" id="ctx4"> — This asks what you noticed, not what zone you were in. Your body data maps to a zone — you just report what was there.</span></span>
+      </div>
+      <div id="ctx4-sci" style="display:none;margin-top:8px;padding:9px 13px;background:rgba(232,118,58,.06);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Interoceptive accuracy — the ability to notice body signals — is trainable. This question builds that skill over time. <em style="color:var(--muted2);">Price &amp; Hooven, 2018.</em></div>
+        <button onclick="showScreen('screen-research')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
       <div class="response-chips">
         <button class="chip" onclick="selectDeepChip(this,'q4','comfort')">Settled and in control</button>
@@ -755,7 +838,16 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
   <div class="content">
-    <div class="screen-title">Reflection logged.<span class="sub">Your data is building a picture.</span></div>
+    <!-- Route context bar -->
+    <div style="display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:4px;">
+      <div style="font-family:'Space Mono',monospace;font-size:26px;font-weight:700;color:var(--accent);line-height:1;" id="reflect-grade">—</div>
+      <div style="flex:1;">
+        <div style="font-size:16px;font-weight:600;color:var(--text);" id="reflect-terrain">—</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:1px;" id="reflect-result-lbl">—</div>
+      </div>
+      <div id="reflect-zone-pill"></div>
+    </div>
+    <div class="screen-title" style="font-size:24px;margin-bottom:0;">Reflection logged.<span class="sub" style="font-size:16px;">Your data is building a picture.</span></div>
 
     <!-- ZONE MAP -->
     <div class="insight-card">
@@ -1361,49 +1453,55 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="screen-title" style="font-size:30px;">How It Works</div>
     <div style="font-size:16px;color:var(--muted);margin-top:8px;margin-bottom:28px;line-height:1.55;">From the moment you see a route — to what your data tells you about your climbing.</div>
 
-    <!-- ── MACRO FLOW DIAGRAM ── -->
+    <!-- ── RIVER CONFLUENCE DIAGRAM ── -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:20px;">
-      <div style="padding:14px 18px 10px;">
-        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:3px;">Two ways in. One picture.</div>
-        <div style="font-size:14px;color:var(--muted);line-height:1.5;">Tap either path to see how it works.</div>
+      <div style="padding:16px 18px 12px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">Every session flows into the same picture.</div>
+        <div style="font-size:14px;color:var(--muted);line-height:1.5;">Three ways in. One dataset. Your awareness builds over time — the goal is to eventually run this check-in without the app.</div>
       </div>
-      <svg width="100%" viewBox="0 0 340 220" style="display:block;max-width:340px;margin:0 auto;">
-        <rect x="100" y="88" width="140" height="44" rx="10" fill="rgba(232,118,58,.18)" stroke="#e8763a" stroke-width="2"/>
-        <text x="170" y="107" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#e8763a" font-weight="700" letter-spacing=".04em">YOUR PICTURE</text>
-        <text x="170" y="122" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="rgba(232,118,58,.8)">builds over time</text>
-        <rect x="6" y="20" width="110" height="52" rx="12" fill="var(--surface2)" stroke="var(--border2)" stroke-width="1.5" id="hiw-prepare-box" style="cursor:pointer;" onclick="hiwSelectFlow('prepare')"/>
-        <text x="61" y="43" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="14" fill="#ffffff" font-weight="700" id="hiw-prep-t1">PREPARE</text>
-        <text x="61" y="61" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#e8e0d6" id="hiw-prep-t2">before you commit</text>
-        <line x1="116" y1="46" x2="120" y2="88" stroke="rgba(232,118,58,.5)" stroke-width="2" stroke-dasharray="4,3" id="hiw-prep-line"/>
-        <rect x="224" y="20" width="110" height="52" rx="12" fill="var(--surface2)" stroke="var(--border2)" stroke-width="1.5" id="hiw-log-box" style="cursor:pointer;" onclick="hiwSelectFlow('log')"/>
-        <text x="279" y="43" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="14" fill="#ffffff" font-weight="700" id="hiw-log-t1">LOG</text>
-        <text x="279" y="61" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#e8e0d6" id="hiw-log-t2">after you climb</text>
-        <line x1="224" y1="46" x2="220" y2="88" stroke="rgba(232,118,58,.5)" stroke-width="2" stroke-dasharray="4,3" id="hiw-log-line"/>
-        <rect x="100" y="154" width="140" height="48" rx="12" fill="var(--surface2)" stroke="var(--border2)" stroke-width="1.5"/>
-        <text x="170" y="175" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="14" fill="#ffffff" font-weight="700">MY SESSIONS</text>
-        <text x="170" y="192" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#e8e0d6">patterns emerge</text>
-        <line x1="170" y1="132" x2="170" y2="154" stroke="rgba(232,118,58,.5)" stroke-width="2" stroke-dasharray="4,3"/>
-        <g id="hiw-prepare-steps" style="display:none;">
-          <rect x="4" y="80" width="70" height="24" rx="6" fill="rgba(232,118,58,.15)" stroke="rgba(232,118,58,.4)" stroke-width="1"/>
-          <text x="39" y="96" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8763a" font-weight="700">Breath check</text>
-          <rect x="4" y="110" width="70" height="24" rx="6" fill="rgba(232,118,58,.15)" stroke="rgba(232,118,58,.4)" stroke-width="1"/>
-          <text x="39" y="126" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8763a" font-weight="700">Gut check</text>
-          <rect x="4" y="140" width="70" height="24" rx="6" fill="rgba(232,118,58,.15)" stroke="rgba(232,118,58,.4)" stroke-width="1"/>
-          <text x="39" y="156" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8763a" font-weight="700">Route thinking</text>
-          <rect x="4" y="170" width="70" height="24" rx="6" fill="rgba(232,118,58,.15)" stroke="rgba(232,118,58,.4)" stroke-width="1"/>
-          <text x="39" y="186" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8763a" font-weight="700">Zone result</text>
-        </g>
-        <g id="hiw-log-steps" style="display:none;">
-          <rect x="266" y="80" width="70" height="24" rx="6" fill="rgba(232,118,58,.15)" stroke="rgba(232,118,58,.4)" stroke-width="1"/>
-          <text x="301" y="96" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8763a" font-weight="700">Grade + terrain</text>
-          <rect x="266" y="110" width="70" height="24" rx="6" fill="rgba(232,118,58,.15)" stroke="rgba(232,118,58,.4)" stroke-width="1"/>
-          <text x="301" y="126" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8763a" font-weight="700">Sent / attempt</text>
-          <rect x="266" y="140" width="70" height="24" rx="6" fill="rgba(232,118,58,.15)" stroke="rgba(232,118,58,.4)" stroke-width="1"/>
-          <text x="301" y="156" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8763a" font-weight="700">Go Deeper</text>
-          <rect x="266" y="170" width="70" height="24" rx="6" fill="rgba(232,118,58,.15)" stroke="rgba(232,118,58,.4)" stroke-width="1"/>
-          <text x="301" y="186" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8763a" font-weight="700">Add details</text>
-        </g>
+      <svg width="100%" viewBox="0 0 340 290" style="display:block;max-width:380px;margin:0 auto;">
+        <!-- Stream 1: LOG -->
+        <rect x="6" y="8" width="98" height="52" rx="12" fill="rgba(232,118,58,.15)" stroke="#e8763a" stroke-width="1.5"/>
+        <text x="55" y="29" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#e8763a" font-weight="700">LOG</text>
+        <text x="55" y="47" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(232,118,58,.7)">after you climb</text>
+        <rect x="12" y="64" width="86" height="20" rx="6" fill="rgba(232,118,58,.08)" stroke="rgba(232,118,58,.3)" stroke-width="1"/>
+        <text x="55" y="78" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(232,118,58,.7)">Go Deeper (optional)</text>
+        <!-- Stream 2: PREPARE -->
+        <rect x="121" y="8" width="98" height="52" rx="12" fill="rgba(200,245,90,.08)" stroke="rgba(200,245,90,.4)" stroke-width="1.5"/>
+        <text x="170" y="29" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#c8f55a" font-weight="700">PREPARE</text>
+        <text x="170" y="47" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(200,245,90,.65)">before you commit</text>
+        <rect x="127" y="64" width="86" height="20" rx="6" fill="rgba(200,245,90,.05)" stroke="rgba(200,245,90,.2)" stroke-width="1"/>
+        <text x="170" y="78" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(200,245,90,.6)">somatic check-in</text>
+        <!-- Stream 3: PROJECT -->
+        <rect x="236" y="8" width="98" height="52" rx="12" fill="rgba(126,200,122,.1)" stroke="rgba(126,200,122,.4)" stroke-width="1.5"/>
+        <text x="285" y="29" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#7ec87a" font-weight="700">PROJECT</text>
+        <text x="285" y="47" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(126,200,122,.65)">name a route</text>
+        <rect x="242" y="64" width="86" height="20" rx="6" fill="rgba(126,200,122,.06)" stroke="rgba(126,200,122,.25)" stroke-width="1"/>
+        <text x="285" y="78" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.6)">track every session</text>
+        <!-- Tributaries converging -->
+        <path d="M55,86 Q55,128 170,146" fill="none" stroke="rgba(232,118,58,.5)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M170,86 L170,146" fill="none" stroke="rgba(200,245,90,.4)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M285,86 Q285,128 170,146" fill="none" stroke="rgba(126,200,122,.5)" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Confluence -->
+        <ellipse cx="170" cy="156" rx="64" ry="16" fill="rgba(232,118,58,.12)" stroke="rgba(232,118,58,.3)" stroke-width="1.5"/>
+        <text x="170" y="160" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#e8763a" font-weight="700">YOUR PICTURE</text>
+        <!-- River down -->
+        <path d="M170,172 L170,196" fill="none" stroke="rgba(232,118,58,.35)" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Split to outputs -->
+        <path d="M170,196 Q100,196 78,216" fill="none" stroke="rgba(245,166,35,.5)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M170,196 Q240,196 262,216" fill="none" stroke="rgba(126,200,122,.5)" stroke-width="2" stroke-linecap="round"/>
+        <!-- My Sessions -->
+        <rect x="16" y="216" width="124" height="46" rx="12" fill="rgba(245,166,35,.1)" stroke="rgba(245,166,35,.35)" stroke-width="1.5"/>
+        <text x="78" y="236" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#f5a623" font-weight="700">MY SESSIONS</text>
+        <text x="78" y="252" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(245,166,35,.6)">patterns · arc · radar</text>
+        <!-- Projects -->
+        <rect x="200" y="216" width="124" height="46" rx="12" fill="rgba(126,200,122,.1)" stroke="rgba(126,200,122,.35)" stroke-width="1.5"/>
+        <text x="262" y="236" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#7ec87a" font-weight="700">PROJECTS</text>
+        <text x="262" y="252" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(126,200,122,.6)">route · focus · arc</text>
+        <!-- Responsibility note -->
+        <text x="170" y="278" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(255,255,255,.18)" letter-spacing=".04em">All decisions remain with the climber.</text>
       </svg>
+    </div>
       <div id="hiw-flow-detail" style="display:none;padding:0 18px 18px;">
         <div style="height:1px;background:var(--border);margin-bottom:14px;"></div>
         <div id="hiw-flow-detail-content" style="font-size:15px;color:var(--muted);line-height:1.65;"></div>
@@ -1676,10 +1774,10 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Straydog Labs</div>
     <div class="screen-title" style="font-size:30px;letter-spacing:-.02em;">The Research</div>
     <div style="font-size:14px;color:var(--muted);line-height:1.65;margin-top:-16px;">Ten studies across four themes. Every design decision maps directly to peer-reviewed science.</div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><circle cx="32" cy="32" r="4" fill="#f5a623"/><circle cx="32" cy="32" r="11" fill="none" stroke="#f5a623" stroke-width="1.5" opacity=".7"/><circle cx="32" cy="32" r="18" fill="none" stroke="#f5a623" stroke-width="1" opacity=".4"/><circle cx="32" cy="32" r="26" fill="none" stroke="#f5a623" stroke-width=".75" opacity=".2"/><text x="32" y="57" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="#f5a623" letter-spacing=".08em" opacity=".8">GUT · BREATH</text></svg></div><div class="res-card-meta"><div class="res-card-label">Somatic signals</div><div class="res-card-title">The body is already reporting</div><div class="res-card-sub">Breath and gut register threat before conscious awareness. Biology, not metaphor — and trainable.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">2017</span><span class="res-author">Lisa Feldman Barrett — How Emotions Are Made</span></div><div class="res-study-text">Emotions are not hardwired reactions — they are constructed from interoceptive signals, past experience, and cultural context. The same physiological activation can be experienced as excitement or terror depending on how the brain interprets it.</div><div class="res-apply">Why the tool never labels somatic signals as "fear." Restricted breathing is described as restricted breathing — not as danger.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1994</span><span class="res-author">Antonio Damasio — Descartes' Error</span></div><div class="res-study-text">Gut sensation functions as a pre-conscious decision marker. Patients with damaged somatic signal pathways made systematically worse decisions — even when they could explain the correct choice.</div><div class="res-apply">The pause screen creates conditions where gut markers can register before the second check-in. Gut shift is the primary pre-decision data point.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2015</span><span class="res-author">Sarah Garfinkel &amp; Hugo Critchley — Biological Psychology</span></div><div class="res-study-text">Interoceptive accuracy varies across individuals, including along neurodivergent lines, and is measurable and trainable over time.</div><div class="res-apply">Why "not paying attention to my breath" is a valid response — not a failure. The tool trains the noticing, not the result.</div></div></div></div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#0a120a"/><rect x="0" y="30" width="22" height="34" fill="#c8f55a" opacity=".1"/><rect x="22" y="16" width="20" height="48" fill="#f5a623" opacity=".1"/><rect x="42" y="30" width="22" height="34" fill="#ff5c3a" opacity=".1"/><path d="M4 54 Q20 4 32 4 Q44 4 60 54" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2.2" stroke-linecap="round"/><circle cx="38" cy="14" r="3.5" fill="#f5a623" stroke="rgba(15,15,15,.8)" stroke-width="1.5"/></svg></div><div class="res-card-meta"><div class="res-card-label">Arousal &amp; performance</div><div class="res-card-title">There is an optimal activation window — and it varies by person</div><div class="res-card-sub">Too little produces disengagement. Too much produces breakdown.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1908</span><span class="res-author">Yerkes &amp; Dodson — Journal of Comparative Neurology</span></div><div class="res-study-text">Performance follows an inverted-U curve relative to arousal. The optimal window varies by task complexity — fine motor and judgment tasks require lower arousal.</div><div class="res-apply">Zone placement is a readout of where you sit on the arousal axis relative to this route today — not a capability ranking.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2001</span><span class="res-author">Sian Beilock &amp; Thomas Carr — Journal of Experimental Psychology</span></div><div class="res-study-text">When pressure activates conscious monitoring of automated movement, expert performance breaks down across sports and genders.</div><div class="res-apply">Why "distracted" and "reactive" are the panic-zone failure modes.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Claude Steele — American Psychologist, Stanford</span></div><div class="res-study-text">Identity threat raises activation and impairs performance independently of actual capability.</div><div class="res-apply">Why zone placement carries no value judgment and language throughout is deliberately neutral.</div></div></div></div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#081208"/><circle cx="32" cy="32" r="3.5" fill="#c8f55a"/><circle cx="32" cy="32" r="8" fill="none" stroke="#c8f55a" stroke-width="1.8"/><circle cx="32" cy="32" r="13.5" fill="none" stroke="#c8f55a" stroke-width=".8" opacity=".35"/><circle cx="16" cy="16" r="3.5" fill="rgba(255,255,255,.15)"/><circle cx="48" cy="16" r="3.5" fill="rgba(255,255,255,.15)"/><circle cx="16" cy="48" r="3.5" fill="rgba(255,255,255,.15)"/><circle cx="48" cy="48" r="3.5" fill="rgba(255,255,255,.15)"/></svg></div><div class="res-card-meta"><div class="res-card-label">Deliberate practice</div><div class="res-card-title">What you notice during practice determines what you keep</div><div class="res-card-sub">Volume does not predict adaptation. Directed attention does.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1993</span><span class="res-author">Ericsson, Krampe &amp; Tesch-Römer — Psychological Review</span></div><div class="res-study-text">Expert performance requires deliberate practice: structured repetition with specific process variables identified in advance and immediate feedback. Passive repetition produces plateaus, not expertise.</div><div class="res-apply">The process intention question is the direct application. Comfort zone guidance notes passive repetition produces limited transfer.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2006</span><span class="res-author">Carol Dweck — Mindset</span></div><div class="res-study-text">A fixed-capability belief produces worse outcomes than a growth belief. Fixed mindset increases performance anxiety.</div><div class="res-apply">Why zone placement is never framed as a capability measure.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2003</span><span class="res-author">Arno Ilgner — The Rock Warrior's Way</span></div><div class="res-study-text">Conscious risk-taking is a learnable skill. The decision not to attempt is as informative as the decision to proceed. <em style="color:var(--muted)">Practitioner framework, not a controlled study.</em></div><div class="res-apply">Did Not Attempt is a first-class option. Motivation is assessed because conscious vs. reactive motivation produces different learning outcomes.</div></div></div></div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><rect x="28" y="4" width="8" height="9" rx="4" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".75"/><rect x="18" y="14" width="28" height="11" rx="5" fill="#f5a623" opacity=".7"/><rect x="22" y="26" width="20" height="10" rx="4" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".75"/><rect x="23" y="37" width="18" height="9" rx="4" fill="#f5a623" opacity=".4"/><rect x="20" y="47" width="24" height="12" rx="5" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".75"/><text x="32" y="61" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="#f5a623" opacity=".8">body scan</text></svg></div><div class="res-card-meta"><div class="res-card-label">Body scanning</div><div class="res-card-title">The body holds what the mind hasn't noticed yet</div><div class="res-card-sub">Tension, fatigue, and holding patterns in specific regions are data.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1990</span><span class="res-author">Jon Kabat-Zinn — Full Catastrophe Living</span></div><div class="res-study-text">Mindfulness-Based Stress Reduction centres the body scan as a core practice. Hundreds of RCTs document measurable increases in body awareness and reductions in stress-related holding.</div><div class="res-apply">The body scan follows the MBSR sequence. Nothing to report is equally valid — it records a clean baseline.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Peter Levine — Waking the Tiger</span></div><div class="res-study-text">Unresolved activation is held in specific tissue regions as chronic muscular tension below the conscious awareness threshold.</div><div class="res-apply">Why tension before a trad lead reads differently from tension after a gym session.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2014</span><span class="res-author">Bessel van der Kolk — The Body Keeps the Score</span></div><div class="res-study-text">Repeated overwhelming experiences without conscious processing can condition the nervous system toward threat response rather than adaptation. The body encodes these patterns below conscious awareness.</div><div class="res-apply">Why the tool distinguishes conscious Panic-zone entry from reactive Panic — and why the process prompt asks "is this a conscious decision?" not "are you scared?"</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2018</span><span class="res-author">Cynthia Price &amp; Carol Hooven — Frontiers in Psychology</span></div><div class="res-study-text">Interoceptive awareness skills are teachable and directly improve emotion regulation and decision-making.</div><div class="res-apply">Why the body scan asks two follow-up questions: what are you noticing, and is this typical? Characterising sensation is where the skill develops.</div></div><div class="sci-note">Sharp End Exposure collects self-reported readiness data. Not a clinical assessment. All decisions remain with the climber.</div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><path d="M6,32 C12,20 18,44 24,32 C30,20 36,44 42,32 C48,20 54,44 58,32" fill="none" stroke="#f5a623" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="32" cy="48" rx="10" ry="5" fill="rgba(245,166,35,.15)" stroke="#f5a623" stroke-width="1" opacity=".6"/><text x="32" y="12" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="#f5a623" letter-spacing=".06em" opacity=".7">BREATH·GUT</text></svg></div><div class="res-card-meta"><div class="res-card-label">Somatic signals</div><div class="res-card-title">The body is already reporting</div><div class="res-card-sub">Breath and gut register threat before conscious awareness — the same signals tracked in Go Deeper.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">2017</span><span class="res-author">Lisa Feldman Barrett — How Emotions Are Made</span></div><div class="res-study-text">Emotions are not hardwired reactions — they are constructed from interoceptive signals, past experience, and cultural context. The same physiological activation can be experienced as excitement or terror depending on how the brain interprets it.</div><div class="res-apply">Why the tool never labels somatic signals as "fear." Restricted breathing is described as restricted breathing — not as danger.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1994</span><span class="res-author">Antonio Damasio — Descartes' Error</span></div><div class="res-study-text">Gut sensation functions as a pre-conscious decision marker. Patients with damaged somatic signal pathways made systematically worse decisions — even when they could explain the correct choice.</div><div class="res-apply">The pause screen creates conditions where gut markers can register before the second check-in. Gut shift is the primary pre-decision data point.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2015</span><span class="res-author">Sarah Garfinkel &amp; Hugo Critchley — Biological Psychology</span></div><div class="res-study-text">Interoceptive accuracy varies across individuals, including along neurodivergent lines, and is measurable and trainable over time.</div><div class="res-apply">Why "not paying attention to my breath" is a valid response — not a failure. The tool trains the noticing, not the result.</div></div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#0a120a"/><rect x="2" y="28" width="18" height="34" fill="rgba(126,200,122,.12)" rx="2"/><rect x="22" y="14" width="20" height="48" fill="rgba(245,166,35,.12)" rx="2"/><rect x="44" y="28" width="18" height="34" fill="rgba(232,68,68,.12)" rx="2"/><path d="M4,56 Q16,4 32,4 Q48,4 60,56" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="4" r="3" fill="#f5a623"/><text x="11" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(126,200,122,.7)">C</text><text x="32" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(245,166,35,.7)">L</text><text x="53" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(232,68,68,.7)">P</text></svg></div><div class="res-card-meta"><div class="res-card-label">Arousal &amp; performance</div><div class="res-card-title">There is an optimal activation window</div><div class="res-card-sub">The same curve behind the three zones — Comfort, Learning, Panic. You see this every time you get a result.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1908</span><span class="res-author">Yerkes &amp; Dodson — Journal of Comparative Neurology</span></div><div class="res-study-text">Performance follows an inverted-U curve relative to arousal. The optimal window varies by task complexity — fine motor and judgment tasks require lower arousal.</div><div class="res-apply">Zone placement is a readout of where you sit on the arousal axis relative to this route today — not a capability ranking.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2001</span><span class="res-author">Sian Beilock &amp; Thomas Carr — Journal of Experimental Psychology</span></div><div class="res-study-text">When pressure activates conscious monitoring of automated movement, expert performance breaks down across sports and genders.</div><div class="res-apply">Why "distracted" and "reactive" are the panic-zone failure modes.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Claude Steele — American Psychologist, Stanford</span></div><div class="res-study-text">Identity threat raises activation and impairs performance independently of actual capability.</div><div class="res-apply">Why zone placement carries no value judgment and language throughout is deliberately neutral.</div></div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#081208"/><rect x="4" y="20" width="56" height="11" fill="rgba(232,68,68,.07)" rx="2"/><rect x="4" y="31" width="56" height="11" fill="rgba(245,166,35,.07)"/><rect x="4" y="42" width="56" height="11" fill="rgba(126,200,122,.07)" rx="2"/><circle cx="10" cy="48" r="3" fill="rgba(232,68,68,.75)"/><circle cx="22" cy="37" r="3" fill="rgba(245,166,35,.75)"/><circle cx="34" cy="37" r="3" fill="rgba(245,166,35,.75)"/><circle cx="46" cy="48" r="3" fill="rgba(126,200,122,.75)"/><circle cx="56" cy="48" r="4" fill="#7ec87a"/><circle cx="56" cy="48" r="6.5" fill="none" stroke="#7ec87a" stroke-width="1" opacity=".4"/><polyline points="10,48 22,37 34,37 46,48 56,48" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/></svg></div><div class="res-card-meta"><div class="res-card-label">Deliberate practice</div><div class="res-card-title">What you notice determines what you keep</div><div class="res-card-sub">The session arc in My Sessions visualises this — volume alone does not predict growth.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1993</span><span class="res-author">Ericsson, Krampe &amp; Tesch-Römer — Psychological Review</span></div><div class="res-study-text">Expert performance requires deliberate practice: structured repetition with specific process variables identified in advance and immediate feedback. Passive repetition produces plateaus, not expertise.</div><div class="res-apply">The process intention question is the direct application. Comfort zone guidance notes passive repetition produces limited transfer.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2006</span><span class="res-author">Carol Dweck — Mindset</span></div><div class="res-study-text">A fixed-capability belief produces worse outcomes than a growth belief. Fixed mindset increases performance anxiety.</div><div class="res-apply">Why zone placement is never framed as a capability measure.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2003</span><span class="res-author">Arno Ilgner — The Rock Warrior's Way</span></div><div class="res-study-text">Conscious risk-taking is a learnable skill. The decision not to attempt is as informative as the decision to proceed. <em style="color:var(--muted)">Practitioner framework, not a controlled study.</em></div><div class="res-apply">Did Not Attempt is a first-class option. Motivation is assessed because conscious vs. reactive motivation produces different learning outcomes.</div></div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><ellipse cx="32" cy="11" rx="8" ry="8" fill="none" stroke="rgba(245,166,35,.4)" stroke-width="1.2"/><rect x="18" y="20" width="28" height="14" rx="6" fill="rgba(245,166,35,.2)" stroke="#f5a623" stroke-width="1.2"/><rect x="22" y="34" width="20" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.3)" stroke-width="1.2"/><rect x="20" y="46" width="10" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1"/><rect x="34" y="46" width="10" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1"/><line x1="8" y1="27" x2="18" y2="27" stroke="rgba(245,166,35,.4)" stroke-width="1" stroke-dasharray="2,2"/><line x1="46" y1="27" x2="56" y2="27" stroke="rgba(245,166,35,.4)" stroke-width="1" stroke-dasharray="2,2"/></svg></div><div class="res-card-meta"><div class="res-card-label">Body scanning</div><div class="res-card-title">The body holds what the mind hasn't noticed yet</div><div class="res-card-sub">The same body schematic from the Prepare flow — backed by 30 years of MBSR research.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1990</span><span class="res-author">Jon Kabat-Zinn — Full Catastrophe Living</span></div><div class="res-study-text">Mindfulness-Based Stress Reduction centres the body scan as a core practice. Hundreds of RCTs document measurable increases in body awareness and reductions in stress-related holding.</div><div class="res-apply">The body scan follows the MBSR sequence. Nothing to report is equally valid — it records a clean baseline.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Peter Levine — Waking the Tiger</span></div><div class="res-study-text">Unresolved activation is held in specific tissue regions as chronic muscular tension below the conscious awareness threshold.</div><div class="res-apply">Why tension before a trad lead reads differently from tension after a gym session.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2014</span><span class="res-author">Bessel van der Kolk — The Body Keeps the Score</span></div><div class="res-study-text">Repeated overwhelming experiences without conscious processing can condition the nervous system toward threat response rather than adaptation. The body encodes these patterns below conscious awareness.</div><div class="res-apply">Why the tool distinguishes conscious Panic-zone entry from reactive Panic — and why the process prompt asks "is this a conscious decision?" not "are you scared?"</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2018</span><span class="res-author">Cynthia Price &amp; Carol Hooven — Frontiers in Psychology</span></div><div class="res-study-text">Interoceptive awareness skills are teachable and directly improve emotion regulation and decision-making.</div><div class="res-apply">Why the body scan asks two follow-up questions: what are you noticing, and is this typical? Characterising sensation is where the skill develops.</div></div><div class="sci-note">Sharp End Exposure collects self-reported readiness data. Not a clinical assessment. All decisions remain with the climber.</div></div></div>
   </div>
 </div>
 
@@ -2288,6 +2386,9 @@ function selectDeepChip(el,group,zone){
 function toggleCtx(id,arrowId){
   var el=document.getElementById(id),arrow=document.getElementById(arrowId);
   el.classList.toggle("open");arrow.textContent=el.classList.contains("open")?"▼":"▶";
+  var sciId=id+"-sci";
+  var sci=document.getElementById(sciId);
+  if(sci)sci.style.display=el.classList.contains("open")?"block":"none";
 }
 
 function finishDeeper(){
@@ -2309,11 +2410,18 @@ function finishDeeper(){
   riverDot.setAttribute("cy",z.riverY);riverDot.setAttribute("fill",z.dotColor);
   riverRing.setAttribute("cy",z.riverY);
   document.getElementById("river-line").setAttribute("points","60,82 110,75 160,48 210,40 260,55 300,"+z.riverY);
-  document.getElementById("river-insight").textContent="Latest session: "+z.label+".";
+  var insightMap={comfort:"Comfort zone — familiar territory. The Learning fringe is available when you choose to step toward it.",learning:"Learning zone — at the edge of current experience. This is where adaptation happens.",panic:"Panic zone — perceived demand exceeded current experience. Was this a conscious step or a reactive one? Both are data.",unsure:"Signal unclear — noticing that is data too."};document.getElementById("river-insight").textContent=insightMap[logState.zone]||"Latest session logged.";
   // Save deeper data to Supabase
   if(logState.sessId){
     sbI("sessions",{id:logState.sessId,breathing_post:deepAnswers.q1||null,gut_post:deepAnswers.q2||null,crux_response:deepAnswers.q3||null,body_state:logState.zone,session_focus:logState.sessionFocus||null});
   }
+  // Populate reflection route context
+  var rg=document.getElementById("reflect-grade");var rt=document.getElementById("reflect-terrain");
+  var rrl=document.getElementById("reflect-result-lbl");var rzp=document.getElementById("reflect-zone-pill");
+  if(rg)rg.textContent=logState.grade||"—";
+  if(rt)rt.textContent=logState.terrain||"—";
+  if(rrl)rrl.textContent=logState.result==="sent"?"Sent ✓":"Attempt";
+  if(rzp){var zLbl=logState.zone?logState.zone[0].toUpperCase()+logState.zone.slice(1)+" zone":"";var zCol=logState.zone==="comfort"?"#7ec87a":logState.zone==="panic"?"#e84444":"#f5a623";rzp.innerHTML=zLbl?'<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(200,200,200,.1);color:'+zCol+';">'+zLbl+'</span>':"";}
   // If attempt, show incident flow
   if(logState.result==="attempt"){showScreen("screen-incident");initIncident();}
   else showScreen("screen-reflection");
@@ -2361,6 +2469,50 @@ function incidentNext(){
 }
 
 // ── LOG ANOTHER ──────────────────────────────────────────
+function openEditSheet(){
+  var sheet=document.getElementById("edit-sheet");if(!sheet)return;
+  var gc=document.getElementById("edit-grade-chips");
+  if(gc&&!gc.children.length){
+    (gradeSystems[logGradeSystem]||gradeSystems.YDS).forEach(function(g){
+      var b=document.createElement("button");b.className="chip"+(logState.grade===g?" selected":"");b.textContent=g;
+      b.onclick=function(){gc.querySelectorAll(".chip").forEach(function(x){x.classList.remove("selected");});b.classList.add("selected");logState.grade=g;};
+      gc.appendChild(b);
+    });
+  }
+  sheet.querySelectorAll(".chip[onclick*='editSelTerrain']").forEach(function(b){b.classList.toggle("selected",b.textContent===logState.terrain);});
+  var s=document.getElementById("edit-btn-sent"),a=document.getElementById("edit-btn-attempt");
+  if(s){s.style.background=logState.result==="sent"?"var(--accent)":"var(--surface2)";s.style.color=logState.result==="sent"?"#fff":"var(--text)";}
+  if(a){a.style.background=logState.result==="attempt"?"rgba(245,166,35,.2)":"var(--surface2)";a.style.color=logState.result==="attempt"?"#f5a623":"var(--text)";}
+  var rn=document.getElementById("edit-rname");if(rn)rn.value=logState.routeName||"";
+  sheet.style.display="block";
+}
+function editSelTerrain(el,val){
+  el.closest("div").querySelectorAll(".chip").forEach(function(b){b.classList.remove("selected");});
+  el.classList.add("selected");logState.terrain=val;
+}
+function editSelResult(val){
+  logState.result=val;
+  var s=document.getElementById("edit-btn-sent"),a=document.getElementById("edit-btn-attempt");
+  if(s){s.style.background=val==="sent"?"var(--accent)":"var(--surface2)";s.style.color=val==="sent"?"#fff":"var(--text)";}
+  if(a){a.style.background=val==="attempt"?"rgba(245,166,35,.2)":"var(--surface2)";a.style.color=val==="attempt"?"#f5a623":"var(--text)";}
+}
+function saveEditedClimb(){
+  if(logState.sessId){
+    sbI("sessions",{id:logState.sessId,grade_value:logState.grade,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":"attempt",route_name:logState.routeName||null}).then(function(){showToast("Climb updated");renderLogCelebration();});
+  }
+  document.getElementById("edit-sheet").style.display="none";
+}
+function openStartProjectFromLog(){
+  currentProjectName=logState.routeName||null;
+  currentProjectId=null;
+  showScreen("screen-start-project");
+  setTimeout(function(){
+    var nameEl=document.getElementById("sp-name");
+    if(nameEl&&logState.routeName)nameEl.value=logState.routeName;
+    if(logState.grade){spSetGradeSys(logGradeSystem||"YDS");spState.grade=logState.grade;document.querySelectorAll("#sp-grade-grid .grade-btn").forEach(function(b){b.classList.toggle("selected",b.textContent===logState.grade);});}
+    spCheckReady();
+  },100);
+}
 function logAnother(){
   logState={grade:null,terrain:null,result:null,zone:null,sessId:null,discipline:null,environment:null,routeName:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft',sessionFocus:null};
   buildGradeGrid(logGradeSystem);
@@ -3723,7 +3875,7 @@ function feedbackNext(){
     var DELTA_MAP={"Yes — I adjusted my approach":"yes_adjusted","Yes — I decided not to attempt it":"yes_didnt_attempt","Somewhat — it confirmed what I already felt":"confirmed","Not really — I wasn’t sure what to do with it":"unsure"};
     var BODY_MAP={"Yes — something I hadn’t noticed before":"yes_new","Somewhat — sharpened existing awareness":"sharpened","Not this time — but I can see how it would build":"not_yet","Not really":"not_really"};
     var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn’t find it":"didnt_find"};
-    var payload={device_id:DID,app_version:"index69",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
+    var payload={device_id:DID,app_version:"index70",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
     if(fbAns.body_awareness&&!payload.open_notes)payload.open_notes="body_awareness: "+(BODY_MAP[fbAns.body_awareness]||fbAns.body_awareness);
     sbI("feedback",payload).then(function(saved){
       document.getElementById("fb-content").style.display="none";
