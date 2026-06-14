@@ -2735,7 +2735,7 @@ function finishDeeper(){
     var surprisedText=(document.getElementById("surprised-text")||{}).value||"";
     var surprised_by=[q7chip,surprisedText].filter(Boolean).join(" | ")||null;
     if(went_well||still_learning||surprised_by){
-      sbI("sessions",{id:logState.sessId,went_well:went_well,still_learning:still_learning,surprised_by:surprised_by}).catch(function(e){console.warn("reflection save",e);});
+      if(logState.sessId)sbU("sessions",logState.sessId,{went_well:went_well,still_learning:still_learning,surprised_by:surprised_by}).catch(function(e){console.warn("reflection save",e);});
     }
   }
   var zoneMap={
@@ -2759,7 +2759,7 @@ function finishDeeper(){
   var insightMap={comfort:"Comfort zone — familiar territory. The edge is always available as a deliberate step outward.",learning:"Learning zone — activation present and manageable. Awareness sharpens here. This is where the edge gets exposed.",panic:"Panic zone — the edge was exceeded. Conscious or reactive? Naming it is how the pattern shifts.",unsure:"Signal unclear — ambiguous activation is still data. The picture builds with each session."};document.getElementById("river-insight").textContent=insightMap[logState.zone]||"Latest session logged.";
   // Save deeper data to Supabase
   if(logState.sessId){
-    sbI("sessions",{id:logState.sessId,breathing_post:deepAnswers.q1||null,gut_post:deepAnswers.q2||null,crux_response:deepAnswers.q3||null,body_state:logState.zone,session_focus:logState.sessionFocus||null});
+    if(logState.sessId)sbU("sessions",logState.sessId,{breathing_post:deepAnswers.q1||null,gut_post:deepAnswers.q2||null,crux_response:deepAnswers.q3||null,body_state:logState.zone,session_focus:logState.sessionFocus||null});
   }
   // Populate reflection route context
   var rg=document.getElementById("reflect-grade");var rt=document.getElementById("reflect-terrain");
@@ -2852,7 +2852,7 @@ function editSelResult(val){
 }
 function saveEditedClimb(){
   if(logState.sessId){
-    sbI("sessions",{id:logState.sessId,grade_value:logState.grade,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":logState.result==="dna"?"dna":"attempt",route_name:logState.routeName||null}).then(function(){showToast("Climb updated");renderLogCelebration();});
+    if(logState.sessId)sbU("sessions",logState.sessId,{grade_value:logState.grade,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":logState.result==="dna"?"dna":"attempt",route_name:logState.routeName||null}).then(function(){showToast("Climb updated");renderLogCelebration();});
   }
   document.getElementById("edit-sheet").style.display="none";
 }
@@ -3495,7 +3495,7 @@ function selectFocus(el,val){
   logState.sessionFocus=val;
   // Save focus to session immediately
   if(logState.sessId){
-    sbI('sessions',{id:logState.sessId,session_focus:val});
+    if(logState.sessId)sbU('sessions',logState.sessId,{session_focus:val});
   }
 }
 
@@ -3527,7 +3527,7 @@ function openProjectById(projId,name){
 }
 
 function markProjectSent(projId){
-  sbI('projects',{id:projId,status:'sent',sent_at:new Date().toISOString()}).then(function(){
+  sbU('projects',projId,{status:'sent',sent_at:new Date().toISOString()}).then(function(){
     showToast('Send confirmed! 🎉');
     if(currentProject)currentProject.status='sent';
     document.getElementById('proj-sent-btn').style.display='none';
@@ -3540,7 +3540,7 @@ function markProjectSent(projId){
 
 function markProjectAbandoned(projId){
   if(!confirm('Mark this project as abandoned? It will move to your history.'))return;
-  sbI('projects',{id:projId,status:'abandoned',abandoned_at:new Date().toISOString()}).then(function(){
+  sbU('projects',projId,{status:'abandoned',abandoned_at:new Date().toISOString()}).then(function(){
     showToast('Project archived.');
     showScreen('screen-sessions');
   });
@@ -4123,34 +4123,44 @@ function submitProject(){
   spState.name=document.getElementById('sp-name').value.trim()||null;
   if(!spState.name){showError('Please enter a route name.');return;}
   var heightFt=spState.routeHeight&&spState.heightUnit==='m'?Math.round(spState.routeHeight*3.28084):spState.routeHeight;
-  setSaveInd('sp-save-ind','<span class="save-spinner"></span>Saving…');
+  setSaveInd('sp-save-ind','<span class="save-spinner"></span>Saving\u2026');
   var projectName=spState.name;
-  sbI('projects',{
-    device_id:DID,
-    route_name:projectName,
-    grade_value:spState.grade||null,
-    grade_system:spState.gradeSystem||null,
-    discipline:spState.discipline||null,
-    environment:spState.environment||null,
-    rock_type:spState.rockType||null,
-    bolt_count:spState.boltCount||null,
-    route_height_ft:heightFt||null,
-    status:'active'
-  }).then(function(saved){
+  // Build payload with only confirmed columns
+  var payload={device_id:DID,route_name:projectName,status:'active'};
+  if(spState.grade)payload.grade_value=spState.grade;
+  if(spState.discipline)payload.discipline=spState.discipline;
+  if(spState.environment)payload.environment=spState.environment;
+  if(spState.gradeSystem)payload.grade_system=spState.gradeSystem;
+  fetch(SB+'/rest/v1/projects',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SK,'Authorization':'Bearer '+SK,'Prefer':'return=representation'},
+    body:JSON.stringify(payload)
+  }).then(function(r){
+    return r.json().then(function(j){return{ok:r.ok,status:r.status,data:j};});
+  }).then(function(res){
     setSaveInd('sp-save-ind','');
-    if(saved&&saved.id){
-      currentProjectId=saved.id;
+    if(res.ok){
+      var saved=Array.isArray(res.data)?res.data[0]:res.data;
+      currentProjectId=saved&&saved.id?saved.id:null;
       currentProjectName=projectName;
       spState={name:null,grade:null,gradeSystem:'YDS',discipline:null,environment:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft'};
       showToast('Project started!');
-      // Go directly to the new project detail screen
-      setTimeout(function(){openProjectById(saved.id,projectName);},300);
+      if(currentProjectId){
+        setTimeout(function(){openProjectById(currentProjectId,projectName);},300);
+      } else {
+        showScreen('screen-projects');
+        setTimeout(loadProjectsScreen,400);
+      }
     } else {
-      showToast('Project started!');
-      showScreen('screen-projects');
+      // Surface the actual error
+      var msg=res.data&&res.data.message?res.data.message:'Could not save project ('+res.status+').';
+      console.error('Project save error:',res.data);
+      setSaveInd('sp-save-ind','');
+      showError(msg);
     }
-  }).catch(function(){
+  }).catch(function(e){
     setSaveInd('sp-save-ind','');
+    console.error('Project save catch:',e);
     showError('Could not save project. Check your connection.');
   });
 }
@@ -4733,7 +4743,7 @@ function feedbackNext(){
     var DELTA_MAP={"Yes — I adjusted my approach":"yes_adjusted","Yes — I decided not to attempt it":"yes_didnt_attempt","Somewhat — it confirmed what I already felt":"confirmed","Not really — I wasn’t sure what to do with it":"unsure"};
     var BODY_MAP={"Yes — something I hadn’t noticed before":"yes_new","Somewhat — sharpened existing awareness":"sharpened","Not this time — but I can see how it would build":"not_yet","Not really":"not_really"};
     var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn’t find it":"didnt_find"};
-    var payload={device_id:DID,app_version:"index77",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
+    var payload={device_id:DID,app_version:"index78",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
     if(fbAns.body_awareness&&!payload.open_notes)payload.open_notes="body_awareness: "+(BODY_MAP[fbAns.body_awareness]||fbAns.body_awareness);
     sbI("feedback",payload).then(function(saved){
       document.getElementById("fb-content").style.display="none";
@@ -4815,7 +4825,7 @@ function saveRouteDetails(){
   logState.routeHeight=logState.routeHeight&&rdHeightUnit==="m"?Math.round(logState.routeHeight*3.28084):logState.routeHeight;
   if(!logState.sessId){showScreen("screen-reflection");return;}
   setSaveInd("rd-save-ind","<span class='save-spinner'></span>Saving…");
-  sbI("sessions",{id:logState.sessId,route_name:logState.routeName,discipline:logState.discipline,environment:logState.environment,rock_type:logState.rockType,bolt_count:logState.boltCount,route_height_ft:logState.routeHeight}).then(function(r){
+  if(logState.sessId)sbU("sessions",logState.sessId,{route_name:logState.routeName,discipline:logState.discipline,environment:logState.environment,rock_type:logState.rockType,bolt_count:logState.boltCount,route_height_ft:logState.routeHeight}).then(function(r){
     setSaveInd("rd-save-ind","");
     showScreen("screen-reflection");
   }).catch(function(){
@@ -4943,7 +4953,7 @@ function completeDrillCheckin(zone,score,breath,sessId){
     var z=zone||'learning';holdZone.textContent=zL[z]||'Learning zone';holdZone.style.color=zC[z]||'#f5a623';
   }
   // Save drill_id to pre session
-  if(drillState.drillId&&sessId){sbI('sessions',{id:sessId,drill_id:drillState.drillId}).catch(function(e){console.warn('drill pre save',e);});}
+  if(drillState.drillId&&sessId){sbU('sessions',sessId,{drill_id:drillState.drillId}).catch(function(e){console.warn('drill pre save',e);});}
   showScreen('screen-drill-hold');
 }
 
@@ -4966,7 +4976,7 @@ function showDrillResult(postZone){
   else if(delta>0){text='Activation shifted toward Comfort \u2014 from '+zL[preZ]+' before to '+zL[postZ]+' after. The route may be inside your current edge, or the act of climbing settled the pre-climb activation. Both are worth noting.';}
   else{text='Activation increased \u2014 from '+zL[preZ]+' before to '+zL[postZ]+' after. The route exceeded your pre-climb read. That gap between anticipation and reality is the most interesting data in the drill.';}
   if(shiftText)shiftText.textContent=text;
-  if(drillState.drillId&&logState.sessId){sbI('sessions',{id:logState.sessId,drill_id:drillState.drillId}).catch(function(e){console.warn('drill post save',e);});}
+  if(drillState.drillId&&logState.sessId){sbU('sessions',logState.sessId,{drill_id:drillState.drillId}).catch(function(e){console.warn('drill post save',e);});}
   window._drillPostMode=false;
   showScreen('screen-drill-result');
 }
