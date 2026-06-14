@@ -752,7 +752,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
     <!-- WHAT'S NEXT -->
     <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">What's next?</div>
-    <button class="action-btn primary-action" onclick="startDeeper()" style="display:flex;align-items:center;justify-content:space-between;">
+    <button class="action-btn primary-action" onclick="if(!logState.sessId){showToast('Saving... try again in a moment');return;}startDeeper()" style="display:flex;align-items:center;justify-content:space-between;">
       <div style="text-align:left;">
         <div style="font-size:var(--t-md);font-weight:700;">Go Deeper →</div>
         <div style="font-size:var(--t-xs);color:rgba(255,255,255,.6);margin-top:3px;">What happened in your body? 4 questions.</div>
@@ -2178,6 +2178,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <text x="6" y="96" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(126,200,122,.75)" font-weight="600" letter-spacing=".08em" font-weight="600">COMFORT</text>
         <g id="proj-arc-dots"></g>
       </svg>
+      <div id="proj-empty-state" style="display:none;padding:24px 0;text-align:center;"><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">No sessions yet</div><div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Log your first session against this project<br>to start tracking your zone arc.</div><button onclick="logAgainstProject(currentProjectId,currentProjectName)" style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.35);border-radius:12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px 24px;cursor:pointer;-webkit-tap-highlight-color:transparent;">+ Log first session</button></div>
       <div id="proj-arc-insight" style="font-size:13px;color:var(--muted);font-style:italic;margin-top:12px;line-height:1.6;padding:10px 14px;background:rgba(232,118,58,.05);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);display:none;"></div>
     </div>
 
@@ -2496,7 +2497,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 // ── SUPABASE ─────────────────────────────────────────────
 var SB="https://kwtbqgoqtewrlsjgepwq.supabase.co",SK="sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t";
 function sbI(t,d){return fetch(SB+"/rest/v1/"+t,{method:"POST",headers:{"Content-Type":"application/json","apikey":SK,"Authorization":"Bearer "+SK,"Prefer":"return=representation"},body:JSON.stringify(d)}).then(function(r){return r.json().then(function(j){if(!r.ok)return j;return Array.isArray(j)?j[0]:j;});}).catch(function(e){console.warn("sb",e);return null;});}
-function sbS(t,p){var q=Object.keys(p).map(function(k){return k+"="+p[k];}).join("&");return fetch(SB+"/rest/v1/"+t+"?"+q,{headers:{"apikey":SK,"Authorization":"Bearer "+SK}}).then(function(r){return r.json();}).catch(function(){return[];});}
+function sbS(t,p){var q=Object.keys(p).map(function(k){var v=p[k];if(typeof v==="string"&&(v.indexOf("eq.")===0||v.indexOf("like.")===0)){var pfx=v.substring(0,v.indexOf(".")+1);var val=v.substring(pfx.length);v=pfx+encodeURIComponent(val);}return k+"="+v;}).join("&");return fetch(SB+"/rest/v1/"+t+"?"+q,{headers:{"apikey":SK,"Authorization":"Bearer "+SK}}).then(function(r){return r.json();}).catch(function(){return[];});}
 function getDID(){var id=localStorage.getItem("see_did");if(!id){id=([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));localStorage.setItem("see_did",id);}return id;}
 var DID=getDID();
 
@@ -2590,8 +2591,15 @@ function logClimb(){
   } else if(logState.routeName&&currentProjectName&&logState.routeName.toLowerCase()===currentProjectName.toLowerCase()){
     linkedProjectId=currentProjectId||null;
   }
-  sbI("sessions",{device_id:DID,grade_value:logState.grade,grade_system:logGradeSystem,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":logState.result==="dna"?"dna":"attempt",session_hour:new Date().getHours(),route_name:logState.routeName||null,discipline:logState.discipline||null,environment:logState.environment||null,rock_type:logState.rockType||null,bolt_count:logState.boltCount||null,route_height_ft:logState.routeHeight&&logState.heightUnit==="ft"?logState.routeHeight:logState.routeHeight?Math.round(logState.routeHeight*3.28084):null,project_id:linkedProjectId}).then(saved=>{
-    if(saved&&saved.id){logState.sessId=saved.id;if(si)si.textContent="";}else if(si)si.textContent="";
+  var logPayload={device_id:DID,grade_value:logState.grade,grade_system:logGradeSystem,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":logState.result==="dna"?"dna":"attempt",session_hour:new Date().getHours(),route_name:logState.routeName||null,discipline:logState.discipline||null,environment:logState.environment||null,rock_type:logState.rockType||null,bolt_count:logState.boltCount||null,route_height_ft:logState.routeHeight&&logState.heightUnit==="ft"?logState.routeHeight:logState.routeHeight?Math.round(logState.routeHeight*3.28084):null,project_id:linkedProjectId};
+  sbI("sessions",logPayload).then(saved=>{
+    if(saved&&saved.id){
+      logState.sessId=saved.id;
+      if(si)si.textContent="";
+      // Refresh sessions data in background
+      loadSessionsScreen();
+      loadHomeInsight();
+    } else if(si)si.textContent="";
   });
 }
 
@@ -2603,6 +2611,7 @@ function returnToProject(){
     openProjectById(currentProjectId,currentProjectName);
   } else {
     showScreen('screen-projects');
+    setTimeout(loadProjectsScreen,300);
   }
 }
 
@@ -2690,7 +2699,7 @@ function startDeeper(){
   var label=logState.grade+" . "+logState.terrain;
   ["q1","q2","q3","q4"].forEach(q=>{var el=document.getElementById(q+"-label");if(el)el.textContent=label;});
   document.querySelectorAll(".response-chips .chip").forEach(c=>c.classList.remove("selected"));
-  ["next-q1","next-q2","next-q3","next-q4"].forEach(id=>document.getElementById(id).classList.remove("ready"));
+  ["next-q1","next-q2","next-q3","next-q4"].forEach(id=>{var el=document.getElementById(id);if(el)el.classList.remove("ready");});
   deepAnswers={};logState.zone=null;
   showScreen("screen-q1");
 }
@@ -2719,7 +2728,7 @@ function toggleReflChip(el,group){
 function finishDeeper(){
   // Populate label refs for q5/q6/q7
   var q5l=document.getElementById("q5-label");var q6l=document.getElementById("q6-label");var q7l=document.getElementById("q7-label");
-  if(q5l)q5l.textContent=document.getElementById("q1-label")?document.getElementById("q1-label").textContent:"";
+  var q1lbl=document.getElementById("q1-label");if(q5l)q5l.textContent=q1lbl?q1lbl.textContent:"";
   if(q6l)q6l.textContent=q5l?q5l.textContent:"";
   if(q7l)q7l.textContent=q5l?q5l.textContent:"";
   // Save reflection to sessions
@@ -3645,7 +3654,7 @@ function renderProjectScreen(name,rows,allRows,proj){
   var days=first?Math.max(1,Math.round((Date.now()-new Date(first.created_at))/(1000*60*60*24))):0;
 
   // Hero
-  document.getElementById("proj-grade").textContent=first?first.grade_value||"--":"--";
+  document.getElementById("proj-grade").textContent=first?(first.grade_value||proj&&proj.grade_value||"—"):(proj&&proj.grade_value||"—");
   document.getElementById("proj-name").textContent=name;
   var badge=document.getElementById("proj-status-badge");
   if(sent){badge.textContent="Sent ✓";badge.style.background="rgba(126,200,122,.12)";badge.style.color="#7ec87a";}
@@ -3654,17 +3663,21 @@ function renderProjectScreen(name,rows,allRows,proj){
   document.getElementById("proj-stat-sends").textContent=sents||"0";
   document.getElementById("proj-stat-days").textContent=days;
 
-  // Tags
-  var tags=[first.discipline,first.environment,first.rock_type,
+  // Tags — guard against empty project (no sessions yet)
+  var projInfo=proj||{}; // use project record for meta if no sessions
+  var tags=first?[first.discipline,first.environment,first.rock_type,
     first.bolt_count?first.bolt_count+" bolts":null,
     first.route_height_ft?first.route_height_ft+" ft":null
-  ].filter(Boolean);
+  ].filter(Boolean):[];
   document.getElementById("proj-tags").innerHTML=tags.map(function(t){
     return '<span style="font-size:12px;padding:5px 12px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);">'+t+'</span>';
   }).join("");
 
   // Zone arc
   var zones=byDate.map(function(r){return r.deeper_zone||r.baseline_zone||"learning";});
+  // Empty state for new projects
+  var projEmptyState=document.getElementById("proj-empty-state");
+  if(projEmptyState){projEmptyState.style.display=total===0?"block":"none";}
   var arcDots=document.getElementById("proj-arc-dots");
   if(arcDots){
     var ZY={comfort:85,learning:50,panic:15};
@@ -4400,8 +4413,12 @@ function computeResult(deeper){
   // Save to Supabase
   var si=document.getElementById("save-ind");if(si)si.textContent="Saving...";
   sbI("sessions",{device_id:DID,is_checkin:true,climbing_type:ctLabel,baseline_score:baseScore,baseline_zone:getZone(fp),did_go_deeper:deeper,deeper_zone:deeper?fz:null,breathing_baseline:ans.breath1,gut_baseline:ans.gut1,breathing_after:ans.breath2,gut_after:ans.gut2,session_hour:new Date().getHours(),body_scan_zones:window.bodyScanData?window.bodyScanData.zones.join(","):null,body_scan_sensation:window.bodyScanData?window.bodyScanData.sensation:null,body_scan_typical:window.bodyScanData?window.bodyScanData.typical:null}).then(saved=>{
-    if(saved&&saved.id){prepSessId=saved.id;if(si)si.textContent="";}else if(si)si.textContent="";
-    setTimeout(()=>{if(si)si.textContent="";},2500);
+    if(saved&&saved.id){
+      prepSessId=saved.id;
+      if(si)si.textContent="";
+      loadHomeInsight();
+    } else if(si)si.textContent="";
+    setTimeout(function(){if(si)si.textContent="";},2500);
   });
 }
 
@@ -4743,7 +4760,7 @@ function feedbackNext(){
     var DELTA_MAP={"Yes — I adjusted my approach":"yes_adjusted","Yes — I decided not to attempt it":"yes_didnt_attempt","Somewhat — it confirmed what I already felt":"confirmed","Not really — I wasn’t sure what to do with it":"unsure"};
     var BODY_MAP={"Yes — something I hadn’t noticed before":"yes_new","Somewhat — sharpened existing awareness":"sharpened","Not this time — but I can see how it would build":"not_yet","Not really":"not_really"};
     var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn’t find it":"didnt_find"};
-    var payload={device_id:DID,app_version:"index78",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
+    var payload={device_id:DID,app_version:"index79",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
     if(fbAns.body_awareness&&!payload.open_notes)payload.open_notes="body_awareness: "+(BODY_MAP[fbAns.body_awareness]||fbAns.body_awareness);
     sbI("feedback",payload).then(function(saved){
       document.getElementById("fb-content").style.display="none";
@@ -4928,6 +4945,10 @@ function hiwSelectFlow(flow) {
 // ── EXPOSURE DRILL ──────────────────────────────────────
 var drillState={drillId:null,preZone:null,preScore:null,preBreath:null,routeName:null,preSessId:null};
 
+function saveDrillState(){try{localStorage.setItem("see_drill",JSON.stringify(drillState));}catch(e){}}
+function loadDrillState(){try{var d=localStorage.getItem("see_drill");if(d){var s=JSON.parse(d);if(s&&s.drillId&&s.preZone){drillState=s;return true;}}return false;}catch(e){return false;}}
+function clearDrillState(){try{localStorage.removeItem("see_drill");}catch(e){}}
+
 function generateDrillId(){
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
     var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16);
@@ -4946,6 +4967,7 @@ function startDrillCheckin(){
 function completeDrillCheckin(zone,score,breath,sessId){
   drillState.preZone=zone;drillState.preScore=score;drillState.preBreath=breath;drillState.preSessId=sessId;
   window._drillMode=false;
+  saveDrillState();
   var holdZone=document.getElementById('drill-hold-zone');
   if(holdZone){
     var zL={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
@@ -4978,11 +5000,25 @@ function showDrillResult(postZone){
   if(shiftText)shiftText.textContent=text;
   if(drillState.drillId&&logState.sessId){sbU('sessions',logState.sessId,{drill_id:drillState.drillId}).catch(function(e){console.warn('drill post save',e);});}
   window._drillPostMode=false;
+  clearDrillState();
   showScreen('screen-drill-result');
 }
 // ── END EXPOSURE DRILL ────────────────────────────────────
 
 // ── INIT ─────────────────────────────────────────────────
+// Restore any pending Exposure Drill
+if(loadDrillState()&&drillState.preZone){
+  var holdZone=document.getElementById('drill-hold-zone');
+  if(holdZone){
+    var zL={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
+    var zC={comfort:'#7ec87a',learning:'#f5a623',panic:'#e84444'};
+    var z=drillState.preZone||'learning';
+    holdZone.textContent=zL[z]||'Learning zone';
+    holdZone.style.color=zC[z]||'#f5a623';
+  }
+  showScreen('screen-drill-hold');
+  showToast('Pending drill restored — ready to log your climb.');
+}
 buildGradeGrid("YDS");
 
 </script>
