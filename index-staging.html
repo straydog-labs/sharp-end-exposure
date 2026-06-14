@@ -59,6 +59,10 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .home-brand{display:flex;flex-direction:column;gap:14px;}
 .home-wordmark{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
 .home-wordmark span{color:var(--accent);}
+#s-deeper .content{padding:16px 20px 24px;}
+#deep-visual svg{display:block;width:100%;max-height:120px;}
+.deep-q-text{font-size:18px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:6px;}
+.deep-q-hint{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;}
 .home-tagline-sub{font-size:var(--t-xs);color:rgba(255,255,255,.3);line-height:1.6;margin-top:10px;letter-spacing:.01em;}
 .home-tagline{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1.12;}
 .home-tagline em{font-style:normal;color:var(--accent);}
@@ -754,6 +758,9 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <div style="font-size:var(--t-xs);color:rgba(255,255,255,.6);margin-top:3px;">What happened in your body? 4 questions.</div>
       </div>
     </button>
+    <div id="cel-project-btn" style="display:none;">
+      <button onclick="returnToProject()" style="width:100%;background:rgba(126,200,122,.08);border:1px solid rgba(126,200,122,.25);border-radius:14px;color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);font-weight:700;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-top:0;" id="cel-project-label">← Back to project</button>
+    </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
       <button class="action-btn" onclick="showScreen('screen-route-details')" style="text-align:left;padding:14px 16px;">
@@ -1661,7 +1668,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 </div>
 
 <!-- PREPARE — ROUTE ANALYSIS (DEEPER) -->
-<div class="screen" id="s-deeper">
+<div class="screen" id="s-deeper" style="max-width:480px;margin:0 auto;">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
     <button class="back-btn" onclick="deepBack()">← Back</button>
@@ -2502,7 +2509,7 @@ function showScreen(id){
   document.querySelectorAll(".footer-btn").forEach(b=>b.classList.remove("active"));
   if(map[id])document.getElementById(map[id]).classList.add("active");
   if(id==="screen-sessions")loadSessionsScreen();
-  if(id==="screen-home")loadHomeInsight();
+  if(id==="screen-home"){loadHomeInsight();currentProjectId=null;currentProjectName=null;}
   if(id==="screen-projects")loadProjectsScreen();
   // Load home insight on initial page load
   if(id==="screen-feedback")initFeedback();
@@ -2577,7 +2584,10 @@ function logClimb(){
   var si=document.getElementById("log-save-ind");if(si)si.innerHTML="<span class='save-spinner'></span>Saving…";
   // Check if this session links to an active project
   var linkedProjectId=null;
-  if(logState.routeName&&currentProjectName&&logState.routeName.toLowerCase()===currentProjectName.toLowerCase()){
+  if(currentProjectId){
+    // Always link if we have an active project context
+    linkedProjectId=currentProjectId;
+  } else if(logState.routeName&&currentProjectName&&logState.routeName.toLowerCase()===currentProjectName.toLowerCase()){
     linkedProjectId=currentProjectId||null;
   }
   sbI("sessions",{device_id:DID,grade_value:logState.grade,grade_system:logGradeSystem,tag:logState.terrain,baseline_zone:logState.result==="sent"?"sent":logState.result==="dna"?"dna":"attempt",session_hour:new Date().getHours(),route_name:logState.routeName||null,discipline:logState.discipline||null,environment:logState.environment||null,rock_type:logState.rockType||null,bolt_count:logState.boltCount||null,route_height_ft:logState.routeHeight&&logState.heightUnit==="ft"?logState.routeHeight:logState.routeHeight?Math.round(logState.routeHeight*3.28084):null,project_id:linkedProjectId}).then(saved=>{
@@ -2587,6 +2597,14 @@ function logClimb(){
 
 // ── CELEBRATION VISUALS ──────────────────────────────────
 var TERRAIN_COLORS={Slab:"#c8f55a",Vertical:"#f5a623",Overhang:"#ff5c3a",Arête:"#7ecfff",Dihedral:"#c084fc",Crack:"#f472b6",Roof:"#34d399"};
+
+function returnToProject(){
+  if(currentProjectId&&currentProjectName){
+    openProjectById(currentProjectId,currentProjectName);
+  } else {
+    showScreen('screen-projects');
+  }
+}
 
 function renderLogCelebration(){
   var g=logState.grade,t=logState.terrain,r=logState.result;
@@ -3495,8 +3513,10 @@ function showFocusBlockIfProject(){
 }
 
 function openProjectById(projId,name){
-  sbS('sessions',{device_id:'eq.'+DID,'project_id':'eq.'+projId,limit:100}).then(function(rows){
-    sbS('sessions',{device_id:'eq.'+DID,limit:500}).then(function(allRows){
+  currentProjectId=projId;
+  currentProjectName=name;
+  sbS('sessions',{device_id:'eq.'+DID,'project_id':'eq.'+projId,limit:100,order:'created_at.asc'}).then(function(rows){
+    sbS('sessions',{device_id:'eq.'+DID,limit:500,order:'created_at.asc'}).then(function(allRows){
       currentProject={id:projId,name:name,sessions:rows||[]};
       renderProjectScreen(name,rows||[],allRows||[]);
       showScreen('screen-project');
@@ -4122,10 +4142,9 @@ function submitProject(){
       currentProjectId=saved.id;
       currentProjectName=projectName;
       spState={name:null,grade:null,gradeSystem:'YDS',discipline:null,environment:null,rockType:null,boltCount:null,routeHeight:null,heightUnit:'ft'};
-      showToast('Project started -- go climb it!');
-      showScreen('screen-projects');
-      // Small delay to ensure Supabase write completes before re-fetching
-      setTimeout(loadProjectsScreen, 400);
+      showToast('Project started!');
+      // Go directly to the new project detail screen
+      setTimeout(function(){openProjectById(saved.id,projectName);},300);
     } else {
       showToast('Project started!');
       showScreen('screen-projects');
@@ -4714,7 +4733,7 @@ function feedbackNext(){
     var DELTA_MAP={"Yes — I adjusted my approach":"yes_adjusted","Yes — I decided not to attempt it":"yes_didnt_attempt","Somewhat — it confirmed what I already felt":"confirmed","Not really — I wasn’t sure what to do with it":"unsure"};
     var BODY_MAP={"Yes — something I hadn’t noticed before":"yes_new","Somewhat — sharpened existing awareness":"sharpened","Not this time — but I can see how it would build":"not_yet","Not really":"not_really"};
     var PROJECT_MAP={"Yes — very useful":"yes_useful","Yes — too early to tell":"yes_early","Not yet":"not_yet","Couldn’t find it":"didnt_find"};
-    var payload={device_id:DID,app_version:"index76",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
+    var payload={device_id:DID,app_version:"index77",simplicity:SIMPLICITY_MAP[fbAns.simplicity]||fbAns.simplicity||null,somatic_real:SOMATIC_MAP[fbAns.somatic_real]||fbAns.somatic_real||null,delta_accurate:DELTA_MAP[fbAns.delta_accurate]||fbAns.delta_accurate||null,project_useful:PROJECT_MAP[fbAns.project_useful]||fbAns.project_useful||null,open_notes:document.getElementById("fb-open-text").value||null};
     if(fbAns.body_awareness&&!payload.open_notes)payload.open_notes="body_awareness: "+(BODY_MAP[fbAns.body_awareness]||fbAns.body_awareness);
     sbI("feedback",payload).then(function(saved){
       document.getElementById("fb-content").style.display="none";
