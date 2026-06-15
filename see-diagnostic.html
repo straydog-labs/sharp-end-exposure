@@ -85,6 +85,22 @@ h1{font-size:18px;font-weight:700;color:#e8763a;margin-bottom:4px;}
 
 <script>
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
+
+// Timeout wrapper — no test hangs forever
+async function fetchWithTimeout(url, opts, ms){
+  ms = ms||8000;
+  var controller = new AbortController();
+  var timer = setTimeout(function(){controller.abort();}, ms);
+  try {
+    var r = await fetch(url, Object.assign({}, opts||{}, {signal:controller.signal}));
+    clearTimeout(timer);
+    return r;
+  } catch(e) {
+    clearTimeout(timer);
+    if(e.name==='AbortError') throw new Error('Timed out after '+ms+'ms');
+    throw e;
+  }
+}
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {
   'Content-Type':'application/json',
@@ -112,23 +128,29 @@ function updateProgress(){
 }
 
 function addTest(containerId, name, status, detail, fix){
-  var el = document.createElement('div');
+  // Replace the running placeholder if it exists
+  var safeId = 'test-'+name.replace(/[^a-zA-Z0-9]/g,'-');
+  var existing = document.getElementById(safeId);
+  var el = existing || document.createElement('div');
   el.className = 'test '+status;
+  el.id = safeId;
   var fixHtml = (status==='fail'&&fix) ? '<div class="fix-box"><div class="fix-label">Fix for Claude</div>'+fix+'</div>' : '';
-  el.innerHTML = '<span class="badge '+status+'">'+(status==='pass'?'PASS':status==='fail'?'FAIL':status==='warn'?'WARN':'...')+'</span>'
+  var badge = status==='pass'?'PASS':status==='fail'?'FAIL':status==='warn'?'WARN':'...';
+  el.innerHTML = '<span class="badge '+status+'">'+badge+'</span>'
     +'<div class="test-body"><div class="test-name">'+name+'</div>'
     +(detail?'<div class="test-detail">'+detail+'</div>':'')
     +fixHtml+'</div>';
-  document.getElementById(containerId).appendChild(el);
-  results.push({name,status,detail,fix});
+  if(!existing) document.getElementById(containerId).appendChild(el);
+  results.push({name:name,status:status,detail:detail,fix:fix});
   log('['+status.toUpperCase()+'] '+name+(detail?' — '+detail:''));
   updateProgress();
 }
 
 function addRunning(containerId, name){
+  var safeId = 'test-'+name.replace(/[^a-zA-Z0-9]/g,'-');
   var el = document.createElement('div');
   el.className = 'test running';
-  el.id = 'test-'+name.replace(/\s+/g,'-');
+  el.id = safeId;
   el.innerHTML = '<span class="badge running"><span class="spinner"></span></span>'
     +'<div class="test-body"><div class="test-name">'+name+'</div></div>';
   document.getElementById(containerId).appendChild(el);
@@ -188,11 +210,13 @@ async function runAll(){
   // Test 1: Basic connectivity
   addRunning('tests-connection','Supabase reachable');
   try {
-    var r = await fetch(SB_URL+'/rest/v1/', {headers:SB_HEADERS});
-    if(r.ok||r.status===200||r.status===400){
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/sessions?limit=0', {headers:SB_HEADERS});
+    if(r.ok||r.status===200||r.status===206){
       addTest('tests-connection','Supabase reachable','pass','Status '+r.status+' — endpoint responding');
+    } else if(r.status===401||r.status===403){
+      addTest('tests-connection','Supabase reachable','fail','Status '+r.status+' — auth failed','Check SB_KEY in the HTML file');
     } else {
-      addTest('tests-connection','Supabase reachable','fail','Status '+r.status,'Check SB_URL and SB_KEY in the HTML file');
+      addTest('tests-connection','Supabase reachable','pass','Status '+r.status+' — reachable');
     }
   } catch(e) {
     addTest('tests-connection','Supabase reachable','fail',e.message,'Network error — check Supabase project is not paused');
@@ -201,7 +225,7 @@ async function runAll(){
   // Test 2: Auth header valid
   addRunning('tests-connection','API key accepted');
   try {
-    var r = await fetch(SB_URL+'/rest/v1/sessions?limit=1', {headers:SB_HEADERS});
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/sessions?limit=1', {headers:SB_HEADERS});
     if(r.status===401||r.status===403){
       addTest('tests-connection','API key accepted','fail','Status '+r.status+' — unauthorized','SB_KEY may be wrong or expired. Check Supabase Settings → API Keys');
     } else {
@@ -229,7 +253,7 @@ async function runAll(){
     var table = requiredCols[i][1];
     addRunning('tests-read','Column: '+table+'.'+col);
     try {
-      var r = await fetch(SB_URL+'/rest/v1/'+table+'?select='+col+'&limit=1', {headers:SB_HEADERS});
+      var r = await fetchWithTimeout(SB_URL+'/rest/v1/'+table+'?select='+col+'&limit=1', {headers:SB_HEADERS});
       var d = await r.json();
       if(r.status===400){
         var msg = d&&d.message?d.message:'400 error';
@@ -248,7 +272,7 @@ async function runAll(){
   // Test 9: projects table
   addRunning('tests-read','projects table readable');
   try {
-    var r = await fetch(SB_URL+'/rest/v1/projects?select=id,name,grade_value,status&limit=1', {headers:SB_HEADERS});
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/projects?select=id,name,grade_value,status&limit=1', {headers:SB_HEADERS});
     var d = await r.json();
     if(r.status===400){
       addTest('tests-read','projects table readable','fail',d&&d.message||'400',
@@ -263,7 +287,7 @@ async function runAll(){
   // Test 10: feedback table
   addRunning('tests-read','feedback table exists');
   try {
-    var r = await fetch(SB_URL+'/rest/v1/feedback?select=id&limit=1', {headers:SB_HEADERS});
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/feedback?select=id&limit=1', {headers:SB_HEADERS});
     if(r.status===404||r.status===400){
       addTest('tests-read','feedback table exists','fail','Table missing or inaccessible',
         'Run SQL: CREATE TABLE IF NOT EXISTS public.feedback (id uuid default gen_random_uuid() primary key, answers jsonb, device_id text, submitted_at timestamptz default now());');
@@ -281,7 +305,7 @@ async function runAll(){
   addRunning('tests-write','INSERT sessions row');
   var testSessId = null;
   try {
-    var r = await fetch(SB_URL+'/rest/v1/sessions', {
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/sessions', {
       method:'POST',
       headers:{...SB_HEADERS,'Prefer':'return=representation'},
       body:JSON.stringify({
@@ -297,11 +321,12 @@ async function runAll(){
       })
     });
     var d = await r.json();
-    if(r.ok&&d&&d.id){
-      testSessId = d.id;
-      addTest('tests-write','INSERT sessions row','pass','Row created: '+d.id);
+    var row = Array.isArray(d)?d[0]:d;
+    if(r.ok&&row&&row.id){
+      testSessId = row.id;
+      addTest('tests-write','INSERT sessions row','pass','Row created: '+row.id);
     } else {
-      var msg = d&&d.message?d.message:JSON.stringify(d).substr(0,120);
+      var msg = row&&row.message?row.message:JSON.stringify(d).substr(0,120);
       addTest('tests-write','INSERT sessions row','fail',msg,
         'Check column names match schema. Bad columns: '+msg);
     }
@@ -313,7 +338,7 @@ async function runAll(){
   addRunning('tests-write','UPDATE sessions (Go Deeper)');
   if(testSessId){
     try {
-      var r = await fetch(SB_URL+'/rest/v1/sessions?id=eq.'+testSessId, {
+      var r = await fetchWithTimeout(SB_URL+'/rest/v1/sessions?id=eq.'+testSessId, {
         method:'PATCH',
         headers:{...SB_HEADERS,'Prefer':'return=representation'},
         body:JSON.stringify({
@@ -344,7 +369,7 @@ async function runAll(){
   addRunning('tests-write','INSERT projects row');
   var testProjId = null;
   try {
-    var r = await fetch(SB_URL+'/rest/v1/projects', {
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/projects', {
       method:'POST',
       headers:{...SB_HEADERS,'Prefer':'return=representation'},
       body:JSON.stringify({
@@ -372,7 +397,7 @@ async function runAll(){
   // Test 14: INSERT feedback
   addRunning('tests-write','INSERT feedback row');
   try {
-    var r = await fetch(SB_URL+'/rest/v1/feedback', {
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/feedback', {
       method:'POST',
       headers:{...SB_HEADERS,'Prefer':'return=representation'},
       body:JSON.stringify({
@@ -398,7 +423,7 @@ async function runAll(){
   // Test 15: device_id filter works
   addRunning('tests-schema','device_id filter query');
   try {
-    var r = await fetch(SB_URL+'/rest/v1/sessions?select=id,zone&device_id=eq.'+testDeviceId+'&order=created_at.desc&limit=10', {headers:SB_HEADERS});
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/sessions?select=id,zone&device_id=eq.'+testDeviceId+'&order=created_at.desc&limit=10', {headers:SB_HEADERS});
     var d = await r.json();
     if(r.ok&&Array.isArray(d)){
       addTest('tests-schema','device_id filter query','pass','Returns '+d.length+' rows for test device');
@@ -413,7 +438,7 @@ async function runAll(){
   // Test 16: is_checkin filter
   addRunning('tests-schema','is_checkin filter query');
   try {
-    var r = await fetch(SB_URL+'/rest/v1/sessions?select=id&is_checkin=eq.false&device_id=eq.'+testDeviceId+'&limit=5', {headers:SB_HEADERS});
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/sessions?select=id&is_checkin=eq.false&device_id=eq.'+testDeviceId+'&limit=5', {headers:SB_HEADERS});
     var d = await r.json();
     if(r.ok&&Array.isArray(d)){
       addTest('tests-schema','is_checkin filter query','pass','Filter works — '+d.length+' non-checkin rows');
@@ -429,7 +454,7 @@ async function runAll(){
   addRunning('tests-schema','project_id session link');
   if(testSessId&&testProjId){
     try {
-      var r = await fetch(SB_URL+'/rest/v1/sessions?id=eq.'+testSessId, {
+      var r = await fetchWithTimeout(SB_URL+'/rest/v1/sessions?id=eq.'+testSessId, {
         method:'PATCH',
         headers:{...SB_HEADERS,'Prefer':'return=representation'},
         body:JSON.stringify({project_id:testProjId})
@@ -451,7 +476,7 @@ async function runAll(){
   // Test 18: RLS — can read own rows
   addRunning('tests-schema','RLS select policy');
   try {
-    var r = await fetch(SB_URL+'/rest/v1/sessions?select=id,zone,zone_confidence&device_id=eq.'+testDeviceId, {headers:SB_HEADERS});
+    var r = await fetchWithTimeout(SB_URL+'/rest/v1/sessions?select=id,zone,zone_confidence&device_id=eq.'+testDeviceId, {headers:SB_HEADERS});
     var d = await r.json();
     if(r.ok&&Array.isArray(d)&&d.length>0){
       addTest('tests-schema','RLS select policy','pass','Can read own rows ('+d.length+' returned)');
@@ -483,7 +508,7 @@ async function runAll(){
   // Test 20: Full read query (matches app query)
   addRunning('tests-schema','App home query (full simulation)');
   try {
-    var r = await fetch(SB_URL+"/rest/v1/sessions?select=zone,zone_confidence,climbing_type,created_at&device_id=eq.diag_test&order=created_at.desc&limit=50", {headers:SB_HEADERS});
+    var r = await fetchWithTimeout(SB_URL+"/rest/v1/sessions?select=zone,zone_confidence,climbing_type,created_at&device_id=eq.diag_test&order=created_at.desc&limit=50", {headers:SB_HEADERS});
     var d = await r.json();
     if(r.ok&&Array.isArray(d)){
       addTest('tests-schema','App home query (full simulation)','pass','Query runs clean — app will load correctly');
