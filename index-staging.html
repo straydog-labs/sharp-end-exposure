@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging] Sharp End Exposure</title>
+<title>[Staging 81] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -364,7 +364,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 <nav class="footer-nav">
   <button class="footer-btn" id="fnav-sessions" onclick="showScreen('screen-sessions')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    Sessions
+    Climb Log
   </button>
   <button class="footer-btn" id="fnav-projects" onclick="showScreen('screen-projects')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20L8 8l4 6 3-4 6 10H3z"/></svg>
@@ -602,10 +602,11 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <!-- RESULT FIRST — outcome leads -->
     <div class="field-group">
       <div class="field-label">Result</div>
-      <div class="result-row">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <button class="result-btn" id="btn-sent" onclick="selectResult('sent')"><span class="emoji">✓</span>Sent</button>
-        <button class="result-btn" id="btn-attempt" onclick="selectResult('attempt')"><span class="emoji">◎</span>Attempt</button>
+        <button class="result-btn" id="btn-fell" onclick="selectResult('fell')"><span class="emoji">◎</span>Fell</button>
         <button class="result-btn" id="btn-dna" onclick="selectResult('dna')"><span class="emoji">—</span>Backed off</button>
+        <button class="result-btn" id="btn-projecting" onclick="selectResult('projecting')"><span class="emoji">⟳</span>Projecting</button>
       </div>
     </div>
 
@@ -668,44 +669,54 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
   <div class="content">
-    <!-- HEADLINE — grade · terrain · zone -->
-    <div style="padding:8px 0 16px;">
-      <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Logged.</div>
-      <div style="font-family:'Space Mono',monospace;font-size:38px;font-weight:700;color:var(--text);line-height:1;margin-bottom:6px;" id="card-grade-big">—</div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <div style="font-size:var(--t-md);color:var(--muted);font-weight:500;" id="card-terrain-big">—</div>
-        <div class="climb-result-badge" id="card-badge-big">—</div>
-        <div id="cel-zone-pill"></div>
+    <!-- CLIMB NUMBER + LOGGED -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 8px;">
+      <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">Logged ✓</div>
+      <div style="font-size:11px;color:var(--muted);" id="cel-climb-num"></div>
+    </div>
+
+    <!-- ZONE HERO — the most important output -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Activation zone</div>
+      <div id="cel-zone-pill" style="margin-bottom:8px;"></div>
+      <div style="font-size:11px;color:var(--muted2);line-height:1.5;">Estimated from result · Go Deeper confirms it</div>
+      <!-- Zone shift — shown after Go Deeper updates zone -->
+      <div id="cel-zone-shift" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(232,118,58,.06);border-radius:var(--r-md);border-left:2px solid var(--accent);text-align:left;"></div>
+    </div>
+
+    <!-- GRADE + TERRAIN + RESULT -->
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:4px 0;">
+      <div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--text);line-height:1;" id="card-grade-big">—</div>
+      <div style="font-size:var(--t-md);color:var(--muted);font-weight:500;" id="card-terrain-big">—</div>
+      <div class="climb-result-badge" id="card-badge-big">—</div>
+    </div>
+
+    <!-- MINI ARC — from session 1 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Your arc</div>
+      <svg id="cel-arc-svg" style="display:block;width:100%;" viewBox="0 0 300 60" preserveAspectRatio="none">
+        <rect x="0" y="0" width="300" height="20" fill="rgba(232,68,68,.04)"/>
+        <rect x="0" y="20" width="300" height="20" fill="rgba(245,166,35,.04)"/>
+        <rect x="0" y="40" width="300" height="20" fill="rgba(126,200,122,.04)"/>
+      </svg>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <div style="font-size:9px;color:rgba(126,200,122,.5);font-weight:700;">Comfort</div>
+        <div style="font-size:9px;color:rgba(245,166,35,.5);font-weight:700;">Learning</div>
+        <div style="font-size:9px;color:rgba(232,68,68,.5);font-weight:700;">Panic</div>
       </div>
     </div>
 
-    <!-- TERRAIN SPIDER MAP -->
-    <div class="insight-card">
-      <div class="insight-label">Terrain map</div>
-      <div style="display:flex;align-items:center;gap:14px;">
-        <svg id="log-radar-svg" width="140" height="140" viewBox="0 0 220 220" style="flex-shrink:0;"></svg>
-        <div style="flex:1;" id="log-radar-breakdown"></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px;font-style:italic;line-height:1.5;" id="log-radar-insight"></div>
+    <!-- PERSONALIZED INSIGHT -->
+    <div id="cel-insight-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Pattern</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.65;" id="cel-insight-text"></div>
     </div>
 
-    <!-- GRADE BAR -->
-    <div class="insight-card">
-      <div class="insight-label">Grade range</div>
-      <div id="grade-bar-container"></div>
-    </div>
-
-    <!-- STAT CARD -->
-    <div class="insight-card" style="display:flex;align-items:center;gap:14px;">
-      <div style="font-size:32px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);flex-shrink:0;line-height:1;" id="stat-number">1</div>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;color:var(--text);" id="stat-label">—</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:2px;" id="stat-sub">—</div>
-      </div>
-    </div>
     <div class="save-ind" id="log-save-ind"></div>
   </div>
+
   <div style="height:16px"></div>
+
   <!-- Session focus — shown when logging against a project -->
   <div id="session-focus-block" style="display:none;padding:0 20px 16px;">
     <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Today's focus</div>
@@ -721,6 +732,36 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <button class="chip" onclick="selectFocus(this,'general')">General attempt</button>
     </div>
   </div>
+
+  <!-- WHAT'S NEXT -->
+  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;">
+    <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">What's next?</div>
+
+    <!-- GO DEEPER — primary CTA -->
+    <button onclick="if(!logState.sessId){showToast('Saving... try again in a moment');return;}startDeeper()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;padding:20px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:17px;font-weight:700;">Confirm your zone →</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:3px;">4 questions · ~15 seconds</div>
+      </div>
+      <div style="font-size:22px;opacity:.8;">›</div>
+    </button>
+
+    <div id="cel-project-btn" style="display:none;">
+      <button onclick="returnToProject()" style="width:100%;background:rgba(126,200,122,.08);border:1px solid rgba(126,200,122,.25);border-radius:var(--r-lg);color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);font-weight:700;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;" id="cel-project-label">← Back to project</button>
+    </div>
+
+    <!-- Secondary actions as text links -->
+    <div style="display:flex;flex-wrap:wrap;gap:0;justify-content:center;padding-top:4px;">
+      <button onclick="showScreen('screen-route-details')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Add route details</button>
+      <span style="color:var(--border);padding:8px 0;">·</span>
+      <button onclick="openStartProjectFromLog()" style="background:none;border:none;color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Start project</button>
+      <span style="color:var(--border);padding:8px 0;">·</span>
+      <button onclick="openEditSheet()" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Edit climb</button>
+    </div>
+    <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Log another climb</button>
+    <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Home</button>
+  </div>
+
   <!-- Edit sheet -->
   <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -742,42 +783,13 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Result</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
       <button id="edit-btn-sent" onclick="editSelResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
-      <button id="edit-btn-attempt" onclick="editSelResult('attempt')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Attempt</button>
+      <button id="edit-btn-fell" onclick="editSelResult('fell')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fell</button>
+      <button id="edit-btn-dna" onclick="editSelResult('dna')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">— Backed off</button>
+      <button id="edit-btn-projecting" onclick="editSelResult('projecting')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">⟳ Projecting</button>
     </div>
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
     <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
     <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
-  </div>
-
-  <div style="padding:0 20px 24px;display:flex;flex-direction:column;gap:10px;">
-    <!-- WHAT'S NEXT -->
-    <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">What's next?</div>
-    <button class="action-btn primary-action" onclick="if(!logState.sessId){showToast('Saving... try again in a moment');return;}startDeeper()" style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="text-align:left;">
-        <div style="font-size:var(--t-md);font-weight:700;">Go Deeper →</div>
-        <div style="font-size:var(--t-xs);color:rgba(255,255,255,.6);margin-top:3px;">What did you notice? 4 questions.</div>
-      </div>
-    </button>
-    <div id="cel-project-btn" style="display:none;">
-      <button onclick="returnToProject()" style="width:100%;background:rgba(126,200,122,.08);border:1px solid rgba(126,200,122,.25);border-radius:14px;color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);font-weight:700;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-top:0;" id="cel-project-label">← Back to project</button>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
-      <button class="action-btn" onclick="showScreen('screen-route-details')" style="text-align:left;padding:14px 16px;">
-        <div style="font-size:var(--t-sm);font-weight:600;">Add details</div>
-        <div style="font-size:var(--t-xs);color:var(--muted);margin-top:2px;">Name · discipline</div>
-      </button>
-      <button class="action-btn" onclick="openStartProjectFromLog()" style="text-align:left;padding:14px 16px;border-color:rgba(126,200,122,.4);background:rgba(126,200,122,.06);">
-        <div style="font-size:var(--t-sm);font-weight:600;color:#7ec87a;">Start project</div>
-        <div style="font-size:var(--t-xs);color:var(--muted);margin-top:2px;">Track this route</div>
-      </button>
-    </div>
-    <button class="action-btn" onclick="openEditSheet()" style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
-      <div style="font-size:var(--t-sm);color:var(--muted);">Edit this climb</div>
-      <span style="color:var(--muted);font-size:15px;">✎</span>
-    </button>
-    <button class="action-btn" onclick="logAnother()" style="margin-top:4px;">Log another climb</button>
-    <button class="action-btn" onclick="showScreen('screen-home')" style="color:var(--muted);border-color:transparent;background:transparent;font-size:var(--t-sm);">← Home</button>
   </div>
 </div>
 
@@ -872,7 +884,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q1-label">—</span>
-    <span class="deeper-progress">1 of 7</span>
+    <span class="deeper-progress">1 of 4</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -914,7 +926,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q2-label">—</span>
-    <span class="deeper-progress">2 of 7</span>
+    <span class="deeper-progress">2 of 4</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -956,7 +968,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q3-label">—</span>
-    <span class="deeper-progress">3 of 7</span>
+    <span class="deeper-progress">3 of 4</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1006,7 +1018,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q4-label">—</span>
-    <span class="deeper-progress">4 of 7</span>
+    <span class="deeper-progress">4 of 4 · Core</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1039,7 +1051,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div>
   </div>
   <div style="height:24px"></div>
-  <button class="next-btn" id="next-q4" onclick="showScreen('screen-q5')">Next →</button>
+  <button class="next-btn" id="next-q4" onclick="afterQ4()">Confirm zone →</button>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -1052,7 +1064,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q5-label">—</span>
-    <span class="deeper-progress">5 of 7</span>
+    <span class="deeper-progress">Optional · Reflection</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1087,7 +1099,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q6-label">—</span>
-    <span class="deeper-progress">6 of 7</span>
+    <span class="deeper-progress">Optional · Reflection</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1123,7 +1135,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q7-label">—</span>
-    <span class="deeper-progress">7 of 7</span>
+    <span class="deeper-progress">Optional · Reflection</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1281,7 +1293,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
-      <div class="screen-title" style="margin-bottom:0;">My sessions</div>
+      <div class="screen-title" style="margin-bottom:0;" id="climb-log-title">Climb Log</div>
       <div style="font-size:var(--t-xs);color:var(--muted);" id="sess-total-count"></div>
     </div>
     <div style="font-size:var(--t-xs);color:var(--muted);margin-bottom:16px;">Your climbing data, mapped.</div>
@@ -1451,6 +1463,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div><!-- end preview section -->
 
     <!-- ── YOUR DATA SECTION ── -->
+    <div id="sessions-real-section" style="display:none;">
     <div style="display:flex;align-items:center;gap:10px;margin:24px 0 20px;">
       <div style="flex:1;height:1px;background:var(--border);"></div>
       <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);white-space:nowrap;padding:0 4px;">Your data</div>
@@ -1510,7 +1523,8 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <div class="insight-label" style="margin-bottom:14px;">Recent climbs</div>
         <div id="sessions-climb-list"><div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div></div>
       </div>
-    </div>
+    </div><!-- end your-data-section -->
+    </div><!-- end sessions-real-section -->
 
   </div>
 </div>
@@ -2493,17 +2507,1186 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
 </div><!-- end .app -->
 
-<script src="js/core.js"></script>
-<script src="js/log.js"></script>
-<script src="js/deeper.js"></script>
-<script src="js/sessions.js"></script>
-<script src="js/projects.js"></script>
-<script src="js/prepare.js"></script>
-<script src="js/feedback.js"></script>
-<script src="js/hiw.js"></script>
-<script src="js/drill.js"></script>
 <script>
-// ── INIT ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+// STAGING INDEX 81 — SELF-CONTAINED
+// All JS inline. No external JS files required.
+// ═══════════════════════════════════════════════════════
+
+// ── SUPABASE CONFIG ──────────────────────────────────
+const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
+const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
+const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+
+// ── SUPABASE HELPERS ─────────────────────────────────
+async function sbI(table,payload){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    return Array.isArray(d)?d[0]:d;
+  }catch(e){console.error('sbI',e);return null;}
+}
+async function sbS(table,params=''){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:SB_HEADERS});
+    return await r.json();
+  }catch(e){console.error('sbS',e);return [];}
+}
+async function sbU(table,filter,payload){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    return Array.isArray(d)?d[0]:d;
+  }catch(e){console.error('sbU',e);return null;}
+}
+
+// ── ZONE RESOLVER — single source of truth ───────────
+// Returns {zone:'comfort'|'learning'|'panic', confidence:'estimated'|'confirmed'}
+function resolveZone(data){
+  // Somatic path — from Go Deeper Q1-Q4
+  if(data.breathScore!==undefined){
+    var score=0;
+    // breathScore: 0=easy,1=faster,2=shallow,3=held,4=didntnotice
+    var bMap={0:0,1:1,2:2,3:3,4:1};
+    // gutScore: 0=settled,1=flutter,2=tension,3=didntnotice
+    var gMap={0:0,1:1,2:2,3:1};
+    // cruxScore: 0=paused,1=hesitated,2=backedoff,3=pushedthrough,4=panicked,5=none
+    var cMap={0:1,1:1,2:2,3:1,4:3,5:0};
+    // bodyScore: 0=loose,1=activated,2=tight,3=shutdown,4=didntnotice
+    var bodyMap={0:0,1:1,2:2,3:3,4:1};
+    score+=(bMap[data.breathScore]||0)+(gMap[data.gutScore]||0)+(cMap[data.cruxScore]||0)+(bodyMap[data.bodyScore]||0);
+    var zone=score<=2?'comfort':score<=6?'learning':'panic';
+    return{zone:zone,confidence:'confirmed'};
+  }
+  // Result path — estimated from climb outcome
+  var r=data.result||'';
+  if(r==='sent')return{zone:'comfort',confidence:'estimated'};
+  if(r==='projecting')return{zone:'learning',confidence:'estimated'};
+  if(r==='fell')return{zone:'learning',confidence:'estimated'};
+  if(r==='dna')return{zone:'panic',confidence:'estimated'};
+  return{zone:'learning',confidence:'estimated'};
+}
+
+// ── ZONE HELPERS ─────────────────────────────────────
+function zoneColor(z){return z==='comfort'?'#7ec87a':z==='panic'?'#e84444':'#f5a623';}
+function zoneName(z){return z==='comfort'?'Comfort zone':z==='panic'?'Panic zone':'Learning zone';}
+function zonePill(z,estimated){
+  var c=zoneColor(z),n=zoneName(z);
+  var border=estimated?'border:1.5px dashed '+c+';':'border:1.5px solid '+c+';';
+  var label=estimated?n+' <span style="font-size:10px;opacity:.7;">~ estimated</span>':n;
+  return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:'+c+';background:'+c+'1a;padding:4px 10px;border-radius:99px;'+border+'">'+label+'</span>';
+}
+
+// ── DID (debounced ID) ────────────────────────────────
+var _did={};
+function DID(id,fn,ms){clearTimeout(_did[id]);_did[id]=setTimeout(fn,ms||400);}
+
+// ── SCREEN MANAGEMENT ────────────────────────────────
+var _prevScreen='screen-home';
+function showScreen(id){
+  var prev=document.querySelector('.screen.active');
+  if(prev){_prevScreen=prev.id;prev.classList.remove('active');}
+  var el=document.getElementById(id);
+  if(el){el.classList.add('active');window.scrollTo(0,0);}
+  // Update nav active state
+  document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
+  var navMap={'screen-sessions':'fnav-sessions','screen-projects':'fnav-projects','screen-research':'fnav-research','screen-feedback':'fnav-feedback'};
+  if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
+  // Load screen data
+  if(id==='screen-sessions')loadClimbLog();
+  if(id==='screen-projects')loadProjectsScreen();
+  if(id==='screen-home')loadHomeInsight();
+  if(id==='screen-feedback')initFeedback();
+}
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg,isError){
+  var el=document.getElementById(isError?'error-toast-el':'toast-el');
+  if(!el)return;
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},2800);
+}
+
+// ── GRADE GRIDS ──────────────────────────────────────
+var GRADES={
+  YDS:['5.5','5.6','5.7','5.8','5.9','5.10a','5.10b','5.10c','5.10d','5.11a','5.11b','5.11c','5.11d','5.12a','5.12b','5.12c','5.12d','5.13a','5.13b','5.13c','5.13d','5.14a','5.14b','5.14c','5.14d','5.15a','5.15b','5.15c','5.15d'],
+  V:['VB','V0','V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13','V14','V15','V16','V17'],
+  FR:['5','5+','6a','6a+','6b','6b+','6c','6c+','7a','7a+','7b','7b+','7c','7c+','8a','8a+','8b','8b+','8c','8c+','9a'],
+  UK:['Diff','V.Diff','Severe','H.Severe','VS','H.VS','E1','E2','E3','E4','E5','E6','E7','E8','E9','E10']
+};
+var currentGradeSys='YDS';
+function buildGradeGrid(sys,containerId){
+  sys=sys||'YDS';containerId=containerId||'grade-grid';
+  currentGradeSys=sys;
+  var grid=document.getElementById(containerId);
+  if(!grid)return;
+  grid.innerHTML='';
+  GRADES[sys].forEach(function(g){
+    var b=document.createElement('button');
+    b.className='grade-btn';b.textContent=g;
+    b.onclick=function(){selectGrade(this,sys);};
+    grid.appendChild(b);
+  });
+  // Mark active system button
+  ['V','YDS','FR','UK'].forEach(function(s){
+    var sb=document.getElementById('btn-'+s);
+    if(sb)sb.classList.toggle('active',s===sys);
+  });
+}
+function setGradeSystem(sys){
+  logState.grade=null;logState.gradeSys=sys;
+  buildGradeGrid(sys);checkLogReady();
+}
+function selectGrade(btn,sys){
+  document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  logState.grade=btn.textContent;logState.gradeSys=sys||currentGradeSys;
+  checkLogReady();
+}
+
+// ═══════════════════════════════════════════════════════
+// LOG FLOW
+// ═══════════════════════════════════════════════════════
+var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:null,projectName:null};
+
+function selectResult(r){
+  logState.result=r;
+  // Update button styles
+  ['sent','fell','dna','projecting'].forEach(function(v){
+    var b=document.getElementById('btn-'+v);
+    if(!b)return;
+    b.classList.toggle('selected',v===r);
+  });
+  // Reveal grade and route name fields
+  var gradeGroup=document.getElementById('log-grade-group');
+  var rnameGroup=document.getElementById('log-rname-group');
+  if(gradeGroup){gradeGroup.style.display='flex';}
+  if(rnameGroup){rnameGroup.style.display='flex';}
+  checkLogReady();
+}
+
+function selectTerrain(btn,terrain){
+  document.querySelectorAll('.terrain-chips .chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  logState.terrain=terrain;
+  // Show project track option once terrain+grade set
+  checkProjectPrompt();
+  checkLogReady();
+}
+
+function checkProjectPrompt(){
+  var pg=document.getElementById('log-project-group');
+  if(!pg)return;
+  if(logState.grade&&logState.terrain&&!logState.projectId){
+    pg.style.display='flex';
+  }
+}
+
+function checkLogReady(){
+  var btn=document.getElementById('log-btn');
+  if(!btn)return;
+  var ready=logState.result&&logState.grade&&logState.terrain;
+  btn.classList.toggle('ready',!!ready);
+}
+
+function toggleLogProject(){
+  var check=document.getElementById('log-proj-check');
+  var tick=document.getElementById('log-proj-tick');
+  var enabled=tick&&tick.style.display!=='none';
+  if(tick)tick.style.display=enabled?'none':'block';
+  if(check)check.style.borderColor=enabled?'rgba(126,200,122,.5)':'#7ec87a';
+  if(check)check.style.background=enabled?'':'rgba(126,200,122,.15)';
+}
+
+async function logClimb(){
+  if(!logState.result||!logState.grade||!logState.terrain){showToast('Pick result, grade, and terrain first');return;}
+  var btn=document.getElementById('log-btn');
+  if(btn){btn.textContent='Logging...';btn.classList.remove('ready');}
+
+  var zr=resolveZone({result:logState.result});
+  logState.zone=zr.zone;logState.zoneConf=zr.confidence;
+
+  var payload={
+    result:logState.result,
+    grade:logState.grade,
+    grade_system:logState.gradeSys,
+    terrain:logState.terrain,
+    route_name:logState.routeName||null,
+    baseline_zone:logState.result, // legacy compat
+    zone:logState.zone,
+    zone_confidence:logState.zoneConf,
+    project_id:logState.projectId||null,
+    logged_at:new Date().toISOString()
+  };
+
+  var saved=await sbI('sessions',payload);
+  if(saved&&saved.id){
+    logState.sessId=saved.id;
+    showToast('Logged ✓');
+  } else {
+    showToast('Saved locally — will sync',false);
+  }
+
+  showScreen('screen-celebrate');
+  renderCelebrate();
+  if(btn){btn.textContent='Log climb';btn.classList.add('ready');}
+}
+
+async function renderCelebrate(){
+  // Grade + terrain + result
+  var gradEl=document.getElementById('card-grade-big');
+  var terrEl=document.getElementById('card-terrain-big');
+  var badgeEl=document.getElementById('card-badge-big');
+  var pillEl=document.getElementById('cel-zone-pill');
+  var insightEl=document.getElementById('cel-insight-text');
+  var arcEl=document.getElementById('cel-arc-wrap');
+  var climbNumEl=document.getElementById('cel-climb-num');
+
+  if(gradEl)gradEl.textContent=logState.grade||'—';
+  if(terrEl)terrEl.textContent=logState.terrain||'—';
+
+  var resultLabels={sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',projecting:'⟳ Projecting'};
+  var resultColors={sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
+  if(badgeEl){
+    badgeEl.textContent=resultLabels[logState.result]||logState.result;
+    badgeEl.style.color=resultColors[logState.result]||'var(--muted)';
+  }
+
+  // Zone pill — estimated until Go Deeper done
+  if(pillEl)pillEl.innerHTML=zonePill(logState.zone,true);
+
+  // Fetch history for personalized insight
+  var history=await sbS('sessions','select=zone,zone_confidence,terrain,grade,result,logged_at&order=logged_at.desc&limit=50');
+  var total=Array.isArray(history)?history.length:0;
+
+  if(climbNumEl)climbNumEl.textContent='Climb #'+(total);
+
+  // Build mini arc from history
+  renderCelArc(history);
+
+  // Personalized insight
+  var insight=buildCelebInsight(history,logState);
+  var insightCard=document.getElementById('cel-insight-card');
+  if(insightCard&&insight){
+    insightCard.style.display='block';
+    if(insightEl)insightEl.innerHTML=insight;
+  }
+
+  // Project back button
+  var projBtn=document.getElementById('cel-project-btn');
+  if(projBtn)projBtn.style.display=logState.projectId?'block':'none';
+}
+
+function buildCelebInsight(history,state){
+  if(!Array.isArray(history)||history.length<=1){
+    return 'First climb logged. Your zone arc starts here — each climb adds a dot. Go Deeper to confirm your zone.';
+  }
+  var prior=history.slice(1); // exclude current
+  var sameTerrain=prior.filter(function(s){return s.terrain===state.terrain;});
+  var sameZone=sameTerrain.filter(function(s){return s.zone===state.zone;});
+
+  if(sameTerrain.length>=3&&sameZone.length===sameTerrain.length){
+    return 'Same zone as your last '+sameTerrain.length+' '+state.terrain.toLowerCase()+' climbs. Consistency in the data.';
+  }
+  if(sameTerrain.length>=2){
+    var lastZ=sameTerrain[0].zone;
+    if(lastZ&&lastZ!==state.zone){
+      return 'Zone shifted on '+state.terrain.toLowerCase()+': '+zoneName(lastZ)+' → '+zoneName(state.zone)+'. Go Deeper to confirm.';
+    }
+  }
+  // Panic zone reframe
+  if(state.zone==='panic'){
+    return 'You noticed the edge today. Backed off or pushed through — either way, the awareness is the data.';
+  }
+  return 'Climb #'+history.length+' logged. Each dot builds your picture.';
+}
+
+function renderCelArc(history){
+  var wrap=document.getElementById('cel-arc-svg');
+  if(!wrap)return;
+  if(!Array.isArray(history)||history.length===0){wrap.innerHTML='';return;}
+  var sessions=history.slice().reverse().slice(-20); // oldest first, max 20
+  var w=300,h=60;
+  var zoneY={comfort:52,learning:30,panic:8};
+  var pts=sessions.map(function(s,i){
+    var x=20+(i/(Math.max(sessions.length-1,1)))*(w-40);
+    var y=zoneY[s.zone]||30;
+    return{x:x,y:y,z:s.zone,conf:s.zone_confidence};
+  });
+
+  var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ');
+  var svgParts=['<path d="'+pathD+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linejoin="round"/>'];
+  pts.forEach(function(p){
+    var c=zoneColor(p.z);
+    var confirmed=p.conf==='confirmed';
+    if(confirmed){
+      svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="'+c+'"/>');
+    } else {
+      svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="none" stroke="'+c+'" stroke-width="1.5"/>');
+    }
+  });
+  wrap.setAttribute('viewBox','0 0 '+w+' '+h);
+  wrap.innerHTML=svgParts.join('');
+}
+
+function logAnother(){
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:logState.projectId,projectName:logState.projectName};
+  // Reset UI
+  ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
+    var b=document.getElementById(id);if(b)b.classList.remove('selected');
+  });
+  document.querySelectorAll('.terrain-chips .chip').forEach(function(b){b.classList.remove('selected');});
+  var gradeGroup=document.getElementById('log-grade-group');
+  var rnameGroup=document.getElementById('log-rname-group');
+  if(gradeGroup)gradeGroup.style.display='none';
+  if(rnameGroup)rnameGroup.style.display='none';
+  var rname=document.getElementById('log-rname-input');if(rname)rname.value='';
+  buildGradeGrid('YDS');
+  showScreen('screen-log');
+}
+
+function openStartProjectFromLog(){
+  showScreen('screen-start-project');
+}
+function returnToProject(){
+  if(logState.projectId)openProjectById(logState.projectId);
+  else showScreen('screen-projects');
+}
+
+// Edit sheet
+function openEditSheet(){
+  var sheet=document.getElementById('edit-sheet');
+  if(!sheet)return;
+  sheet.style.display='block';
+  // Build grade chips for edit
+  var gc=document.getElementById('edit-grade-chips');
+  if(gc){
+    gc.innerHTML='';
+    (GRADES[logState.gradeSys]||GRADES.YDS).forEach(function(g){
+      var b=document.createElement('button');
+      b.className='chip'+(g===logState.grade?' selected':'');
+      b.textContent=g;
+      b.onclick=function(){document.querySelectorAll('#edit-grade-chips .chip').forEach(function(x){x.classList.remove('selected');});this.classList.add('selected');logState.grade=g;};
+      gc.appendChild(b);
+    });
+  }
+  // Set result buttons
+  ['sent','fell','dna','projecting'].forEach(function(v){
+    var b=document.getElementById('edit-btn-'+v);
+    if(b)b.style.borderColor=v===logState.result?'var(--accent)':'var(--border)';
+  });
+  var rn=document.getElementById('edit-rname');if(rn)rn.value=logState.routeName||'';
+}
+function editSelResult(r){
+  logState.result=r;
+  ['sent','fell','dna','projecting'].forEach(function(v){
+    var b=document.getElementById('edit-btn-'+v);
+    if(b)b.style.borderColor=v===r?'var(--accent)':'var(--border)';
+  });
+}
+function editSelTerrain(btn,t){
+  document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');logState.terrain=t;
+}
+async function saveEditedClimb(){
+  if(!logState.sessId){showToast('No session to edit');return;}
+  var zr=resolveZone({result:logState.result});
+  logState.zone=zr.zone;logState.zoneConf=zr.confidence;
+  await sbU('sessions','id=eq.'+logState.sessId,{
+    result:logState.result,grade:logState.grade,terrain:logState.terrain,
+    route_name:logState.routeName||null,zone:logState.zone,zone_confidence:logState.zoneConf
+  });
+  document.getElementById('edit-sheet').style.display='none';
+  renderCelebrate();
+  showToast('Updated ✓');
+}
+
+function selectFocus(btn,v){
+  document.querySelectorAll('#focus-chips .chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  if(logState.sessId)sbU('sessions','id=eq.'+logState.sessId,{session_focus:v});
+}
+
+function logAgainstProject(pid,pname){
+  logState.projectId=pid;logState.projectName=pname;
+  showScreen('screen-log');
+}
+
+// ═══════════════════════════════════════════════════════
+// GO DEEPER — Zone confirmation flow
+// ═══════════════════════════════════════════════════════
+var deepAnswers={q1:null,q2:null,q3:null,q4:null,q5:null,q6:null,q7:null};
+var deepScores={breath:null,gut:null,crux:null,body:null};
+
+function startDeeper(){
+  if(!logState.sessId){showToast('Saving... try in a moment');return;}
+  deepAnswers={q1:null,q2:null,q3:null,q4:null,q5:null,q6:null,q7:null};
+  deepScores={breath:null,gut:null,crux:null,body:null};
+  // Update progress labels to show 4 core questions
+  ['q1','q2','q3','q4'].forEach(function(q,i){
+    var lbl=document.getElementById(q+'-label');
+    if(lbl)lbl.textContent=(logState.grade||'—')+' · '+(logState.terrain||'—');
+    var prog=document.querySelector('#screen-'+q+' .deeper-progress');
+    if(prog)prog.textContent=(i+1)+' of 4';
+  });
+  showScreen('screen-q1');
+}
+
+var breathScoreMap={'Easy and steady':0,'Slightly faster':1,'Shallow or tight':2,'I held my breath':3,'Didn\'t notice':1};
+var gutScoreMap={'Settled, neutral':0,'Mild flutter':1,'Noticeable tension':2,'Didn\'t notice':1};
+var cruxScoreMap={'Yes — I paused':1,'Yes — I hesitated then committed':1,'Yes — I backed off':2,'Yes — I pushed through':1,'Yes — I panicked but recovered':3,'No standout moment':0};
+var bodyScoreMap={'Loose and fluid':0,'Activated, switched on':1,'Tight or gripped':2,'Shut down or frozen':3,'Didn\'t notice':1};
+
+function selectDeepChip(btn,q){
+  var parent=btn.closest('.response-chips,.question-card');
+  if(parent)parent.querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  deepAnswers[q]=btn.textContent;
+  // Score somatic questions
+  if(q==='q1')deepScores.breath=breathScoreMap[btn.textContent]||1;
+  if(q==='q2')deepScores.gut=gutScoreMap[btn.textContent]||1;
+  if(q==='q3')deepScores.crux=cruxScoreMap[btn.textContent]||0;
+  if(q==='q4')deepScores.body=bodyScoreMap[btn.textContent]||1;
+  // Enable next button
+  var nextBtn=document.getElementById('next-'+q);
+  if(nextBtn)nextBtn.classList.add('ready');
+}
+
+function toggleReflChip(btn,group){
+  btn.classList.toggle('selected');
+}
+
+// After Q4 — show zone update then optional Q5-Q7
+async function afterQ4(){
+  // Calculate confirmed zone
+  var zr=resolveZone({
+    breathScore:deepScores.breath||1,
+    gutScore:deepScores.gut||1,
+    cruxScore:deepScores.crux||0,
+    bodyScore:deepScores.body||1
+  });
+  var prevZone=logState.zone;
+  logState.zone=zr.zone;
+  logState.zoneConf='confirmed';
+
+  // Save to Supabase
+  if(logState.sessId){
+    await sbU('sessions','id=eq.'+logState.sessId,{
+      deeper_q1:deepAnswers.q1,deeper_q2:deepAnswers.q2,
+      deeper_q3:deepAnswers.q3,deeper_q4:deepAnswers.q4,
+      zone:logState.zone,zone_confidence:'confirmed'
+    });
+  }
+
+  // Show zone update on celebrate screen pill
+  var pillEl=document.getElementById('cel-zone-pill');
+  if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
+
+  // Show zone shift screen if changed
+  var shiftEl=document.getElementById('cel-zone-shift');
+  if(shiftEl&&prevZone&&prevZone!==logState.zone){
+    shiftEl.style.display='block';
+    shiftEl.innerHTML='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Zone updated</div><div style="font-size:15px;font-weight:700;">'+zoneName(prevZone)+' → '+zoneName(logState.zone)+'</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Based on what you reported.</div>';
+  }
+
+  // Navigate to Q5 (optional)
+  showScreen('screen-q5');
+}
+
+async function finishDeeper(){
+  // Save remaining optional answers
+  if(logState.sessId){
+    var extraPayload={};
+    if(deepAnswers.q5)extraPayload.deeper_q5=deepAnswers.q5;
+    if(deepAnswers.q6){var slText=document.getElementById('still-learning-text');extraPayload.deeper_q6=slText?slText.value:deepAnswers.q6;}
+    if(deepAnswers.q7){var supText=document.getElementById('surprised-text');extraPayload.deeper_q7=supText?supText.value:deepAnswers.q7;}
+    if(Object.keys(extraPayload).length)await sbU('sessions','id=eq.'+logState.sessId,extraPayload);
+  }
+  renderReflection();
+  showScreen('screen-reflection');
+}
+
+function renderReflection(){
+  var grade=logState.grade||'—',terrain=logState.terrain||'—';
+  var rGrade=document.getElementById('reflect-grade');
+  var rTerrain=document.getElementById('reflect-terrain');
+  var rResult=document.getElementById('reflect-result-lbl');
+  var rZone=document.getElementById('reflect-zone-pill');
+  if(rGrade)rGrade.textContent=grade;
+  if(rTerrain)rTerrain.textContent=terrain;
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',projecting:'Projecting'};
+  if(rResult)rResult.textContent=resultLabels[logState.result]||'—';
+  if(rZone)rZone.innerHTML=zonePill(logState.zone,false);
+
+  // Zone map dot
+  var dot=document.getElementById('zone-dot');
+  var ring=document.getElementById('zone-dot-ring');
+  var zoneYMap={comfort:100,learning:68,panic:28};
+  var cy=zoneYMap[logState.zone]||68;
+  var c=zoneColor(logState.zone);
+  if(dot){dot.setAttribute('cy',cy);dot.setAttribute('fill',c);dot.setAttribute('opacity','1');}
+  if(ring){ring.setAttribute('cy',cy);ring.setAttribute('stroke',c);ring.setAttribute('opacity','0.4');}
+
+  // Insight text
+  var ins=document.getElementById('insight-text');
+  var insMap={
+    comfort:'You were in Comfort zone — familiar territory, lower activation. Solid data point.',
+    learning:'Learning zone — at the edge, activated but engaged. This is where adaptation happens.',
+    panic:'Panic zone — high activation, risk management overloaded. The data point is valid regardless of outcome.'
+  };
+  if(ins)ins.textContent=insMap[logState.zone]||'';
+
+  // Zone pill container
+  var zpc=document.getElementById('zone-pill-container');
+  if(zpc)zpc.innerHTML=zonePill(logState.zone,false);
+
+  // Session arc in reflection
+  buildReflectArc();
+}
+
+async function buildReflectArc(){
+  var history=await sbS('sessions','select=zone,zone_confidence,logged_at&order=logged_at.asc&limit=20');
+  var svg=document.getElementById('river-svg');
+  if(!svg||!Array.isArray(history)||history.length===0)return;
+  var zoneY={comfort:82,learning:50,panic:16};
+  var w=320,h=100;
+  var pts=history.map(function(s,i){
+    return{x:20+(i/(Math.max(history.length-1,1)))*(w-40),y:zoneY[s.zone]||50,z:s.zone,conf:s.zone_confidence};
+  });
+  var line=document.getElementById('river-line');
+  if(line)line.setAttribute('points',pts.map(function(p){return p.x+','+p.y;}).join(' '));
+  // Update current dot
+  var last=pts[pts.length-1];
+  var cd=document.getElementById('river-current-dot');
+  var cr=document.getElementById('river-current-ring');
+  if(cd){cd.setAttribute('cx',last.x);cd.setAttribute('cy',last.y);cd.setAttribute('fill',zoneColor(last.z));}
+  if(cr){cr.setAttribute('cx',last.x);cr.setAttribute('cy',last.y);}
+}
+
+// ═══════════════════════════════════════════════════════
+// CLIMB LOG (was "Sessions")
+// ═══════════════════════════════════════════════════════
+async function loadClimbLog(){
+  var titleEl=document.getElementById('climb-log-title');
+  if(titleEl)titleEl.textContent='Climb Log';
+  var countEl=document.getElementById('sess-total-count');
+  var sessions=await sbS('sessions','select=*&order=logged_at.desc&limit=100');
+  if(!Array.isArray(sessions))sessions=[];
+
+  var confirmed=sessions.filter(function(s){return s.zone_confidence==='confirmed';}).length;
+  var total=sessions.length;
+
+  if(countEl)countEl.textContent=total+' climbs · '+confirmed+' confirmed';
+
+  // Show/hide sections
+  var emptyEl=document.getElementById('sessions-empty-state');
+  var realEl=document.getElementById('sessions-real-section');
+  var previewEl=document.getElementById('sessions-preview-section');
+
+  if(emptyEl)emptyEl.style.display=total===0?'block':'none';
+  if(previewEl)previewEl.style.display=total>0?'none':'block';
+  if(realEl)realEl.style.display=total>0?'block':'none';
+
+  if(total===0){
+    var emptyText=document.getElementById('sessions-empty-text');
+    if(emptyText)emptyText.textContent='Log your first climb to start building your zone arc.';
+    return;
+  }
+
+  // Stat strip
+  var totalEl=document.getElementById('real-total');
+  var sentEl=document.getElementById('real-sent');
+  if(totalEl)totalEl.textContent=total;
+  var sends=sessions.filter(function(s){return s.result==='sent';}).length;
+  if(sentEl)sentEl.textContent=Math.round(sends/total*100)+'%';
+
+  // Arc with confirmed/estimated distinction
+  buildSessionsArc(sessions);
+
+  // Terrain radar
+  buildRadar(sessions);
+
+  // Climb list
+  renderClimbList(sessions);
+
+  // AI insight
+  buildInsight(sessions);
+}
+
+function buildSessionsArc(sessions){
+  var g=document.getElementById('arc-dots-real');
+  if(!g)return;
+  g.innerHTML='';
+  var ordered=sessions.slice().reverse();
+  var zoneY={comfort:83,learning:50,panic:16};
+  var w=320,h=100;
+  var pts=ordered.map(function(s,i){
+    return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||50,z:s.zone,conf:s.zone_confidence};
+  });
+  if(pts.length>1){
+    var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',pathD);path.setAttribute('fill','none');
+    path.setAttribute('stroke','rgba(255,255,255,.08)');path.setAttribute('stroke-width','1.5');
+    g.appendChild(path);
+  }
+  pts.forEach(function(p){
+    var c=zoneColor(p.z);
+    var circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);
+    if(p.conf==='confirmed'){
+      circle.setAttribute('r','4');circle.setAttribute('fill',c);
+    } else {
+      circle.setAttribute('r','4');circle.setAttribute('fill','none');
+      circle.setAttribute('stroke',c);circle.setAttribute('stroke-width','1.5');
+    }
+    g.appendChild(circle);
+  });
+  // insight
+  var insEl=document.getElementById('sessions-arc-insight');
+  if(insEl&&ordered.length>0){
+    var recent=ordered.slice(-5);
+    var zones=recent.map(function(s){return s.zone;});
+    var comfort=zones.filter(function(z){return z==='comfort';}).length;
+    var panic=zones.filter(function(z){return z==='panic';}).length;
+    if(panic>=3)insEl.textContent='Recent sessions trending toward Panic zone.';
+    else if(comfort>=4)insEl.textContent='Recent sessions consistently in Comfort zone.';
+    else insEl.textContent=ordered.length+' climbs logged · '+ordered.filter(function(s){return s.zone_confidence==='confirmed';}).length+' confirmed zones.';
+  }
+}
+
+function renderClimbList(sessions){
+  var el=document.getElementById('sessions-climb-list');
+  if(!el)return;
+  if(sessions.length===0){el.innerHTML='<div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div>';return;}
+
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',projecting:'Projecting'};
+  var html=sessions.slice(0,30).map(function(s){
+    var c=zoneColor(s.zone||'learning');
+    var conf=s.zone_confidence==='confirmed';
+    var pillStyle=conf?'border:1.5px solid '+c+';':'border:1.5px dashed '+c+';';
+    var timeAgo=timeAgoStr(s.logged_at);
+    return '<div style="display:flex;gap:10px;align-items:stretch;padding:10px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="width:4px;border-radius:99px;background:'+c+';flex-shrink:0;"></div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">'
+      +'<div style="font-size:15px;font-weight:700;font-family:\'Space Mono\',monospace;color:var(--accent);">'+(s.grade||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted2);">'+timeAgo+'</div>'
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">'+(s.terrain||'—')+' · '+(resultLabels[s.result]||s.result||'—')+'</div>'
+      +'<div style="display:flex;gap:6px;align-items:center;">'
+      +'<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 8px;border-radius:99px;'+pillStyle+'">'+(conf?zoneName(s.zone):zoneName(s.zone)+' ~')+'</span>'
+      +(s.route_name?'<span style="font-size:11px;color:var(--muted2);">'+s.route_name+'</span>':'')
+      +'</div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  el.innerHTML=html;
+}
+
+function timeAgoStr(iso){
+  if(!iso)return '';
+  var d=new Date(iso),now=new Date();
+  var diff=Math.floor((now-d)/60000);
+  if(diff<1)return 'just now';
+  if(diff<60)return diff+'m ago';
+  var h=Math.floor(diff/60);
+  if(h<24)return h+'h ago';
+  var days=Math.floor(h/24);
+  if(days===1)return 'yesterday';
+  if(days<7)return days+'d ago';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function buildRadar(sessions){
+  var svg=document.getElementById('radar-svg');
+  var breakdown=document.getElementById('radar-breakdown');
+  if(!svg)return;
+  var terrains=['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack'];
+  var counts={};
+  terrains.forEach(function(t){counts[t]=0;});
+  sessions.forEach(function(s){if(s.terrain&&counts[s.terrain]!==undefined)counts[s.terrain]++;});
+  var max=Math.max.apply(null,terrains.map(function(t){return counts[t];}));
+  if(max===0){svg.innerHTML='';return;}
+
+  var cx=110,cy=110,r=80;
+  var pts=terrains.map(function(t,i){
+    var angle=(i/terrains.length)*2*Math.PI-Math.PI/2;
+    var val=max>0?counts[t]/max:0;
+    return{x:cx+r*val*Math.cos(angle),y:cy+r*val*Math.sin(angle),lx:cx+(r+18)*Math.cos(angle),ly:cy+(r+18)*Math.sin(angle),label:t,count:counts[t]};
+  });
+
+  var poly=pts.map(function(p){return p.x+','+p.y;}).join(' ');
+  var axes=terrains.map(function(t,i){
+    var angle=(i/terrains.length)*2*Math.PI-Math.PI/2;
+    return '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+r*Math.cos(angle))+'" y2="'+(cy+r*Math.sin(angle))+'" stroke="rgba(255,255,255,.08)" stroke-width="1"/>';
+  }).join('');
+  var labels=pts.map(function(p){
+    return '<text x="'+p.lx+'" y="'+(p.ly+4)+'" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(255,255,255,.45)">'+p.label+'</text>';
+  }).join('');
+
+  svg.innerHTML=axes+'<polygon points="'+poly+'" fill="rgba(232,118,58,.15)" stroke="#e8763a" stroke-width="1.5"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="1"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*.5)+'" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="1"/>'+labels;
+
+  if(breakdown){
+    var topTerrains=terrains.filter(function(t){return counts[t]>0;}).sort(function(a,b){return counts[b]-counts[a];}).slice(0,4);
+    breakdown.innerHTML=topTerrains.map(function(t){
+      var pct=max>0?Math.round(counts[t]/sessions.length*100):0;
+      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'
+        +'<div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>'
+        +'<div style="font-size:12px;color:var(--text);">'+t+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);">'+counts[t]+' ('+pct+'%)</div>'
+        +'</div>';
+    }).join('');
+  }
+}
+
+async function buildInsight(sessions){
+  var card=document.getElementById('ai-insight-card');
+  var text=document.getElementById('ai-insight-text');
+  if(!card||!text||sessions.length<3)return;
+  card.style.display='block';
+  var zones=sessions.map(function(s){return s.zone;});
+  var panic=zones.filter(function(z){return z==='panic';}).length;
+  var comfort=zones.filter(function(z){return z==='comfort';}).length;
+  var learning=zones.length-panic-comfort;
+  var recent5=zones.slice(0,5);
+  var recentPanic=recent5.filter(function(z){return z==='panic';}).length;
+  if(recentPanic>=3)text.textContent='Your last 5 climbs show a Panic zone pattern. Consider whether you\'re pushing beyond your current edge consistently.';
+  else if(comfort>learning+panic)text.textContent='Predominantly Comfort zone data. Deliberate exposure to the Learning fringe produces faster adaptation.';
+  else text.textContent=sessions.length+' climbs logged. Zone distribution: '+comfort+' Comfort · '+learning+' Learning · '+panic+' Panic.';
+}
+
+// ═══════════════════════════════════════════════════════
+// HOME INSIGHT
+// ═══════════════════════════════════════════════════════
+async function loadHomeInsight(){
+  var sessions=await sbS('sessions','select=zone,zone_confidence,terrain,logged_at&order=logged_at.desc&limit=50');
+  if(!Array.isArray(sessions))sessions=[];
+  var total=sessions.length;
+
+  var firstCard=document.getElementById('home-first-card');
+  var buildCard=document.getElementById('home-building-card');
+  var insightCard=document.getElementById('home-insight-card');
+
+  if(firstCard)firstCard.style.display=total===0?'block':'none';
+  if(buildCard)buildCard.style.display=(total>0&&total<5)?'block':'none';
+  if(insightCard)insightCard.style.display=total>=5?'block':'none';
+
+  if(total>0&&total<5){
+    var progressFill=document.getElementById('home-progress-fill');
+    var progressLabel=document.getElementById('home-progress-label');
+    var buildText=document.getElementById('home-building-text');
+    if(progressFill)progressFill.style.width=(total/5*100)+'%';
+    if(progressLabel)progressLabel.textContent=total+' of 5 climbs';
+    if(buildText)buildText.textContent='Log '+(5-total)+' more climb'+(5-total===1?'':'s')+' to unlock your zone arc.';
+  }
+
+  if(total>=5){
+    buildHomeArc(sessions);
+  }
+}
+
+function buildHomeArc(sessions){
+  var svg=document.getElementById('home-arc-svg');
+  var insightText=document.getElementById('home-insight-text');
+  var lastBadge=document.getElementById('home-last-badge');
+  var sessCount=document.getElementById('home-sess-count');
+  if(!svg)return;
+
+  var ordered=sessions.slice().reverse();
+  var zoneY={comfort:62,learning:36,panic:10};
+  var w=380,h=72;
+  var pts=ordered.map(function(s,i){
+    return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||36,z:s.zone,conf:s.zone_confidence};
+  });
+
+  var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ');
+  var svgParts=['<path d="'+pathD+'" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5" stroke-linejoin="round"/>'];
+  pts.forEach(function(p,i){
+    var c=zoneColor(p.z);
+    var isLast=i===pts.length-1;
+    if(p.conf==='confirmed'){
+      svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(isLast?5.5:3.5)+'" fill="'+c+'"/>');
+      if(isLast)svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="9" fill="none" stroke="'+c+'" stroke-width="1.5" opacity=".4"/>');
+    } else {
+      svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(isLast?5:3)+'" fill="none" stroke="'+c+'" stroke-width="1.5"/>');
+    }
+  });
+  svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  svg.innerHTML=svgParts.join('');
+
+  var last=sessions[0];
+  if(lastBadge&&last){
+    var c=zoneColor(last.zone||'learning');
+    lastBadge.textContent=zoneName(last.zone||'learning');
+    lastBadge.style.background=c+'1a';lastBadge.style.color=c;lastBadge.style.border='1px solid '+c+'55';
+  }
+  if(sessCount)sessCount.textContent=sessions.length+' climbs';
+
+  if(insightText){
+    var recent=sessions.slice(0,5).map(function(s){return s.zone;});
+    var panicCount=recent.filter(function(z){return z==='panic';}).length;
+    var comfortCount=recent.filter(function(z){return z==='comfort';}).length;
+    if(panicCount>=3)insightText.textContent='Recent sessions pushing into Panic zone.';
+    else if(comfortCount>=4)insightText.textContent='Consistently in Comfort zone lately.';
+    else insightText.textContent='Zone arc building across '+sessions.length+' climbs.';
+  }
+}
+
+function toggleHomeSayMore(){
+  var t=document.getElementById('home-say-more-text');
+  var b=document.getElementById('home-say-more-btn');
+  if(!t)return;
+  var open=t.style.display==='block';
+  t.style.display=open?'none':'block';
+  if(b)b.textContent=open?'Say more ›':'Say less ›';
+}
+
+// ═══════════════════════════════════════════════════════
+// PROJECTS
+// ═══════════════════════════════════════════════════════
+var currentProjectId=null;var currentProject=null;
+var spState={name:'',disc:'',bolts:null,height:null,unit:'ft'};
+
+function spCheckReady(){
+  var btn=document.getElementById('sp-submit-btn');
+  var name=document.getElementById('sp-name');
+  if(!btn)return;
+  var ready=name&&name.value.trim().length>0&&spState.disc;
+  btn.style.opacity=ready?'1':'0.3';
+  btn.style.pointerEvents=ready?'all':'none';
+}
+function spPickDisc(btn,disc){
+  spState.disc=disc;
+  document.querySelectorAll('.discipline-chips .chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  var boltGroup=document.getElementById('sp-bolt-group');
+  if(boltGroup)boltGroup.style.display=disc==='Sport'?'block':'none';
+  spCheckReady();
+}
+function spSetUnit(u){
+  spState.unit=u;
+  document.getElementById('sp-unit-ft').style.background=u==='ft'?'rgba(232,118,58,.15)':'var(--surface)';
+  document.getElementById('sp-unit-ft').style.borderColor=u==='ft'?'var(--accent)':'var(--border)';
+  document.getElementById('sp-unit-m').style.background=u==='m'?'rgba(232,118,58,.15)':'var(--surface)';
+  document.getElementById('sp-unit-m').style.borderColor=u==='m'?'var(--accent)':'var(--border)';
+}
+function spAdjBolt(d){spState.bolts=(spState.bolts||6)+d;if(spState.bolts<1)spState.bolts=1;document.getElementById('sp-bolt-val').textContent=spState.bolts;}
+function spAdjHeight(d){spState.height=(spState.height||20)+d;if(spState.height<1)spState.height=1;document.getElementById('sp-height-val').textContent=spState.height;}
+
+async function submitProject(){
+  var nameEl=document.getElementById('sp-name');
+  if(!nameEl||!nameEl.value.trim()||!spState.disc){showToast('Name and discipline required');return;}
+  var gradeEl=document.getElementById('sp-grade-display');
+  var grade=gradeEl?gradeEl.textContent:'—';
+  var payload={name:nameEl.value.trim(),discipline:spState.disc,grade:grade,status:'active',created_at:new Date().toISOString()};
+  if(spState.bolts)payload.bolt_count=spState.bolts;
+  if(spState.height)payload.height=spState.height+spState.unit;
+  var saved=await sbI('projects',payload);
+  if(saved&&saved.id){
+    showToast('Project started ✓');
+    currentProjectId=saved.id;
+    currentProject=saved;
+    logState.projectId=saved.id;logState.projectName=saved.name;
+    await loadProjectsScreen();
+    openProjectById(saved.id);
+  } else {
+    showToast('Could not save project');
+  }
+}
+
+async function loadProjectsScreen(){
+  var active=await sbS('projects','select=*&status=eq.active&order=created_at.desc');
+  var sent=await sbS('projects','select=*&status=eq.sent&order=created_at.desc');
+  var archived=await sbS('projects','select=*&status=eq.abandoned&order=created_at.desc');
+  renderProjectList('proj-active-list',Array.isArray(active)?active:[]);
+  renderProjectList('proj-sent-list',Array.isArray(sent)?sent:[]);
+  renderProjectList('proj-archived-list',Array.isArray(archived)?archived:[]);
+}
+
+function renderProjectList(containerId,projects){
+  var el=document.getElementById(containerId);
+  if(!el)return;
+  if(projects.length===0){el.innerHTML='<div style="font-size:13px;color:var(--muted);padding:10px 0;">None yet.</div>';return;}
+  el.innerHTML=projects.map(function(p){
+    return '<div onclick="openProjectById(\''+p.id+'\')" style="padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;">'
+      +'<div style="font-size:15px;font-weight:700;color:var(--text);">'+p.name+'</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+(p.discipline||'')+(p.grade?' · '+p.grade:'')+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+async function openProjectById(id){
+  var proj=await sbS('projects','select=*&id=eq.'+id);
+  if(!Array.isArray(proj)||proj.length===0){showToast('Project not found');return;}
+  currentProject=proj[0];currentProjectId=id;
+  // Fill hero
+  var nameEl=document.getElementById('proj-name');
+  var gradeEl=document.getElementById('proj-grade');
+  if(nameEl)nameEl.textContent=currentProject.name||'—';
+  if(gradeEl)gradeEl.textContent=currentProject.grade||'—';
+  // Load sessions for this project
+  var sessions=await sbS('sessions','select=*&project_id=eq.'+encodeURIComponent(id)+'&order=logged_at.asc');
+  var sessList=Array.isArray(sessions)?sessions:[];
+  var sessCount=document.getElementById('proj-stat-sessions');
+  var sendsCount=document.getElementById('proj-stat-sends');
+  if(sessCount)sessCount.textContent=sessList.length;
+  if(sendsCount)sendsCount.textContent=sessList.filter(function(s){return s.result==='sent';}).length;
+  // Arc
+  buildProjectArc(sessList);
+  showScreen('screen-project');
+}
+
+function buildProjectArc(sessions){
+  var g=document.getElementById('proj-arc-dots');
+  var emptyEl=document.getElementById('proj-empty-state');
+  if(!g)return;
+  if(emptyEl)emptyEl.style.display=sessions.length===0?'block':'none';
+  g.innerHTML='';
+  if(sessions.length===0)return;
+  var zoneY={comfort:90,learning:54,panic:16};
+  var pts=sessions.map(function(s,i){
+    return{x:40+(i/(Math.max(sessions.length-1,1)))*220,y:zoneY[s.zone]||54,z:s.zone};
+  });
+  if(pts.length>1){
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' '));
+    path.setAttribute('fill','none');path.setAttribute('stroke','rgba(255,255,255,.08)');path.setAttribute('stroke-width','1.5');
+    g.appendChild(path);
+  }
+  pts.forEach(function(p){
+    var c=zoneColor(p.z);
+    var circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);circle.setAttribute('r','5');circle.setAttribute('fill',c);
+    g.appendChild(circle);
+  });
+}
+
+async function markProjectAbandoned(id){
+  if(!id)return;
+  await sbU('projects','id=eq.'+id,{status:'abandoned'});
+  showToast('Project archived');
+  showScreen('screen-projects');
+  loadProjectsScreen();
+}
+
+// ═══════════════════════════════════════════════════════
+// PREPARE FLOW (retain existing logic)
+// ═══════════════════════════════════════════════════════
+var prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false};
+var Qs=[
+  {phase:'Breath',text:'Notice your breathing right now.',hint:'Just observe — don\'t try to change it.',type:'chips',
+    opts:['Easy and steady','Slightly faster than usual','Shallow or restricted','I\'m holding my breath','Hard to notice'],
+    scores:[0,1,2,3,1]},
+  {phase:'Gut',text:'Any gut sensation right now?',hint:'Pre-conscious signal — some notice it clearly, others don\'t.',type:'chips',
+    opts:['Settled, neutral','Mild flutter or movement','Noticeable tension or knot','Nothing I can identify'],
+    scores:[0,1,2,1]},
+  {phase:'Route',text:'Picture the route or climb you\'re considering.',hint:'Let it form in your mind before the next question.',type:'pause',dur:4},
+  {phase:'Breath check',text:'Any change in your breathing after picturing it?',hint:'Compare to what you noticed a moment ago.',type:'chips',
+    opts:['No change — same','Slightly faster or fuller','Noticeably restricted','Held — stopped','Hard to tell'],
+    scores:[0,1,2,3,1]},
+  {phase:'Gut check',text:'Any gut shift after picturing it?',hint:'Has the sensation changed, appeared, or intensified?',type:'chips',
+    opts:['Same as before','Slight increase','Noticeable shift','No gut signal noticed'],
+    scores:[0,1,2,1]},
+  {phase:'Body scan',text:'Scan through your body. What do you notice — if anything?',hint:'Start at shoulders, work down. Brief. Even nothing is data.',type:'bodyscan'},
+  {phase:'Motivation',text:'What\'s drawing you toward this climb today?',hint:'There\'s no right answer — just notice what\'s actually there.',type:'chips',
+    opts:['Genuine curiosity','I want to push my edge','Social pressure or expectation','Something to prove','Not sure — just here','A specific training goal'],
+    scores:[0,0,2,1,1,0]}
+];
+
+function startPrepare(){showScreen('screen-prepare');}
+function startPrepareFlow(){
+  prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false};
+  renderQ();showScreen('s-assess');
+}
+function renderQ(){
+  var q=Qs[prepState.qi];
+  if(!q)return;
+  var prog=document.getElementById('prog');
+  var pct=Math.round((prepState.qi/Qs.length)*100);
+  if(prog)prog.style.width=pct+'%';
+  var phLbl=document.getElementById('phase-lbl');if(phLbl)phLbl.textContent=q.phase;
+  var qText=document.getElementById('q-text');if(qText)qText.textContent=q.text;
+  var qHint=document.getElementById('q-hint');if(qHint)qHint.textContent=q.hint||'';
+  var wrap=document.getElementById('q-wrap');if(wrap)wrap.innerHTML='';
+  var nextBtn=document.getElementById('btn-next');if(nextBtn)nextBtn.disabled=true;
+
+  if(q.type==='chips'){
+    var chips=document.createElement('div');chips.className='response-chips';
+    q.opts.forEach(function(opt,i){
+      var b=document.createElement('button');b.className='chip';b.textContent=opt;
+      b.onclick=function(){
+        chips.querySelectorAll('.chip').forEach(function(x){x.classList.remove('selected');});
+        b.classList.add('selected');
+        prepState.answers[prepState.qi]=opt;
+        prepState.scores[prepState.qi]=q.scores?q.scores[i]:0;
+        if(nextBtn)nextBtn.disabled=false;
+      };
+      chips.appendChild(b);
+    });
+    if(wrap)wrap.appendChild(chips);
+  } else if(q.type==='pause'){
+    showScreen('s-pause');return;
+  } else if(q.type==='bodyscan'){
+    renderBodyScan(wrap);if(nextBtn)nextBtn.disabled=false;
+  }
+}
+function goNext(){prepState.qi++;if(prepState.qi>=Qs.length){computeResult();}else{renderQ();}}
+function goBack(){if(prepState.qi>0){prepState.qi--;renderQ();}else{showScreen('screen-prepare');}}
+function dismissPause(){prepState.qi++;renderQ();showScreen('s-assess');}
+
+function computeResult(){
+  var total=0;
+  Object.keys(prepState.scores).forEach(function(k){total+=prepState.scores[k]||0;});
+  var zone=total<=3?'comfort':total<=8?'learning':'panic';
+  var zoneColors={comfort:'var(--comfort)',learning:'var(--learning)',panic:'var(--panic)'};
+  var zoneLabels={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
+  var badge=document.getElementById('zone-badge');
+  if(badge){badge.textContent=zoneLabels[zone];badge.style.background=zoneColors[zone]+'22';badge.style.color=zoneColors[zone];badge.style.border='1.5px solid '+zoneColors[zone];}
+  var g=document.getElementById('g-text');
+  var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
+  if(g)g.textContent=gMap[zone]||'';
+  // Save to Supabase with is_checkin flag
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',result:'checkin',is_checkin:true,logged_at:new Date().toISOString()});
+  showScreen('s-result');
+}
+
+function renderBodyScan(wrap){
+  if(!wrap)return;
+  var zones=['Shoulders','Chest','Belly','Arms','Legs'];
+  var html='<div style="display:flex;flex-direction:column;gap:8px;">';
+  zones.forEach(function(z){
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--r-md);">'
+      +'<div style="font-size:13px;font-weight:600;color:var(--text);width:70px;">'+z+'</div>'
+      +'<div style="display:flex;gap:6px;">'
+      +['Loose','Neutral','Tight'].map(function(s,i){
+        return '<button class="chip" style="padding:6px 12px;font-size:12px;" onclick="this.parentNode.querySelectorAll(\'.chip\').forEach(function(b){b.classList.remove(\'selected\')});this.classList.add(\'selected\')">'+s+'</button>';
+      }).join('')
+      +'</div>'
+      +'</div>';
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
+function startLogFromPrepare(){logState.projectId=null;showScreen('screen-log');}
+
+function getZone(score){return score<=3?'comfort':score<=8?'learning':'panic';}
+
+// Route Analysis (deep prepare)
+var deepPrepQs=[];var deepPrepIdx=0;var deepPrepAnswers={};
+function startDeeperPrepare(){showScreen('s-deeper');}
+function deepBack(){showScreen('s-result');}
+function restart(){prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false};startPrepareFlow();}
+
+// ═══════════════════════════════════════════════════════
+// FEEDBACK
+// ═══════════════════════════════════════════════════════
+var FBQs=[
+  {q:'How useful is the zone result after logging?',opts:['Very — it reflects what happened','Somewhat — roughly right','Not yet — I\'m not sure what to do with it','I haven\'t logged enough to tell']},
+  {q:'Which part of the app do you find most valuable?',opts:['Log a climb','Go Deeper / reflection','Prepare check-in','Sessions / Climb Log','Projects']},
+  {q:'What\'s the biggest thing missing?',opts:['Coaching or guidance','Social / sharing features','More detail in the reflection','Simpler / faster logging','Nothing — it\'s good as is']},
+  {q:'Anything else to share?',opts:null,type:'text'}
+];
+var fbIdx=0;var fbAnswers={};
+function initFeedback(){fbIdx=0;fbAnswers={};renderFBQ();}
+function renderFBQ(){
+  var q=FBQs[fbIdx];if(!q)return;
+  var stepLbl=document.getElementById('fb-step-lbl');
+  var fill=document.getElementById('fb-fill');
+  var qText=document.getElementById('fb-q-text');
+  var opts=document.getElementById('fb-opts');
+  var nextBtn=document.getElementById('fb-next-btn');
+  if(stepLbl)stepLbl.textContent='Question '+(fbIdx+1)+' of '+FBQs.length;
+  if(fill)fill.style.width=((fbIdx/FBQs.length)*100)+'%';
+  if(qText)qText.textContent=q.q;
+  if(opts){
+    if(q.type==='text'){
+      opts.innerHTML='<textarea class="fb-textarea" id="fb-text-ans" placeholder="Your thoughts..."></textarea>';
+      if(nextBtn)nextBtn.classList.add('ready');
+    } else {
+      opts.innerHTML=(q.opts||[]).map(function(o){
+        return '<button class="fb-opt" onclick="selectFBOpt(this,\''+o.replace(/'/g,"\\'")+'\')" >'+o+'</button>';
+      }).join('');
+      if(nextBtn)nextBtn.classList.remove('ready');
+    }
+  }
+}
+function selectFBOpt(btn,val){
+  document.querySelectorAll('.fb-opt').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');fbAnswers[fbIdx]=val;
+  var nextBtn=document.getElementById('fb-next-btn');if(nextBtn)nextBtn.classList.add('ready');
+}
+async function fbNext(){
+  var q=FBQs[fbIdx];
+  if(q&&q.type==='text'){var ta=document.getElementById('fb-text-ans');fbAnswers[fbIdx]=ta?ta.value:'';}
+  fbIdx++;
+  if(fbIdx>=FBQs.length){
+    await sbI('feedback',{answers:JSON.stringify(fbAnswers),submitted_at:new Date().toISOString()});
+    var succ=document.getElementById('fb-success');
+    if(succ)succ.style.display='block';
+    var form=document.getElementById('fb-form');if(form)form.style.display='none';
+  } else {renderFBQ();}
+}
+
+// ═══════════════════════════════════════════════════════
+// HIW / RESEARCH
+// ═══════════════════════════════════════════════════════
+function toggleRes(btn){
+  var body=btn.parentNode.querySelector('.res-card-body');
+  var chevron=btn.querySelector('.res-card-chevron');
+  if(!body)return;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  if(chevron)chevron.classList.toggle('open',!open);
+}
+function hiwTog(key){
+  var detail=document.getElementById('hd-'+key);
+  var chevron=document.getElementById('hc-'+key);
+  if(!detail)return;
+  var open=detail.style.display==='block';
+  detail.style.display=open?'none':'block';
+  if(chevron)chevron.textContent=open?'›':'‹';
+}
+function toggleCtx(id,arrowId){
+  var el=document.getElementById(id);
+  var arrow=document.getElementById(arrowId);
+  if(!el)return;
+  var open=el.style.display==='inline';
+  el.style.display=open?'none':'inline';
+  if(arrow)arrow.textContent=open?'▶':'▼';
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPOSURE DRILL
+// ═══════════════════════════════════════════════════════
+var drillState={preZone:null,preAnswers:{},drillId:null,routeName:''};
+function loadDrillState(){
+  try{var s=localStorage.getItem('see_drill');if(s){drillState=JSON.parse(s);return true;}}catch(e){}return false;
+}
+function saveDrillState(){try{localStorage.setItem('see_drill',JSON.stringify(drillState));}catch(e){}}
+function clearDrillState(){try{localStorage.removeItem('see_drill');}catch(e){}drillState={preZone:null,preAnswers:{},drillId:null,routeName:''};}
+
+function startExposureDrill(){
+  clearDrillState();showScreen('screen-drill');
+}
+function startDrillCheckin(){
+  var rn=document.getElementById('drill-route-name');
+  drillState.routeName=rn?rn.value.trim():'';
+  // Reuse prepare flow for pre-climb check-in
+  prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false,isDrill:true};
+  renderQ();showScreen('s-assess');
+}
+function completeDrill(){
+  logState.projectId=null;
+  showScreen('screen-log');
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
 // Restore any pending Exposure Drill
 if(loadDrillState()&&drillState.preZone){
   var holdZone=document.getElementById('drill-hold-zone');
@@ -2517,7 +3700,8 @@ if(loadDrillState()&&drillState.preZone){
   showScreen('screen-drill-hold');
   showToast('Pending drill restored — ready to log your climb.');
 }
-buildGradeGrid("YDS");
+buildGradeGrid('YDS');
+loadHomeInsight();
 </script>
 </body>
 </html>
