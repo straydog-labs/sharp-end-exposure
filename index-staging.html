@@ -1659,8 +1659,8 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
           <text x="100" y="104" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(200,245,90,.8)" font-weight="500">Comfort</text>
           <text x="100" y="76" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(245,166,35,.75)">Learning</text>
           <text x="100" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.7)">Panic</text>
-          <circle id="zone-dot" cx="100" cy="100" r="7" fill="#c8f55a" opacity="0"/>
-          <circle id="zone-dot-ring" cx="100" cy="100" r="12" fill="none" stroke="#c8f55a" stroke-width="1.5" opacity="0"/>
+          <circle id="result-zone-dot" cx="100" cy="100" r="7" fill="#c8f55a" opacity="0"/>
+          <circle id="result-zone-dot-ring" cx="100" cy="100" r="12" fill="none" stroke="#c8f55a" stroke-width="1.5" opacity="0"/>
         </svg>
       </div>
       <div style="flex:1;min-width:0;">
@@ -2439,7 +2439,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <button class="toggle-btn" onclick="spSetGradeSys('FR')" id="sp-btn-FR"><span class="sys-name">6a+</span><span class="sys-label">French</span></button>
         <button class="toggle-btn" onclick="spSetGradeSys('UK')" id="sp-btn-UK"><span class="sys-name">E1</span><span class="sys-label">UK Tech</span></button>
       </div>
-      <div class="grade-grid" id="sp-grade-grid" style="margin-top:6px;"></div>
+      <div class="grade-grid" id="sp-grade-grid" style="margin-top:6px;"></div><span id="sp-grade-display" style="display:none;"></span>
     </div>
 
     <!-- Discipline -->
@@ -2762,7 +2762,7 @@ async function renderCelebrate(){
   var badgeEl=document.getElementById('card-badge-big');
   var pillEl=document.getElementById('cel-zone-pill');
   var insightEl=document.getElementById('cel-insight-text');
-  var arcEl=document.getElementById('cel-arc-wrap');
+  var arcEl=document.getElementById('cel-arc-svg');
   var climbNumEl=document.getElementById('cel-climb-num');
 
   if(gradEl)gradEl.textContent=logState.grade||'—';
@@ -3096,6 +3096,7 @@ function renderReflection(){
   // Zone map dot
   var dot=document.getElementById('zone-dot');
   var ring=document.getElementById('zone-dot-ring');
+  // Note: reflection screen uses zone-dot, prepare result uses result-zone-dot
   var zoneYMap={comfort:100,learning:68,panic:28};
   var cy=zoneYMap[logState.zone]||68;
   var c=zoneColor(logState.zone);
@@ -3657,6 +3658,17 @@ function computeResult(){
   var zoneLabels={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
   var badge=document.getElementById('zone-badge');
   if(badge){badge.textContent=zoneLabels[zone];badge.style.background=zoneColors[zone]+'22';badge.style.color=zoneColors[zone];badge.style.border='1.5px solid '+zoneColors[zone];}
+  // Animate prepare result zone dot
+  var rzDot=document.getElementById('result-zone-dot');
+  var rzRing=document.getElementById('result-zone-dot-ring');
+  var rzYMap={comfort:100,learning:68,panic:28};
+  var rzCy=rzYMap[zone]||68;
+  var rzC=zoneColors[zone]||'#f5a623';
+  if(rzDot){rzDot.setAttribute('cy',rzCy);rzDot.setAttribute('fill',rzC);rzDot.setAttribute('opacity','1');}
+  if(rzRing){rzRing.setAttribute('cy',rzCy);rzRing.setAttribute('stroke',rzC);rzRing.setAttribute('opacity','0.4');}
+  var subtitle=document.getElementById('res-subtitle');
+  var subMap={comfort:'Lower activation state — familiar territory. Solid ground to climb from.',learning:'At your edge — elevated activation, fully engaged. Where adaptation happens.',panic:'High activation — beyond the optimal window for this challenge today.'};
+  if(subtitle)subtitle.textContent=subMap[zone]||'';
   var g=document.getElementById('g-text');
   var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
   if(g)g.textContent=gMap[zone]||'';
@@ -3707,8 +3719,8 @@ function initFeedback(){fbIdx=0;fbAnswers={};renderFBQ();}
 function renderFBQ(){
   var q=FBQs[fbIdx];if(!q)return;
   var stepLbl=document.getElementById('fb-step-lbl');
-  var fill=document.getElementById('fb-fill');
-  var qText=document.getElementById('fb-q-text');
+  var fill=document.getElementById('fb-prog');
+  var qText=document.getElementById('fb-q');
   var opts=document.getElementById('fb-opts');
   var nextBtn=document.getElementById('fb-next-btn');
   if(stepLbl)stepLbl.textContent='Question '+(fbIdx+1)+' of '+FBQs.length;
