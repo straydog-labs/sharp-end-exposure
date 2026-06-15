@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging 81] Sharp End Exposure</title>
+<title>[Staging 83] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -371,7 +371,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     Projects
   </button>
   <button class="footer-btn" id="fnav-prepare" onclick="startPrepare()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12 Q12 4 23 12 Q12 20 1 12Z"/><circle cx="12" cy="12" r="3.5"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,12 5,12 7,6 9,18 11,10 13,14 15,12 22,12"/></svg>
     Prepare
   </button>
   <button class="footer-btn" id="fnav-research" onclick="showScreen('screen-research')">
@@ -452,7 +452,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <!-- Prepare -->
         <button onclick="startPrepare()" style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.09);border-radius:14px;padding:16px 12px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left;display:flex;flex-direction:column;gap:10px;transition:all .12s;" onmouseenter="this.style.borderColor='rgba(255,255,255,.2)'" onmouseleave="this.style.borderColor='rgba(255,255,255,.09)'">
           <div style="width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;">
-            <svg width="18" height="14" viewBox="0 0 24 18" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.8" stroke-linecap="round"><path d="M1 9 Q12 1 23 9 Q12 17 1 9Z"/><circle cx="12" cy="9" r="3.5"/><circle cx="12" cy="9" r="1.2" fill="rgba(255,255,255,.55)" stroke="none"/></svg>
+            <svg width="18" height="14" viewBox="0 0 24 18" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.8" stroke-linecap="round"><polyline points="1,9 4,9 6,3 8,15 10,7 12,11 14,9 23,9"/></svg>
           </div>
           <div>
             <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.78);font-family:'Space Grotesk',sans-serif;display:block;">Prepare</span>
@@ -2107,7 +2107,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <div id="fb-open" style="display:none;margin-top:12px;">
         <textarea class="fb-textarea" id="fb-open-text" placeholder="Anything else you want to share…" oninput="document.getElementById('fb-next-btn').classList.add('ready')"></textarea>
       </div>
-      <button class="fb-next-btn" id="fb-next-btn" onclick="feedbackNext()">Continue</button>
+      <button class="fb-next-btn" id="fb-next-btn" onclick="fbNext()">Continue</button>
     </div>
     <div class="fb-success" id="fb-success">
       <svg width="110" height="110" viewBox="0 0 200 200" style="margin:0 auto 16px;display:block;">
@@ -2540,6 +2540,16 @@ async function sbU(table,filter,payload){
   }catch(e){console.error('sbU',e);return null;}
 }
 
+
+// ── DEVICE ID — per-user tracking for beta ───────────
+function getDeviceId(){
+  try{
+    var id=localStorage.getItem('see_device_id');
+    if(!id){id='dev_'+Math.random().toString(36).substr(2,9)+'_'+Date.now().toString(36);localStorage.setItem('see_device_id',id);}
+    return id;
+  }catch(e){return 'dev_unknown';}
+}
+
 // ── ZONE RESOLVER — single source of truth ───────────
 // Returns {zone:'comfort'|'learning'|'panic', confidence:'estimated'|'confirmed'}
 function resolveZone(data){
@@ -2707,16 +2717,16 @@ async function logClimb(){
   logState.zone=zr.zone;logState.zoneConf=zr.confidence;
 
   var payload={
-    result:logState.result,
-    grade:logState.grade,
+    baseline_zone:logState.result,
+    grade_value:logState.grade,
     grade_system:logState.gradeSys,
-    terrain:logState.terrain,
+    climbing_type:logState.terrain,
     route_name:logState.routeName||null,
-    baseline_zone:logState.result, // legacy compat
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    logged_at:new Date().toISOString()
+    app_version:'index82',
+    device_id:getDeviceId()
   };
 
   var saved=await sbI('sessions',payload);
@@ -2756,7 +2766,7 @@ async function renderCelebrate(){
   if(pillEl)pillEl.innerHTML=zonePill(logState.zone,true);
 
   // Fetch history for personalized insight
-  var history=await sbS('sessions','select=zone,zone_confidence,terrain,grade,result,logged_at&order=logged_at.desc&limit=50');
+  var history=await sbS('sessions','select=zone,zone_confidence,climbing_type,grade_value,baseline_zone,created_at&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=50');
   var total=Array.isArray(history)?history.length:0;
 
   if(climbNumEl)climbNumEl.textContent='Climb #'+(total);
@@ -2782,7 +2792,7 @@ function buildCelebInsight(history,state){
     return 'First climb logged. Your zone arc starts here — each climb adds a dot. Go Deeper to confirm your zone.';
   }
   var prior=history.slice(1); // exclude current
-  var sameTerrain=prior.filter(function(s){return s.terrain===state.terrain;});
+  var sameTerrain=prior.filter(function(s){return s.climbing_type===state.terrain;});
   var sameZone=sameTerrain.filter(function(s){return s.zone===state.zone;});
 
   if(sameTerrain.length>=3&&sameZone.length===sameTerrain.length){
@@ -2893,7 +2903,7 @@ async function saveEditedClimb(){
   var zr=resolveZone({result:logState.result});
   logState.zone=zr.zone;logState.zoneConf=zr.confidence;
   await sbU('sessions','id=eq.'+logState.sessId,{
-    result:logState.result,grade:logState.grade,terrain:logState.terrain,
+    baseline_zone:logState.result,grade_value:logState.grade,climbing_type:logState.terrain,
     route_name:logState.routeName||null,zone:logState.zone,zone_confidence:logState.zoneConf
   });
   document.getElementById('edit-sheet').style.display='none';
@@ -2972,8 +2982,8 @@ async function afterQ4(){
   // Save to Supabase
   if(logState.sessId){
     await sbU('sessions','id=eq.'+logState.sessId,{
-      deeper_q1:deepAnswers.q1,deeper_q2:deepAnswers.q2,
-      deeper_q3:deepAnswers.q3,deeper_q4:deepAnswers.q4,
+      breathing_post:deepAnswers.q1,gut_post:deepAnswers.q2,
+      crux_response:deepAnswers.q3,body_state:deepAnswers.q4,
       zone:logState.zone,zone_confidence:'confirmed'
     });
   }
@@ -2997,9 +3007,9 @@ async function finishDeeper(){
   // Save remaining optional answers
   if(logState.sessId){
     var extraPayload={};
-    if(deepAnswers.q5)extraPayload.deeper_q5=deepAnswers.q5;
-    if(deepAnswers.q6){var slText=document.getElementById('still-learning-text');extraPayload.deeper_q6=slText?slText.value:deepAnswers.q6;}
-    if(deepAnswers.q7){var supText=document.getElementById('surprised-text');extraPayload.deeper_q7=supText?supText.value:deepAnswers.q7;}
+    if(deepAnswers.q5)extraPayload.went_well=deepAnswers.q5;
+    if(deepAnswers.q6){var slText=document.getElementById('still-learning-text');extraPayload.still_learning=slText?slText.value:deepAnswers.q6;}
+    if(deepAnswers.q7){var supText=document.getElementById('surprised-text');extraPayload.surprised_by=supText?supText.value:deepAnswers.q7;}
     if(Object.keys(extraPayload).length)await sbU('sessions','id=eq.'+logState.sessId,extraPayload);
   }
   renderReflection();
@@ -3045,7 +3055,7 @@ function renderReflection(){
 }
 
 async function buildReflectArc(){
-  var history=await sbS('sessions','select=zone,zone_confidence,logged_at&order=logged_at.asc&limit=20');
+  var history=await sbS('sessions','select=zone,zone_confidence,created_at&device_id=eq.'+getDeviceId()+'&order=created_at.asc&limit=20');
   var svg=document.getElementById('river-svg');
   if(!svg||!Array.isArray(history)||history.length===0)return;
   var zoneY={comfort:82,learning:50,panic:16};
@@ -3070,7 +3080,7 @@ async function loadClimbLog(){
   var titleEl=document.getElementById('climb-log-title');
   if(titleEl)titleEl.textContent='Climb Log';
   var countEl=document.getElementById('sess-total-count');
-  var sessions=await sbS('sessions','select=*&order=logged_at.desc&limit=100');
+  var sessions=await sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=100');
   if(!Array.isArray(sessions))sessions=[];
 
   var confirmed=sessions.filter(function(s){return s.zone_confidence==='confirmed';}).length;
@@ -3097,7 +3107,7 @@ async function loadClimbLog(){
   var totalEl=document.getElementById('real-total');
   var sentEl=document.getElementById('real-sent');
   if(totalEl)totalEl.textContent=total;
-  var sends=sessions.filter(function(s){return s.result==='sent';}).length;
+  var sends=sessions.filter(function(s){return s.baseline_zone==='sent';}).length;
   if(sentEl)sentEl.textContent=Math.round(sends/total*100)+'%';
 
   // Arc with confirmed/estimated distinction
@@ -3165,7 +3175,7 @@ function renderClimbList(sessions){
     var c=zoneColor(s.zone||'learning');
     var conf=s.zone_confidence==='confirmed';
     var pillStyle=conf?'border:1.5px solid '+c+';':'border:1.5px dashed '+c+';';
-    var timeAgo=timeAgoStr(s.logged_at);
+    var timeAgo=timeAgoStr(s.created_at);
     return '<div style="display:flex;gap:10px;align-items:stretch;padding:10px 0;border-bottom:1px solid var(--border);">'
       +'<div style="width:4px;border-radius:99px;background:'+c+';flex-shrink:0;"></div>'
       +'<div style="flex:1;min-width:0;">'
@@ -3173,7 +3183,7 @@ function renderClimbList(sessions){
       +'<div style="font-size:15px;font-weight:700;font-family:\'Space Mono\',monospace;color:var(--accent);">'+(s.grade||'—')+'</div>'
       +'<div style="font-size:11px;color:var(--muted2);">'+timeAgo+'</div>'
       +'</div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">'+(s.terrain||'—')+' · '+(resultLabels[s.result]||s.result||'—')+'</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">'+(s.climbing_type||'—')+' · '+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</div>'
       +'<div style="display:flex;gap:6px;align-items:center;">'
       +'<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 8px;border-radius:99px;'+pillStyle+'">'+(conf?zoneName(s.zone):zoneName(s.zone)+' ~')+'</span>'
       +(s.route_name?'<span style="font-size:11px;color:var(--muted2);">'+s.route_name+'</span>':'')
@@ -3205,7 +3215,7 @@ function buildRadar(sessions){
   var terrains=['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack'];
   var counts={};
   terrains.forEach(function(t){counts[t]=0;});
-  sessions.forEach(function(s){if(s.terrain&&counts[s.terrain]!==undefined)counts[s.terrain]++;});
+  sessions.forEach(function(s){if(s.climbing_type&&counts[s.climbing_type]!==undefined)counts[s.climbing_type]++;});
   var max=Math.max.apply(null,terrains.map(function(t){return counts[t];}));
   if(max===0){svg.innerHTML='';return;}
 
@@ -3262,7 +3272,7 @@ async function buildInsight(sessions){
 // HOME INSIGHT
 // ═══════════════════════════════════════════════════════
 async function loadHomeInsight(){
-  var sessions=await sbS('sessions','select=zone,zone_confidence,terrain,logged_at&order=logged_at.desc&limit=50');
+  var sessions=await sbS('sessions','select=zone,zone_confidence,climbing_type,created_at&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=50');
   if(!Array.isArray(sessions))sessions=[];
   var total=sessions.length;
 
@@ -3348,7 +3358,7 @@ function toggleHomeSayMore(){
 // PROJECTS
 // ═══════════════════════════════════════════════════════
 var currentProjectId=null;var currentProject=null;
-var spState={name:'',disc:'',bolts:null,height:null,unit:'ft'};
+var spState={name:'',disc:'',env:null,rock:null,bolts:null,height:null,unit:'ft'};
 
 function spCheckReady(){
   var btn=document.getElementById('sp-submit-btn');
@@ -3360,11 +3370,34 @@ function spCheckReady(){
 }
 function spPickDisc(btn,disc){
   spState.disc=disc;
-  document.querySelectorAll('.discipline-chips .chip').forEach(function(b){b.classList.remove('selected');});
+  // Select button in its grid
+  var grid=btn.closest('.field-group')||btn.parentNode;
+  if(grid)grid.querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
   btn.classList.add('selected');
+  // Bolt count only relevant for Sport
   var boltGroup=document.getElementById('sp-bolt-group');
   if(boltGroup)boltGroup.style.display=disc==='Sport'?'block':'none';
   spCheckReady();
+}
+function spPickEnv(env){
+  spState.env=env;
+  var inBtn=document.getElementById('sp-env-in');
+  var outBtn=document.getElementById('sp-env-out');
+  if(inBtn)inBtn.classList.toggle('selected',env==='indoor');
+  if(outBtn)outBtn.classList.toggle('selected',env==='outdoor');
+  // Show rock type for outdoor
+  var rockGroup=document.getElementById('sp-rock-group');
+  if(rockGroup)rockGroup.style.display=env==='outdoor'?'block':'none';
+  // Show bolt + height fields
+  var extraFields=document.getElementById('sp-extra-fields');
+  if(extraFields)extraFields.style.display='flex';
+  spCheckReady();
+}
+function spPickRock(btn,rock){
+  spState.rock=rock;
+  var grid=btn.parentNode;
+  if(grid)grid.querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
 }
 function spSetUnit(u){
   spState.unit=u;
@@ -3380,8 +3413,8 @@ async function submitProject(){
   var nameEl=document.getElementById('sp-name');
   if(!nameEl||!nameEl.value.trim()||!spState.disc){showToast('Name and discipline required');return;}
   var gradeEl=document.getElementById('sp-grade-display');
-  var grade=gradeEl?gradeEl.textContent:'—';
-  var payload={name:nameEl.value.trim(),discipline:spState.disc,grade:grade,status:'active',created_at:new Date().toISOString()};
+  var grade=spSelectedGrade||gradeEl&&gradeEl.textContent||'—';
+  var payload={name:nameEl.value.trim(),discipline:spState.disc,grade_value:grade,status:'active',environment:spState.env||null,rock_type:spState.rock||null};
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.height=spState.height+spState.unit;
   var saved=await sbI('projects',payload);
@@ -3428,7 +3461,7 @@ async function openProjectById(id){
   if(nameEl)nameEl.textContent=currentProject.name||'—';
   if(gradeEl)gradeEl.textContent=currentProject.grade||'—';
   // Load sessions for this project
-  var sessions=await sbS('sessions','select=*&project_id=eq.'+encodeURIComponent(id)+'&order=logged_at.asc');
+  var sessions=await sbS('sessions','select=*&project_id=eq.'+encodeURIComponent(id)+'&order=created_at.asc');
   var sessList=Array.isArray(sessions)?sessions:[];
   var sessCount=document.getElementById('proj-stat-sessions');
   var sendsCount=document.getElementById('proj-stat-sends');
@@ -3549,7 +3582,7 @@ function computeResult(){
   var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
   if(g)g.textContent=gMap[zone]||'';
   // Save to Supabase with is_checkin flag
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',result:'checkin',is_checkin:true,logged_at:new Date().toISOString()});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index82'});
   showScreen('s-result');
 }
 
@@ -3577,7 +3610,7 @@ function getZone(score){return score<=3?'comfort':score<=8?'learning':'panic';}
 
 // Route Analysis (deep prepare)
 var deepPrepQs=[];var deepPrepIdx=0;var deepPrepAnswers={};
-function startDeeperPrepare(){showScreen('s-deeper');}
+function startDeeperPrepare(){deepPrepState={qi:0,answers:{}};showScreen('s-deeper');deepNext();}
 function deepBack(){showScreen('s-result');}
 function restart(){prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false};startPrepareFlow();}
 
@@ -3685,6 +3718,266 @@ function completeDrill(){
 }
 
 // ═══════════════════════════════════════════════════════
+// ROUTE DETAILS SCREEN (post-log optional context)
+// ═══════════════════════════════════════════════════════
+var rdState={disc:null,env:null,rock:null,bolts:null,height:null,unit:'ft'};
+
+function rdSelectDisc(btn,disc){
+  rdState.disc=disc;
+  btn.closest('.field-group').querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  var boltGroup=document.getElementById('rd-bolt-group');
+  if(boltGroup)boltGroup.style.display=disc==='Sport'?'block':'none';
+}
+function rdSelectEnv(env){
+  rdState.env=env;
+  var inBtn=document.getElementById('rd-indoor');
+  var outBtn=document.getElementById('rd-outdoor');
+  if(inBtn)inBtn.classList.toggle('selected',env==='indoor');
+  if(outBtn)outBtn.classList.toggle('selected',env==='outdoor');
+  var outdoorFields=document.getElementById('rd-outdoor-fields');
+  if(outdoorFields)outdoorFields.style.display=env==='outdoor'?'flex':'none';
+}
+function rdSelectRock(btn,rock){
+  rdState.rock=rock;
+  btn.parentNode.querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+}
+function rdAdjBolt(d){
+  rdState.bolts=(rdState.bolts||6)+d;
+  if(rdState.bolts<1)rdState.bolts=1;
+  var el=document.getElementById('rd-bolt-val');
+  if(el)el.textContent=rdState.bolts;
+}
+function rdAdjHeight(d){
+  rdState.height=(rdState.height||20)+d;
+  if(rdState.height<1)rdState.height=1;
+  var el=document.getElementById('rd-height-val');
+  if(el)el.textContent=rdState.height;
+}
+function rdSetUnit(u){
+  rdState.unit=u;
+  var ft=document.getElementById('rd-unit-ft');
+  var m=document.getElementById('rd-unit-m');
+  if(ft){ft.style.background=u==='ft'?'rgba(232,118,58,.12)':'var(--surface)';ft.style.borderColor=u==='ft'?'var(--accent)':'var(--border)';}
+  if(m){m.style.background=u==='m'?'rgba(232,118,58,.12)':'var(--surface)';m.style.borderColor=u==='m'?'var(--accent)':'var(--border)';}
+  var lbl=document.getElementById('rd-height-unit');if(lbl)lbl.textContent=u;
+}
+async function saveRouteDetails(){
+  var nameEl=document.getElementById('rd-route-name');
+  if(nameEl&&nameEl.value.trim())logState.routeName=nameEl.value.trim();
+  if(logState.sessId){
+    var payload={
+      route_name:logState.routeName||null,
+      discipline:rdState.disc||null,
+      environment:rdState.env||null,
+      rock_type:rdState.rock||null,
+      bolt_count:rdState.bolts||null,
+      route_height_ft:rdState.unit==='ft'?rdState.height:(rdState.height?Math.round(rdState.height*3.281):null)
+    };
+    await sbU('sessions','id=eq.'+logState.sessId,payload);
+    showToast('Details saved ✓');
+  }
+  showScreen('screen-celebrate');
+}
+
+// ═══════════════════════════════════════════════════════
+// HIW ZONE TOGGLES
+// ═══════════════════════════════════════════════════════
+function hiwZoneTog(key){
+  var detail=document.getElementById('hzd-'+key);
+  var chevron=document.getElementById('hzc-'+key);
+  if(!detail)return;
+  var open=detail.style.display==='block';
+  detail.style.display=open?'none':'block';
+  if(chevron)chevron.style.transform=open?'':'rotate(90deg)';
+}
+
+// ═══════════════════════════════════════════════════════
+// BODY SCAN (Prepare flow)
+// ═══════════════════════════════════════════════════════
+var scanState={};
+var scanZones=['head','shoulders','chest','core','lower'];
+
+function scanToggle(zone){
+  var row=document.getElementById('sz-'+zone);
+  if(!row)return;
+  var states=['clear','mild','tight'];
+  var current=scanState[zone]||0;
+  var next=(current+1)%3;
+  scanState[zone]=next;
+  var colors=['rgba(255,255,255,.06)','rgba(245,166,35,.15)','rgba(232,68,68,.15)'];
+  var borders=['var(--border)','rgba(245,166,35,.5)','rgba(232,68,68,.5)'];
+  var labels=['—','mild tension','tight'];
+  row.style.background=colors[next];
+  row.style.borderColor=borders[next];
+  var lbl=row.querySelector('.scan-state-lbl');
+  if(lbl)lbl.textContent=labels[next];
+  // Enable continue once at least one zone tapped
+  var anySet=Object.values(scanState).some(function(v){return v>0;});
+  var cont=document.getElementById('scan-continue');
+  if(cont)cont.disabled=false;
+}
+function skipBodyScan(){
+  scanState={};
+  goNext();
+}
+function continueFromScan(){
+  // Save scan data and continue
+  var zones=[];
+  scanZones.forEach(function(z){
+    if(scanState[z]>0)zones.push(z+':'+(scanState[z]===1?'mild':'tight'));
+  });
+  prepState.answers['bodyscan']=zones.join(',');
+  goNext();
+}
+
+// ═══════════════════════════════════════════════════════
+// INCIDENT SCREEN (post-fall context — attempts only)
+// ═══════════════════════════════════════════════════════
+var incidentState={step:0,answers:{}};
+var incidentQs=[
+  {q:'Where did you come off?',opts:['At the crux','Below the crux','Above the crux','At a clip','Unexpected slip','Top of route']},
+  {q:'How did it feel?',opts:['Expected — I was at my limit','Unexpected — caught me off guard','Intentional — I was practising falls','Reactive — I couldn\'t control it']}
+];
+function incidentNext(){
+  var content=document.getElementById('incident-content');
+  var nextBtn=document.getElementById('incident-next-btn');
+  var prog=document.getElementById('incident-progress');
+  if(incidentState.step>=incidentQs.length){
+    showScreen('screen-reflection');return;
+  }
+  var q=incidentQs[incidentState.step];
+  if(prog)prog.textContent=(incidentState.step+1)+' of '+incidentQs.length;
+  if(content){
+    content.innerHTML='<div class="question-card"><div class="q-number">Fall context</div>'
+      +'<div class="q-text-dark">'+q.q+'</div>'
+      +'<div class="response-chips">'
+      +q.opts.map(function(o){
+        return '<button class="chip" onclick="incidentPick(this,\''+o.replace(/'/g,"\\'")+'\')">' +o+'</button>';
+      }).join('')+'</div></div>';
+  }
+  if(nextBtn){nextBtn.classList.remove('ready');nextBtn.textContent=incidentState.step===incidentQs.length-1?'Done →':'Next →';}
+  incidentState.step++;
+}
+function incidentPick(btn,val){
+  btn.closest('.response-chips').querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  incidentState.answers[incidentState.step]=val;
+  var nextBtn=document.getElementById('incident-next-btn');
+  if(nextBtn)nextBtn.classList.add('ready');
+}
+
+// ═══════════════════════════════════════════════════════
+// MARK PROJECT SENT
+// ═══════════════════════════════════════════════════════
+async function markProjectSent(id){
+  if(!id)return;
+  await sbU('projects','id=eq.'+id,{status:'sent'});
+  showToast('Project marked as sent ✓');
+  showScreen('screen-projects');
+  loadProjectsScreen();
+}
+
+// ═══════════════════════════════════════════════════════
+// START PROJECT — GRADE SYSTEM
+// ═══════════════════════════════════════════════════════
+var spGradeSys='YDS';
+var spSelectedGrade=null;
+
+function spSetGradeSys(sys){
+  spGradeSys=sys;
+  spSelectedGrade=null;
+  ['V','YDS','FR','UK'].forEach(function(s){
+    var b=document.getElementById('sp-btn-'+s);
+    if(b)b.classList.toggle('active',s===sys);
+  });
+  var grid=document.getElementById('sp-grade-grid');
+  if(!grid)return;
+  grid.innerHTML='';
+  GRADES[sys].forEach(function(g){
+    var b=document.createElement('button');
+    b.className='grade-btn';b.textContent=g;
+    b.onclick=function(){
+      grid.querySelectorAll('.grade-btn').forEach(function(x){x.classList.remove('selected');});
+      b.classList.add('selected');
+      spSelectedGrade=g;
+      // Update display
+      var disp=document.getElementById('sp-grade-display');
+      if(disp)disp.textContent=g;
+      spCheckReady();
+    };
+    grid.appendChild(b);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// SESSIONS — TOGGLE AI MORE
+// ═══════════════════════════════════════════════════════
+function toggleAiMore(){
+  var t=document.getElementById('ai-more-text');
+  var b=document.getElementById('ai-say-more-btn');
+  if(!t)return;
+  var open=t.style.display==='block';
+  t.style.display=open?'none':'block';
+  if(b)b.textContent=open?'Say more →':'Say less →';
+}
+
+// ═══════════════════════════════════════════════════════
+// ROUTE ANALYSIS (Deep Prepare) — deepNext
+// ═══════════════════════════════════════════════════════
+var deepPrepState={qi:0,answers:{}};
+var RouteAnalysisQs=[
+  {label:'Approach',q:'How are you approaching this climb?',opts:['Onsight — first time, no beta','Redpoint — known moves, going for send','Hangdog — working moves','Just exploring']},
+  {label:'Fall zone',q:'Where does a fall from the crux land you?',opts:['Clean air — no obstacles','Near a ledge or feature','Into a roof or overhang','Ground-up — low bolt','I\'m not sure']},
+  {label:'Protection',q:'How visible and reliable is the protection?',opts:['Solid and visible throughout','Good but one blind clip','Sparse — runout sections','Gear — I placed it','Top rope — fully protected']},
+  {label:'Physical state',q:'How is your body today?',opts:['Fresh — well rested','Slightly tired','Pumped or fatigued','Injured or managing something']},
+  {label:'Consequence',q:'What\'s the objective consequence of a fall here?',opts:['Minimal — clean fall','Minor — small swing','Moderate — ledge nearby','High — significant consequence']}
+];
+function deepNext(){
+  var wrap=document.getElementById('deep-visual');
+  var phaseLbl=document.getElementById('deep-phase-lbl');
+  var stepLbl=document.getElementById('deep-step-lbl');
+  var nextBtn=document.getElementById('deep-next');
+  var qi=deepPrepState.qi;
+  if(qi>=RouteAnalysisQs.length){
+    // Done — save and go back to result
+    showScreen('s-result');return;
+  }
+  var q=RouteAnalysisQs[qi];
+  if(phaseLbl)phaseLbl.textContent=q.label;
+  if(stepLbl)stepLbl.textContent=(qi+1)+' of '+RouteAnalysisQs.length;
+  if(nextBtn)nextBtn.disabled=true;
+  // Render dots
+  var dots=document.getElementById('deep-dots');
+  if(dots){
+    dots.innerHTML=RouteAnalysisQs.map(function(_,i){
+      return '<div style="width:8px;height:8px;border-radius:50%;background:'+(i<qi?'var(--accent)':i===qi?'var(--accent)':'var(--border)')+';opacity:'+(i===qi?1:.4)+';"></div>';
+    }).join('');
+  }
+  // Render question
+  var qWrap=document.getElementById('deep-visual');
+  if(qWrap){
+    qWrap.innerHTML='<div class="question-card">'
+      +'<div class="q-number">'+q.label+'</div>'
+      +'<div class="q-text-dark">'+q.q+'</div>'
+      +'<div class="response-chips">'
+      +q.opts.map(function(o){
+        return '<button class="chip" onclick="deepPickOpt(this,\''+o.replace(/'/g,"\\'")+'\')">' +o+'</button>';
+      }).join('')
+      +'</div></div>';
+  }
+  deepPrepState.qi++;
+}
+function deepPickOpt(btn,val){
+  btn.closest('.response-chips').querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  deepPrepState.answers[deepPrepState.qi]=val;
+  var nextBtn=document.getElementById('deep-next');
+  if(nextBtn)nextBtn.disabled=false;
+}
+
+// ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
 // Restore any pending Exposure Drill
@@ -3701,6 +3994,7 @@ if(loadDrillState()&&drillState.preZone){
   showToast('Pending drill restored — ready to log your climb.');
 }
 buildGradeGrid('YDS');
+spSetGradeSys('YDS');
 loadHomeInsight();
 </script>
 </body>
