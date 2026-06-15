@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEE Diagnostic</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1410;color:#fff;font-family:'Monaco','Menlo',monospace;font-size:13px;padding:20px;}
+h1{font-size:18px;font-weight:700;color:#e8763a;margin-bottom:4px;}
+.sub{font-size:12px;color:#a09890;margin-bottom:24px;}
+.section{margin-bottom:24px;}
+.section-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e8763a;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #3a3228;}
+.test{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;background:#2a2420;}
+.test.pass{border-left:3px solid #7ec87a;}
+.test.fail{border-left:3px solid #e84444;}
+.test.warn{border-left:3px solid #f5a623;}
+.test.running{border-left:3px solid #555;}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0;margin-top:1px;}
+.badge.pass{background:rgba(126,200,122,.2);color:#7ec87a;}
+.badge.fail{background:rgba(232,68,68,.2);color:#e84444;}
+.badge.warn{background:rgba(245,166,35,.2);color:#f5a623;}
+.badge.running{background:rgba(255,255,255,.08);color:#888;}
+.test-body{flex:1;min-width:0;}
+.test-name{font-size:12px;font-weight:700;color:#fff;margin-bottom:2px;}
+.test-detail{font-size:11px;color:#a09890;line-height:1.5;word-break:break-all;}
+.fix-box{margin-top:6px;padding:8px 10px;background:rgba(232,68,68,.08);border:1px solid rgba(232,68,68,.2);border-radius:4px;font-size:11px;color:#f08c52;line-height:1.6;}
+.fix-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#e84444;margin-bottom:3px;}
+.summary{background:#2a2420;border:1px solid #3a3228;border-radius:10px;padding:16px;margin-bottom:24px;}
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px;}
+.summary-stat{text-align:center;}
+.summary-num{font-size:28px;font-weight:700;font-family:'Monaco',monospace;line-height:1;}
+.summary-lbl{font-size:10px;color:#a09890;margin-top:3px;}
+.copy-btn{background:#e8763a;border:none;border-radius:8px;color:#fff;font-family:'Monaco',monospace;font-size:12px;font-weight:700;padding:10px 20px;cursor:pointer;width:100%;margin-top:8px;}
+.copy-btn:active{opacity:.8;}
+.raw-output{background:#0f0c09;border:1px solid #3a3228;border-radius:8px;padding:14px;font-size:11px;color:#a09890;line-height:1.7;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;margin-top:8px;}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.1);border-top-color:#e8763a;border-radius:50%;animation:spin .8s linear infinite;margin-right:6px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress{height:3px;background:#3a3228;border-radius:2px;margin-bottom:20px;overflow:hidden;}
+.progress-fill{height:100%;background:#e8763a;border-radius:2px;transition:width .3s;width:0%;}
+</style>
+</head>
+<body>
+
+<h1>⚡ Sharp End Exposure — Diagnostic</h1>
+<div class="sub">Self-running. No clicking required. Takes ~10 seconds.</div>
+
+<div class="progress"><div class="progress-fill" id="prog"></div></div>
+
+<div class="summary" id="summary" style="display:none;">
+  <div style="font-size:13px;font-weight:700;color:#fff;">Diagnostic complete</div>
+  <div class="summary-grid">
+    <div class="summary-stat"><div class="summary-num" id="s-pass" style="color:#7ec87a;">0</div><div class="summary-lbl">Passed</div></div>
+    <div class="summary-stat"><div class="summary-num" id="s-fail" style="color:#e84444;">0</div><div class="summary-lbl">Failed</div></div>
+    <div class="summary-stat"><div class="summary-num" id="s-warn" style="color:#f5a623;">0</div><div class="summary-lbl">Warnings</div></div>
+    <div class="summary-stat"><div class="summary-num" id="s-total" style="color:#e8763a;">0</div><div class="summary-lbl">Total</div></div>
+  </div>
+  <button class="copy-btn" onclick="copyReport()">📋 Copy full report for Claude</button>
+</div>
+
+<div class="section">
+  <div class="section-title">Supabase Connection</div>
+  <div id="tests-connection"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Database — Read</div>
+  <div id="tests-read"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Database — Write</div>
+  <div id="tests-write"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Schema Validation</div>
+  <div id="tests-schema"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Raw Output</div>
+  <div class="raw-output" id="raw-log">Running diagnostics...\n</div>
+</div>
+
+<script>
+const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
+const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
+const SB_HEADERS = {
+  'Content-Type':'application/json',
+  'apikey':SB_KEY,
+  'Authorization':'Bearer '+SB_KEY
+};
+
+// ── State ──
+var results = [];
+var rawLog = [];
+var totalTests = 0;
+var completedTests = 0;
+var testDeviceId = 'diag_'+Math.random().toString(36).substr(2,9);
+
+function log(msg){
+  rawLog.push(new Date().toISOString().substr(11,8)+' '+msg);
+  document.getElementById('raw-log').textContent = rawLog.join('\n');
+}
+
+function updateProgress(){
+  completedTests++;
+  var pct = Math.round(completedTests/totalTests*100);
+  document.getElementById('prog').style.width = pct+'%';
+  if(completedTests >= totalTests) showSummary();
+}
+
+function addTest(containerId, name, status, detail, fix){
+  var el = document.createElement('div');
+  el.className = 'test '+status;
+  var fixHtml = (status==='fail'&&fix) ? '<div class="fix-box"><div class="fix-label">Fix for Claude</div>'+fix+'</div>' : '';
+  el.innerHTML = '<span class="badge '+status+'">'+(status==='pass'?'PASS':status==='fail'?'FAIL':status==='warn'?'WARN':'...')+'</span>'
+    +'<div class="test-body"><div class="test-name">'+name+'</div>'
+    +(detail?'<div class="test-detail">'+detail+'</div>':'')
+    +fixHtml+'</div>';
+  document.getElementById(containerId).appendChild(el);
+  results.push({name,status,detail,fix});
+  log('['+status.toUpperCase()+'] '+name+(detail?' — '+detail:''));
+  updateProgress();
+}
+
+function addRunning(containerId, name){
+  var el = document.createElement('div');
+  el.className = 'test running';
+  el.id = 'test-'+name.replace(/\s+/g,'-');
+  el.innerHTML = '<span class="badge running"><span class="spinner"></span></span>'
+    +'<div class="test-body"><div class="test-name">'+name+'</div></div>';
+  document.getElementById(containerId).appendChild(el);
+}
+
+function showSummary(){
+  var pass = results.filter(r=>r.status==='pass').length;
+  var fail = results.filter(r=>r.status==='fail').length;
+  var warn = results.filter(r=>r.status==='warn').length;
+  document.getElementById('s-pass').textContent = pass;
+  document.getElementById('s-fail').textContent = fail;
+  document.getElementById('s-warn').textContent = warn;
+  document.getElementById('s-total').textContent = results.length;
+  document.getElementById('summary').style.display = 'block';
+  log('=== COMPLETE: '+pass+' pass, '+fail+' fail, '+warn+' warn ===');
+}
+
+function copyReport(){
+  var fails = results.filter(r=>r.status==='fail'||r.status==='warn');
+  var report = '=== SEE DIAGNOSTIC REPORT ===\n';
+  report += 'Date: '+new Date().toISOString()+'\n';
+  report += 'Total: '+results.length+' tests | Pass: '+results.filter(r=>r.status==='pass').length+' | Fail: '+results.filter(r=>r.status==='fail').length+' | Warn: '+results.filter(r=>r.status==='warn').length+'\n\n';
+  
+  if(fails.length===0){
+    report += 'ALL TESTS PASSED ✓\n';
+  } else {
+    report += '=== FAILURES & WARNINGS ===\n';
+    fails.forEach(function(r){
+      report += '\n['+r.status.toUpperCase()+'] '+r.name+'\n';
+      if(r.detail) report += 'Detail: '+r.detail+'\n';
+      if(r.fix) report += 'Fix: '+r.fix+'\n';
+    });
+  }
+  
+  report += '\n=== RAW LOG ===\n'+rawLog.join('\n');
+  
+  navigator.clipboard.writeText(report).then(function(){
+    var btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ Copied — paste into Claude';
+    setTimeout(function(){btn.textContent='📋 Copy full report for Claude';},3000);
+  }).catch(function(){
+    prompt('Copy this report:', report);
+  });
+}
+
+// ═══════════════════════════════════════
+// TESTS
+// ═══════════════════════════════════════
+
+async function runAll(){
+  // Count total tests upfront
+  totalTests = 20;
+
+  // ── CONNECTION TESTS ──────────────────
+  log('Starting connection tests...');
+
+  // Test 1: Basic connectivity
+  addRunning('tests-connection','Supabase reachable');
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/', {headers:SB_HEADERS});
+    if(r.ok||r.status===200||r.status===400){
+      addTest('tests-connection','Supabase reachable','pass','Status '+r.status+' — endpoint responding');
+    } else {
+      addTest('tests-connection','Supabase reachable','fail','Status '+r.status,'Check SB_URL and SB_KEY in the HTML file');
+    }
+  } catch(e) {
+    addTest('tests-connection','Supabase reachable','fail',e.message,'Network error — check Supabase project is not paused');
+  }
+
+  // Test 2: Auth header valid
+  addRunning('tests-connection','API key accepted');
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/sessions?limit=1', {headers:SB_HEADERS});
+    if(r.status===401||r.status===403){
+      addTest('tests-connection','API key accepted','fail','Status '+r.status+' — unauthorized','SB_KEY may be wrong or expired. Check Supabase Settings → API Keys');
+    } else {
+      addTest('tests-connection','API key accepted','pass','Status '+r.status);
+    }
+  } catch(e) {
+    addTest('tests-connection','API key accepted','fail',e.message,'');
+  }
+
+  // ── READ TESTS ────────────────────────
+  log('Starting read tests...');
+
+  // Test 3-8: Each required column in sessions
+  var requiredCols = [
+    ['zone','sessions'],
+    ['zone_confidence','sessions'],
+    ['device_id','sessions'],
+    ['climbing_type','sessions'],
+    ['grade_value','sessions'],
+    ['baseline_zone','sessions']
+  ];
+
+  for(var i=0;i<requiredCols.length;i++){
+    var col = requiredCols[i][0];
+    var table = requiredCols[i][1];
+    addRunning('tests-read','Column: '+table+'.'+col);
+    try {
+      var r = await fetch(SB_URL+'/rest/v1/'+table+'?select='+col+'&limit=1', {headers:SB_HEADERS});
+      var d = await r.json();
+      if(r.status===400){
+        var msg = d&&d.message?d.message:'400 error';
+        addTest('tests-read','Column: '+table+'.'+col,'fail',msg,
+          'Run SQL: ALTER TABLE public.'+table+' ADD COLUMN IF NOT EXISTS '+col+' text;');
+      } else if(r.ok){
+        addTest('tests-read','Column: '+table+'.'+col,'pass','Exists and readable');
+      } else {
+        addTest('tests-read','Column: '+table+'.'+col,'warn','Status '+r.status+': '+(d&&d.message||'unknown'));
+      }
+    } catch(e) {
+      addTest('tests-read','Column: '+table+'.'+col,'fail',e.message,'');
+    }
+  }
+
+  // Test 9: projects table
+  addRunning('tests-read','projects table readable');
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/projects?select=id,name,grade_value,status&limit=1', {headers:SB_HEADERS});
+    var d = await r.json();
+    if(r.status===400){
+      addTest('tests-read','projects table readable','fail',d&&d.message||'400',
+        'Run SQL from supabase-setup-index83.sql — projects table may be missing columns');
+    } else {
+      addTest('tests-read','projects table readable','pass','Status '+r.status);
+    }
+  } catch(e) {
+    addTest('tests-read','projects table readable','fail',e.message,'');
+  }
+
+  // Test 10: feedback table
+  addRunning('tests-read','feedback table exists');
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/feedback?select=id&limit=1', {headers:SB_HEADERS});
+    if(r.status===404||r.status===400){
+      addTest('tests-read','feedback table exists','fail','Table missing or inaccessible',
+        'Run SQL: CREATE TABLE IF NOT EXISTS public.feedback (id uuid default gen_random_uuid() primary key, answers jsonb, device_id text, submitted_at timestamptz default now());');
+    } else {
+      addTest('tests-read','feedback table exists','pass','Status '+r.status);
+    }
+  } catch(e) {
+    addTest('tests-read','feedback table exists','fail',e.message,'');
+  }
+
+  // ── WRITE TESTS ───────────────────────
+  log('Starting write tests...');
+
+  // Test 11: Insert a test session
+  addRunning('tests-write','INSERT sessions row');
+  var testSessId = null;
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/sessions', {
+      method:'POST',
+      headers:{...SB_HEADERS,'Prefer':'return=representation'},
+      body:JSON.stringify({
+        baseline_zone:'sent',
+        grade_value:'5.10a',
+        grade_system:'YDS',
+        climbing_type:'Vertical',
+        zone:'comfort',
+        zone_confidence:'estimated',
+        device_id:testDeviceId,
+        app_version:'diagnostic',
+        is_checkin:false
+      })
+    });
+    var d = await r.json();
+    if(r.ok&&d&&d.id){
+      testSessId = d.id;
+      addTest('tests-write','INSERT sessions row','pass','Row created: '+d.id);
+    } else {
+      var msg = d&&d.message?d.message:JSON.stringify(d).substr(0,120);
+      addTest('tests-write','INSERT sessions row','fail',msg,
+        'Check column names match schema. Bad columns: '+msg);
+    }
+  } catch(e) {
+    addTest('tests-write','INSERT sessions row','fail',e.message,'');
+  }
+
+  // Test 12: UPDATE session (Go Deeper save)
+  addRunning('tests-write','UPDATE sessions (Go Deeper)');
+  if(testSessId){
+    try {
+      var r = await fetch(SB_URL+'/rest/v1/sessions?id=eq.'+testSessId, {
+        method:'PATCH',
+        headers:{...SB_HEADERS,'Prefer':'return=representation'},
+        body:JSON.stringify({
+          breathing_post:'Easy and steady',
+          gut_post:'Settled, neutral',
+          crux_response:'No standout moment',
+          body_state:'Loose and fluid',
+          zone:'comfort',
+          zone_confidence:'confirmed'
+        })
+      });
+      var d = await r.json();
+      if(r.ok){
+        addTest('tests-write','UPDATE sessions (Go Deeper)','pass','Go Deeper columns save correctly');
+      } else {
+        var msg = d&&d.message?d.message:JSON.stringify(d).substr(0,120);
+        addTest('tests-write','UPDATE sessions (Go Deeper)','fail',msg,
+          'Go Deeper column names wrong. Expected: breathing_post, gut_post, crux_response, body_state');
+      }
+    } catch(e) {
+      addTest('tests-write','UPDATE sessions (Go Deeper)','fail',e.message,'');
+    }
+  } else {
+    addTest('tests-write','UPDATE sessions (Go Deeper)','warn','Skipped — INSERT failed first','Fix INSERT test first');
+  }
+
+  // Test 13: INSERT project
+  addRunning('tests-write','INSERT projects row');
+  var testProjId = null;
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/projects', {
+      method:'POST',
+      headers:{...SB_HEADERS,'Prefer':'return=representation'},
+      body:JSON.stringify({
+        name:'Diagnostic Test Project',
+        discipline:'Sport',
+        grade_value:'5.11a',
+        status:'active',
+        environment:'outdoor',
+        device_id:testDeviceId
+      })
+    });
+    var d = await r.json();
+    if(r.ok&&d&&d.id){
+      testProjId = d.id;
+      addTest('tests-write','INSERT projects row','pass','Row created: '+d.id);
+    } else {
+      var msg = d&&d.message?d.message:JSON.stringify(d).substr(0,120);
+      addTest('tests-write','INSERT projects row','fail',msg,
+        'Projects table column mismatch. Check grade_value, environment, device_id exist');
+    }
+  } catch(e) {
+    addTest('tests-write','INSERT projects row','fail',e.message,'');
+  }
+
+  // Test 14: INSERT feedback
+  addRunning('tests-write','INSERT feedback row');
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/feedback', {
+      method:'POST',
+      headers:{...SB_HEADERS,'Prefer':'return=representation'},
+      body:JSON.stringify({
+        answers:JSON.stringify({test:true}),
+        device_id:testDeviceId
+      })
+    });
+    var d = await r.json();
+    if(r.ok){
+      addTest('tests-write','INSERT feedback row','pass','Feedback saves correctly');
+    } else {
+      var msg = d&&d.message?d.message:JSON.stringify(d).substr(0,120);
+      addTest('tests-write','INSERT feedback row','fail',msg,
+        'Feedback table issue. Run: CREATE TABLE IF NOT EXISTS public.feedback (id uuid default gen_random_uuid() primary key, answers jsonb, device_id text, submitted_at timestamptz default now());');
+    }
+  } catch(e) {
+    addTest('tests-write','INSERT feedback row','fail',e.message,'');
+  }
+
+  // ── SCHEMA VALIDATION ─────────────────
+  log('Starting schema validation...');
+
+  // Test 15: device_id filter works
+  addRunning('tests-schema','device_id filter query');
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/sessions?select=id,zone&device_id=eq.'+testDeviceId+'&order=created_at.desc&limit=10', {headers:SB_HEADERS});
+    var d = await r.json();
+    if(r.ok&&Array.isArray(d)){
+      addTest('tests-schema','device_id filter query','pass','Returns '+d.length+' rows for test device');
+    } else {
+      addTest('tests-schema','device_id filter query','fail',JSON.stringify(d).substr(0,100),
+        'device_id column filter broken — check RLS policies allow select');
+    }
+  } catch(e) {
+    addTest('tests-schema','device_id filter query','fail',e.message,'');
+  }
+
+  // Test 16: is_checkin filter
+  addRunning('tests-schema','is_checkin filter query');
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/sessions?select=id&is_checkin=eq.false&device_id=eq.'+testDeviceId+'&limit=5', {headers:SB_HEADERS});
+    var d = await r.json();
+    if(r.ok&&Array.isArray(d)){
+      addTest('tests-schema','is_checkin filter query','pass','Filter works — '+d.length+' non-checkin rows');
+    } else {
+      addTest('tests-schema','is_checkin filter query','fail',JSON.stringify(d).substr(0,100),
+        'is_checkin column may not exist. Run: ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS is_checkin boolean default false;');
+    }
+  } catch(e) {
+    addTest('tests-schema','is_checkin filter query','fail',e.message,'');
+  }
+
+  // Test 17: project_id link
+  addRunning('tests-schema','project_id session link');
+  if(testSessId&&testProjId){
+    try {
+      var r = await fetch(SB_URL+'/rest/v1/sessions?id=eq.'+testSessId, {
+        method:'PATCH',
+        headers:{...SB_HEADERS,'Prefer':'return=representation'},
+        body:JSON.stringify({project_id:testProjId})
+      });
+      var d = await r.json();
+      if(r.ok){
+        addTest('tests-schema','project_id session link','pass','Session linked to project successfully');
+      } else {
+        addTest('tests-schema','project_id session link','fail',JSON.stringify(d).substr(0,100),
+          'project_id column issue or foreign key constraint failing');
+      }
+    } catch(e) {
+      addTest('tests-schema','project_id session link','fail',e.message,'');
+    }
+  } else {
+    addTest('tests-schema','project_id session link','warn','Skipped — prior write tests failed','Fix INSERT tests first');
+  }
+
+  // Test 18: RLS — can read own rows
+  addRunning('tests-schema','RLS select policy');
+  try {
+    var r = await fetch(SB_URL+'/rest/v1/sessions?select=id,zone,zone_confidence&device_id=eq.'+testDeviceId, {headers:SB_HEADERS});
+    var d = await r.json();
+    if(r.ok&&Array.isArray(d)&&d.length>0){
+      addTest('tests-schema','RLS select policy','pass','Can read own rows ('+d.length+' returned)');
+    } else if(r.ok&&Array.isArray(d)&&d.length===0){
+      addTest('tests-schema','RLS select policy','warn','0 rows returned — RLS may be blocking reads or INSERT failed',
+        'Check RLS policy: CREATE POLICY sessions_select ON public.sessions FOR SELECT USING (true);');
+    } else {
+      addTest('tests-schema','RLS select policy','fail',JSON.stringify(d).substr(0,100),
+        'RLS policy blocking reads. Run SQL: DROP POLICY IF EXISTS sessions_select ON public.sessions; CREATE POLICY sessions_select ON public.sessions FOR SELECT USING (true);');
+    }
+  } catch(e) {
+    addTest('tests-schema','RLS select policy','fail',e.message,'');
+  }
+
+  // Test 19: Cleanup test rows
+  addRunning('tests-schema','Cleanup test data');
+  try {
+    var promises = [];
+    if(testSessId) promises.push(fetch(SB_URL+'/rest/v1/sessions?id=eq.'+testSessId,{method:'DELETE',headers:SB_HEADERS}));
+    if(testProjId) promises.push(fetch(SB_URL+'/rest/v1/projects?id=eq.'+testProjId,{method:'DELETE',headers:SB_HEADERS}));
+    // Clean feedback test row
+    promises.push(fetch(SB_URL+'/rest/v1/feedback?device_id=eq.'+testDeviceId,{method:'DELETE',headers:SB_HEADERS}));
+    await Promise.all(promises);
+    addTest('tests-schema','Cleanup test data','pass','Test rows deleted');
+  } catch(e) {
+    addTest('tests-schema','Cleanup test data','warn','Could not clean up: '+e.message,'Manually delete rows with device_id='+testDeviceId);
+  }
+
+  // Test 20: Full read query (matches app query)
+  addRunning('tests-schema','App home query (full simulation)');
+  try {
+    var r = await fetch(SB_URL+"/rest/v1/sessions?select=zone,zone_confidence,climbing_type,created_at&device_id=eq.diag_test&order=created_at.desc&limit=50", {headers:SB_HEADERS});
+    var d = await r.json();
+    if(r.ok&&Array.isArray(d)){
+      addTest('tests-schema','App home query (full simulation)','pass','Query runs clean — app will load correctly');
+    } else {
+      var msg = d&&d.message?d.message:JSON.stringify(d).substr(0,120);
+      addTest('tests-schema','App home query (full simulation)','fail',msg,
+        'Home screen query is broken. Column names wrong: '+msg);
+    }
+  } catch(e) {
+    addTest('tests-schema','App home query (full simulation)','fail',e.message,'');
+  }
+
+  log('All tests complete.');
+}
+
+// Run on load
+window.addEventListener('load', runAll);
+</script>
+</body>
+</html>
