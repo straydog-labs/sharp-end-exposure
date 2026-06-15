@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging 83] Sharp End Exposure</title>
+<title>[Staging 84] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -597,6 +597,12 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
   </div>
   <div class="content">
+    <!-- Project context banner — shown when logging against a project -->
+    <div id="log-project-banner" style="display:none;align-items:center;gap:10px;padding:10px 14px;background:rgba(126,200,122,.08);border:1px solid rgba(126,200,122,.25);border-radius:var(--r-md);margin-bottom:4px;">
+      <div style="width:6px;height:6px;border-radius:50%;background:#7ec87a;flex-shrink:0;"></div>
+      <div style="font-size:13px;color:#7ec87a;font-weight:600;">Logging against: <span id="log-project-name" style="font-weight:700;"></span></div>
+      <button onclick="logState.projectId=null;logState.projectName=null;document.getElementById('log-project-banner').style.display='none';" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;">×</button>
+    </div>
     <div class="screen-title">Log a climb<span class="sub">What just happened out there?</span></div>
 
     <!-- RESULT FIRST — outcome leads -->
@@ -610,12 +616,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
     </div>
 
-    <!-- ROUTE NAME — fades in after result -->
+    <!-- ROUTE NAME — prominent, shown after result selected -->
     <div class="field-group" id="log-rname-group" style="display:none;animation:fadeUp .25s ease;">
       <div class="field-label">Route name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
-      <input id="log-rname-input" type="text" placeholder="e.g. Ticks Are For Kids..." autocomplete="off"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;"
+      <input id="log-rname-input" type="text" placeholder="Name it — even 'unnamed slab' helps build your picture" autocomplete="off"
+        style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;transition:border-color .15s;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(232,118,58,.3)'"
         oninput="logState.routeName=this.value.trim()||null"/>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Named climbs link to projects and build richer patterns over time.</div>
     </div>
 
     <!-- GRADE — appears after result -->
@@ -1602,13 +1610,18 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div id="pattern-line" class="pattern-line"></div>
-    <div class="result-hero" id="result-hero">
-      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="ct-tag-result" style="display:none"></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <div class="zone-badge" id="zone-badge"></div>
-        <span id="refined-lbl" style="display:none;font-size:11px;color:var(--accent);">Route-refined</span>
-      </div>
-      <div style="font-size:13px;color:var(--muted);font-weight:300;line-height:1.5;" id="res-subtitle"></div>
+    <!-- ZONE HERO -->
+    <div style="text-align:center;padding:20px 0 16px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Check-in result</div>
+      <div class="zone-badge" id="zone-badge" style="display:inline-flex;font-size:20px;padding:12px 24px;border-radius:99px;margin-bottom:10px;"></div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;max-width:300px;margin:0 auto;" id="res-subtitle"></div>
+    </div>
+    <!-- PRIMARY ACTION -->
+    <button class="btn btn-p" onclick="startLogFromPrepare()" style="width:100%;justify-content:center;padding:16px;font-size:16px;border-radius:12px;margin-bottom:10px;">Log this climb after →</button>
+    <!-- DELTA — below fold -->
+    <div id="result-hero" style="display:none;">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;" id="ct-tag-result"></div>
+      <span id="refined-lbl" style="display:none;font-size:11px;color:var(--accent);">Route-refined</span>
     </div>
 
 
@@ -1664,7 +1677,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="divider"></div>
     <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Next</div>
 
-    <button class="btn btn-p" onclick="startLogFromPrepare()" style="width:100%;justify-content:center;padding:14px 20px;font-size:15px;margin-bottom:10px;border-radius:10px;">Log this climb after →</button>
+    <!-- log btn moved to top of result screen -->
 
     <div id="deeper-gate" style="margin-bottom:14px;">
       <div id="route-analysis-cta" style="display:none;margin-top:4px;">
@@ -2085,7 +2098,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#0a120a"/><rect x="2" y="28" width="18" height="34" fill="rgba(126,200,122,.12)" rx="2"/><rect x="22" y="14" width="20" height="48" fill="rgba(245,166,35,.12)" rx="2"/><rect x="44" y="28" width="18" height="34" fill="rgba(232,68,68,.12)" rx="2"/><path d="M4,56 Q16,4 32,4 Q48,4 60,56" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="4" r="3" fill="#f5a623"/><text x="11" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(126,200,122,.7)">C</text><text x="32" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(245,166,35,.7)">L</text><text x="53" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(232,68,68,.7)">P</text></svg></div><div class="res-card-meta"><div class="res-card-label">Arousal &amp; performance</div><div class="res-card-title">There is an optimal activation window</div><div class="res-card-sub">The same curve behind the three zones — Comfort, Learning, Panic. You see this every time you get a result.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1908</span><span class="res-author">Yerkes &amp; Dodson — Journal of Comparative Neurology</span></div><div class="res-study-text">Performance follows an inverted-U curve relative to arousal. The optimal window varies by task complexity — fine motor and judgment tasks require lower arousal.</div><div class="res-apply">Zone placement is a readout of where you sit on the arousal axis relative to this route today — not a capability ranking.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2001</span><span class="res-author">Sian Beilock &amp; Thomas Carr — Journal of Experimental Psychology</span></div><div class="res-study-text">When pressure activates conscious monitoring of automated movement, expert performance breaks down across sports and genders.</div><div class="res-apply">Why "distracted" and "reactive" are the panic-zone failure modes.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Claude Steele — American Psychologist, Stanford</span></div><div class="res-study-text">Identity threat raises activation and impairs performance independently of actual capability.</div><div class="res-apply">Why zone placement carries no value judgment and language throughout is deliberately neutral.</div></div></div></div>
     <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#081208"/><rect x="4" y="20" width="56" height="11" fill="rgba(232,68,68,.07)" rx="2"/><rect x="4" y="31" width="56" height="11" fill="rgba(245,166,35,.07)"/><rect x="4" y="42" width="56" height="11" fill="rgba(126,200,122,.07)" rx="2"/><circle cx="10" cy="48" r="3" fill="rgba(232,68,68,.75)"/><circle cx="22" cy="37" r="3" fill="rgba(245,166,35,.75)"/><circle cx="34" cy="37" r="3" fill="rgba(245,166,35,.75)"/><circle cx="46" cy="48" r="3" fill="rgba(126,200,122,.75)"/><circle cx="56" cy="48" r="4" fill="#7ec87a"/><circle cx="56" cy="48" r="6.5" fill="none" stroke="#7ec87a" stroke-width="1" opacity=".4"/><polyline points="10,48 22,37 34,37 46,48 56,48" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/></svg></div><div class="res-card-meta"><div class="res-card-label">Deliberate practice</div><div class="res-card-title">What you notice determines what you keep</div><div class="res-card-sub">The session arc in Sessions visualises this — volume alone does not predict growth.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1993</span><span class="res-author">Ericsson, Krampe &amp; Tesch-Römer — Psychological Review</span></div><div class="res-study-text">Expert performance requires deliberate practice: structured repetition with specific process variables identified in advance and immediate feedback. Passive repetition produces plateaus, not expertise.</div><div class="res-apply">The process intention question is the direct application. Comfort zone guidance notes passive repetition produces limited transfer.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2006</span><span class="res-author">Carol Dweck — Mindset</span></div><div class="res-study-text">A fixed-capability belief produces worse outcomes than a growth belief. Fixed mindset increases performance anxiety.</div><div class="res-apply">Why zone placement is never framed as a capability measure.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2003</span><span class="res-author">Arno Ilgner — The Rock Warrior's Way</span></div><div class="res-study-text">Conscious risk-taking is a learnable skill. The decision not to attempt is as informative as the decision to proceed. <em style="color:var(--muted)">Practitioner framework, not a controlled study.</em></div><div class="res-apply">Did Not Attempt is a first-class option. Motivation is assessed because conscious vs. reactive motivation produces different learning outcomes.</div></div></div></div>
     <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><ellipse cx="32" cy="11" rx="8" ry="8" fill="none" stroke="rgba(245,166,35,.4)" stroke-width="1.2"/><rect x="18" y="20" width="28" height="14" rx="6" fill="rgba(245,166,35,.2)" stroke="#f5a623" stroke-width="1.2"/><rect x="22" y="34" width="20" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.3)" stroke-width="1.2"/><rect x="20" y="46" width="10" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1"/><rect x="34" y="46" width="10" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1"/><line x1="8" y1="27" x2="18" y2="27" stroke="rgba(245,166,35,.4)" stroke-width="1" stroke-dasharray="2,2"/><line x1="46" y1="27" x2="56" y2="27" stroke="rgba(245,166,35,.4)" stroke-width="1" stroke-dasharray="2,2"/></svg></div><div class="res-card-meta"><div class="res-card-label">Body scanning</div><div class="res-card-title">The body holds what the mind hasn't noticed yet</div><div class="res-card-sub">The same body schematic from the Prepare flow — backed by 30 years of MBSR research.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1990</span><span class="res-author">Jon Kabat-Zinn — Full Catastrophe Living</span></div><div class="res-study-text">Mindfulness-Based Stress Reduction centres the body scan as a core practice. Hundreds of RCTs document measurable increases in body awareness and reductions in stress-related holding.</div><div class="res-apply">The body scan follows the MBSR sequence. Nothing to report is equally valid — it records a clean baseline.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Peter Levine — Waking the Tiger</span></div><div class="res-study-text">Unresolved activation is held in specific tissue regions as chronic muscular tension below the conscious awareness threshold.</div><div class="res-apply">Why tension before a trad lead reads differently from tension after a gym session.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2014</span><span class="res-author">Bessel van der Kolk — The Body Keeps the Score</span></div><div class="res-study-text">Repeated overwhelming experiences without conscious processing can condition the nervous system toward threat response rather than adaptation. The body encodes these patterns below conscious awareness.</div><div class="res-apply">Why the tool distinguishes conscious Panic-zone entry from reactive Panic — and why the process prompt asks "is this a conscious decision?" not "are you scared?"</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2018</span><span class="res-author">Cynthia Price &amp; Carol Hooven — Frontiers in Psychology</span></div><div class="res-study-text">Interoceptive awareness skills are teachable and directly improve emotion regulation and decision-making.</div><div class="res-apply">Why the body scan asks two follow-up questions: what are you noticing, and is this typical? Characterising sensation is where the skill develops.</div></div><div class="sci-note">Sharp End Exposure collects self-reported data. Somatic signals vary significantly between people — neurodivergent climbers may experience these questions differently, and that's valid data too. Not a clinical assessment. All decisions remain with the climber.</div></div></div>
-    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" fill="#0a0a12"/><circle cx="32" cy="32" r="22" fill="none" stroke="rgba(200,245,90,.2)" stroke-width="1.5"/><path d="M32 10 L32 32 L46 46" fill="none" stroke="#c8f55a" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="32" r="3" fill="#c8f55a"/></svg></div><div class="res-card-meta"><div class="res-card-label">Temporal distance &amp; the check-in</div><div class="res-card-title">Checking in days before a climb is scientifically valid</div><div class="res-card-sub">Psychological distance creates a window for clearer somatic reading than immediate pre-climb activation.</div></div><div class="res-card-chevron">&#8250;</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">2010</span><span class="res-author">Trope &amp; Liberman &#8212; Construal Level Theory &#183; Psychological Review</span></div><div class="res-study-text">Psychological distance &#8212; including temporal distance &#8212; changes how threats are construed. Events further away in time are processed more abstractly and with less reactive activation, creating a window for deliberate assessment that closes as the event approaches.</div><div class="res-apply">Why the check-in works days or weeks before a climb &#8212; not only at the base. Temporal distance enables clearer somatic reading. Checking in at the wall captures peak activation; checking in days before captures the full decision window.</div></div></div></div>
+    <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64" fill="none"><rect width="64" height="64" fill="#0a0a12"/><circle cx="32" cy="32" r="22" fill="none" stroke="rgba(200,245,90,.2)" stroke-width="1.5"/><path d="M32 10 L32 32 L46 46" fill="none" stroke="#c8f55a" stroke-width="2.5" stroke-linecap="round"/><circle cx="32" cy="32" r="3" fill="#c8f55a"/></svg></div><div class="res-card-meta"><div class="res-card-label">Temporal distance &amp; the check-in</div><div class="res-card-title">Checking in days before a climb is scientifically valid</div><div class="res-card-sub">Psychological distance creates a window for clearer somatic reading than immediate pre-climb activation.</div></div><div class="res-card-chevron">&#8250;</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">2010</span><span class="res-author">Trope &amp; Liberman &#8212; Construal Level Theory &#183; Psychological Review</span></div><div class="res-study-text">Psychological distance &#8212; including temporal distance &#8212; changes how threats are construed. Events further away in time are processed more abstractly and with less reactive activation, creating a window for deliberate assessment that closes as the event approaches.</div><div class="res-apply">Why the check-in works days or weeks before a climb &#8212; not only at the base. Temporal distance enables clearer somatic reading. Checking in at the wall captures peak activation; checking in days before captures the full decision window.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2004</span><span class="res-author">Hanton, Thomas &amp; Maynard &#8212; Journal of Sport Sciences</span></div><div class="res-study-text">Somatic anxiety frequencies begin increasing seven days before competition &#8212; not just in the final hour. The body starts signalling the challenge well before the event is imminent.</div><div class="res-apply">The check-in captures a signal that is already present days before a climb. Checking in early is not premature &#8212; it catches the full decision window before peak activation narrows perception.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2001</span><span class="res-author">Woodman &amp; Hardy &#8212; Journal of Sports Sciences (meta-analysis)</span></div><div class="res-study-text">Across a large meta-analysis, both cognitive and somatic anxiety showed meaningful patterns across the full pre-event window &#8212; not just minutes before. The relationship between anxiety and performance is measurable days out.</div><div class="res-apply">The decision window is wider than it feels. A check-in two days before a route is capturing real signal &#8212; not speculation.</div></div></div></div>
   </div>
 </div>
 
@@ -2725,7 +2738,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index82',
+    app_version:'index84',
     device_id:getDeviceId()
   };
 
@@ -2788,27 +2801,37 @@ async function renderCelebrate(){
 }
 
 function buildCelebInsight(history,state){
-  if(!Array.isArray(history)||history.length<=1){
-    return 'First climb logged. Your zone arc starts here — each climb adds a dot. Go Deeper to confirm your zone.';
+  var total=Array.isArray(history)?history.length:0;
+  var remaining=Math.max(0,5-total);
+
+  // First climb
+  if(total<=1){
+    return 'Climb #1 logged. Your arc starts here — each climb adds a dot. <span style="color:var(--accent);">Log 4 more to unlock pattern insights.</span>';
   }
-  var prior=history.slice(1); // exclude current
+
+  // Progress toward 5
+  var progressLine='';
+  if(total<5){
+    progressLine=' <span style="color:var(--accent);">'+remaining+' more climb'+(remaining===1?'':'s')+' to unlock insights.</span>';
+  }
+
+  var prior=history.slice(1);
   var sameTerrain=prior.filter(function(s){return s.climbing_type===state.terrain;});
   var sameZone=sameTerrain.filter(function(s){return s.zone===state.zone;});
 
-  if(sameTerrain.length>=3&&sameZone.length===sameTerrain.length){
-    return 'Same zone as your last '+sameTerrain.length+' '+state.terrain.toLowerCase()+' climbs. Consistency in the data.';
+  if(total>=5&&sameTerrain.length>=3&&sameZone.length===sameTerrain.length){
+    return 'Climb #'+total+' logged. Same zone as your last '+sameTerrain.length+' '+state.terrain.toLowerCase()+' climbs — consistency in the data.';
   }
-  if(sameTerrain.length>=2){
+  if(total>=5&&sameTerrain.length>=2){
     var lastZ=sameTerrain[0].zone;
     if(lastZ&&lastZ!==state.zone){
-      return 'Zone shifted on '+state.terrain.toLowerCase()+': '+zoneName(lastZ)+' → '+zoneName(state.zone)+'. Go Deeper to confirm.';
+      return 'Climb #'+total+' logged. Zone shifted on '+state.terrain.toLowerCase()+': '+zoneName(lastZ)+' → '+zoneName(state.zone)+'. Go Deeper to confirm.';
     }
   }
-  // Panic zone reframe
   if(state.zone==='panic'){
-    return 'You noticed the edge today. Backed off or pushed through — either way, the awareness is the data.';
+    return 'Climb #'+total+' logged. You noticed the edge today — the awareness is the data.'+progressLine;
   }
-  return 'Climb #'+history.length+' logged. Each dot builds your picture.';
+  return 'Climb #'+total+' logged. Each dot sharpens your picture.'+progressLine;
 }
 
 function renderCelArc(history){
@@ -2840,17 +2863,21 @@ function renderCelArc(history){
 }
 
 function logAnother(){
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:logState.projectId,projectName:logState.projectName};
-  // Reset UI
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:null,projectName:null};
+  // Full UI reset
   ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
     var b=document.getElementById(id);if(b)b.classList.remove('selected');
   });
   document.querySelectorAll('.terrain-chips .chip').forEach(function(b){b.classList.remove('selected');});
+  document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
   var gradeGroup=document.getElementById('log-grade-group');
   var rnameGroup=document.getElementById('log-rname-group');
+  var projGroup=document.getElementById('log-project-group');
   if(gradeGroup)gradeGroup.style.display='none';
   if(rnameGroup)rnameGroup.style.display='none';
+  if(projGroup)projGroup.style.display='none';
   var rname=document.getElementById('log-rname-input');if(rname)rname.value='';
+  var logBtn=document.getElementById('log-btn');if(logBtn)logBtn.classList.remove('ready');
   buildGradeGrid('YDS');
   showScreen('screen-log');
 }
@@ -2919,7 +2946,45 @@ function selectFocus(btn,v){
 
 function logAgainstProject(pid,pname){
   logState.projectId=pid;logState.projectName=pname;
+  // Pre-fill from project if available
+  if(currentProject){
+    if(currentProject.grade_value){
+      logState.grade=currentProject.grade_value;
+      logState.gradeSys=currentProject.grade_system||'YDS';
+    }
+    if(currentProject.discipline){
+      // Map discipline to terrain
+      var discTerrain={Sport:'Vertical',Trad:'Crack',Boulder:'Overhang','Top Rope':'Vertical'};
+      logState.terrain=currentProject.climbing_type||discTerrain[currentProject.discipline]||null;
+    }
+  }
   showScreen('screen-log');
+  // Apply pre-fills to UI after screen shown
+  setTimeout(function(){
+    if(logState.grade){
+      buildGradeGrid(logState.gradeSys||'YDS');
+      document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){
+        if(b.textContent===logState.grade){b.classList.add('selected');}
+      });
+      var gradeGroup=document.getElementById('log-grade-group');
+      if(gradeGroup)gradeGroup.style.display='flex';
+      var rnameGroup=document.getElementById('log-rname-group');
+      if(rnameGroup)rnameGroup.style.display='flex';
+    }
+    if(logState.terrain){
+      document.querySelectorAll('.terrain-chips .chip').forEach(function(b){
+        b.classList.toggle('selected',b.textContent===logState.terrain);
+      });
+    }
+    // Show project banner
+    var projBanner=document.getElementById('log-project-banner');
+    if(projBanner&&pname){
+      projBanner.style.display='flex';
+      var projNameEl=document.getElementById('log-project-name');
+      if(projNameEl)projNameEl.textContent=pname;
+    }
+    checkLogReady();
+  },50);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3083,15 +3148,22 @@ async function loadClimbLog(){
   var sessions=await sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=100');
   if(!Array.isArray(sessions))sessions=[];
 
-  var confirmed=sessions.filter(function(s){return s.zone_confidence==='confirmed';}).length;
-  var total=sessions.length;
+  var climbs=sessions.filter(function(s){return !s.is_checkin;});
+  var checkins=sessions.filter(function(s){return s.is_checkin;});
+  var confirmed=climbs.filter(function(s){return s.zone_confidence==='confirmed';}).length;
+  var total=climbs.length;
 
-  if(countEl)countEl.textContent=total+' climbs · '+confirmed+' confirmed';
+  if(countEl){
+    var txt=total+' climbs · '+confirmed+' confirmed';
+    if(checkins.length>0)txt+=' · '+checkins.length+' check-in'+(checkins.length===1?'':'s');
+    countEl.textContent=txt;
+  }
 
   // Show/hide sections
   var emptyEl=document.getElementById('sessions-empty-state');
   var realEl=document.getElementById('sessions-real-section');
   var previewEl=document.getElementById('sessions-preview-section');
+  var sessions=climbs; // use climbs only for arc/radar/stats
 
   if(emptyEl)emptyEl.style.display=total===0?'block':'none';
   if(previewEl)previewEl.style.display=total>0?'none':'block';
@@ -3274,15 +3346,18 @@ async function buildInsight(sessions){
 async function loadHomeInsight(){
   var sessions=await sbS('sessions','select=zone,zone_confidence,climbing_type,created_at&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=50');
   if(!Array.isArray(sessions))sessions=[];
-  var total=sessions.length;
+  // Filter out check-ins for the home arc
+  var climbs=sessions.filter(function(s){return s.zone!==null;});
+  var total=climbs.length;
 
   var firstCard=document.getElementById('home-first-card');
   var buildCard=document.getElementById('home-building-card');
   var insightCard=document.getElementById('home-insight-card');
 
+  // Always show arc card once there's at least 1 climb
   if(firstCard)firstCard.style.display=total===0?'block':'none';
-  if(buildCard)buildCard.style.display=(total>0&&total<5)?'block':'none';
-  if(insightCard)insightCard.style.display=total>=5?'block':'none';
+  if(buildCard)buildCard.style.display=total>0&&total<5?'block':'none';
+  if(insightCard)insightCard.style.display=total>0?'block':'none';
 
   if(total>0&&total<5){
     var progressFill=document.getElementById('home-progress-fill');
@@ -3290,11 +3365,11 @@ async function loadHomeInsight(){
     var buildText=document.getElementById('home-building-text');
     if(progressFill)progressFill.style.width=(total/5*100)+'%';
     if(progressLabel)progressLabel.textContent=total+' of 5 climbs';
-    if(buildText)buildText.textContent='Log '+(5-total)+' more climb'+(5-total===1?'':'s')+' to unlock your zone arc.';
+    if(buildText)buildText.textContent='Log '+(5-total)+' more climb'+(5-total===1?'':'s')+' to unlock pattern insights.';
   }
 
-  if(total>=5){
-    buildHomeArc(sessions);
+  if(total>0){
+    buildHomeArc(climbs);
   }
 }
 
@@ -3336,12 +3411,16 @@ function buildHomeArc(sessions){
   if(sessCount)sessCount.textContent=sessions.length+' climbs';
 
   if(insightText){
-    var recent=sessions.slice(0,5).map(function(s){return s.zone;});
-    var panicCount=recent.filter(function(z){return z==='panic';}).length;
-    var comfortCount=recent.filter(function(z){return z==='comfort';}).length;
-    if(panicCount>=3)insightText.textContent='Recent sessions pushing into Panic zone.';
-    else if(comfortCount>=4)insightText.textContent='Consistently in Comfort zone lately.';
-    else insightText.textContent='Zone arc building across '+sessions.length+' climbs.';
+    if(sessions.length<5){
+      insightText.textContent=(5-sessions.length)+' more climb'+(5-sessions.length===1?'':'s')+' to unlock pattern insights.';
+    } else {
+      var recent=sessions.slice(0,5).map(function(s){return s.zone;});
+      var panicCount=recent.filter(function(z){return z==='panic';}).length;
+      var comfortCount=recent.filter(function(z){return z==='comfort';}).length;
+      if(panicCount>=3)insightText.textContent='Recent sessions trending into Panic zone.';
+      else if(comfortCount>=4)insightText.textContent='Consistently in Comfort zone lately.';
+      else insightText.textContent='Zone arc across '+sessions.length+' climbs.';
+    }
   }
 }
 
@@ -3582,7 +3661,7 @@ function computeResult(){
   var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
   if(g)g.textContent=gMap[zone]||'';
   // Save to Supabase with is_checkin flag
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index82'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index84'});
   showScreen('s-result');
 }
 
