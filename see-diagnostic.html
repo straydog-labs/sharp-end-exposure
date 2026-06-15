@@ -382,11 +382,12 @@ async function runAll(){
       })
     });
     var d = await r.json();
-    if(r.ok&&d&&d.id){
-      testProjId = d.id;
-      addTest('tests-write','INSERT projects row','pass','Row created: '+d.id);
+    var row = Array.isArray(d)?d[0]:d;
+    if(r.ok&&row&&row.id){
+      testProjId = row.id;
+      addTest('tests-write','INSERT projects row','pass','Row created: '+row.id);
     } else {
-      var msg = d&&d.message?d.message:JSON.stringify(d).substr(0,120);
+      var msg = row&&row.message?row.message:JSON.stringify(d).substr(0,120);
       addTest('tests-write','INSERT projects row','fail',msg,
         'Projects table column mismatch. Check grade_value, environment, device_id exist');
     }
@@ -406,10 +407,11 @@ async function runAll(){
       })
     });
     var d = await r.json();
+    var row = Array.isArray(d)?d[0]:d;
     if(r.ok){
       addTest('tests-write','INSERT feedback row','pass','Feedback saves correctly');
     } else {
-      var msg = d&&d.message?d.message:JSON.stringify(d).substr(0,120);
+      var msg = row&&row.message?row.message:JSON.stringify(d).substr(0,120);
       addTest('tests-write','INSERT feedback row','fail',msg,
         'Feedback table issue. Run: CREATE TABLE IF NOT EXISTS public.feedback (id uuid default gen_random_uuid() primary key, answers jsonb, device_id text, submitted_at timestamptz default now());');
     }
