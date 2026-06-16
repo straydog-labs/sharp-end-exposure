@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging 90] Sharp End Exposure</title>
+<title>[Staging 92] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -714,6 +714,16 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <div style="padding:0 16px 12px;font-size:11px;color:var(--muted2);">4 questions · ~15 seconds · zone updates in place</div>
       <!-- Zone shift — shown after Go Deeper updates zone -->
       <div id="cel-zone-shift" style="display:none;margin:0 16px 14px;padding:10px 14px;background:rgba(232,118,58,.06);border-radius:var(--r-md);border-left:2px solid var(--accent);"></div>
+    </div>
+
+    <!-- Grade nudge — shown when grade is unusually high for this climber -->
+    <div id="cel-grade-nudge" style="display:none;align-items:center;gap:10px;padding:10px 14px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);border-radius:var(--r-md);">
+      <div style="font-size:18px;flex-shrink:0;">🤔</div>
+      <div style="flex:1;font-size:13px;color:#f5a623;line-height:1.5;" id="cel-grade-nudge-text"></div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+        <button onclick="dismissGradeNudge()" style="background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3);border-radius:6px;color:#f5a623;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;white-space:nowrap;">Looks right</button>
+        <button onclick="openEditSheet()" style="background:none;border:1px solid rgba(255,255,255,.15);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;white-space:nowrap;">Fix it</button>
+      </div>
     </div>
 
     <!-- ROW 4: PERSONAL RECORD — shown when applicable -->
@@ -1496,11 +1506,28 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
     <!-- ── YOUR DATA SECTION ── -->
     <div id="sessions-real-section" style="display:none;">
-    <!-- Example data banner -->
+    <!-- Example data banner (0 climbs) -->
     <div id="sessions-example-banner" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;margin-bottom:16px;">
       <div style="width:6px;height:6px;border-radius:50%;background:#f5a623;flex-shrink:0;"></div>
       <div style="font-size:12px;color:#f5a623;font-weight:600;flex:1;">Example data — this is what your Climb Log looks like after logging climbs</div>
       <button onclick="showScreen('screen-log');logAnother();" style="background:#f5a623;border:none;border-radius:6px;color:#1a1410;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;white-space:nowrap;">Log first climb →</button>
+    </div>
+
+    <!-- Example data collapsible (1-4 climbs) -->
+    <div id="sessions-example-collapsible" style="display:none;margin-bottom:16px;">
+      <button onclick="toggleExampleSection()" style="width:100%;display:flex;align-items:center;justify-content:space-between;background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.15);border-radius:10px;padding:10px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+        <div style="font-size:12px;color:#f5a623;font-weight:600;">See what a full arc looks like</div>
+        <div style="font-size:14px;color:#f5a623;" id="sessions-example-chevron">›</div>
+      </button>
+      <div id="sessions-example-content" style="display:none;margin-top:8px;">
+        <!-- Example content injected by buildSessionsArc / buildRadar / renderClimbList when in example mode -->
+        <div style="padding:8px 10px;background:rgba(245,166,35,.04);border:1px solid rgba(245,166,35,.1);border-radius:8px;margin-bottom:8px;">
+          <div style="font-size:10px;color:#f5a623;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Example data</div>
+        </div>
+        <div id="sessions-example-arc-wrap"></div>
+        <div id="sessions-example-terrain-wrap"></div>
+        <div id="sessions-example-list-wrap"></div>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin:24px 0 20px;">
       <div style="flex:1;height:1px;background:var(--border);"></div>
@@ -2158,12 +2185,12 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
       <div style="margin-top:12px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:var(--r-md);border-left:2px solid rgba(200,245,90,.3);">
         <div style="font-size:11px;line-height:1.6;"><span style="color:rgba(126,200,122,.8);font-weight:700;">Comfort 0–4</span> · <span style="color:rgba(245,166,35,.8);font-weight:700;">Learning 5–9</span> · <span style="color:rgba(232,68,68,.8);font-weight:700;">Panic 10–13</span> · max score 13</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.25);line-height:1.6;margin-top:4px;">Research-informed heuristic, not a validated clinical instrument. Being refined with real beta data.</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.25);line-height:1.6;margin-top:4px;">In plain terms: these weights are an informed rule of thumb based on real research — not a clinically validated formula. The science tells us which signals matter most. The specific point values are our best current design, being refined as real data comes in.</div>
       </div>
     </div><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><path d="M6,32 C12,20 18,44 24,32 C30,20 36,44 42,32 C48,20 54,44 58,32" fill="none" stroke="#f5a623" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="32" cy="48" rx="10" ry="5" fill="rgba(245,166,35,.15)" stroke="#f5a623" stroke-width="1" opacity=".6"/><text x="32" y="12" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="#f5a623" letter-spacing=".06em" opacity=".7">BREATH·GUT</text></svg></div><div class="res-card-meta"><div class="res-card-label">Somatic signals</div><div class="res-card-title">The body is already reporting</div><div class="res-card-sub">Breath and gut register threat before conscious awareness — the same signals tracked in Go Deeper — and the foundation of what the check-in measures.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">2017</span><span class="res-author">Lisa Feldman Barrett — How Emotions Are Made</span></div><div class="res-study-text">Emotions are not hardwired reactions — they are constructed from interoceptive signals, past experience, and cultural context. The same physiological activation can be experienced as excitement or terror depending on how the brain interprets it.</div><div class="res-apply">Why the tool never labels somatic signals as "fear." Restricted breathing is described as restricted breathing — not as danger.</div></div>
 <div class="res-study"><div class="res-study-header"><span class="res-year">Scoring</span><span class="res-author">How this affects your zone result</span></div><div class="res-study-text">Breath is weighted as the primary signal in Confirm Zone — the fastest-onset somatic marker (Hanton et al. 2004). Held breath scores highest (4 points). Gut sensation scores as secondary (max 2 points). Together they account for over half your zone calculation.</div><div class="res-apply">When breath and gut both signal high activation, the zone result will reflect that — even if the climb outcome (sent/fell) suggests otherwise. That divergence is the most useful data point in the app.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1994</span><span class="res-author">Antonio Damasio — Descartes' Error</span></div><div class="res-study-text">Gut sensation functions as a pre-conscious decision marker. Patients with damaged somatic signal pathways made systematically worse decisions — even when they could explain the correct choice.</div><div class="res-apply">The pause screen creates conditions where gut markers can register before the second check-in. Gut shift is the primary pre-decision data point.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2015</span><span class="res-author">Sarah Garfinkel &amp; Hugo Critchley — Biological Psychology</span></div><div class="res-study-text">Interoceptive accuracy varies across individuals, including along neurodivergent lines, and is measurable and trainable over time.</div><div class="res-apply">Why "not paying attention to my breath" is a valid response — not a failure. The tool trains the noticing, not the result.</div></div></div></div>
     <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#0a120a"/><rect x="2" y="28" width="18" height="34" fill="rgba(126,200,122,.12)" rx="2"/><rect x="22" y="14" width="20" height="48" fill="rgba(245,166,35,.12)" rx="2"/><rect x="44" y="28" width="18" height="34" fill="rgba(232,68,68,.12)" rx="2"/><path d="M4,56 Q16,4 32,4 Q48,4 60,56" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="4" r="3" fill="#f5a623"/><text x="11" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(126,200,122,.7)">C</text><text x="32" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(245,166,35,.7)">L</text><text x="53" y="60" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="5" fill="rgba(232,68,68,.7)">P</text></svg></div><div class="res-card-meta"><div class="res-card-label">Arousal &amp; performance</div><div class="res-card-title">There is an optimal activation window</div><div class="res-card-sub">The same curve behind the three zones — Comfort, Learning, Panic. You see this every time you get a result.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1908</span><span class="res-author">Yerkes &amp; Dodson — Journal of Comparative Neurology</span></div><div class="res-study-text">Performance follows an inverted-U curve relative to arousal. The optimal window varies by task complexity — fine motor and judgment tasks require lower arousal.</div><div class="res-apply">Zone placement is a readout of where you sit on the arousal axis relative to this route today — not a capability ranking.</div></div>
-<div class="res-study"><div class="res-study-header"><span class="res-year">Scoring</span><span class="res-author">How this affects your zone result</span></div><div class="res-study-text">The zone thresholds (Comfort 0–4, Learning 5–9, Panic 10–14) are set to reflect the inverted-U curve: a wide Learning zone at the optimal activation peak, with Comfort and Panic as the tails. Crux response is weighted most heavily (max 4 points) — consistent with Beilock & Carr's finding that breakdown at the hardest moment is the clearest over-activation indicator.</div><div class="res-apply">Your score is not a grade. Comfort zone on a hard route and Comfort zone on an easy route mean different things — the arc over time is what reveals the pattern, not any single result.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2001</span><span class="res-author">Sian Beilock &amp; Thomas Carr — Journal of Experimental Psychology</span></div><div class="res-study-text">When pressure activates conscious monitoring of automated movement, expert performance breaks down across sports and genders.</div><div class="res-apply">Why "distracted" and "reactive" are the panic-zone failure modes.</div><div style="font-size:11px;color:rgba(200,245,90,.6);margin-top:6px;font-style:italic;">→ In Confirm Zone: crux response carries the highest weight (max 4 points). "Panicked but recovered" scores 4. "Backed off" scores 2. "No standout moment" scores 0. The crux moment is where over-activation is most clearly expressed.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Claude Steele — American Psychologist, Stanford</span></div><div class="res-study-text">Identity threat raises activation and impairs performance independently of actual capability.</div><div class="res-apply">Why zone placement carries no value judgment and language throughout is deliberately neutral.</div></div></div></div>
+<div class="res-study"><div class="res-study-header"><span class="res-year">Scoring</span><span class="res-author">How this affects your zone result</span></div><div class="res-study-text">The zone thresholds (Comfort 0–4, Learning 5–9, Panic 10–14) are set to reflect the inverted-U curve: a wide Learning zone at the optimal activation peak, with Comfort and Panic as the tails. Crux response is weighted most heavily (max 4 points) — consistent with Beilock & Carr's finding that breakdown at the hardest moment is the clearest over-activation indicator.</div><div class="res-apply">Your score is not a grade. Comfort zone on a hard route and Comfort zone on an easy route mean different things — the arc over time is what reveals the pattern, not any single result. In plain terms: the scoring is an informed rule of thumb, not a clinical test. It's designed to reflect what the research says matters most.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2001</span><span class="res-author">Sian Beilock &amp; Thomas Carr — Journal of Experimental Psychology</span></div><div class="res-study-text">When pressure activates conscious monitoring of automated movement, expert performance breaks down across sports and genders.</div><div class="res-apply">Why "distracted" and "reactive" are the panic-zone failure modes.</div><div style="font-size:11px;color:rgba(200,245,90,.6);margin-top:6px;font-style:italic;">→ In Confirm Zone: crux response carries the highest weight (max 4 points). "Panicked but recovered" scores 4. "Backed off" scores 2. "No standout moment" scores 0. The crux moment is where over-activation is most clearly expressed.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Claude Steele — American Psychologist, Stanford</span></div><div class="res-study-text">Identity threat raises activation and impairs performance independently of actual capability.</div><div class="res-apply">Why zone placement carries no value judgment and language throughout is deliberately neutral.</div></div></div></div>
     <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#081208"/><rect x="4" y="20" width="56" height="11" fill="rgba(232,68,68,.07)" rx="2"/><rect x="4" y="31" width="56" height="11" fill="rgba(245,166,35,.07)"/><rect x="4" y="42" width="56" height="11" fill="rgba(126,200,122,.07)" rx="2"/><circle cx="10" cy="48" r="3" fill="rgba(232,68,68,.75)"/><circle cx="22" cy="37" r="3" fill="rgba(245,166,35,.75)"/><circle cx="34" cy="37" r="3" fill="rgba(245,166,35,.75)"/><circle cx="46" cy="48" r="3" fill="rgba(126,200,122,.75)"/><circle cx="56" cy="48" r="4" fill="#7ec87a"/><circle cx="56" cy="48" r="6.5" fill="none" stroke="#7ec87a" stroke-width="1" opacity=".4"/><polyline points="10,48 22,37 34,37 46,48 56,48" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/></svg></div><div class="res-card-meta"><div class="res-card-label">Deliberate practice</div><div class="res-card-title">What you notice determines what you keep</div><div class="res-card-sub">The session arc in Sessions visualises this — volume alone does not predict growth.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1993</span><span class="res-author">Ericsson, Krampe &amp; Tesch-Römer — Psychological Review</span></div><div class="res-study-text">Expert performance requires deliberate practice: structured repetition with specific process variables identified in advance and immediate feedback. Passive repetition produces plateaus, not expertise.</div><div class="res-apply">The process intention question is the direct application. Comfort zone guidance notes passive repetition produces limited transfer.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2006</span><span class="res-author">Carol Dweck — Mindset</span></div><div class="res-study-text">A fixed-capability belief produces worse outcomes than a growth belief. Fixed mindset increases performance anxiety.</div><div class="res-apply">Why zone placement is never framed as a capability measure.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2003</span><span class="res-author">Arno Ilgner — The Rock Warrior's Way</span></div><div class="res-study-text">Conscious risk-taking is a learnable skill. The decision not to attempt is as informative as the decision to proceed. <em style="color:var(--muted)">Practitioner framework, not a controlled study.</em></div><div class="res-apply">Did Not Attempt is a first-class option. Motivation is assessed because conscious vs. reactive motivation produces different learning outcomes.</div></div></div></div>
     <div class="res-card"><div class="res-card-header" onclick="toggleRes(this)"><div class="res-card-icon"><svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#140e08"/><ellipse cx="32" cy="11" rx="8" ry="8" fill="none" stroke="rgba(245,166,35,.4)" stroke-width="1.2"/><rect x="18" y="20" width="28" height="14" rx="6" fill="rgba(245,166,35,.2)" stroke="#f5a623" stroke-width="1.2"/><rect x="22" y="34" width="20" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.3)" stroke-width="1.2"/><rect x="20" y="46" width="10" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1"/><rect x="34" y="46" width="10" height="12" rx="4" fill="none" stroke="rgba(245,166,35,.2)" stroke-width="1"/><line x1="8" y1="27" x2="18" y2="27" stroke="rgba(245,166,35,.4)" stroke-width="1" stroke-dasharray="2,2"/><line x1="46" y1="27" x2="56" y2="27" stroke="rgba(245,166,35,.4)" stroke-width="1" stroke-dasharray="2,2"/></svg></div><div class="res-card-meta"><div class="res-card-label">Body scanning</div><div class="res-card-title">The body holds what the mind hasn't noticed yet</div><div class="res-card-sub">The same body schematic from the Prepare flow — backed by 30 years of MBSR research.</div></div><div class="res-card-chevron">›</div></div><div class="res-card-body"><div class="res-study"><div class="res-study-header"><span class="res-year">1990</span><span class="res-author">Jon Kabat-Zinn — Full Catastrophe Living</span></div><div class="res-study-text">Mindfulness-Based Stress Reduction centres the body scan as a core practice. Hundreds of RCTs document measurable increases in body awareness and reductions in stress-related holding.</div><div class="res-apply">The body scan follows the MBSR sequence. Nothing to report is equally valid — it records a clean baseline.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">1997</span><span class="res-author">Peter Levine — Waking the Tiger</span></div><div class="res-study-text">Unresolved activation is held in specific tissue regions as chronic muscular tension below the conscious awareness threshold.</div><div class="res-apply">Why tension before a trad lead reads differently from tension after a gym session.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2014</span><span class="res-author">Bessel van der Kolk — The Body Keeps the Score</span></div><div class="res-study-text">Repeated overwhelming experiences without conscious processing can condition the nervous system toward threat response rather than adaptation. The body encodes these patterns below conscious awareness.</div><div class="res-apply">Why the tool distinguishes conscious Panic-zone entry from reactive Panic — and why the process prompt asks "is this a conscious decision?" not "are you scared?"</div></div>
 <div class="res-study"><div class="res-study-header"><span class="res-year">Scoring</span><span class="res-author">How this affects your zone result</span></div><div class="res-study-text">Body state (Q4 in Confirm Zone) scores 0–3: loose/fluid = 0, activated = 1, tight/gripped = 2, shut down/frozen = 3. "Shut down or frozen" is the highest body-state signal — consistent with Van der Kolk's description of a nervous system in overwhelm rather than engagement.</div><div class="res-apply">A climber who feels tight but engaged (score 2) reads differently from one who feels frozen (score 3). The distinction matters and the scoring reflects it. "Didn't notice" scores 1 — neutral, not zero — following Garfinkel & Critchley's finding that low interoceptive awareness is itself a data point.</div></div><div class="res-study"><div class="res-study-header"><span class="res-year">2018</span><span class="res-author">Cynthia Price &amp; Carol Hooven — Frontiers in Psychology</span></div><div class="res-study-text">Interoceptive awareness skills are teachable and directly improve emotion regulation and decision-making.</div><div class="res-apply">Why the body scan asks two follow-up questions: what are you noticing, and is this typical? Characterising sensation is where the skill develops.</div></div><div class="sci-note">Sharp End Exposure collects self-reported data. Somatic signals vary significantly between people — neurodivergent climbers may experience these questions differently, and that's valid data too. Not a clinical assessment. All decisions remain with the climber.</div></div></div>
@@ -2192,18 +2219,16 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <button class="fb-next-btn" id="fb-next-btn" onclick="fbNext()">Continue</button>
     </div>
     <div class="fb-success" id="fb-success">
-      <svg width="110" height="110" viewBox="0 0 200 200" style="margin:0 auto 16px;display:block;">
-        <circle cx="100" cy="100" r="90" fill="rgba(126,200,122,.06)" stroke="rgba(126,200,122,.15)" stroke-width="1"/>
-        <circle cx="100" cy="100" r="60" fill="rgba(126,200,122,.08)" stroke="rgba(126,200,122,.2)" stroke-width="1"/>
-        <circle cx="100" cy="100" r="30" fill="rgba(126,200,122,.15)" stroke="rgba(126,200,122,.4)" stroke-width="1.5"/>
-        <circle cx="100" cy="52" r="10" fill="#7ec87a"/>
-        <circle cx="100" cy="52" r="16" fill="none" stroke="#7ec87a" stroke-width="2" opacity=".4"/>
-        <text x="100" y="104" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.7)" font-weight="600">Learning fringe</text>
-        <text x="100" y="40" text-anchor="middle" font-family="Space Mono,monospace" font-size="8" fill="#7ec87a">your feedback</text>
-      </svg>
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(126,200,122,.15);border:1.5px solid rgba(126,200,122,.4);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7ec87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
       <div style="font-size:22px;font-weight:700;margin-bottom:8px;color:var(--text);">Thank you.</div>
-      <div style="font-size:15px;color:var(--muted);line-height:1.65;">This goes directly to the team. It shapes what gets built next.</div>
-      <div style="font-size:12px;color:var(--muted2);margin-top:16px;font-style:italic;">Your feedback landed in the Learning fringe.</div>
+      <div style="font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:28px;">This goes directly to the team. It shapes what gets built next.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button onclick="logAnother()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:15px;cursor:pointer;">Log a climb →</button>
+        <button onclick="showScreen('screen-sessions')" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:13px;cursor:pointer;">Climb Log</button>
+        <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;width:100%;">← Home</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2662,7 +2687,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
     <button onclick="showScreen('screen-celebrate')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;padding:4px 8px;">Skip</button>
   </div>
-  <div class="content">
+  <div class="content" style="max-width:480px;margin:0 auto;">
     <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">5 climbs logged</div>
     <div style="font-size:26px;font-weight:700;line-height:1.2;margin-bottom:6px;">Your first picture.</div>
     <div style="font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:24px;">Five climbs is early data. Here's what's actually there — not a story, just what you reported.</div>
@@ -2706,7 +2731,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div>
   </div>
 
-  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;">
+  <div style="padding:0 20px 28px;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;">
     <button onclick="showScreen('screen-celebrate')" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Continue →</button>
     <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;">Log another climb</button>
   </div>
@@ -2998,7 +3023,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index90',
+    app_version:'index92',
     device_id:getDeviceId()
   };
 
@@ -3091,6 +3116,9 @@ async function renderCelebrate(){
   // Project back button
   var projBtn=document.getElementById('cel-project-btn');
   if(projBtn)projBtn.style.display=logState.projectId?'block':'none';
+
+  // Grade nudge check
+  checkGradeNudge(history);
 
   // 5-climb milestone trigger — fires exactly once
   if(total===5){
@@ -3213,6 +3241,44 @@ function renderCelArc(history){
 
   wrap.setAttribute('viewBox','0 0 '+w+' '+h);
   wrap.innerHTML=svgParts.join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// GRADE NUDGE
+// ═══════════════════════════════════════════════════════
+function checkGradeNudge(history){
+  var nudgeEl=document.getElementById('cel-grade-nudge');
+  var nudgeText=document.getElementById('cel-grade-nudge-text');
+  if(!nudgeEl||!nudgeText)return;
+
+  var gradeList=window.GRADES&&window.GRADES.YDS?window.GRADES.YDS:[];
+  var currentGrade=logState.grade;
+  var currentIdx=gradeList.indexOf(currentGrade);
+  if(currentIdx<0){nudgeEl.style.display='none';return;}
+
+  // Get typical grade range from history (exclude current climb)
+  if(!Array.isArray(history)||history.length<2){nudgeEl.style.display='none';return;}
+  var prior=history.slice(1).filter(function(s){return s.grade_value&&gradeList.indexOf(s.grade_value)>-1;});
+  if(prior.length<2){nudgeEl.style.display='none';return;}
+
+  var priorIdxs=prior.map(function(s){return gradeList.indexOf(s.grade_value);});
+  var avgIdx=Math.round(priorIdxs.reduce(function(a,b){return a+b;},0)/priorIdxs.length);
+  var maxPrior=Math.max.apply(null,priorIdxs);
+
+  // Trigger if current grade is 3+ bands above their max prior grade
+  var diff=currentIdx-maxPrior;
+  if(diff>=3){
+    nudgeEl.style.display='flex';
+    var typicalGrade=gradeList[maxPrior]||'your usual range';
+    nudgeText.textContent=currentGrade+' is '+diff+' grades above your highest logged grade ('+typicalGrade+'). Does this look right?';
+  } else {
+    nudgeEl.style.display='none';
+  }
+}
+
+function dismissGradeNudge(){
+  var nudgeEl=document.getElementById('cel-grade-nudge');
+  if(nudgeEl)nudgeEl.style.display='none';
 }
 
 function resetLogScreen(){
@@ -3573,21 +3639,37 @@ async function loadClimbLog(){
   if(previewEl)previewEl.style.display=total===0?'block':'none';
   if(realEl)realEl.style.display=total>0?'block':'none';
 
+  // Staged example data handling
+  var exBanner=document.getElementById('sessions-example-banner');
+  var exCollapsible=document.getElementById('sessions-example-collapsible');
+
   if(total===0){
-    // Show example arc and climb list in climb log
+    // 0 climbs: example data expanded by default
     buildSessionsArc(EXAMPLE_ARC, true);
     buildRadar(EXAMPLE_ARC);
     renderClimbList(EXAMPLE_ARC, true);
     var emptyEl2=document.getElementById('sessions-empty-state');
     if(emptyEl2)emptyEl2.style.display='none';
     if(realEl)realEl.style.display='block';
-    var exBanner=document.getElementById('sessions-example-banner');
     if(exBanner)exBanner.style.display='flex';
+    if(exCollapsible)exCollapsible.style.display='block';
     return;
   }
-  // Hide example banner for real data
-  var exBanner2=document.getElementById('sessions-example-banner');
-  if(exBanner2)exBanner2.style.display='none';
+
+  // Real data exists — hide example banner
+  if(exBanner)exBanner.style.display='none';
+
+  if(total>=1&&total<5){
+    // 1-4 climbs: show example section collapsed
+    if(exCollapsible){
+      exCollapsible.style.display='block';
+      var exContent=document.getElementById('sessions-example-content');
+      if(exContent)exContent.style.display='none'; // collapsed by default
+    }
+  } else {
+    // 5+ climbs: example data gone entirely
+    if(exCollapsible)exCollapsible.style.display='none';
+  }
 
   // Stat strip
   var totalEl=document.getElementById('real-total');
@@ -3657,9 +3739,7 @@ function renderClimbList(climbs, isExample){
   var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',projecting:'Projecting'};
   var toggleHtml='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
     +'<div style="font-size:11px;color:var(--muted);">'+climbs.length+' climbs</div>'
-    +'<button onclick="toggleClimbLogView()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;">'
-    +(_climbLogGrouped?'Flat list':'Group by date')+'</button>'
-    +'</div>';
+
 
   if(_climbLogGrouped){
     var groups={};var groupOrder=[];
@@ -3684,8 +3764,6 @@ function renderClimbList(climbs, isExample){
       html+='<div style="height:8px;"></div>';
     });
     el.innerHTML=html;
-  } else {
-    el.innerHTML=toggleHtml+climbs.slice(0,60).map(function(s){return climbRow(s,resultLabels);}).join('');
   }
 }
 
@@ -3712,10 +3790,7 @@ function climbRow(s,resultLabels){
     +'</div>';
 }
 
-function toggleClimbLogView(){
-  _climbLogGrouped=!_climbLogGrouped;
-  if(window._cachedClimbs)renderClimbList(window._cachedClimbs);
-}
+
 
 function timeAgoStr(iso){
   if(!iso)return '';
@@ -3732,47 +3807,61 @@ function timeAgoStr(iso){
 }
 
 function buildRadar(sessions){
-  var svg=document.getElementById('radar-svg');
-  var breakdown=document.getElementById('radar-breakdown');
-  if(!svg)return;
-  var terrains=['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack'];
-  var counts={};
-  terrains.forEach(function(t){counts[t]=0;});
-  sessions.forEach(function(s){if(s.climbing_type&&counts[s.climbing_type]!==undefined)counts[s.climbing_type]++;});
-  var max=Math.max.apply(null,terrains.map(function(t){return counts[t];}));
-  if(max===0){svg.innerHTML='';return;}
+  // Zone-by-terrain breakdown — replaces radar chart
+  // Shows zone distribution per terrain as horizontal colored bars
+  var container=document.getElementById('radar-breakdown');
+  if(!container)return;
 
-  var cx=110,cy=110,r=80;
-  var pts=terrains.map(function(t,i){
-    var angle=(i/terrains.length)*2*Math.PI-Math.PI/2;
-    var val=max>0?counts[t]/max:0;
-    return{x:cx+r*val*Math.cos(angle),y:cy+r*val*Math.sin(angle),lx:cx+(r+18)*Math.cos(angle),ly:cy+(r+18)*Math.sin(angle),label:t,count:counts[t]};
+  var terrains=['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack'];
+  var data={};
+  terrains.forEach(function(t){data[t]={comfort:0,learning:0,panic:0,total:0};});
+
+  sessions.forEach(function(s){
+    if(s.climbing_type&&data[s.climbing_type]!==undefined&&s.zone){
+      data[s.climbing_type][s.zone]=(data[s.climbing_type][s.zone]||0)+1;
+      data[s.climbing_type].total++;
+    }
   });
 
-  var poly=pts.map(function(p){return p.x+','+p.y;}).join(' ');
-  var axes=terrains.map(function(t,i){
-    var angle=(i/terrains.length)*2*Math.PI-Math.PI/2;
-    return '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+r*Math.cos(angle))+'" y2="'+(cy+r*Math.sin(angle))+'" stroke="rgba(255,255,255,.08)" stroke-width="1"/>';
-  }).join('');
-  var labels=pts.map(function(p){
-    return '<text x="'+p.lx+'" y="'+(p.ly+4)+'" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(255,255,255,.45)">'+p.label+'</text>';
-  }).join('');
+  var active=terrains.filter(function(t){return data[t].total>0;});
+  if(active.length===0){
+    container.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;">Log more climbs to see your terrain pattern.</div>';
+    // Also hide the svg element
+    var svg=document.getElementById('radar-svg');
+    if(svg)svg.style.display='none';
+    return;
+  }
 
-  svg.innerHTML=axes+'<polygon points="'+poly+'" fill="rgba(232,118,58,.15)" stroke="#e8763a" stroke-width="1.5"/>'
-    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="1"/>'
-    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*.5)+'" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="1"/>'+labels;
+  // Hide legacy radar svg
+  var svg=document.getElementById('radar-svg');
+  if(svg)svg.style.display='none';
 
-  if(breakdown){
-    var topTerrains=terrains.filter(function(t){return counts[t]>0;}).sort(function(a,b){return counts[b]-counts[a];}).slice(0,4);
-    breakdown.innerHTML=topTerrains.map(function(t){
-      var pct=max>0?Math.round(counts[t]/sessions.length*100):0;
-      return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">'
-        +'<div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>'
-        +'<div style="font-size:12px;color:var(--text);">'+t+'</div>'
-        +'<div style="font-size:11px;color:var(--muted);">'+counts[t]+' ('+pct+'%)</div>'
+  container.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Zone by terrain</div>'
+    +active.map(function(t){
+      var d=data[t];
+      var total=d.total;
+      var cPct=Math.round(d.comfort/total*100);
+      var lPct=Math.round(d.learning/total*100);
+      var pPct=100-cPct-lPct;
+      return '<div style="margin-bottom:12px;">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">'
+        +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+t+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);">'+total+' climb'+(total===1?'':'s')+'</div>'
+        +'</div>'
+        // Horizontal bar
+        +'<div style="height:8px;border-radius:4px;overflow:hidden;display:flex;background:rgba(255,255,255,.05);">'
+        +(cPct>0?'<div style="width:'+cPct+'%;background:#7ec87a;height:100%;"></div>':'')
+        +(lPct>0?'<div style="width:'+lPct+'%;background:#f5a623;height:100%;"></div>':'')
+        +(pPct>0?'<div style="width:'+pPct+'%;background:#e84444;height:100%;"></div>':'')
+        +'</div>'
+        // Zone counts below bar
+        +'<div style="display:flex;gap:10px;margin-top:4px;">'
+        +(d.comfort>0?'<div style="font-size:10px;color:#7ec87a;">'+d.comfort+' comfort</div>':'')
+        +(d.learning>0?'<div style="font-size:10px;color:#f5a623;">'+d.learning+' learning</div>':'')
+        +(d.panic>0?'<div style="font-size:10px;color:#e84444;">'+d.panic+' panic</div>':'')
+        +'</div>'
         +'</div>';
     }).join('');
-  }
 }
 
 async function buildInsight(sessions){
@@ -3972,7 +4061,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'index90'
+    app_version:'index92'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4192,7 +4281,7 @@ function computeResult(){
   var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
   if(g)g.textContent=gMap[zone]||'';
   // Save to Supabase with is_checkin flag
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index90'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index92'});
   showScreen('s-result');
 }
 
@@ -4273,11 +4362,10 @@ function selectFBOpt(btn,val){
   var nextBtn=document.getElementById('fb-next-btn');if(nextBtn)nextBtn.classList.add('ready');
 }
 async function submitFeedbackFinal(){
-  // Used by optional question skip — jump to submission
   await sbI('feedback',{answers:JSON.stringify(fbAnswers),device_id:getDeviceId(),submitted_at:new Date().toISOString()});
   var succ=document.getElementById('fb-success');
   if(succ)succ.style.display='block';
-  var form=document.getElementById('fb-form');if(form)form.style.display='none';
+  var form=document.getElementById('fb-content');if(form)form.style.display='none';
 }
 
 async function fbNext(){
@@ -4288,10 +4376,11 @@ async function fbNext(){
   }
   fbIdx++;
   if(fbIdx>=FBQs.length){
-    await sbI('feedback',{answers:JSON.stringify(fbAnswers),submitted_at:new Date().toISOString()});
+    await sbI('feedback',{answers:JSON.stringify(fbAnswers),device_id:getDeviceId(),submitted_at:new Date().toISOString()});
     var succ=document.getElementById('fb-success');
     if(succ)succ.style.display='block';
-    var form=document.getElementById('fb-form');if(form)form.style.display='none';
+    var form=document.getElementById('fb-content');
+    if(form)form.style.display='none';
   } else {renderFBQ();}
 }
 
@@ -4545,6 +4634,35 @@ function spSetGradeSys(sys){
 // ═══════════════════════════════════════════════════════
 // SESSIONS — TOGGLE AI MORE
 // ═══════════════════════════════════════════════════════
+function toggleExampleSection(){
+  var content=document.getElementById('sessions-example-content');
+  var chevron=document.getElementById('sessions-example-chevron');
+  if(!content)return;
+  var open=content.style.display==='block';
+  content.style.display=open?'none':'block';
+  if(chevron)chevron.textContent=open?'›':'‹';
+  // Render example data inside collapsed section if opening for first time
+  if(!open&&!content.getAttribute('data-rendered')){
+    content.setAttribute('data-rendered','1');
+    var arcWrap=document.getElementById('sessions-example-arc-wrap');
+    var terrainWrap=document.getElementById('sessions-example-terrain-wrap');
+    var listWrap=document.getElementById('sessions-example-list-wrap');
+    if(arcWrap){
+      arcWrap.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:8px;"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Example arc</div><svg id="sessions-example-arc-svg" style="display:block;width:100%;" viewBox="0 0 300 72" preserveAspectRatio="none"><rect x="0" y="0" width="300" height="24" fill="rgba(232,68,68,.04)"/><rect x="0" y="24" width="300" height="24" fill="rgba(245,166,35,.04)"/><rect x="0" y="48" width="300" height="24" fill="rgba(126,200,122,.04)"/></svg></div>';
+      // Render example arc into it
+      var zoneY={comfort:62,learning:36,panic:10};
+      var ordered=EXAMPLE_ARC.slice().reverse();
+      var w=300,h=72;
+      var pts=ordered.map(function(s,i){return{x:10+(i/(ordered.length-1||1))*280,y:zoneY[s.zone]||36,z:s.zone,conf:s.zone_confidence};});
+      var svgParts=[];
+      if(pts.length>1)svgParts.push('<path d="'+pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ')+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5"/>');
+      pts.forEach(function(p){var c=zoneColor(p.z);if(p.conf==='confirmed')svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="'+c+'"/>');else svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="none" stroke="'+c+'" stroke-width="1.5"/>');});
+      var arcSvg=document.getElementById('sessions-example-arc-svg');
+      if(arcSvg)arcSvg.innerHTML=svgParts.join('');
+    }
+  }
+}
+
 function toggleAiMore(){
   var t=document.getElementById('ai-more-text');
   var b=document.getElementById('ai-say-more-btn');
