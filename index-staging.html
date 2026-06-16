@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging 88] Sharp End Exposure</title>
+<title>[Staging 89] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -437,7 +437,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <!-- Building card — 1-4 sessions -->
       <div id="home-building-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
         <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:6px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--accent);"></div>Pattern building</div>
-        <div style="font-size:var(--t-sm);color:var(--text);line-height:1.6;font-weight:500;" id="home-building-text">Log 5 sessions to unlock your zone arc, terrain radar, and grade range.</div>
+        <div style="font-size:var(--t-sm);color:var(--text);line-height:1.6;font-weight:500;" id="home-building-text">Log more climbs to build your picture. Terrain patterns start becoming visible around 10 sessions.</div>
         <!-- Mini progress bar -->
         <div style="margin-top:10px;height:3px;background:var(--surface2);border-radius:99px;overflow:hidden;">
           <div id="home-progress-fill" style="height:100%;background:var(--accent);border-radius:99px;transition:width .4s;width:0%;"></div>
@@ -750,7 +750,10 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
     </div>
 
-    <!-- ROW 6: INSIGHT -->
+    <!-- ROW 6: TERRAIN CONTEXT LINE -->
+    <div id="cel-terrain-context" style="display:none;font-size:12px;color:var(--muted);padding:4px 2px;"></div>
+
+    <!-- ROW 7: INSIGHT -->
     <div id="cel-insight-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:4px;">
       <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Pattern</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.65;" id="cel-insight-text"></div>
@@ -1342,7 +1345,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div id="sessions-empty-state" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;margin-bottom:16px;text-align:center;">
       <div style="font-size:28px;margin-bottom:12px;">📊</div>
       <div style="font-size:var(--t-md);font-weight:700;color:var(--text);margin-bottom:8px);">Your picture is building.</div>
-      <div style="font-size:var(--t-sm);color:var(--muted);line-height:1.6;" id="sessions-empty-text">Log 5 sessions to unlock zone distribution, terrain patterns, and grade range.</div>
+      <div style="font-size:var(--t-sm);color:var(--muted);line-height:1.6;" id="sessions-empty-text">Log climbs to build your arc. Each one sharpens the picture.</div>
       <button onclick="showScreen('screen-log')" style="margin-top:16px;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);font-weight:700;padding:12px 24px;cursor:pointer;">Log a climb →</button>
     </div>
 
@@ -1562,6 +1565,11 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div><!-- end sessions-real-section -->
 
   </div>
+
+  <!-- Floating Log a Climb button -->
+  <button onclick="logAnother();showScreen('screen-log');" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);border:none;box-shadow:0 4px 16px rgba(232,118,58,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:90;-webkit-tap-highlight-color:transparent;" title="Log a climb" id="climb-log-fab">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
 </div>
 
 </div>
@@ -2546,6 +2554,131 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 </div>
 
 <!-- ═══════════════════════════════════════
+     ZONE CONFIRMED
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-zone-confirmed">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+
+    <!-- GRADE + TERRAIN + RESULT row -->
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+      <div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--text);line-height:1;" id="zc-grade">—</div>
+      <div style="font-size:var(--t-md);color:var(--muted);font-weight:500;" id="zc-terrain">—</div>
+      <div style="font-size:12px;font-weight:700;" id="zc-result">—</div>
+    </div>
+
+    <!-- ZONE DIAGRAM — concentric rings with animated dot -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:24px 20px;text-align:center;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;" id="zc-header">Zone confirmed</div>
+
+      <!-- Concentric rings diagram -->
+      <div style="position:relative;width:180px;height:180px;margin:0 auto 16px;">
+        <svg viewBox="0 0 180 180" style="width:100%;height:100%;">
+          <!-- Panic ring -->
+          <circle cx="90" cy="90" r="84" fill="rgba(232,68,68,.08)" stroke="rgba(232,68,68,.2)" stroke-width="1"/>
+          <!-- Learning ring -->
+          <circle cx="90" cy="90" r="58" fill="rgba(245,166,35,.08)" stroke="rgba(245,166,35,.2)" stroke-width="1"/>
+          <!-- Comfort ring -->
+          <circle cx="90" cy="90" r="32" fill="rgba(126,200,122,.1)" stroke="rgba(126,200,122,.3)" stroke-width="1"/>
+          <!-- Labels -->
+          <text x="90" y="20" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(232,68,68,.5)" font-weight="700">PANIC</text>
+          <text x="90" y="46" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.5)" font-weight="700">LEARNING</text>
+          <text x="90" y="94" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.6)" font-weight="700">COMFORT</text>
+          <!-- Animated dot -->
+          <circle id="zc-dot" cx="90" cy="90" r="8" fill="#f5a623" opacity="0">
+            <animate id="zc-dot-anim" attributeName="opacity" from="0" to="1" dur="0.4s" begin="indefinite" fill="freeze"/>
+          </circle>
+          <circle id="zc-dot-ring" cx="90" cy="90" r="14" fill="none" stroke="#f5a623" stroke-width="1.5" opacity="0">
+            <animate id="zc-ring-anim" attributeName="opacity" from="0" to="0.4" dur="0.6s" begin="indefinite" fill="freeze"/>
+          </circle>
+        </svg>
+      </div>
+
+      <!-- Confirmed zone pill -->
+      <div id="zc-zone-pill" style="margin-bottom:10px;"></div>
+
+      <!-- Shift/match message -->
+      <div id="zc-message" style="font-size:13px;color:var(--muted);line-height:1.65;max-width:280px;margin:0 auto;"></div>
+    </div>
+
+    <!-- SHIFT DETAIL — only shown when zone diverged -->
+    <div id="zc-shift-card" style="display:none;background:rgba(232,118,58,.06);border:1px solid rgba(232,118,58,.2);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:12px;border-left:3px solid var(--accent);">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Zone updated</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px;" id="zc-shift-line">—</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.65;">What you reported shows lower activation than your result alone suggested — your body settled faster than the outcome implied.</div>
+    </div>
+
+  </div>
+
+  <!-- CTAs -->
+  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;">
+    <button onclick="showScreen('screen-celebrate')" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Back to climb →</button>
+    <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Log another climb</button>
+    <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Home</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MILESTONE — 5 CLIMBS
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-milestone">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button onclick="showScreen('screen-celebrate')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;padding:4px 8px;">Skip</button>
+  </div>
+  <div class="content">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">5 climbs logged</div>
+    <div style="font-size:26px;font-weight:700;line-height:1.2;margin-bottom:6px;">Your first picture.</div>
+    <div style="font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:24px;">Five climbs is early data. Here's what's actually there — not a story, just what you reported.</div>
+
+    <!-- Arc -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Your zone arc · 5 climbs</div>
+      <div style="display:flex;gap:6px;align-items:stretch;">
+        <div style="display:flex;flex-direction:column;justify-content:space-between;padding:4px 0;flex-shrink:0;">
+          <div style="font-size:8px;color:rgba(232,68,68,.5);font-weight:700;">P</div>
+          <div style="font-size:8px;color:rgba(245,166,35,.5);font-weight:700;">L</div>
+          <div style="font-size:8px;color:rgba(126,200,122,.5);font-weight:700;">C</div>
+        </div>
+        <svg id="milestone-arc-svg" style="display:block;width:100%;" viewBox="0 0 300 72" preserveAspectRatio="none">
+          <rect x="0" y="0" width="300" height="24" fill="rgba(232,68,68,.04)"/>
+          <rect x="0" y="24" width="300" height="24" fill="rgba(245,166,35,.04)"/>
+          <rect x="0" y="48" width="300" height="24" fill="rgba(126,200,122,.04)"/>
+        </svg>
+      </div>
+      <div style="display:flex;gap:14px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);">
+        <div style="font-size:9px;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:4px;"><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="rgba(255,255,255,.5)"/></svg>confirmed</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:4px;"><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="2.5" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/></svg>estimated</div>
+      </div>
+    </div>
+
+    <!-- Pattern reading -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">What's here</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;" id="milestone-reading">—</div>
+    </div>
+
+    <!-- Zone breakdown -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Zone breakdown</div>
+      <div id="milestone-zones" style="display:flex;gap:8px;"></div>
+    </div>
+
+    <!-- What comes next -->
+    <div style="padding:4px 0 8px;">
+      <div style="font-size:12px;color:rgba(255,255,255,.3);line-height:1.7;">Each climb sharpens the picture. Terrain patterns start becoming visible around 10 sessions.</div>
+    </div>
+  </div>
+
+  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;">
+    <button onclick="showScreen('screen-celebrate')" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Continue →</button>
+    <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;">Log another climb</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
      DATA & PRIVACY
 ═══════════════════════════════════════ -->
 <div class="screen" id="screen-privacy">
@@ -2709,6 +2842,7 @@ function showScreen(id){
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
   if(id==='screen-drill')loadDrillRouteOptions();
+  if(id==='screen-log')resetLogScreen();
   if(id==='screen-projects')loadProjectsScreen();
   if(id==='screen-home')loadHomeInsight();
   if(id==='screen-feedback')initFeedback();
@@ -2830,7 +2964,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index88',
+    app_version:'index89',
     device_id:getDeviceId()
   };
 
@@ -2899,6 +3033,16 @@ async function renderCelebrate(){
   // Personal record check
   checkPersonalRecord(history,logState);
 
+  // Terrain context line — single text, no chart
+  var terrainCtx=document.getElementById('cel-terrain-context');
+  if(terrainCtx&&logState.terrain){
+    var terrainCount=history.filter(function(s){return s.climbing_type===logState.terrain;}).length;
+    if(terrainCount>1){
+      terrainCtx.style.display='block';
+      terrainCtx.textContent='Your '+terrainCount+'th '+logState.terrain+' climb logged.';
+    }
+  }
+
   // Insight
   var insight=buildCelebInsight(history,logState);
   var insightCard=document.getElementById('cel-insight-card');
@@ -2910,6 +3054,11 @@ async function renderCelebrate(){
   // Project back button
   var projBtn=document.getElementById('cel-project-btn');
   if(projBtn)projBtn.style.display=logState.projectId?'block':'none';
+
+  // 5-climb milestone trigger
+  if(total===5){
+    setTimeout(function(){showMilestone(history);},800);
+  }
 }
 
 function checkPersonalRecord(history,state){
@@ -2951,13 +3100,13 @@ function buildCelebInsight(history,state){
 
   // First climb
   if(total<=1){
-    return 'Climb #1 logged. Your arc starts here — each climb adds a dot. <span style="color:var(--accent);">Log 4 more to unlock pattern insights.</span>';
+    return 'Climb #1 logged. Your arc starts here — each climb adds a dot.';
   }
 
   // Progress toward 5
   var progressLine='';
   if(total<5){
-    progressLine=' <span style="color:var(--accent);">'+remaining+' more climb'+(remaining===1?'':'s')+' to unlock insights.</span>';
+    progressLine=' <span style="color:var(--accent);">'+remaining+' more climb'+(remaining===1?'':'s')+' to build your pattern.</span>';
   }
 
   var prior=history.slice(1);
@@ -3024,11 +3173,12 @@ function renderCelArc(history){
   wrap.innerHTML=svgParts.join('');
 }
 
-function logAnother(){
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:null,projectName:null};
-  // Full UI reset
+function resetLogScreen(){
+  // Only reset if not logging against a project with prefill
+  if(logState.projectId&&logState.grade)return; // keep prefill for project logging
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:logState.projectId||null,projectName:logState.projectName||null};
   ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
-    var b=document.getElementById(id);if(b)b.classList.remove('selected');
+    var b=document.getElementById(id);if(b){b.classList.remove('selected');b.style.borderColor='';b.style.background='';}
   });
   document.querySelectorAll('.terrain-chips .chip').forEach(function(b){b.classList.remove('selected');});
   document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
@@ -3039,8 +3189,16 @@ function logAnother(){
   if(rnameGroup)rnameGroup.style.display='none';
   if(projGroup)projGroup.style.display='none';
   var rname=document.getElementById('log-rname-input');if(rname)rname.value='';
-  var logBtn=document.getElementById('log-btn');if(logBtn)logBtn.classList.remove('ready');
+  var logBtn=document.getElementById('log-btn');if(logBtn){logBtn.classList.remove('ready');logBtn.textContent='Log climb';logBtn.style.background='';}
   buildGradeGrid('YDS');
+  // Reset project banner
+  var banner=document.getElementById('log-project-banner');
+  if(banner&&!logState.projectId)banner.style.display='none';
+}
+
+function logAnother(){
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:null,projectName:null};
+  resetLogScreen();
   showScreen('screen-log');
 }
 
@@ -3256,9 +3414,13 @@ async function afterQ4(){
     }
   }
 
-  // Go back to celebrate so user sees zone pill update, then to Q5
-  showScreen('screen-celebrate');
-  showScreen('screen-q5');
+  // Show zone confirmed screen — two registers based on match vs diverge
+  showZoneConfirmed(prevZone, logState.zone);
+  // Also update celebrate screen pill for when they return
+  var pillEl=document.getElementById('cel-zone-pill');
+  if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
+  var deeperBtn=document.getElementById('cel-deeper-btn');
+  if(deeperBtn)deeperBtn.style.display='none';
 }
 
 async function finishDeeper(){
@@ -3678,7 +3840,7 @@ function buildHomeArc(sessions, isExample){
     if(isExample){
       insightText.textContent='This is what your arc could look like. Log your first climb to start your own.';
     } else if(sessions.length<5){
-      insightText.textContent=(5-sessions.length)+' more climb'+(5-sessions.length===1?'':'s')+' to unlock pattern insights.';
+      insightText.textContent='Each climb sharpens the picture. Terrain patterns start becoming visible around 10 sessions.';
     } else {
       insightText.textContent=buildArcInsight(sessions);
     }
@@ -3762,7 +3924,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'index88'
+    app_version:'index89'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -3982,7 +4144,7 @@ function computeResult(){
   var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
   if(g)g.textContent=gMap[zone]||'';
   // Save to Supabase with is_checkin flag
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index88'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index89'});
   showScreen('s-result');
 }
 
@@ -4493,6 +4655,140 @@ function drillRouteSelected(sel){
   var name=val.replace(/^(project:|route:)/,'');
   if(nameInput)nameInput.value=name;
   drillState.routeName=name;
+}
+
+// ═══════════════════════════════════════════════════════
+// 5-CLIMB MILESTONE
+// ═══════════════════════════════════════════════════════
+function showMilestone(history){
+  if(!Array.isArray(history)||history.length<5)return;
+  var climbs=history.filter(function(s){return !s.is_checkin;}).slice(0,5);
+
+  // Build arc
+  var svg=document.getElementById('milestone-arc-svg');
+  if(svg){
+    var ordered=climbs.slice().reverse();
+    var zoneY={comfort:62,learning:36,panic:10};
+    var pts=ordered.map(function(s,i){
+      return{x:10+(i/(ordered.length-1||1))*280,y:zoneY[s.zone]||36,z:s.zone,conf:s.zone_confidence};
+    });
+    var svgParts=[];
+    if(pts.length>1){
+      svgParts.push('<path d="'+pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ')+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5"/>');
+    }
+    pts.forEach(function(p){
+      var c=zoneColor(p.z);
+      if(p.conf==='confirmed')svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="'+c+'"/>');
+      else svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="none" stroke="'+c+'" stroke-width="1.5"/>');
+    });
+    svg.innerHTML=svgParts.join('');
+  }
+
+  // Zone breakdown
+  var zones={comfort:0,learning:0,panic:0};
+  climbs.forEach(function(s){if(s.zone)zones[s.zone]++;});
+  var confirmed=climbs.filter(function(s){return s.zone_confidence==='confirmed';}).length;
+  var zoneEl=document.getElementById('milestone-zones');
+  if(zoneEl){
+    zoneEl.innerHTML=['comfort','learning','panic'].map(function(z){
+      var c=zoneColor(z);var n=zones[z];
+      return '<div style="flex:1;text-align:center;padding:10px 6px;background:'+c+'1a;border-radius:var(--r-md);border:1px solid '+c+'33;">'
+        +'<div style="font-size:22px;font-weight:700;color:'+c+';font-family:Space Mono,monospace;">'+n+'</div>'
+        +'<div style="font-size:10px;color:'+c+';font-weight:600;margin-top:2px;text-transform:capitalize;">'+z+'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  // Pattern reading — honest, two registers
+  var readingEl=document.getElementById('milestone-reading');
+  if(readingEl){
+    var terrains=[...new Set(climbs.map(function(s){return s.climbing_type;}).filter(Boolean))];
+    var grades=[...new Set(climbs.map(function(s){return s.grade_value;}).filter(Boolean))];
+    var dominantZone=Object.keys(zones).reduce(function(a,b){return zones[a]>zones[b]?a:b;});
+    var hasPattern=Object.values(zones).some(function(v){return v>=3;});
+    var lowConfirm=confirmed<3;
+
+    var reading='';
+    if(lowConfirm){
+      reading='You've logged '+climbs.length+' climbs across '+terrains.slice(0,2).join(' and ')+(terrains.length>2?' and more':'')+'.'
+        +' Most zones are estimated — confirm with the 4 somatic questions to get a clearer read.'
+        +' That's the foundation. The picture builds from here.';
+    } else if(hasPattern){
+      reading='You've logged '+climbs.length+' climbs. The data shows a lean toward '
+        +dominantZone+' zone — '+zones[dominantZone]+' of '+climbs.length+' sessions.'
+        +' '+confirmed+' of those are confirmed by somatic data.'
+        +' Early picture, but something is there.';
+    } else {
+      reading='You've logged '+climbs.length+' climbs across '+terrains.slice(0,2).join(' and ')+'.'
+        +' Zones are mixed — no strong pattern yet, which at this volume is completely normal.'
+        +' '+confirmed+' of '+climbs.length+' zones confirmed. Keep logging.';
+    }
+    readingEl.textContent=reading;
+  }
+
+  showScreen('screen-milestone');
+}
+
+// ═══════════════════════════════════════════════════════
+// ZONE CONFIRMED SCREEN
+// ═══════════════════════════════════════════════════════
+function showZoneConfirmed(prevZone, confirmedZone){
+  var matched = prevZone === confirmedZone;
+  var c = zoneColor(confirmedZone);
+
+  // Fill grade/terrain/result
+  var gradeEl=document.getElementById('zc-grade');
+  var terrEl=document.getElementById('zc-terrain');
+  var resultEl=document.getElementById('zc-result');
+  if(gradeEl)gradeEl.textContent=logState.grade||'—';
+  if(terrEl)terrEl.textContent=logState.terrain||'—';
+  var resultLabels={sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',projecting:'⟳ Projecting'};
+  var resultColors={sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
+  if(resultEl){resultEl.textContent=resultLabels[logState.result]||'';resultEl.style.color=resultColors[logState.result]||'var(--muted)';}
+
+  // Header
+  var header=document.getElementById('zc-header');
+  if(header)header.textContent=matched?'Zone confirmed':'Zone updated';
+
+  // Zone pill
+  var pillEl=document.getElementById('zc-zone-pill');
+  if(pillEl)pillEl.innerHTML=zonePill(confirmedZone,false);
+
+  // Dot position in concentric rings
+  // Panic=outer ring (cy~20), Learning=middle (cy~55), Comfort=inner (cy~90)
+  var dotPos={comfort:{cx:90,cy:90},learning:{cx:90,cy:55},panic:{cx:90,cy:18}};
+  var pos=dotPos[confirmedZone]||{cx:90,cy:55};
+  var dot=document.getElementById('zc-dot');
+  var ring=document.getElementById('zc-dot-ring');
+  var dotAnim=document.getElementById('zc-dot-anim');
+  var ringAnim=document.getElementById('zc-ring-anim');
+  if(dot){dot.setAttribute('cx',pos.cx);dot.setAttribute('cy',pos.cy);dot.setAttribute('fill',c);dot.setAttribute('opacity','0');}
+  if(ring){ring.setAttribute('cx',pos.cx);ring.setAttribute('cy',pos.cy);ring.setAttribute('stroke',c);ring.setAttribute('opacity','0');}
+
+  // Message — two registers
+  var msgEl=document.getElementById('zc-message');
+  var shiftCard=document.getElementById('zc-shift-card');
+  var shiftLine=document.getElementById('zc-shift-line');
+
+  if(matched){
+    // Plain, brief — nothing dramatic happened
+    if(msgEl)msgEl.textContent='Confirmed: '+zoneName(confirmedZone)+'. Matches your read.';
+    if(shiftCard)shiftCard.style.display='none';
+  } else {
+    // Fuller moment — something genuinely informative occurred
+    if(msgEl)msgEl.textContent='Your somatic data shifted the read.';
+    if(shiftCard)shiftCard.style.display='block';
+    if(shiftLine&&prevZone){
+      shiftLine.innerHTML='<span style="color:'+zoneColor(prevZone)+';">'+zoneName(prevZone)+'</span> → <span style="color:'+c+';">'+zoneName(confirmedZone)+'</span>';
+    }
+  }
+
+  // Navigate and animate dot
+  showScreen('screen-zone-confirmed');
+  setTimeout(function(){
+    if(dotAnim)dotAnim.beginElement();
+    if(ringAnim&&!matched)ringAnim.beginElement();
+  }, 200);
 }
 
 // ═══════════════════════════════════════════════════════
