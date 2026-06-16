@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging 84] Sharp End Exposure</title>
+<title>[Staging 85] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -505,10 +505,13 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div style="font-size:24px;font-weight:700;color:var(--text);line-height:1.25;margin-bottom:10px;">A structured awareness practice.</div>
     <div style="font-size:var(--t-sm);color:var(--muted);line-height:1.7;margin-bottom:24px;">Three steps. A pre-climb somatic check-in, the climb itself, then a post-climb log and reflection. The shift between before and after is the data.</div>
 
-    <!-- Route input -->
+    <!-- Route selector -->
     <div style="margin-bottom:16px;">
       <div style="font-size:var(--t-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Route (optional)</div>
-      <input id="drill-route-name" type="text" placeholder="Route name or description..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);padding:12px 14px;outline:none;" />
+      <select id="drill-route-select" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);padding:12px 14px;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;" onchange="drillRouteSelected(this)">
+        <option value="">Select a route or project...</option>
+      </select>
+      <input id="drill-route-name" type="text" placeholder="Or type a route name..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);padding:12px 14px;outline:none;margin-top:8px;" />
     </div>
 
     <!-- Steps preview -->
@@ -677,98 +680,107 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
   <div class="content">
-    <!-- CLIMB NUMBER + LOGGED -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 8px;">
+
+    <!-- ROW 1: logged + climb number -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;">
       <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">Logged ✓</div>
       <div style="font-size:11px;color:var(--muted);" id="cel-climb-num"></div>
     </div>
 
-    <!-- ZONE HERO — the most important output -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;text-align:center;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Activation zone</div>
-      <div id="cel-zone-pill" style="margin-bottom:8px;"></div>
-      <div style="font-size:11px;color:var(--muted2);line-height:1.5;">Estimated from result · Go Deeper confirms it</div>
-      <!-- Zone shift — shown after Go Deeper updates zone -->
-      <div id="cel-zone-shift" style="display:none;margin-top:12px;padding:10px 14px;background:rgba(232,118,58,.06);border-radius:var(--r-md);border-left:2px solid var(--accent);text-align:left;"></div>
-    </div>
-
-    <!-- GRADE + TERRAIN + RESULT -->
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:4px 0;">
-      <div style="font-family:'Space Mono',monospace;font-size:28px;font-weight:700;color:var(--text);line-height:1;" id="card-grade-big">—</div>
+    <!-- ROW 2: GRADE + TERRAIN + RESULT — hero line -->
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="font-family:'Space Mono',monospace;font-size:32px;font-weight:700;color:var(--text);line-height:1;" id="card-grade-big">—</div>
       <div style="font-size:var(--t-md);color:var(--muted);font-weight:500;" id="card-terrain-big">—</div>
       <div class="climb-result-badge" id="card-badge-big">—</div>
     </div>
 
-    <!-- MINI ARC — from session 1 -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Your arc</div>
-      <svg id="cel-arc-svg" style="display:block;width:100%;" viewBox="0 0 300 60" preserveAspectRatio="none">
-        <rect x="0" y="0" width="300" height="20" fill="rgba(232,68,68,.04)"/>
-        <rect x="0" y="20" width="300" height="20" fill="rgba(245,166,35,.04)"/>
-        <rect x="0" y="40" width="300" height="20" fill="rgba(126,200,122,.04)"/>
-      </svg>
-      <div style="display:flex;justify-content:space-between;margin-top:4px;">
-        <div style="font-size:9px;color:rgba(126,200,122,.5);font-weight:700;">Comfort</div>
-        <div style="font-size:9px;color:rgba(245,166,35,.5);font-weight:700;">Learning</div>
-        <div style="font-size:9px;color:rgba(232,68,68,.5);font-weight:700;">Panic</div>
+    <!-- ROW 3: ZONE — estimated pill + confirm CTA together -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;margin-bottom:12px;">
+      <div style="padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Activation zone</div>
+          <div id="cel-zone-pill"></div>
+        </div>
+        <button id="cel-deeper-btn" onclick="startDeeper()" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">Confirm →</button>
+      </div>
+      <div style="padding:0 16px 12px;font-size:11px;color:var(--muted2);">4 questions · ~15 seconds · zone updates in place</div>
+      <!-- Zone shift — shown after Go Deeper updates zone -->
+      <div id="cel-zone-shift" style="display:none;margin:0 16px 14px;padding:10px 14px;background:rgba(232,118,58,.06);border-radius:var(--r-md);border-left:2px solid var(--accent);"></div>
+    </div>
+
+    <!-- ROW 4: PERSONAL RECORD — shown when applicable -->
+    <div id="cel-pr-card" style="display:none;background:rgba(232,118,58,.06);border:1px solid rgba(232,118,58,.2);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">Personal record</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text);" id="cel-pr-text"></div>
+    </div>
+
+    <!-- ROW 5: MINI ARC -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Your arc</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.25);">older → recent</div>
+      </div>
+      <!-- Arc SVG with proper Y axis -->
+      <div style="display:flex;gap:6px;align-items:stretch;">
+        <div style="display:flex;flex-direction:column;justify-content:space-between;padding:4px 0;flex-shrink:0;">
+          <div style="font-size:8px;color:rgba(232,68,68,.5);font-weight:700;text-align:right;">P</div>
+          <div style="font-size:8px;color:rgba(245,166,35,.5);font-weight:700;text-align:right;">L</div>
+          <div style="font-size:8px;color:rgba(126,200,122,.5);font-weight:700;text-align:right;">C</div>
+        </div>
+        <div style="flex:1;position:relative;">
+          <svg id="cel-arc-svg" style="display:block;width:100%;" viewBox="0 0 300 72" preserveAspectRatio="none">
+            <rect x="0" y="0" width="300" height="24" fill="rgba(232,68,68,.04)"/>
+            <rect x="0" y="24" width="300" height="24" fill="rgba(245,166,35,.04)"/>
+            <rect x="0" y="48" width="300" height="24" fill="rgba(126,200,122,.04)"/>
+          </svg>
+        </div>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;gap:14px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);">
+        <div style="font-size:9px;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="rgba(255,255,255,.5)"/></svg>confirmed</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.5" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/></svg>estimated</div>
       </div>
     </div>
 
-    <!-- PERSONALIZED INSIGHT -->
-    <div id="cel-insight-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;">
+    <!-- ROW 6: INSIGHT -->
+    <div id="cel-insight-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:4px;">
       <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Pattern</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.65;" id="cel-insight-text"></div>
     </div>
 
     <div class="save-ind" id="log-save-ind"></div>
-  </div>
 
-  <div style="height:16px"></div>
-
-  <!-- Session focus — shown when logging against a project -->
-  <div id="session-focus-block" style="display:none;padding:0 20px 16px;">
-    <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Today's focus</div>
-    <div style="font-size:15px;color:var(--muted);margin-bottom:12px;">What are you working on this session?</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;" id="focus-chips">
-      <button class="chip" onclick="selectFocus(this,'crux_movement')">Crux movement</button>
-      <button class="chip" onclick="selectFocus(this,'clipping')">Clipping position</button>
-      <button class="chip" onclick="selectFocus(this,'footwork')">Footwork</button>
-      <button class="chip" onclick="selectFocus(this,'fear_management')">Fear management</button>
-      <button class="chip" onclick="selectFocus(this,'fitness')">Fitness / endurance</button>
-      <button class="chip" onclick="selectFocus(this,'route_reading')">Route reading</button>
-      <button class="chip" onclick="selectFocus(this,'fall_practice')">Fall practice</button>
-      <button class="chip" onclick="selectFocus(this,'general')">General attempt</button>
-    </div>
-  </div>
-
-  <!-- WHAT'S NEXT -->
-  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;">
-    <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">What's next?</div>
-
-    <!-- GO DEEPER — primary CTA -->
-    <button onclick="if(!logState.sessId){showToast('Saving... try again in a moment');return;}startDeeper()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;padding:20px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left;display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="font-size:17px;font-weight:700;">Confirm your zone →</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.7);margin-top:3px;">4 questions · ~15 seconds</div>
+    <!-- Session focus — project logging -->
+    <div id="session-focus-block" style="display:none;padding:12px 0 0;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Today's focus</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;" id="focus-chips">
+        <button class="chip" onclick="selectFocus(this,'crux_movement')">Crux movement</button>
+        <button class="chip" onclick="selectFocus(this,'clipping')">Clipping position</button>
+        <button class="chip" onclick="selectFocus(this,'footwork')">Footwork</button>
+        <button class="chip" onclick="selectFocus(this,'fear_management')">Fear management</button>
+        <button class="chip" onclick="selectFocus(this,'fitness')">Fitness / endurance</button>
+        <button class="chip" onclick="selectFocus(this,'route_reading')">Route reading</button>
+        <button class="chip" onclick="selectFocus(this,'fall_practice')">Fall practice</button>
+        <button class="chip" onclick="selectFocus(this,'general')">General attempt</button>
       </div>
-      <div style="font-size:22px;opacity:.8;">›</div>
-    </button>
-
-    <div id="cel-project-btn" style="display:none;">
-      <button onclick="returnToProject()" style="width:100%;background:rgba(126,200,122,.08);border:1px solid rgba(126,200,122,.25);border-radius:var(--r-lg);color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);font-weight:700;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;" id="cel-project-label">← Back to project</button>
     </div>
 
-    <!-- Secondary actions as text links -->
-    <div style="display:flex;flex-wrap:wrap;gap:0;justify-content:center;padding-top:4px;">
-      <button onclick="showScreen('screen-route-details')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Add route details</button>
-      <span style="color:var(--border);padding:8px 0;">·</span>
-      <button onclick="openStartProjectFromLog()" style="background:none;border:none;color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Start project</button>
-      <span style="color:var(--border);padding:8px 0;">·</span>
-      <button onclick="openEditSheet()" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Edit climb</button>
+    <!-- SECONDARY ACTIONS -->
+    <div style="padding:16px 0 4px;display:flex;flex-direction:column;gap:8px;">
+      <div id="cel-project-btn" style="display:none;">
+        <button onclick="returnToProject()" style="width:100%;background:rgba(126,200,122,.08);border:1px solid rgba(126,200,122,.25);border-radius:var(--r-lg);color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);font-weight:700;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;" id="cel-project-label">← Back to project</button>
+      </div>
+      <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Log another climb</button>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:0;padding-top:4px;">
+        <button onclick="showScreen('screen-route-details')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;">Add details</button>
+        <span style="color:var(--border);padding:6px 0;">·</span>
+        <button onclick="openStartProjectFromLog()" style="background:none;border:none;color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;">Start project</button>
+        <span style="color:var(--border);padding:6px 0;">·</span>
+        <button onclick="openEditSheet()" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;">Edit climb</button>
+        <span style="color:var(--border);padding:6px 0;">·</span>
+        <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.25);font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;">Home</button>
+      </div>
     </div>
-    <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Log another climb</button>
-    <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Home</button>
-  </div>
 
   <!-- Edit sheet -->
   <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
@@ -2536,6 +2548,7 @@ async function sbI(table,payload){
   try{
     const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(payload)});
     const d=await r.json();
+    // Supabase returns array for INSERT with return=representation
     return Array.isArray(d)?d[0]:d;
   }catch(e){console.error('sbI',e);return null;}
 }
@@ -2617,6 +2630,7 @@ function showScreen(id){
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
+  if(id==='screen-drill')loadDrillRouteOptions();
   if(id==='screen-projects')loadProjectsScreen();
   if(id==='screen-home')loadHomeInsight();
   if(id==='screen-feedback')initFeedback();
@@ -2738,31 +2752,41 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index84',
+    app_version:'index85',
     device_id:getDeviceId()
   };
 
-  var saved=await sbI('sessions',payload);
+  var raw=await sbI('sessions',payload);
+  var saved=Array.isArray(raw)?raw[0]:raw;
   if(saved&&saved.id){
     logState.sessId=saved.id;
     showToast('Logged ✓');
   } else {
-    showToast('Saved locally — will sync',false);
+    showToast('Could not save — check connection',false);
+    console.error('Session save failed:',raw);
+    if(btn){btn.textContent='Log climb';btn.classList.add('ready');}
+    return;
   }
 
+  // Navigate AFTER sessId is set so Go Deeper button works immediately
   showScreen('screen-celebrate');
   renderCelebrate();
   if(btn){btn.textContent='Log climb';btn.classList.add('ready');}
+
+  // Background refresh home arc and climb log
+  loadHomeInsight();
+  // Pre-cache climb log data so it's instant when tapped
+  sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=100').then(function(s){
+    window._cachedSessions=Array.isArray(s)?s.filter(function(x){return !x.is_checkin;}):[];
+  });
 }
 
 async function renderCelebrate(){
-  // Grade + terrain + result
   var gradEl=document.getElementById('card-grade-big');
   var terrEl=document.getElementById('card-terrain-big');
   var badgeEl=document.getElementById('card-badge-big');
   var pillEl=document.getElementById('cel-zone-pill');
   var insightEl=document.getElementById('cel-insight-text');
-  var arcEl=document.getElementById('cel-arc-svg');
   var climbNumEl=document.getElementById('cel-climb-num');
 
   if(gradEl)gradEl.textContent=logState.grade||'—';
@@ -2778,16 +2802,24 @@ async function renderCelebrate(){
   // Zone pill — estimated until Go Deeper done
   if(pillEl)pillEl.innerHTML=zonePill(logState.zone,true);
 
-  // Fetch history for personalized insight
-  var history=await sbS('sessions','select=zone,zone_confidence,climbing_type,grade_value,baseline_zone,created_at&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=50');
-  var total=Array.isArray(history)?history.length:0;
+  // Confirm button — always visible, always clickable (sessId now guaranteed set)
+  var deeperBtn=document.getElementById('cel-deeper-btn');
+  if(deeperBtn)deeperBtn.style.display='flex';
 
-  if(climbNumEl)climbNumEl.textContent='Climb #'+(total);
+  // Fetch history
+  var history=await sbS('sessions','select=zone,zone_confidence,climbing_type,grade_value,baseline_zone,created_at&device_id=eq.'+getDeviceId()+'&is_checkin=eq.false&order=created_at.desc&limit=100');
+  if(!Array.isArray(history))history=[];
+  var total=history.length;
 
-  // Build mini arc from history
+  if(climbNumEl)climbNumEl.textContent='Climb #'+total;
+
+  // Mini arc
   renderCelArc(history);
 
-  // Personalized insight
+  // Personal record check
+  checkPersonalRecord(history,logState);
+
+  // Insight
   var insight=buildCelebInsight(history,logState);
   var insightCard=document.getElementById('cel-insight-card');
   if(insightCard&&insight){
@@ -2798,6 +2830,39 @@ async function renderCelebrate(){
   // Project back button
   var projBtn=document.getElementById('cel-project-btn');
   if(projBtn)projBtn.style.display=logState.projectId?'block':'none';
+}
+
+function checkPersonalRecord(history,state){
+  var prCard=document.getElementById('cel-pr-card');
+  var prText=document.getElementById('cel-pr-text');
+  if(!prCard||!prText||!history||history.length<=1)return;
+
+  var prior=history.slice(1); // exclude current climb
+  var msgs=[];
+
+  // Hardest grade ever?
+  var gradeOrder=window.GRADES&&window.GRADES.YDS?window.GRADES.YDS:[];
+  var currentIdx=gradeOrder.indexOf(state.grade);
+  if(currentIdx>-1){
+    var priorGrades=prior.map(function(s){return gradeOrder.indexOf(s.grade_value);}).filter(function(i){return i>-1;});
+    var prevBest=priorGrades.length>0?Math.max.apply(null,priorGrades):-1;
+    if(currentIdx>prevBest)msgs.push('Hardest grade logged — '+state.grade);
+  }
+
+  // First climb on this terrain?
+  var terrainPrior=prior.filter(function(s){return s.climbing_type===state.terrain;});
+  if(terrainPrior.length===0)msgs.push('First '+state.terrain+' climb logged');
+
+  // First confirmed comfort on this terrain?
+  if(state.zone==='comfort'&&state.result==='sent'){
+    var prevComfort=prior.filter(function(s){return s.climbing_type===state.terrain&&s.zone==='comfort';});
+    if(prevComfort.length===0)msgs.push('First Comfort zone send on '+state.terrain);
+  }
+
+  if(msgs.length>0){
+    prCard.style.display='block';
+    prText.textContent=msgs[0]; // show most significant
+  }
 }
 
 function buildCelebInsight(history,state){
@@ -2837,27 +2902,44 @@ function buildCelebInsight(history,state){
 function renderCelArc(history){
   var wrap=document.getElementById('cel-arc-svg');
   if(!wrap)return;
-  if(!Array.isArray(history)||history.length===0){wrap.innerHTML='';return;}
+  if(!Array.isArray(history)||history.length===0){
+    wrap.innerHTML='<text x="150" y="36" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="rgba(255,255,255,.2)">Log more climbs to build your arc</text>';
+    return;
+  }
   var sessions=history.slice().reverse().slice(-20); // oldest first, max 20
-  var w=300,h=60;
-  var zoneY={comfort:52,learning:30,panic:8};
+  var w=300,h=72;
+  // Y: Panic=top(8), Learning=middle(36), Comfort=bottom(64)
+  var zoneY={comfort:62,learning:36,panic:10};
   var pts=sessions.map(function(s,i){
-    var x=20+(i/(Math.max(sessions.length-1,1)))*(w-40);
-    var y=zoneY[s.zone]||30;
+    var x=sessions.length===1?w/2:10+(i/(sessions.length-1))*(w-20);
+    var y=zoneY[s.zone]||36;
     return{x:x,y:y,z:s.zone,conf:s.zone_confidence};
   });
 
-  var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ');
-  var svgParts=['<path d="'+pathD+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linejoin="round"/>'];
-  pts.forEach(function(p){
+  var svgParts=[];
+  // Zone band lines
+  svgParts.push('<line x1="0" y1="24" x2="'+w+'" y2="24" stroke="rgba(255,255,255,.04)" stroke-width="1"/>');
+  svgParts.push('<line x1="0" y1="48" x2="'+w+'" y2="48" stroke="rgba(255,255,255,.04)" stroke-width="1"/>');
+
+  // Connect line
+  if(pts.length>1){
+    var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ');
+    svgParts.push('<path d="'+pathD+'" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="1.5" stroke-linejoin="round"/>');
+  }
+
+  // Dots
+  pts.forEach(function(p,i){
     var c=zoneColor(p.z);
-    var confirmed=p.conf==='confirmed';
-    if(confirmed){
-      svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="'+c+'"/>');
+    var isLast=i===pts.length-1;
+    var r=isLast?5:3.5;
+    if(p.conf==='confirmed'){
+      svgParts.push('<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="'+c+'"/>');
+      if(isLast)svgParts.push('<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(r+3)+'" fill="none" stroke="'+c+'" stroke-width="1" opacity=".4"/>');
     } else {
-      svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="none" stroke="'+c+'" stroke-width="1.5"/>');
+      svgParts.push('<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="none" stroke="'+c+'" stroke-width="1.5"/>');
     }
   });
+
   wrap.setAttribute('viewBox','0 0 '+w+' '+h);
   wrap.innerHTML=svgParts.join('');
 }
@@ -3057,15 +3139,34 @@ async function afterQ4(){
   var pillEl=document.getElementById('cel-zone-pill');
   if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
 
-  // Show zone shift screen if changed
+  // Update zone pill in place on celebrate screen — transition from estimated to confirmed
+  var pillEl=document.getElementById('cel-zone-pill');
+  if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
+
+  // Hide confirm button — already confirmed
+  var deeperBtn=document.getElementById('cel-deeper-btn');
+  if(deeperBtn)deeperBtn.style.display='none';
+
+  // Show zone shift if changed
   var shiftEl=document.getElementById('cel-zone-shift');
-  if(shiftEl&&prevZone&&prevZone!==logState.zone){
-    shiftEl.style.display='block';
-    shiftEl.innerHTML='<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Zone updated</div><div style="font-size:15px;font-weight:700;">'+zoneName(prevZone)+' → '+zoneName(logState.zone)+'</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Based on what you reported.</div>';
+  if(shiftEl){
+    if(prevZone&&prevZone!==logState.zone){
+      shiftEl.style.display='block';
+      shiftEl.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">Zone updated</div>'
+        +'<div style="font-size:15px;font-weight:700;">'+zoneName(prevZone)+' → '+zoneName(logState.zone)+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:3px;">Based on what you reported.</div>';
+    } else {
+      shiftEl.style.display='block';
+      shiftEl.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">Zone confirmed</div>'
+        +'<div style="font-size:14px;font-weight:600;color:var(--muted);">Consistent with your initial estimate.</div>';
+    }
   }
 
-  // Navigate to Q5 (optional)
-  showScreen('screen-q5');
+  // Go back to celebrate screen to show the confirmed zone
+  showScreen('screen-celebrate');
+
+  // Navigate to optional Q5 after brief delay so user sees the update
+  setTimeout(function(){showScreen('screen-q5');},1200);
 }
 
 async function finishDeeper(){
@@ -3201,7 +3302,7 @@ function buildSessionsArc(sessions){
   if(!g)return;
   g.innerHTML='';
   var ordered=sessions.slice().reverse();
-  var zoneY={comfort:83,learning:50,panic:16};
+  var zoneY={comfort:83,learning:50,panic:16}; // Panic=top, Comfort=bottom
   var w=320,h=100;
   var pts=ordered.map(function(s,i){
     return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||50,z:s.zone,conf:s.zone_confidence};
@@ -3388,16 +3489,28 @@ function buildHomeArc(sessions){
     return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||36,z:s.zone,conf:s.zone_confidence};
   });
 
-  var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ');
-  var svgParts=['<path d="'+pathD+'" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5" stroke-linejoin="round"/>'];
+  var svgParts=[];
+  // Zone band dividers
+  svgParts.push('<line x1="0" y1="24" x2="'+w+'" y2="24" stroke="rgba(255,255,255,.04)" stroke-width="1"/>');
+  svgParts.push('<line x1="0" y1="48" x2="'+w+'" y2="48" stroke="rgba(255,255,255,.04)" stroke-width="1"/>');
+  // Y axis labels
+  svgParts.push('<text x="4" y="10" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(232,68,68,.4)" font-weight="700">P</text>');
+  svgParts.push('<text x="4" y="38" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.4)" font-weight="700">L</text>');
+  svgParts.push('<text x="4" y="66" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.4)" font-weight="700">C</text>');
+
+  if(pts.length>1){
+    var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ');
+    svgParts.push('<path d="'+pathD+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linejoin="round"/>');
+  }
   pts.forEach(function(p,i){
     var c=zoneColor(p.z);
     var isLast=i===pts.length-1;
+    var r=isLast?5.5:3.5;
     if(p.conf==='confirmed'){
-      svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(isLast?5.5:3.5)+'" fill="'+c+'"/>');
-      if(isLast)svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="9" fill="none" stroke="'+c+'" stroke-width="1.5" opacity=".4"/>');
+      svgParts.push('<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="'+c+'"/>');
+      if(isLast)svgParts.push('<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="9" fill="none" stroke="'+c+'" stroke-width="1.5" opacity=".4"/>');
     } else {
-      svgParts.push('<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(isLast?5:3)+'" fill="none" stroke="'+c+'" stroke-width="1.5"/>');
+      svgParts.push('<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(isLast?5:3)+'" fill="none" stroke="'+c+'" stroke-width="1.5"/>');
     }
   });
   svg.setAttribute('viewBox','0 0 '+w+' '+h);
@@ -3415,12 +3528,7 @@ function buildHomeArc(sessions){
     if(sessions.length<5){
       insightText.textContent=(5-sessions.length)+' more climb'+(5-sessions.length===1?'':'s')+' to unlock pattern insights.';
     } else {
-      var recent=sessions.slice(0,5).map(function(s){return s.zone;});
-      var panicCount=recent.filter(function(z){return z==='panic';}).length;
-      var comfortCount=recent.filter(function(z){return z==='comfort';}).length;
-      if(panicCount>=3)insightText.textContent='Recent sessions trending into Panic zone.';
-      else if(comfortCount>=4)insightText.textContent='Consistently in Comfort zone lately.';
-      else insightText.textContent='Zone arc across '+sessions.length+' climbs.';
+      insightText.textContent=buildArcInsight(sessions);
     }
   }
 }
@@ -3492,12 +3600,22 @@ function spAdjHeight(d){spState.height=(spState.height||20)+d;if(spState.height<
 async function submitProject(){
   var nameEl=document.getElementById('sp-name');
   if(!nameEl||!nameEl.value.trim()||!spState.disc){showToast('Name and discipline required');return;}
-  var gradeEl=document.getElementById('sp-grade-display');
-  var grade=spSelectedGrade||gradeEl&&gradeEl.textContent||'—';
-  var payload={name:nameEl.value.trim(),discipline:spState.disc,grade_value:grade,status:'active',environment:spState.env||null,rock_type:spState.rock||null};
+  var grade=spSelectedGrade||'—';
+  var payload={
+    name:nameEl.value.trim(),
+    route_name:nameEl.value.trim(),
+    discipline:spState.disc,
+    grade_value:grade,
+    status:'active',
+    environment:spState.env||null,
+    rock_type:spState.rock||null,
+    device_id:getDeviceId(),
+    app_version:'index85'
+  };
   if(spState.bolts)payload.bolt_count=spState.bolts;
-  if(spState.height)payload.height=spState.height+spState.unit;
-  var saved=await sbI('projects',payload);
+  if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
+  var raw=await sbI('projects',payload);
+  var saved=Array.isArray(raw)?raw[0]:raw;
   if(saved&&saved.id){
     showToast('Project started ✓');
     currentProjectId=saved.id;
@@ -3507,6 +3625,7 @@ async function submitProject(){
     openProjectById(saved.id);
   } else {
     showToast('Could not save project');
+    console.error('Project save failed:',raw);
   }
 }
 
@@ -3673,7 +3792,7 @@ function computeResult(){
   var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
   if(g)g.textContent=gMap[zone]||'';
   // Save to Supabase with is_checkin flag
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index84'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index85'});
   showScreen('s-result');
 }
 
@@ -4066,6 +4185,103 @@ function deepPickOpt(btn,val){
   deepPrepState.answers[deepPrepState.qi]=val;
   var nextBtn=document.getElementById('deep-next');
   if(nextBtn)nextBtn.disabled=false;
+}
+
+// ═══════════════════════════════════════════════════════
+// ARC INSIGHT — smarter language at 5+ climbs
+// ═══════════════════════════════════════════════════════
+function buildArcInsight(sessions){
+  if(!sessions||sessions.length<5)return'';
+  var zones=sessions.map(function(s){return s.zone;});
+  var recent=zones.slice(0,5);
+  var all=zones;
+  var panicRecent=recent.filter(function(z){return z==='panic';}).length;
+  var comfortRecent=recent.filter(function(z){return z==='comfort';}).length;
+  var learningRecent=recent.filter(function(z){return z==='learning';}).length;
+
+  // Trend detection — compare first half vs second half
+  var half=Math.floor(sessions.length/2);
+  var early=zones.slice(sessions.length-half);
+  var late=zones.slice(0,half);
+  var earlyPanic=early.filter(function(z){return z==='panic';}).length/half;
+  var latePanic=late.filter(function(z){return z==='panic';}).length/half;
+  var earlyComfort=early.filter(function(z){return z==='comfort';}).length/half;
+  var lateComfort=late.filter(function(z){return z==='comfort';}).length/half;
+
+  // Terrain-specific insight
+  var terrainCounts={};
+  sessions.forEach(function(s){if(s.climbing_type)terrainCounts[s.climbing_type]=(terrainCounts[s.climbing_type]||0)+1;});
+  var topTerrain=Object.keys(terrainCounts).sort(function(a,b){return terrainCounts[b]-terrainCounts[a];})[0];
+  var topTerrainSessions=sessions.filter(function(s){return s.climbing_type===topTerrain;});
+  var topTerrainZones=topTerrainSessions.map(function(s){return s.zone;});
+  var topTerrainPanic=topTerrainZones.filter(function(z){return z==='panic';}).length;
+  var topTerrainComfort=topTerrainZones.filter(function(z){return z==='comfort';}).length;
+
+  if(latePanic<earlyPanic-0.2)return'Panic zone frequency is dropping. The edge is shifting.';
+  if(lateComfort>earlyComfort+0.2)return'More Comfort zone sessions recently. The range is expanding.';
+  if(panicRecent>=4)return'Last 5 sessions predominantly Panic zone. Consider working the Learning fringe.';
+  if(comfortRecent>=4)return'Consistently in Comfort zone. A deliberate step toward the Learning fringe produces faster adaptation.';
+  if(topTerrain&&topTerrainPanic>topTerrainComfort)return topTerrain+' tends toward Panic zone for you across '+topTerrainSessions.length+' sessions.';
+  if(topTerrain&&topTerrainComfort>topTerrainPanic)return topTerrain+' is becoming familiar — '+topTerrainComfort+' Comfort zone sessions logged.';
+  var confirmed=sessions.filter(function(s){return s.zone_confidence==='confirmed';}).length;
+  return sessions.length+' climbs logged · '+confirmed+' confirmed zones · arc building.';
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPOSURE DRILL — route dropdown loader
+// ═══════════════════════════════════════════════════════
+async function loadDrillRouteOptions(){
+  var sel=document.getElementById('drill-route-select');
+  if(!sel)return;
+
+  // Get distinct route names from sessions
+  var sessions=await sbS('sessions','select=route_name,grade_value,climbing_type&device_id=eq.'+getDeviceId()+'&is_checkin=eq.false&route_name=not.is.null&order=created_at.desc&limit=100');
+  // Get active projects
+  var projects=await sbS('projects','select=name,grade_value&device_id=eq.'+getDeviceId()+'&status=eq.active&order=created_at.desc');
+
+  sel.innerHTML='<option value="">Select a route or project...</option>';
+
+  // Projects first
+  if(Array.isArray(projects)&&projects.length>0){
+    var pg=document.createElement('optgroup');
+    pg.label='Active Projects';
+    projects.forEach(function(p){
+      var opt=document.createElement('option');
+      opt.value='project:'+p.name;
+      opt.textContent=p.name+(p.grade_value?' ('+p.grade_value+')':'');
+      pg.appendChild(opt);
+    });
+    sel.appendChild(pg);
+  }
+
+  // Named routes (deduplicated)
+  if(Array.isArray(sessions)){
+    var seen={};
+    var namedRoutes=sessions.filter(function(s){
+      if(!s.route_name||seen[s.route_name])return false;
+      seen[s.route_name]=true;return true;
+    });
+    if(namedRoutes.length>0){
+      var rg=document.createElement('optgroup');
+      rg.label='Recent Routes';
+      namedRoutes.slice(0,15).forEach(function(s){
+        var opt=document.createElement('option');
+        opt.value='route:'+s.route_name;
+        opt.textContent=s.route_name+(s.grade_value?' ('+s.grade_value+')':'');
+        rg.appendChild(opt);
+      });
+      sel.appendChild(rg);
+    }
+  }
+}
+
+function drillRouteSelected(sel){
+  var val=sel.value;
+  var nameInput=document.getElementById('drill-route-name');
+  if(!val){if(nameInput)nameInput.value='';return;}
+  var name=val.replace(/^(project:|route:)/,'');
+  if(nameInput)nameInput.value=name;
+  drillState.routeName=name;
 }
 
 // ═══════════════════════════════════════════════════════
