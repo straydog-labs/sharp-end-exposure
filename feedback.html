@@ -227,11 +227,23 @@ function render(){
   html += tab('summary','Summary');
   html += tab('responses','All responses');
   html += tab('notes','Open notes');
+  html += tab('historical','Historical');
   html += '</div>';
+
+  if(!n && activeTab !== 'historical'){
+    html += '<div class="empty" style="padding:3rem 0;">';
+    html += '<div style="font-size:32px;margin-bottom:12px;">📭</div>';
+    html += '<div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px;">No feedback yet</div>';
+    html += '<div style="font-size:13px;color:var(--muted);line-height:1.6;">Feedback submissions will appear here once testers complete the in-app feedback flow.<br>The pipeline is working — index92 is the first version where feedback saves correctly end to end.</div>';
+    html += '</div>';
+    document.getElementById('main-content').innerHTML = html;
+    return;
+  }
 
   if(activeTab==='summary') html += renderSummary();
   if(activeTab==='responses') html += renderTable();
   if(activeTab==='notes') html += renderNotes();
+  if(activeTab==='historical') html += renderHistorical();
 
   document.getElementById('main-content').innerHTML = html;
 }
@@ -537,6 +549,59 @@ function renderNotes(){
     html += '<div class="note-meta">'+date+' · '+(r.app_version||'early beta')+' · '+sess+' session'+(sess!==1?'s':'')+'</div>';
     html += '</div>';
   });
+  return html;
+}
+
+// ── HISTORICAL ────────────────────────────────────────
+function renderHistorical(){
+  var html = '<div class="section-head">Historical responses</div>';
+  html += '<div class="detail-card" style="margin-bottom:16px;">';
+  html += '<div style="font-size:13px;color:var(--muted);line-height:1.7;">These are responses from earlier versions of the feedback flow. They used different question formats and are shown here as raw data. The feedback pipeline was broken until index91 — most early submissions did not save successfully.</div>';
+  html += '</div>';
+
+  // Fetch all feedback including any with old flat-field format
+  // For now show all current rows in raw format
+  if(!allFeedback.length){
+    html += '<div class="empty">No historical responses found. Earlier submissions may not have saved due to the fb-content bug fixed in index91.</div>';
+    return html;
+  }
+
+  allFeedback.forEach(function(r){
+    var date = new Date(r.submitted_at||r.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    var sess = sessionCounts[r.device_id]||0;
+    var raw = r.answers ? (typeof r.answers === 'string' ? r.answers : JSON.stringify(r.answers, null, 2)) : '—';
+
+    html += '<div class="note">';
+    html += '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">'+(r.app_version||'unknown version')+'</div>';
+
+    // Parse answers and show each question/answer pair
+    try{
+      var a = typeof r.answers === 'string' ? JSON.parse(r.answers) : (r.answers||{});
+      QUESTIONS.forEach(function(q){
+        var val = a[q.idx]!==undefined ? a[q.idx] : a[String(q.idx)];
+        if(val && String(val).trim()){
+          html += '<div style="margin-bottom:8px;">';
+          html += '<div style="font-size:11px;color:var(--muted);margin-bottom:2px;">'+q.label+'</div>';
+          html += '<div style="font-size:13px;color:var(--text);">'+val+'</div>';
+          html += '</div>';
+        }
+      });
+      // Show any extra keys
+      Object.keys(a).forEach(function(k){
+        if(!isNaN(k)||k==='_note') return;
+        html += '<div style="margin-bottom:8px;">';
+        html += '<div style="font-size:11px;color:var(--muted);margin-bottom:2px;">'+k+'</div>';
+        html += '<div style="font-size:13px;color:var(--text);">'+a[k]+'</div>';
+        html += '</div>';
+      });
+    }catch(e){
+      html += '<div style="font-size:12px;font-family:Space Mono,monospace;color:var(--muted);word-break:break-all;">'+raw+'</div>';
+    }
+
+    html += '<div class="note-meta" style="margin-top:8px;">'+date+' · '+sess+' session'+(sess!==1?'s':'')+' · device: '+(r.device_id||'—').substring(0,16)+'…</div>';
+    html += '</div>';
+  });
+
   return html;
 }
 
