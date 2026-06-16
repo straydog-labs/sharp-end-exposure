@@ -194,7 +194,8 @@ function loadAll(){
     });
     render();
   }).catch(function(e){
-    document.getElementById('main-content').innerHTML='<div class="empty">Error: '+e.message+'</div>';
+    document.getElementById('main-content').innerHTML='<div class="empty" style="color:#e84444;">Error: '+e.message+'<br><br><small style="color:var(--muted)">Check browser console for details (F12 → Console)</small></div>';
+    console.error('Feedback load error:', e);
   });
 }
 
@@ -432,7 +433,7 @@ function renderTable(){
     var trClass = (jtest||blank) ? ' class="row-marked"' : '';
 
     html += '<tr'+trClass+'>';
-    html += '<td><input type="checkbox" data-id="'+r.id+'" onchange="toggleRow(this,''+r.id+'')"></td>';
+    html += '<td><input type="checkbox" data-id="'+r.id+'" onchange="toggleRow(this,this.dataset.id)"></td>';
     html += '<td style="white-space:nowrap;color:var(--muted);font-size:11px">'+date+'</td>';
     html += '<td><span class="chip c-ver">'+(r.app_version||'—')+'</span></td>';
     html += '<td><span class="chip c-sess">'+sess+'</span></td>';
@@ -509,7 +510,7 @@ async function markJtest(){
     });
     if(!r.ok) ok = false;
   }
-  if(ok){ alert('Marked '+ids.length+' row(s) as JTEST. They'll be deleted by the nightly cleanup.'); loadAll(); }
+  if(ok){ alert('Marked '+ids.length+' row(s) as JTEST. Nightly cleanup will delete them.'); loadAll(); }
   else alert('Some updates failed.');
 }
 
