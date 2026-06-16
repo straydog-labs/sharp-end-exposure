@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging 86] Sharp End Exposure</title>
+<title>[Staging 87] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2752,7 +2752,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index86',
+    app_version:'index87',
     device_id:getDeviceId()
   };
 
@@ -3245,8 +3245,18 @@ async function loadClimbLog(){
   var titleEl=document.getElementById('climb-log-title');
   if(titleEl)titleEl.textContent='Climb Log';
   var countEl=document.getElementById('sess-total-count');
-  var sessions=await sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=100');
-  if(!Array.isArray(sessions))sessions=[];
+  // Explicit columns — avoids select=* issues with RLS/schema cache
+  var sessions=await sbS('sessions',
+    'select=id,created_at,baseline_zone,grade_value,grade_system,climbing_type,'+
+    'zone,zone_confidence,route_name,project_id,is_checkin,device_id,app_version,'+
+    'breathing_post,gut_post,crux_response,body_state'+
+    '&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200'
+  );
+  console.log('[ClimbLog] sessions fetched:',Array.isArray(sessions)?sessions.length:'error',sessions&&sessions[0]?sessions[0]:'empty');
+  if(!Array.isArray(sessions)||sessions.error){
+    console.error('[ClimbLog] fetch failed:',sessions);
+    sessions=[];
+  }
 
   var climbs=sessions.filter(function(s){return !s.is_checkin;});
   var checkins=sessions.filter(function(s){return s.is_checkin;});
@@ -3264,9 +3274,14 @@ async function loadClimbLog(){
   var realEl=document.getElementById('sessions-real-section');
   var previewEl=document.getElementById('sessions-preview-section');
 
+  console.log('[ClimbLog] total climbs:',total,'emptyEl:',!!emptyEl,'realEl:',!!realEl,'previewEl:',!!previewEl);
   if(emptyEl)emptyEl.style.display=total===0?'block':'none';
   if(previewEl)previewEl.style.display=total>0?'none':'block';
-  if(realEl)realEl.style.display=total>0?'block':'none';
+  if(realEl){
+    realEl.style.display=total>0?'block':'none';
+    realEl.style.visibility='visible';
+    realEl.style.opacity='1';
+  }
 
   if(total===0){
     var emptyText=document.getElementById('sessions-empty-text');
@@ -3284,7 +3299,6 @@ async function loadClimbLog(){
   // Arc, radar, list — all use climbs
   buildSessionsArc(climbs);
   buildRadar(climbs);
-  window._cachedClimbs=climbs;
   window._cachedClimbs=climbs;
   renderClimbList(climbs);
   buildInsight(climbs);
@@ -3337,6 +3351,7 @@ var _climbLogGrouped=true;
 function renderClimbList(climbs){
   var el=document.getElementById('sessions-climb-list');
   if(!el)return;
+  console.log('[renderClimbList] climbs count:',climbs&&climbs.length);
   if(!climbs||climbs.length===0){
     el.innerHTML='<div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div>';
     return;
@@ -3646,7 +3661,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'index86'
+    app_version:'index87'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -3866,7 +3881,7 @@ function computeResult(){
   var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
   if(g)g.textContent=gMap[zone]||'';
   // Save to Supabase with is_checkin flag
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index86'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index87'});
   showScreen('s-result');
 }
 
