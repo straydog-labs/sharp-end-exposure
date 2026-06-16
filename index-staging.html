@@ -3245,17 +3245,8 @@ async function loadClimbLog(){
   var titleEl=document.getElementById('climb-log-title');
   if(titleEl)titleEl.textContent='Climb Log';
   var countEl=document.getElementById('sess-total-count');
-  // Explicit columns — avoids select=* issues with RLS/schema cache
-  var sessions=await sbS('sessions',
-    'select=id,created_at,baseline_zone,grade_value,grade_system,climbing_type,'+
-    'zone,zone_confidence,route_name,project_id,is_checkin,device_id,app_version,'+
-    'breathing_post,gut_post,crux_response,body_state'+
-    '&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200'
-  );
-  if(!Array.isArray(sessions)||sessions.error){
-    console.error('[ClimbLog] fetch failed:',sessions);
-    sessions=[];
-  }
+  var sessions=await sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200');
+  if(!Array.isArray(sessions))sessions=[];
 
   var climbs=sessions.filter(function(s){return !s.is_checkin;});
   var checkins=sessions.filter(function(s){return s.is_checkin;});
