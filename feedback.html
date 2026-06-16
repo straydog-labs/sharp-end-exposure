@@ -3,90 +3,101 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Feedback — Sharp End Exposure</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%235a5248' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Space Grotesk',sans-serif;background:#f5f2ed;color:#1a1a18;min-height:100vh;font-size:15px}
+:root{
+  --bg:#2a2420;--surface:#3a3228;--surface2:#463e34;--surface3:#524840;
+  --border:#5a5248;--text:#f0ece6;--muted:#a09890;--muted2:#7a7068;
+  --accent:#e8763a;--comfort:#7ec87a;--learning:#f5a623;--panic:#e84444;
+}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6;}
 .wrap{max-width:900px;margin:0 auto;padding:2rem 1.25rem 4rem}
-.hdr{padding-bottom:1.25rem;border-bottom:0.5px solid rgba(0,0,0,.1);margin-bottom:1.75rem;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem}
-.eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#888780;margin-bottom:4px}
-.title{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.1;color:#1a1a18}
-.title span{color:#c8622a}
-.sub{font-size:13px;color:#888780;margin-top:4px;line-height:1.5}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:0.5px solid rgba(0,0,0,.18);background:transparent;color:#1a1a18;font-family:'Space Grotesk',sans-serif}
-.btn:hover{background:rgba(0,0,0,.05)}
-.btn-p{background:#c8622a;border-color:#c8622a;color:#fff}
-.btn-p:hover{opacity:.9}
 
-/* Metric strip */
+/* Header */
+.hdr{padding-bottom:1.25rem;border-bottom:1px solid var(--border);margin-bottom:1.75rem;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.wordmark{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.wordmark span{color:var(--accent);}
+.title{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.1;color:var(--text);margin:6px 0 4px;}
+.sub{font-size:13px;color:var(--muted);line-height:1.5;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Space Grotesk',sans-serif;}
+.btn:hover{background:var(--surface2);}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-p:hover{opacity:.9;}
+
+/* Metrics */
 .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.75rem}
-.metric{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;padding:14px 16px}
-.metric-num{font-size:34px;font-weight:700;font-family:'Space Mono',monospace;line-height:1;margin-bottom:4px}
-.metric-lbl{font-size:11px;color:#888780;letter-spacing:.04em;line-height:1.4}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.metric-num{font-size:34px;font-weight:700;font-family:'Space Mono',monospace;line-height:1;margin-bottom:4px;}
+.metric-lbl{font-size:11px;color:var(--muted);letter-spacing:.04em;line-height:1.4;}
 
 /* Signal cards */
 .signal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.75rem}
-.sig-card{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:14px;padding:16px 18px}
-.sig-title{font-size:13px;font-weight:600;color:#1a1a18;margin-bottom:8px}
-.sig-num{font-size:38px;font-weight:700;font-family:'Space Mono',monospace;line-height:1;margin-bottom:2px}
-.sig-desc{font-size:12px;color:#888780;margin-bottom:12px;line-height:1.4}
-.verdict{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;margin-bottom:12px;letter-spacing:.04em}
-.v-red{background:rgba(168,56,40,.1);color:#a83828}
-.v-amber{background:rgba(200,133,42,.12);color:#7a4a10}
-.v-green{background:rgba(74,122,90,.12);color:#2a5a3a}
-.v-gray{background:rgba(0,0,0,.07);color:#5f5e5a}
-.dot-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
-.dot{width:13px;height:13px;border-radius:50%}
-.dot-lbl{font-size:10px;color:#888780}
+.sig-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;}
+.sig-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;}
+.sig-num{font-size:38px;font-weight:700;font-family:'Space Mono',monospace;line-height:1;margin-bottom:2px;}
+.sig-desc{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.4;}
+.verdict{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:99px;margin-bottom:12px;letter-spacing:.04em;}
+.v-red{background:rgba(232,68,68,.15);color:#e84444;}
+.v-amber{background:rgba(245,166,35,.15);color:#f5a623;}
+.v-green{background:rgba(126,200,122,.15);color:#7ec87a;}
+.v-gray{background:rgba(255,255,255,.07);color:var(--muted);}
+.dot-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
+.dot{width:13px;height:13px;border-radius:50%;}
+.dot-lbl{font-size:10px;color:var(--muted);}
 
 /* Detail cards */
-.section-head{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#888780;margin:1.75rem 0 .875rem}
-.detail-card{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:14px;padding:18px 20px;margin-bottom:10px}
-.q-label{font-size:13px;font-weight:600;color:#1a1a18;margin-bottom:3px}
-.q-sub{font-size:12px;color:#888780;margin-bottom:14px;line-height:1.5}
-.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-.bar-lbl{font-size:13px;color:#1a1a18;flex:1;min-width:0;line-height:1.4}
-.bar-track{width:120px;height:6px;background:rgba(0,0,0,.07);border-radius:99px;flex-shrink:0;overflow:hidden}
-.bar-fill{height:100%;border-radius:99px}
-.bar-n{font-size:12px;font-weight:600;color:#5f5e5a;min-width:14px;text-align:right}
-.bar-pct{font-size:11px;color:#888780;min-width:28px;text-align:right}
-.insight{background:#f5f2ed;border-left:2px solid #c8622a;border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:#5f5e5a;line-height:1.65;margin-top:12px}
+.section-head{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:1.75rem 0 .875rem;}
+.detail-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:10px;}
+.q-label{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.q-sub{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+.bar-lbl{font-size:13px;color:var(--text);flex:1;min-width:0;line-height:1.4;}
+.bar-track{width:120px;height:6px;background:rgba(255,255,255,.08);border-radius:99px;flex-shrink:0;overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;}
+.bar-n{font-size:12px;font-weight:600;color:var(--muted);min-width:14px;text-align:right;}
+.bar-pct{font-size:11px;color:var(--muted2);min-width:28px;text-align:right;}
+.insight{background:rgba(232,118,58,.06);border-left:2px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:var(--muted);line-height:1.65;margin-top:12px;}
 
-/* Priority box */
-.priority{background:rgba(168,56,40,.07);border:0.5px solid rgba(168,56,40,.25);border-radius:14px;padding:18px 20px;margin-bottom:1.75rem}
-.priority-head{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#a83828;margin-bottom:8px}
-.priority-body{font-size:14px;color:#1a1a18;line-height:1.65}
+/* Priority */
+.priority{background:rgba(232,68,68,.08);border:1px solid rgba(232,68,68,.25);border-radius:14px;padding:18px 20px;margin-bottom:1.75rem;}
+.priority-head{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#e84444;margin-bottom:8px;}
+.priority-body{font-size:14px;color:var(--text);line-height:1.65;}
 
 /* Notes */
-.note{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:2px solid rgba(200,98,42,.4)}
-.note-text{font-size:14px;color:#1a1a18;line-height:1.65;margin-bottom:5px}
-.note-meta{font-size:11px;color:#888780;letter-spacing:.04em}
+.note{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;border-left:2px solid rgba(232,118,58,.4);}
+.note-text{font-size:14px;color:var(--text);line-height:1.65;margin-bottom:5px;}
+.note-meta{font-size:11px;color:var(--muted);letter-spacing:.04em;}
 
-/* Empty */
-.empty{text-align:center;padding:2rem;color:#888780;font-size:13px}
-.loading{text-align:center;padding:1.5rem;color:#888780;font-size:13px}
+.empty{text-align:center;padding:2rem;color:var(--muted);font-size:13px;}
+.loading{text-align:center;padding:1.5rem;color:var(--muted);font-size:13px;}
 
 /* Tabs */
-.tabs{display:flex;gap:6px;margin-bottom:1.5rem}
-.tab{font-size:13px;padding:7px 18px;border:0.5px solid rgba(0,0,0,.14);border-radius:99px;cursor:pointer;background:#fff;color:#5f5e5a;font-family:'Space Grotesk',sans-serif;transition:all .15s;font-weight:500}
-.tab.active{background:#1a1a18;color:#fff;border-color:#1a1a18}
+.tabs{display:flex;gap:6px;margin-bottom:1.5rem;}
+.tab{font-size:13px;padding:7px 18px;border:1px solid var(--border);border-radius:99px;cursor:pointer;background:var(--surface);color:var(--muted);font-family:'Space Grotesk',sans-serif;transition:all .15s;font-weight:500;}
+.tab.active{background:var(--text);color:var(--bg);border-color:var(--text);}
 
 /* Table */
-.tbl-wrap{overflow-x:auto;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;background:#fff}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:.65rem 1rem;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#888780;font-weight:600;border-bottom:0.5px solid rgba(0,0,0,.1);white-space:nowrap;background:#faf8f5}
-td{padding:.65rem 1rem;border-bottom:0.5px solid rgba(0,0,0,.06);vertical-align:top;color:#1a1a18;line-height:1.45}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#faf8f5}
-.chip{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap}
-.c-yes{background:rgba(74,122,90,.12);color:#2a5a3a}
-.c-mid{background:rgba(200,133,42,.12);color:#7a4a10}
-.c-no{background:rgba(168,56,40,.1);color:#a83828}
-.c-neu{background:rgba(0,0,0,.07);color:#5f5e5a}
-.c-ver{background:rgba(200,98,42,.1);color:#7a3a10}
-.c-sess{background:rgba(74,100,160,.1);color:#2a3a7a}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface);}
+.del-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:rgba(232,68,68,.08);border:1px solid rgba(232,68,68,.25);border-radius:10px;margin-bottom:12px;}
+.del-bar.show{display:flex;}
+input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;}
+.row-marked td{opacity:.5;}
+.legacy-badge{display:inline-block;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;background:rgba(160,152,144,.15);color:var(--muted);letter-spacing:.04em;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:.65rem 1rem;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface2);}
+td{padding:.65rem 1rem;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top;color:var(--text);line-height:1.45;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--surface2);}
+.chip{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;}
+.c-yes{background:rgba(126,200,122,.15);color:#7ec87a;}
+.c-mid{background:rgba(245,166,35,.15);color:#f5a623;}
+.c-no{background:rgba(232,68,68,.15);color:#e84444;}
+.c-neu{background:rgba(255,255,255,.07);color:var(--muted);}
+.c-ver{background:rgba(232,118,58,.12);color:var(--accent);}
+.c-sess{background:rgba(126,160,200,.12);color:#7aaac8;}
 
 @media(max-width:560px){.signal-grid{grid-template-columns:1fr}.bar-track{width:80px}}
 </style>
@@ -96,11 +107,11 @@ tr:hover td{background:#faf8f5}
 
   <div class="hdr">
     <div>
-      <div class="eyebrow">Straydog Labs — Sharp End Exposure</div>
-      <div class="title">Beta <span>Feedback</span></div>
+      <div class="wordmark"><span>Sharp End</span> Exposure</div>
+      <div class="title">Beta Feedback</div>
       <div class="sub" id="hdr-sub">Loading…</div>
     </div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
       <button class="btn btn-p" onclick="exportCSV()">Export CSV</button>
       <button class="btn" onclick="loadAll()">↻ Refresh</button>
     </div>
@@ -113,310 +124,441 @@ tr:hover td{background:#faf8f5}
 var SB='https://kwtbqgoqtewrlsjgepwq.supabase.co';
 var SK='sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var allFeedback=[],sessionCounts={},activeTab='summary';
+var selectedRows=new Set();
 
-var TEXT_TO_CODE={
-  "Yes \u2014 I would open this before climbing":"yes_would",
-  "Yes, but it felt slightly long":"yes_long",
-  "Maybe \u2014 depends on the route":"maybe",
-  "No \u2014 too many steps":"no",
-  "Yes \u2014 I noticed something I wasn't aware of before":"yes_noticed",
-  "The questions made me more aware than I expected":"more_aware",
-  "Both equally":"both",
-  "Log a Climb — after climbing":"log_climb",
-  "Prepare — before committing":"prepare",
-  "Neither yet":"neither",
-  "Yes — very useful":"yes_useful",
-  "Yes — too early to tell":"yes_early",
-  "Not yet":"not_yet",
-  "Couldn't find it":"didnt_find",
-  "Somewhat \u2014 noticed but not surprising":"somewhat",
-  "Not really \u2014 I answered but didn't physically feel it":"not_really",
-  "Yes \u2014 I noticed something I hadn't registered":"yes_noticed",
-  "Somewhat \u2014 it prompted awareness but wasn't new":"somewhat",
-  "Not really \u2014 I tapped through it":"tapped_through",
-  "Nothing was present to notice":"nothing",
-  "Yes \u2014 it described what I actually experienced":"yes_accurate",
-  "Mostly \u2014 close but not quite":"mostly",
-  "Not really \u2014 the language didn't match":"not_accurate",
-  "I'm not sure \u2014 need more sessions to compare":"unsure"
-};
-function norm(v){return v?(TEXT_TO_CODE[v]||v):v;}
-function normRow(r){return Object.assign({},r,{simplicity:norm(r.simplicity),somatic_real:norm(r.somatic_real),body_scan_real:norm(r.body_scan_real||r.body_scan),delta_accurate:norm(r.delta_accurate)});}
+// ── QUESTION DEFINITIONS (index88+) ──────────────────
+// Answers saved as JSON blob: {0: answer, 1: text, 2: answer, ...}
+var QUESTIONS=[
+  {idx:0, key:'confirm_zone_accuracy', label:'Confirm Zone accuracy',
+   type:'chips',
+   opts:[
+     {v:'Very accurately',       color:'#7ec87a', sentiment:'pos'},
+     {v:'Mostly accurately',     color:'#f5a623', sentiment:'mid'},
+     {v:"Somewhat — it felt off",color:'#f5a623', sentiment:'mid'},
+     {v:'Not at all accurate',   color:'#e84444', sentiment:'neg'},
+     {v:"Haven't used Confirm Zone yet", color:'#a09890', sentiment:'neu'}
+   ]},
+  {idx:1, key:'confirm_zone_notes', label:'What felt off about Confirm Zone', type:'text'},
+  {idx:2, key:'log_ease', label:'Ease of logging',
+   type:'chips',
+   opts:[
+     {v:'Very easy — under 30 seconds', color:'#7ec87a', sentiment:'pos'},
+     {v:'Easy enough',                  color:'#7ec87a', sentiment:'pos'},
+     {v:'A bit slow or confusing',      color:'#f5a623', sentiment:'mid'},
+     {v:'Too much friction',            color:'#e84444', sentiment:'neg'}
+   ]},
+  {idx:3, key:'log_improve_notes', label:'What would make logging clearer', type:'text'},
+  {idx:4, key:'most_valuable', label:'Most valuable feature',
+   type:'chips',
+   opts:[
+     {v:'Log a climb',       color:'#e8763a', sentiment:'neu'},
+     {v:'Confirm Zone',      color:'#e8763a', sentiment:'neu'},
+     {v:'Prepare check-in',  color:'#e8763a', sentiment:'neu'},
+     {v:'Climb Log / arc',   color:'#e8763a', sentiment:'neu'},
+     {v:'Projects',          color:'#e8763a', sentiment:'neu'},
+     {v:'Exposure Drill',    color:'#e8763a', sentiment:'neu'}
+   ]},
+  {idx:5, key:'open_notes', label:'Anything else', type:'text'}
+];
+
+// ── PARSE answers JSON blob ───────────────────────────
+function parseAnswers(row){
+  var out = Object.assign({}, row);
+  if(!row.answers) return out;
+  try{
+    var a = typeof row.answers === 'string' ? JSON.parse(row.answers) : row.answers;
+    QUESTIONS.forEach(function(q){
+      var val = a[q.idx] !== undefined ? a[q.idx] : a[String(q.idx)];
+      if(val !== undefined && val !== null) out[q.key] = val;
+    });
+    // Legacy field passthrough
+    out._raw = a;
+  }catch(e){}
+  return out;
+}
 
 function loadAll(){
   document.getElementById('main-content').innerHTML='<div class="loading">Loading…</div>';
   Promise.all([
-    fetch(SB+'/rest/v1/feedback?order=created_at.desc&limit=1000',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}),
+    fetch(SB+'/rest/v1/feedback?order=submitted_at.desc&limit=1000',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}),
     fetch(SB+'/rest/v1/sessions?select=device_id&limit=5000',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();})
   ]).then(function(res){
-    if(!Array.isArray(res[0])){document.getElementById('main-content').innerHTML='<div class="empty">Could not load feedback. Check Supabase connection.</div>';return;}
-    allFeedback=res[0].map(normRow);
-    sessionCounts={};
-    (Array.isArray(res[1])?res[1]:[]).forEach(function(s){sessionCounts[s.device_id]=(sessionCounts[s.device_id]||0)+1;});
+    if(!Array.isArray(res[0])){
+      document.getElementById('main-content').innerHTML='<div class="empty">Could not load feedback. Check Supabase connection.</div>';
+      return;
+    }
+    allFeedback = res[0].map(parseAnswers);
+    sessionCounts = {};
+    (Array.isArray(res[1])?res[1]:[]).forEach(function(s){
+      sessionCounts[s.device_id] = (sessionCounts[s.device_id]||0) + 1;
+    });
     render();
-  }).catch(function(e){document.getElementById('main-content').innerHTML='<div class="empty">Error: '+e.message+'</div>';});
+  }).catch(function(e){
+    document.getElementById('main-content').innerHTML='<div class="empty">Error: '+e.message+'</div>';
+  });
 }
 
 function render(){
-  var n=allFeedback.length;
-  var latest=allFeedback[0]?new Date(allFeedback[0].created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'}):'—';
-  document.getElementById('hdr-sub').textContent=n+' response'+(n!==1?'s':'')+' · last received '+latest;
+  var n = allFeedback.length;
+  var latest = allFeedback[0] ?
+    new Date(allFeedback[0].submitted_at||allFeedback[0].created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'}) : '—';
+  document.getElementById('hdr-sub').textContent = n+' response'+(n!==1?'s':'')+' · last received '+latest;
 
-  var html='';
+  var html = '';
 
-  // ── METRICS ──────────────────────────────────────────
-  var totalSess=allFeedback.reduce(function(a,r){return a+(sessionCounts[r.device_id]||0);},0);
-  var avgSess=n?Math.round(totalSess/n):0;
-  var withNotes=allFeedback.filter(function(r){return r.open_notes&&r.open_notes.trim();}).length;
-  var newRows=allFeedback.filter(function(r){return r.simplicity||r.somatic_real||r.body_scan_real||r.delta_accurate;});
-  var vers=new Set(allFeedback.map(function(r){return r.app_version||'unknown';})).size;
+  // Metrics
+  var totalSess = allFeedback.reduce(function(a,r){return a+(sessionCounts[r.device_id]||0);},0);
+  var avgSess = n ? Math.round(totalSess/n) : 0;
+  var withNotes = allFeedback.filter(function(r){
+    return (r.open_notes&&r.open_notes.trim()) || (r.confirm_zone_notes&&r.confirm_zone_notes.trim()) || (r.log_improve_notes&&r.log_improve_notes.trim());
+  }).length;
+  var vers = new Set(allFeedback.map(function(r){return r.app_version||'unknown';})).size;
 
-  html+='<div class="metric-grid">';
-  html+=metricCard(n,'Responses','#c8622a');
-  html+=metricCard(avgSess,'Avg sessions / tester','#1a1a18');
-  html+=metricCard(withNotes,'Open notes','#c8852a');
-  html+=metricCard(vers,'App versions','#1a1a18');
-  html+='</div>';
+  html += '<div class="metric-grid">';
+  html += metricCard(n, 'Responses', 'var(--accent)');
+  html += metricCard(avgSess, 'Avg sessions / tester', 'var(--text)');
+  html += metricCard(withNotes, 'Responses with notes', '#f5a623');
+  html += metricCard(vers, 'App versions', 'var(--text)');
+  html += '</div>';
 
-  // ── TABS ─────────────────────────────────────────────
-  html+='<div class="tabs">';
-  html+='<button class="tab'+(activeTab==='summary'?' active':'')+'" onclick="switchTab(\'summary\')">Summary</button>';
-  html+='<button class="tab'+(activeTab==='responses'?' active':'')+'" onclick="switchTab(\'responses\')">All responses</button>';
-  html+='<button class="tab'+(activeTab==='notes'?' active':'')+'" onclick="switchTab(\'notes\')">Open notes</button>';
-  html+='</div>';
+  // Tabs
+  html += '<div class="tabs">';
+  html += tab('summary','Summary');
+  html += tab('responses','All responses');
+  html += tab('notes','Open notes');
+  html += '</div>';
 
-  if(activeTab==='summary') html+=renderSummary(newRows);
-  if(activeTab==='responses') html+=renderTable();
-  if(activeTab==='notes') html+=renderNotes();
+  if(activeTab==='summary') html += renderSummary();
+  if(activeTab==='responses') html += renderTable();
+  if(activeTab==='notes') html += renderNotes();
 
-  document.getElementById('main-content').innerHTML=html;
+  document.getElementById('main-content').innerHTML = html;
 }
 
+function tab(id, label){
+  return '<button class="tab'+(activeTab===id?' active':'')+'" onclick="switchTab(\''+id+'\')">'+label+'</button>';
+}
 function switchTab(t){activeTab=t;render();}
-
 function metricCard(val,lbl,color){
   return '<div class="metric"><div class="metric-num" style="color:'+color+'">'+val+'</div><div class="metric-lbl">'+lbl+'</div></div>';
 }
 
-// ── SIGNAL CARDS ─────────────────────────────────────
+// ── SUMMARY ──────────────────────────────────────────
 var SIG_DEFS=[
-  {key:'simplicity',title:'Flow simplicity',
-   opts:[
-     {v:'yes_would',lbl:'Yes — would use it',color:'#4a7a5a',sentiment:'pos'},
-     {v:'yes_long',lbl:'Yes but slightly long',color:'#c8852a',sentiment:'mid'},
-     {v:'maybe',lbl:'Maybe',color:'#c8852a',sentiment:'mid'},
-     {v:'no',lbl:'No — too many steps',color:'#a83828',sentiment:'neg'}
-   ],
+  {key:'confirm_zone_accuracy', title:'Confirm Zone accuracy',
    insight:function(counts,total){
-     var pos=counts.yes_would||0;
-     if(pos===total)return'Every tester would open this before climbing.';
-     if(pos===0)return'Nobody said yes outright. Flow length is a real barrier — investigate trimming the first two screens.';
-     return Math.round((pos/total)*100)+'% would use it as-is. '+(counts.yes_long||0)+' found it slightly long.';
-   }
-  },
-  {key:'somatic_real',title:'Somatic check-in felt real',
-   opts:[
-     {v:'yes_noticed',lbl:'Yes — noticed something new',color:'#4a7a5a',sentiment:'pos'},
-     {v:'more_aware',lbl:'Made me more aware',color:'#4a7a5a',sentiment:'pos'},
-     {v:'somewhat',lbl:'Somewhat',color:'#c8852a',sentiment:'mid'},
-     {v:'not_really',lbl:'Not really',color:'#a83828',sentiment:'neg'}
-   ],
+     var pos=(counts['Very accurately']||0)+(counts['Mostly accurately']||0);
+     var neg=counts['Not at all accurate']||0;
+     if(neg>pos) return 'Confirm Zone accuracy is a problem — more testers found it inaccurate than accurate. Review the somatic question scoring.';
+     if(pos===total) return 'Every tester found Confirm Zone accurate. Strong signal.';
+     return Math.round((pos/total)*100)+'% found it accurate or mostly accurate.';
+   }},
+  {key:'log_ease', title:'Ease of logging',
    insight:function(counts,total){
-     var pos=(counts.yes_noticed||0)+(counts.more_aware||0);
-     if(pos===0&&(counts.not_really||0)>0)return'The somatic check-in is not landing physically. This is the core value claim — solve this first.';
-     if(pos===total)return'Every tester physically felt the check-in. Strong signal.';
-     return Math.round((pos/total)*100)+'% noticed something. '+(counts.not_really||0)+' did not physically feel it.';
-   }
-  },
-  {key:'body_scan_real',title:'Body scan surfaced anything?',
-   opts:[
-     {v:'yes_noticed',lbl:'Yes — surfaced something new',color:'#4a7a5a',sentiment:'pos'},
-     {v:'somewhat',lbl:'Prompted awareness',color:'#c8852a',sentiment:'mid'},
-     {v:'tapped_through',lbl:'Tapped through it',color:'#a83828',sentiment:'neg'},
-     {v:'nothing',lbl:'Nothing present',color:'#888780',sentiment:'neu'}
-   ],
+     var fast=(counts['Very easy — under 30 seconds']||0)+(counts['Easy enough']||0);
+     var friction=(counts['A bit slow or confusing']||0)+(counts['Too much friction']||0);
+     if(friction>fast) return 'Logging friction is real — more testers found it slow than easy. Investigate the grade/terrain flow.';
+     if(fast===total) return 'Logging is landing as fast. No friction issues.';
+     return Math.round((fast/total)*100)+'% found logging easy. '+friction+' reported friction.';
+   }},
+  {key:'most_valuable', title:'Most valuable feature',
    insight:function(counts,total){
-     var pos=counts.yes_noticed||0;
-     if(pos===0)return'Scan is prompting awareness but not surfacing new data. Consider a warm-up cue before the scan to prime attention.';
-     return Math.round((pos/total)*100)+'% noticed something they hadn\'t registered before.';
-   }
-  },
-  {key:'delta_accurate',title:'Delta card accuracy',
-   opts:[
-     {v:'yes_accurate',lbl:'Yes — described what I felt',color:'#4a7a5a',sentiment:'pos'},
-     {v:'mostly',lbl:'Mostly — close but not exact',color:'#c8852a',sentiment:'mid'},
-     {v:'not_accurate',lbl:'Not really',color:'#a83828',sentiment:'neg'},
-     {v:'unsure',lbl:'Unsure — need more sessions',color:'#888780',sentiment:'neu'}
-   ],
-   insight:function(counts,total){
-     var pos=counts.yes_accurate||0;
-     if(pos===0&&(counts.mostly||0)>0)return'"Mostly" is the mode — language calibration needed, not a structural rethink.';
-     if(pos===total)return'Delta card fully confirmed by every tester.';
-     return Math.round((pos/total)*100)+'% confirmed accuracy. Language refinement likely to move this up.';
-   }
-  }
+     var top=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];})[0];
+     if(!top) return 'No pattern yet.';
+     return '"'+top+'" is the most cited valuable feature ('+counts[top]+' of '+total+' responses).';
+   }}
 ];
 
-function renderSummary(rows){
-  if(!rows.length)return'<div class="empty">No responses with current question format yet.</div>';
-  var html='';
+function renderSummary(){
+  var rows = allFeedback.filter(function(r){
+    return r.confirm_zone_accuracy||r.log_ease||r.most_valuable;
+  });
+  if(!rows.length) return '<div class="empty">No responses with current question format yet.</div>';
 
-  // Priority alert — somatic
-  var somatic=rows.filter(function(r){return r.somatic_real;});
-  var somaticNeg=somatic.filter(function(r){return r.somatic_real==='not_really';}).length;
-  if(somatic.length&&somaticNeg/somatic.length>=0.5){
-    html+='<div class="priority">';
-    html+='<div class="priority-head">⚠ Primary signal</div>';
-    html+='<div class="priority-body">'+Math.round((somaticNeg/somatic.length)*100)+'% of testers did not physically feel the somatic check-in. The tool\'s core value proposition is not landing yet. Solve this before adding anything else.</div>';
-    html+='</div>';
-  }
+  var html = '';
 
   // Signal cards
-  html+='<div class="section-head">At a glance</div>';
-  html+='<div class="signal-grid">';
+  html += '<div class="section-head">At a glance</div>';
+  html += '<div class="signal-grid">';
   SIG_DEFS.forEach(function(def){
-    var valid=rows.filter(function(r){return r[def.key];});
-    if(!valid.length)return;
-    var counts={};
+    var valid = rows.filter(function(r){return r[def.key];});
+    if(!valid.length) return;
+    var q = QUESTIONS.find(function(q){return q.key===def.key;});
+    var opts = q ? q.opts : [];
+    var counts = {};
     valid.forEach(function(r){counts[r[def.key]]=(counts[r[def.key]]||0)+1;});
-    var topV=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];})[0];
-    var topOpt=def.opts.find(function(o){return o.v===topV;})||{lbl:topV,color:'#888780',sentiment:'neu'};
-    var topPct=Math.round(((counts[topV]||0)/valid.length)*100);
-    var verdict='',vcls='v-gray';
-    if(topOpt.sentiment==='pos'){verdict='Positive signal';vcls='v-green';}
-    else if(topOpt.sentiment==='neg'){verdict='Needs attention';vcls='v-red';}
-    else if(topOpt.sentiment==='mid'){verdict='Mixed signal';vcls='v-amber';}
-    else{verdict='Unclear';vcls='v-gray';}
+    var topV = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];})[0];
+    var topOpt = opts.find(function(o){return o.v===topV;})||{color:'var(--muted)',sentiment:'neu'};
+    var topPct = Math.round(((counts[topV]||0)/valid.length)*100);
+    var vcls = topOpt.sentiment==='pos'?'v-green':topOpt.sentiment==='neg'?'v-red':topOpt.sentiment==='mid'?'v-amber':'v-gray';
+    var verdict = topOpt.sentiment==='pos'?'Positive signal':topOpt.sentiment==='neg'?'Needs attention':topOpt.sentiment==='mid'?'Mixed signal':'Varied';
 
-    html+='<div class="sig-card">';
-    html+='<div class="sig-title">'+def.title+'</div>';
-    html+='<div class="sig-num" style="color:'+topOpt.color+'">'+topPct+'%</div>';
-    html+='<div class="sig-desc">'+topOpt.lbl+'</div>';
-    html+='<div class="verdict '+vcls+'">'+verdict+'</div>';
-    // Dot grid
-    html+='<div class="dot-row">';
+    html += '<div class="sig-card">';
+    html += '<div class="sig-title">'+def.title+'</div>';
+    html += '<div class="sig-num" style="color:'+topOpt.color+'">'+topPct+'%</div>';
+    html += '<div class="sig-desc">'+topV+'</div>';
+    html += '<div class="verdict '+vcls+'">'+verdict+'</div>';
+    html += '<div class="dot-row">';
     valid.forEach(function(r){
-      var opt=def.opts.find(function(o){return o.v===r[def.key];})||{color:'#888780'};
-      html+='<div class="dot" style="background:'+opt.color+';opacity:.8" title="'+( def.opts.find(function(o){return o.v===r[def.key];})||{lbl:r[def.key]}).lbl+'"></div>';
+      var opt = opts.find(function(o){return o.v===r[def.key];})||{color:'var(--muted)'};
+      html += '<div class="dot" style="background:'+opt.color+';opacity:.8" title="'+r[def.key]+'"></div>';
     });
-    html+='</div>';
-    html+='<div class="dot-lbl">Each dot = 1 tester</div>';
-    html+='</div>';
+    html += '</div><div class="dot-lbl">Each dot = 1 response</div></div>';
   });
-  html+='</div>';
+  html += '</div>';
 
-  // Detailed breakdown
-  html+='<div class="section-head">Full breakdown</div>';
+  // Full breakdown
+  html += '<div class="section-head">Full breakdown</div>';
   SIG_DEFS.forEach(function(def){
-    var valid=rows.filter(function(r){return r[def.key];});
-    if(!valid.length)return;
-    var counts={};
+    var q = QUESTIONS.find(function(q){return q.key===def.key;});
+    if(!q||q.type==='text') return;
+    var valid = rows.filter(function(r){return r[def.key];});
+    if(!valid.length) return;
+    var counts = {};
     valid.forEach(function(r){counts[r[def.key]]=(counts[r[def.key]]||0)+1;});
-    var maxC=Math.max.apply(null,Object.values(counts).concat([1]));
-    html+='<div class="detail-card">';
-    html+='<div class="q-label">'+def.title+'</div>';
-    // question text from opts context
-    var qTexts={simplicity:"Was the flow simple enough you'd actually use this at the base of a route?",somatic_real:"Did the somatic check-in feel real — did you actually notice something?",body_scan_real:"Did the body scan surface anything you weren't aware of before?",delta_accurate:"Did seeing the shift described in words feel accurate?"};
-    html+='<div class="q-sub">'+(qTexts[def.key]||'')+'</div>';
-    def.opts.forEach(function(opt){
-      var c=counts[opt.v]||0;
-      var pct=valid.length?Math.round((c/valid.length)*100):0;
-      var w=maxC?Math.round((c/maxC)*100):0;
-      html+='<div class="bar-row">';
-      html+='<div class="bar-lbl">'+opt.lbl+'</div>';
-      html+='<div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+opt.color+'"></div></div>';
-      html+='<div class="bar-n">'+c+'</div>';
-      html+='<div class="bar-pct">'+pct+'%</div>';
-      html+='</div>';
+    var maxC = Math.max.apply(null, Object.values(counts).concat([1]));
+
+    html += '<div class="detail-card">';
+    html += '<div class="q-label">'+def.title+'</div>';
+    html += '<div class="q-sub">'+q.label+' · '+valid.length+' responses</div>';
+    q.opts.forEach(function(opt){
+      var c = counts[opt.v]||0;
+      var pct = valid.length ? Math.round((c/valid.length)*100) : 0;
+      var w = maxC ? Math.round((c/maxC)*100) : 0;
+      html += '<div class="bar-row">';
+      html += '<div class="bar-lbl">'+opt.v+'</div>';
+      html += '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+opt.color+'"></div></div>';
+      html += '<div class="bar-n">'+c+'</div>';
+      html += '<div class="bar-pct">'+pct+'%</div>';
+      html += '</div>';
     });
-    html+='<div class="insight">'+def.insight(counts,valid.length)+'</div>';
-    html+='</div>';
+    html += '<div class="insight">'+def.insight(counts,valid.length)+'</div>';
+    html += '</div>';
   });
 
-  // Legacy data note
-  var legacyRows=allFeedback.filter(function(r){return r.would_use_again||r.pre_climb_accurate||r.influenced_decision;});
+  // Legacy data section
+  var legacyRows = allFeedback.filter(isLegacy);
+  var blankRows = allFeedback.filter(isBlank);
+  var jtestRows = allFeedback.filter(isJtest);
+
+  if(jtestRows.length||blankRows.length){
+    html += '<div class="section-head">Cleanup needed</div>';
+    html += '<div class="detail-card">';
+    if(jtestRows.length) html += '<div style="margin-bottom:8px;font-size:13px;color:#e84444;">'+jtestRows.length+' JTEST row'+(jtestRows.length!==1?'s':'')+' — will be deleted by nightly cleanup, or delete manually in All Responses tab.</div>';
+    if(blankRows.length) html += '<div style="font-size:13px;color:#f5a623;">'+blankRows.length+' blank submission'+(blankRows.length!==1?'s':'')+' — mark as JTEST or delete in All Responses tab.</div>';
+    html += '</div>';
+  }
+
   if(legacyRows.length){
-    html+='<div class="section-head">Earlier responses</div>';
-    html+='<div class="detail-card"><div class="q-label" style="color:#888780">'+legacyRows.length+' response'+(legacyRows.length!==1?'s':'')+' from earlier question formats</div>';
-    html+='<div class="q-sub">These used different questions and are shown in All Responses.</div></div>';
+    html += '<div class="section-head">Legacy responses</div>';
+    html += '<div class="detail-card">';
+    html += '<div style="font-size:13px;color:var(--muted);">'+legacyRows.length+' response'+(legacyRows.length!==1?'s':'')+' from earlier question formats (pre-index88). Shown in All Responses tab with a Legacy badge.</div>';
+    html += '</div>';
   }
 
   return html;
 }
 
 // ── ALL RESPONSES TABLE ───────────────────────────────
-var POS_MAP={simplicity:['yes_would'],somatic_real:['yes_noticed','more_aware'],body_scan_real:['yes_noticed'],delta_accurate:['yes_accurate'],would_use_again:['yes_regularly','yes_occasionally']};
-var NEG_MAP={simplicity:['no'],somatic_real:['not_really'],body_scan_real:['tapped_through'],delta_accurate:['not_accurate'],would_use_again:['no','probably_not']};
-var SHORT={yes_would:'Yes ✓',yes_long:'Long',maybe:'Maybe',no:'No ✗',yes_noticed:'Noticed ✓',more_aware:'More aware ✓',somewhat:'Somewhat',not_really:'Not really ✗',tapped_through:'Tapped thru ✗',nothing:'Nothing',yes_accurate:'Accurate ✓',mostly:'Mostly',not_accurate:'Off ✗',unsure:'Unsure',yes_regularly:'Yes — regularly ✓',yes_occasionally:'Yes — occ.',probably_not:'Probably not',changed_assessment:'Changed ✓',more_aware_b:'More aware ✓',thinking_not_changed:'Thinking only',no_change:'No change'};
+function chip(val, sentiment){
+  if(!val) return '<span class="chip c-neu">—</span>';
+  var cls = sentiment==='pos'?'c-yes':sentiment==='neg'?'c-no':sentiment==='mid'?'c-mid':'c-neu';
+  var short = val.length>22 ? val.substring(0,20)+'…' : val;
+  return '<span class="chip '+cls+'" title="'+val+'">'+short+'</span>';
+}
 
-function chipFor(val,key){
-  if(!val)return'<span class="chip c-neu">—</span>';
-  var l=SHORT[val]||val;
-  var cls=(POS_MAP[key]||[]).indexOf(val)>=0?'c-yes':(NEG_MAP[key]||[]).indexOf(val)>=0?'c-no':'c-mid';
-  return'<span class="chip '+cls+'">'+l+'</span>';
+function chipForKey(row, key){
+  var val = row[key];
+  if(!val) return '<span class="chip c-neu">—</span>';
+  var q = QUESTIONS.find(function(q){return q.key===key;});
+  if(!q||!q.opts) return '<span class="chip c-neu">'+val.substring(0,20)+'</span>';
+  var opt = q.opts.find(function(o){return o.v===val;});
+  var sentiment = opt ? opt.sentiment : 'neu';
+  return chip(val, sentiment);
+}
+
+function isLegacy(r){
+  // Legacy = saved with flat fields (pre-index88) rather than answers blob
+  return !r.answers && (r.would_use_again||r.pre_climb_accurate||r.influenced_decision||r.simplicity);
+}
+
+function isBlank(r){
+  if(!r.answers) return true;
+  try{
+    var a = typeof r.answers==='string'?JSON.parse(r.answers):r.answers;
+    var vals = Object.values(a).filter(function(v){return v&&String(v).trim();});
+    return vals.length===0;
+  }catch(e){return true;}
+}
+
+function isJtest(r){
+  var txt = JSON.stringify(r.answers||'').toLowerCase();
+  return txt.includes('jtest')||txt.includes('j test');
 }
 
 function renderTable(){
-  var html='<div class="tbl-wrap"><table><thead><tr>';
-  html+='<th>Date</th><th>Version</th><th>Sessions</th><th>Simplicity</th><th>Somatic</th><th>Body scan</th><th>Delta</th><th>Notes</th>';
-  html+='</tr></thead><tbody>';
-  if(!allFeedback.length){html+='<tr><td colspan="8" class="empty">No responses yet.</td></tr>';}
+  selectedRows = new Set();
+  var html = '';
+
+  // Delete action bar
+  html += '<div class="del-bar" id="del-bar">';
+  html += '<span style="font-size:13px;color:#e84444;" id="del-count">0 selected</span>';
+  html += '<button class="btn" style="border-color:rgba(232,68,68,.4);color:#e84444;" onclick="markJtest()">Mark as JTEST</button>';
+  html += '<button class="btn" style="border-color:rgba(232,68,68,.4);color:#e84444;" onclick="deleteSelected()">Delete selected</button>';
+  html += '<button class="btn" onclick="clearSelection()">Clear</button>';
+  html += '</div>';
+
+  html += '<div class="tbl-wrap"><table><thead><tr>';
+  html += '<th><input type="checkbox" onclick="toggleAll(this)" title="Select all"></th>';
+  html += '<th>Date</th><th>Version</th><th>Sessions</th><th>Type</th><th>Confirm Zone</th><th>Log ease</th><th>Most valuable</th><th>Notes</th>';
+  html += '</tr></thead><tbody>';
+
+  if(!allFeedback.length){
+    html += '<tr><td colspan="9" class="empty">No responses yet.</td></tr>';
+  }
+
   allFeedback.forEach(function(r){
-    var date=new Date(r.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'2-digit'});
-    var sess=sessionCounts[r.device_id]||0;
-    var note=r.open_notes?('<span title="'+r.open_notes.replace(/"/g,'&quot;')+'">'+r.open_notes.substring(0,40)+(r.open_notes.length>40?'…':'')+'</span>'):'—';
-    html+='<tr>';
-    html+='<td style="white-space:nowrap;color:#888780;font-size:11px">'+date+'</td>';
-    html+='<td><span class="chip c-ver">'+(r.app_version||'—')+'</span></td>';
-    html+='<td><span class="chip c-sess">'+sess+'</span></td>';
-    html+='<td>'+chipFor(r.simplicity,'simplicity')+'</td>';
-    html+='<td>'+chipFor(r.somatic_real,'somatic_real')+'</td>';
-    html+='<td>'+chipFor(r.body_scan_real,'body_scan_real')+'</td>';
-    html+='<td>'+chipFor(r.delta_accurate,'delta_accurate')+'</td>';
-    html+='<td style="font-size:12px;color:#5f5e5a;max-width:180px">'+note+'</td>';
-    html+='</tr>';
+    var date = new Date(r.submitted_at||r.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'2-digit'});
+    var sess = sessionCounts[r.device_id]||0;
+    var notes = [r.open_notes, r.confirm_zone_notes, r.log_improve_notes].filter(Boolean).join(' / ');
+    var noteHtml = notes ? ('<span title="'+notes.replace(/"/g,'&quot;')+'">'+notes.substring(0,40)+(notes.length>40?'…':'')+'</span>') : '—';
+    var legacy = isLegacy(r);
+    var blank = isBlank(r);
+    var jtest = isJtest(r);
+    var typeBadge = jtest ? '<span class="chip c-no">JTEST</span>' :
+                   blank  ? '<span class="chip c-no">Blank</span>' :
+                   legacy ? '<span class="legacy-badge">Legacy</span>' :
+                            '<span class="chip c-yes">Live</span>';
+    var trClass = (jtest||blank) ? ' class="row-marked"' : '';
+
+    html += '<tr'+trClass+'>';
+    html += '<td><input type="checkbox" data-id="'+r.id+'" onchange="toggleRow(this,''+r.id+'')"></td>';
+    html += '<td style="white-space:nowrap;color:var(--muted);font-size:11px">'+date+'</td>';
+    html += '<td><span class="chip c-ver">'+(r.app_version||'—')+'</span></td>';
+    html += '<td><span class="chip c-sess">'+sess+'</span></td>';
+    html += '<td>'+typeBadge+'</td>';
+    html += '<td>'+chipForKey(r,'confirm_zone_accuracy')+'</td>';
+    html += '<td>'+chipForKey(r,'log_ease')+'</td>';
+    html += '<td>'+chipForKey(r,'most_valuable')+'</td>';
+    html += '<td style="font-size:12px;color:var(--muted);max-width:180px">'+noteHtml+'</td>';
+    html += '</tr>';
   });
-  html+='</tbody></table></div>';
+  html += '</tbody></table></div>';
   return html;
 }
 
-// ── OPEN NOTES ────────────────────────────────────────
-var LEGACY_KEYS=['influence_notes','why_or_why_not','change_one_thing','reflect_experience','what_didnt_match','what_matched'];
-function renderNotes(){
-  var withNotes=allFeedback.filter(function(r){
-    if(r.open_notes&&r.open_notes.trim())return true;
-    return LEGACY_KEYS.some(function(k){return r[k]&&r[k].trim();});
+function toggleRow(cb, id){
+  if(cb.checked) selectedRows.add(id);
+  else selectedRows.delete(id);
+  updateDelBar();
+}
+
+function toggleAll(cb){
+  document.querySelectorAll('input[data-id]').forEach(function(c){
+    c.checked = cb.checked;
+    if(cb.checked) selectedRows.add(c.dataset.id);
+    else selectedRows.delete(c.dataset.id);
   });
-  if(!withNotes.length)return'<div class="empty">No open notes yet.</div>';
-  var html='<div style="font-size:12px;color:#888780;margin-bottom:1rem">'+withNotes.length+' note'+(withNotes.length!==1?'s':'')+' from testers</div>';
+  updateDelBar();
+}
+
+function clearSelection(){
+  selectedRows = new Set();
+  document.querySelectorAll('input[data-id]').forEach(function(c){c.checked=false;});
+  updateDelBar();
+}
+
+function updateDelBar(){
+  var bar = document.getElementById('del-bar');
+  var cnt = document.getElementById('del-count');
+  if(!bar||!cnt) return;
+  bar.classList.toggle('show', selectedRows.size>0);
+  cnt.textContent = selectedRows.size+' selected';
+}
+
+async function deleteSelected(){
+  if(!selectedRows.size) return;
+  if(!confirm('Delete '+selectedRows.size+' row(s)? This cannot be undone.')) return;
+  var ids = Array.from(selectedRows);
+  // Delete in batches
+  var filter = ids.map(function(id){return 'id=eq.'+id;}).join(',');
+  // Supabase doesn't support OR in delete easily — loop
+  var ok = true;
+  for(var i=0;i<ids.length;i++){
+    var r = await fetch(SB+'/rest/v1/feedback?id=eq.'+ids[i],{method:'DELETE',headers:{'apikey':SK,'Authorization':'Bearer '+SK}});
+    if(!r.ok) ok = false;
+  }
+  if(ok) { alert('Deleted '+ids.length+' row(s).'); loadAll(); }
+  else alert('Some deletes failed. Refresh and try again.');
+}
+
+async function markJtest(){
+  if(!selectedRows.size) return;
+  var ids = Array.from(selectedRows);
+  var ok = true;
+  for(var i=0;i<ids.length;i++){
+    var row = allFeedback.find(function(r){return r.id===ids[i];});
+    if(!row) continue;
+    var answers = row.answers || {};
+    if(typeof answers === 'string') try{answers=JSON.parse(answers);}catch(e){answers={};}
+    answers['_note'] = 'JTEST';
+    var r = await fetch(SB+'/rest/v1/feedback?id=eq.'+ids[i],{
+      method:'PATCH',
+      headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({answers:JSON.stringify(answers)})
+    });
+    if(!r.ok) ok = false;
+  }
+  if(ok){ alert('Marked '+ids.length+' row(s) as JTEST. They'll be deleted by the nightly cleanup.'); loadAll(); }
+  else alert('Some updates failed.');
+}
+
+// ── OPEN NOTES ────────────────────────────────────────
+function renderNotes(){
+  var withNotes = allFeedback.filter(function(r){
+    return (r.open_notes&&r.open_notes.trim()) ||
+           (r.confirm_zone_notes&&r.confirm_zone_notes.trim()) ||
+           (r.log_improve_notes&&r.log_improve_notes.trim());
+  });
+  if(!withNotes.length) return '<div class="empty">No open notes yet.</div>';
+
+  var html = '<div style="font-size:12px;color:var(--muted);margin-bottom:1rem">'+withNotes.length+' note'+(withNotes.length!==1?'s':'')+' from testers</div>';
   withNotes.forEach(function(r){
-    var date=new Date(r.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});
-    var sess=sessionCounts[r.device_id]||0;
-    var notes=[];
-    if(r.open_notes&&r.open_notes.trim())notes.push(r.open_notes.trim());
-    LEGACY_KEYS.forEach(function(k){if(r[k]&&r[k].trim())notes.push('['+k.replace(/_/g,' ')+']: '+r[k].trim());});
-    html+='<div class="note">';
-    notes.forEach(function(n){html+='<div class="note-text">'+n+'</div>';});
-    html+='<div class="note-meta">'+date+' &middot; '+(r.app_version||'early beta')+' &middot; '+sess+' session'+(sess!==1?'s':'')+'</div>';
-    html+='</div>';
+    var date = new Date(r.submitted_at||r.created_at).toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});
+    var sess = sessionCounts[r.device_id]||0;
+    var notes = [];
+    if(r.open_notes&&r.open_notes.trim()) notes.push(r.open_notes.trim());
+    if(r.confirm_zone_notes&&r.confirm_zone_notes.trim()) notes.push('[Confirm Zone]: '+r.confirm_zone_notes.trim());
+    if(r.log_improve_notes&&r.log_improve_notes.trim()) notes.push('[Log ease]: '+r.log_improve_notes.trim());
+
+    html += '<div class="note">';
+    notes.forEach(function(n){html += '<div class="note-text">'+n+'</div>';});
+    html += '<div class="note-meta">'+date+' · '+(r.app_version||'early beta')+' · '+sess+' session'+(sess!==1?'s':'')+'</div>';
+    html += '</div>';
   });
   return html;
 }
 
 // ── CSV EXPORT ────────────────────────────────────────
 function exportCSV(){
-  var headers=['Date','Version','Sessions','Simplicity','Somatic','Body scan','Delta','Open notes'];
-  var data=allFeedback.map(function(r){
-    return[new Date(r.created_at).toLocaleDateString(),r.app_version||'',sessionCounts[r.device_id]||0,
-      SHORT[r.simplicity]||r.simplicity||'',SHORT[r.somatic_real]||r.somatic_real||'',
-      SHORT[r.body_scan_real]||r.body_scan_real||'',SHORT[r.delta_accurate]||r.delta_accurate||'',
+  var headers=['Date','Version','Sessions','Confirm Zone','Confirm Zone notes','Log ease','Log ease notes','Most valuable','Open notes'];
+  var data = allFeedback.map(function(r){
+    return [
+      new Date(r.submitted_at||r.created_at).toLocaleDateString(),
+      r.app_version||'',
+      sessionCounts[r.device_id]||0,
+      r.confirm_zone_accuracy||'',
+      r.confirm_zone_notes||'',
+      r.log_ease||'',
+      r.log_improve_notes||'',
+      r.most_valuable||'',
       r.open_notes||''
-    ].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"';}).join(',');
+    ].map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');
   });
-  var csv=[headers.join(',')].concat(data).join('\n');
-  var a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='sharp-end-feedback-'+new Date().toISOString().split('T')[0]+'.csv';
+  var csv = [headers.join(',')].concat(data).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'sharp-end-feedback-'+new Date().toISOString().split('T')[0]+'.csv';
   a.click();
 }
 
