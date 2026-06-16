@@ -1338,7 +1338,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div>
 
     <!-- ── PREVIEW SECTION ── -->
-    <div id="sessions-preview-section">
+    <div id="sessions-preview-section" style="display:none;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
         <div style="flex:1;height:1px;background:var(--border);"></div>
         <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;padding:0 4px;">Preview · 20 sessions</div>
@@ -3252,7 +3252,6 @@ async function loadClimbLog(){
     'breathing_post,gut_post,crux_response,body_state'+
     '&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200'
   );
-  console.log('[ClimbLog] sessions fetched:',Array.isArray(sessions)?sessions.length:'error',sessions&&sessions[0]?sessions[0]:'empty');
   if(!Array.isArray(sessions)||sessions.error){
     console.error('[ClimbLog] fetch failed:',sessions);
     sessions=[];
@@ -3274,14 +3273,10 @@ async function loadClimbLog(){
   var realEl=document.getElementById('sessions-real-section');
   var previewEl=document.getElementById('sessions-preview-section');
 
-  console.log('[ClimbLog] total climbs:',total,'emptyEl:',!!emptyEl,'realEl:',!!realEl,'previewEl:',!!previewEl);
+  // Preview shows only when 0 climbs; real section shows only when >0 climbs
   if(emptyEl)emptyEl.style.display=total===0?'block':'none';
-  if(previewEl)previewEl.style.display=total>0?'none':'block';
-  if(realEl){
-    realEl.style.display=total>0?'block':'none';
-    realEl.style.visibility='visible';
-    realEl.style.opacity='1';
-  }
+  if(previewEl)previewEl.style.display=total===0?'block':'none';
+  if(realEl)realEl.style.display=total>0?'block':'none';
 
   if(total===0){
     var emptyText=document.getElementById('sessions-empty-text');
@@ -3351,7 +3346,6 @@ var _climbLogGrouped=true;
 function renderClimbList(climbs){
   var el=document.getElementById('sessions-climb-list');
   if(!el)return;
-  console.log('[renderClimbList] climbs count:',climbs&&climbs.length);
   if(!climbs||climbs.length===0){
     el.innerHTML='<div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div>';
     return;
