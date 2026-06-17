@@ -3359,14 +3359,61 @@ async function onClimbNameInput(val){
   }).join('');
 }
 
-function selectClimb(id,name){
-  _selectedClimbId=id;
-  logState.routeName=name;
-  var input=document.getElementById('log-rname-input');
-  if(input)input.value=name;
-  var sugg=document.getElementById('climb-suggestions');
-  if(sugg)sugg.style.display='none';
-  showBadge('Linked: '+name);
+function selectClimb(id, name){
+  // Find full climb record from cache
+  var climb = _climbCache ? _climbCache.find(function(c){return c.id===id;}) : null;
+
+  _selectedClimbId = id;
+  logState.routeName = name;
+
+  var input = document.getElementById('log-rname-input');
+  if(input) input.value = name;
+  var sugg = document.getElementById('climb-suggestions');
+  if(sugg) sugg.style.display = 'none';
+
+  // Pre-fill grade from stored climb — leave editable
+  if(climb && climb.grade_value){
+    // Determine grade system from grade_value format
+    var sys = 'YDS';
+    if(climb.grade_value.match(/^V\d/)) sys = 'V';
+    else if(climb.grade_value.match(/^\d+[abc+]?$/)) sys = 'FR';
+
+    // Rebuild grade grid for correct system if needed
+    if(sys !== (logState.gradeSys||'YDS')){
+      logState.gradeSys = sys;
+      buildGradeGrid(sys);
+    }
+
+    // Set state and mark correct button selected
+    logState.grade = climb.grade_value;
+    document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){
+      b.classList.toggle('selected', b.textContent === climb.grade_value);
+    });
+
+    // Make sure grade group is visible
+    var gradeGroup = document.getElementById('log-grade-group');
+    if(gradeGroup) gradeGroup.style.display = 'flex';
+
+    console.log('[selectClimb] pre-filled grade:', climb.grade_value, 'sys:', sys);
+  }
+
+  // Pre-fill terrain from stored climb — leave editable
+  if(climb && climb.climbing_type){
+    logState.terrain = climb.climbing_type;
+    document.querySelectorAll('.terrain-chips .chip').forEach(function(b){
+      b.classList.toggle('selected', b.textContent.trim() === climb.climbing_type);
+    });
+    console.log('[selectClimb] pre-filled terrain:', climb.climbing_type);
+  }
+
+  // Show badge and check if ready to log
+  var prefilledParts = [];
+  if(climb && climb.grade_value) prefilledParts.push(climb.grade_value);
+  if(climb && climb.climbing_type) prefilledParts.push(climb.climbing_type);
+  var badgeText = 'Linked: ' + name + (prefilledParts.length ? ' · ' + prefilledParts.join(' · ') + ' pre-filled' : '');
+  showBadge(badgeText);
+
+  checkLogReady();
 }
 
 function clearClimbSelection(){
