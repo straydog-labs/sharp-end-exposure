@@ -3024,22 +3024,30 @@ async function logClimb(){
 
   // Resolve climb_id — find existing or create new
   var climbId=_selectedClimbId||null;
+  console.log('[logClimb] routeName:',logState.routeName,'selectedClimbId:',_selectedClimbId);
   if(!climbId&&logState.routeName){
     var climbs=await loadClimbCache();
     var q=normalizeClimbName(logState.routeName);
     var match=climbs.find(function(c){return normalizeClimbName(c.name)===q;});
+    console.log('[logClimb] cache size:',climbs.length,'normalized query:',q,'match:',match);
     if(match){
       climbId=match.id;
+      console.log('[logClimb] found existing climb:',climbId);
     } else {
+      console.log('[logClimb] creating new climb...');
       var newClimb=await sbI('climbs',{
         device_id:getDeviceId(),
         name:logState.routeName.trim(),
         grade_value:logState.grade||null,
         climbing_type:logState.terrain||null
       });
+      console.log('[logClimb] climb create result:',newClimb);
       if(newClimb&&newClimb.id){
         climbId=newClimb.id;
-        _climbCache=null; // invalidate cache
+        _climbCache=null;
+        console.log('[logClimb] new climb id:',climbId);
+      } else {
+        console.error('[logClimb] climb create FAILED:',newClimb);
       }
     }
   }
