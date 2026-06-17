@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging 92] Sharp End Exposure</title>
+<title>[Staging 93] Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -627,14 +627,22 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
     </div>
 
-    <!-- ROUTE NAME — prominent, shown after result selected -->
+    <!-- CLIMB AUTOCOMPLETE — prominent, shown after result selected -->
     <div class="field-group" id="log-rname-group" style="display:none;animation:fadeUp .25s ease;">
-      <div class="field-label">Route name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
-      <input id="log-rname-input" type="text" placeholder="Name it — even 'unnamed slab' helps build your picture" autocomplete="off"
-        style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;transition:border-color .15s;"
-        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(232,118,58,.3)'"
-        oninput="logState.routeName=this.value.trim()||null"/>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Named climbs link to projects and build richer patterns over time.</div>
+      <div class="field-label">Climb name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
+      <div style="position:relative;">
+        <input id="log-rname-input" type="text" placeholder="Search existing or type new climb name…" autocomplete="off"
+          style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='var(--accent)';onClimbNameInput(this.value)"
+          onblur="this.style.borderColor='rgba(232,118,58,.3)'"
+          oninput="onClimbNameInput(this.value)"/>
+        <div id="climb-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-md) var(--r-md);z-index:50;max-height:200px;overflow-y:auto;"></div>
+      </div>
+      <div id="climb-selected-badge" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(232,118,58,.08);border:1px solid rgba(232,118,58,.2);border-radius:6px;font-size:11px;color:var(--accent);">
+        <span id="climb-selected-text">Linked to existing climb</span>
+        <button onclick="clearClimbSelection()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 4px;float:right;">×</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Named climbs link across sessions and build richer patterns over time.</div>
     </div>
 
     <!-- GRADE — appears after result -->
@@ -3014,16 +3022,39 @@ async function logClimb(){
   var zr=resolveZone({result:logState.result});
   logState.zone=zr.zone;logState.zoneConf=zr.confidence;
 
+  // Resolve climb_id — find existing or create new
+  var climbId=_selectedClimbId||null;
+  if(!climbId&&logState.routeName){
+    var climbs=await loadClimbCache();
+    var q=normalizeClimbName(logState.routeName);
+    var match=climbs.find(function(c){return normalizeClimbName(c.name)===q;});
+    if(match){
+      climbId=match.id;
+    } else {
+      var newClimb=await sbI('climbs',{
+        device_id:getDeviceId(),
+        name:logState.routeName.trim(),
+        grade_value:logState.grade||null,
+        climbing_type:logState.terrain||null
+      });
+      if(newClimb&&newClimb.id){
+        climbId=newClimb.id;
+        _climbCache=null; // invalidate cache
+      }
+    }
+  }
+
   var payload={
     baseline_zone:logState.result,
     grade_value:logState.grade,
     grade_system:logState.gradeSys,
     climbing_type:logState.terrain,
     route_name:logState.routeName||null,
+    climb_id:climbId||null,
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index92',
+    app_version:'index93',
     device_id:getDeviceId()
   };
 
@@ -3281,9 +3312,87 @@ function dismissGradeNudge(){
   if(nudgeEl)nudgeEl.style.display='none';
 }
 
+// ═══════════════════════════════════════════════════════
+// CLIMB AUTOCOMPLETE
+// ═══════════════════════════════════════════════════════
+var _climbCache=null;
+var _selectedClimbId=null;
+
+async function loadClimbCache(){
+  if(_climbCache)return _climbCache;
+  var climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200');
+  _climbCache=Array.isArray(climbs)?climbs:[];
+  return _climbCache;
+}
+
+function normalizeClimbName(s){
+  return (s||'').toLowerCase().trim().replace(/  +/g,' ');
+}
+
+async function onClimbNameInput(val){
+  logState.routeName=val?val.trim()||null:null;
+  _selectedClimbId=null;
+  hideBadge();
+  var sugg=document.getElementById('climb-suggestions');
+  if(!sugg)return;
+  if(!val||val.length<2){sugg.style.display='none';return;}
+  var climbs=await loadClimbCache();
+  var q=normalizeClimbName(val);
+  var matches=climbs.filter(function(c){return normalizeClimbName(c.name).indexOf(q)>-1;}).slice(0,6);
+  if(!matches.length){sugg.style.display='none';return;}
+  sugg.style.display='block';
+  sugg.innerHTML=matches.map(function(c){
+    var sub=[c.grade_value,c.climbing_type].filter(Boolean).join(' · ');
+    return '<div onclick="selectClimb(\''+c.id+'\',\''+c.name.replace(/\'/g,'&#39;')+'\')" '
+      +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);-webkit-tap-highlight-color:transparent;">'
+      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+c.name+'</div>'
+      +(sub?'<div style="font-size:11px;color:var(--muted);">'+sub+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function selectClimb(id,name){
+  _selectedClimbId=id;
+  logState.routeName=name;
+  var input=document.getElementById('log-rname-input');
+  if(input)input.value=name;
+  var sugg=document.getElementById('climb-suggestions');
+  if(sugg)sugg.style.display='none';
+  showBadge('Linked: '+name);
+}
+
+function clearClimbSelection(){
+  _selectedClimbId=null;
+  var badge=document.getElementById('climb-selected-badge');
+  if(badge)badge.style.display='none';
+}
+
+function showBadge(text){
+  var badge=document.getElementById('climb-selected-badge');
+  var txt=document.getElementById('climb-selected-text');
+  if(badge)badge.style.display='block';
+  if(txt)txt.textContent=text;
+}
+
+function hideBadge(){
+  var badge=document.getElementById('climb-selected-badge');
+  if(badge)badge.style.display='none';
+}
+
+document.addEventListener('click',function(e){
+  var sugg=document.getElementById('climb-suggestions');
+  var input=document.getElementById('log-rname-input');
+  if(sugg&&input&&!sugg.contains(e.target)&&e.target!==input){
+    sugg.style.display='none';
+  }
+});
+
 function resetLogScreen(){
+  _selectedClimbId=null;
+  _climbCache=null; // refresh cache on next log
   // Only reset if not logging against a project with prefill
   if(logState.projectId&&logState.grade)return; // keep prefill for project logging
+  _selectedClimbId=null;
   logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:logState.projectId||null,projectName:logState.projectName||null};
   ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
     var b=document.getElementById(id);if(b){b.classList.remove('selected');b.style.borderColor='';b.style.background='';}
@@ -4061,7 +4170,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'index92'
+    app_version:'index93'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4281,7 +4390,7 @@ function computeResult(){
   var gMap={comfort:'What you reported indicates you\'re in a lower activation state today — familiar territory. Comfort zone is a valid place to climb from.',learning:'What you reported indicates you\'re at your edge — elevated activation, engaged. Learning zone is where deliberate practice lives.',panic:'What you reported indicates high activation — beyond the optimal window for this specific challenge today.'};
   if(g)g.textContent=gMap[zone]||'';
   // Save to Supabase with is_checkin flag
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index92'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index93'});
   showScreen('s-result');
 }
 
