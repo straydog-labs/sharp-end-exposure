@@ -136,6 +136,23 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .chip:active{transform:scale(.95);}
 .chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
 
+
+/* ── CLIMB TABLE ── */
+.cl-table{width:100%;border-collapse:collapse;font-size:13px;}
+.cl-table th{position:sticky;top:0;background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 10px;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;z-index:2;border-bottom:1px solid var(--border);}
+.cl-table th.sort-active{color:var(--accent);}
+.cl-table th .sort-arrow{margin-left:3px;opacity:.6;}
+.cl-table td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle;}
+.cl-table tr{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.cl-table tr:hover td{background:rgba(255,255,255,.02);}
+.cl-table tr:last-child td{border-bottom:none;}
+.cl-grade{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.cl-terrain{color:var(--muted);white-space:nowrap;}
+.cl-zone-pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;}
+.cl-row-detail{display:none;background:rgba(255,255,255,.02);}
+.cl-row-detail.open{display:table-row;}
+.cl-row-detail td{padding:8px 10px 12px;border-bottom:1px solid rgba(255,255,255,.08);}
+
 /* ── RESULT BTNS ── */
 .result-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
 .result-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;padding:20px 12px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;line-height:1.2;}
@@ -1586,13 +1603,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         </div>
         <div style="font-size:11px;color:var(--muted);" id="cl-count-label"></div>
       </div>
-      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;">
-        <button id="cl-sort-date" onclick="setClimbLogSort('date')" style="background:var(--surface2);border:1px solid var(--accent);border-radius:99px;color:var(--accent);font-size:11px;font-weight:700;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Date ↓</button>
-        <button id="cl-sort-grade" onclick="setClimbLogSort('grade')" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Grade</button>
-        <button id="cl-sort-terrain" onclick="setClimbLogSort('terrain')" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Terrain</button>
-        <button id="cl-sort-result" onclick="setClimbLogSort('result')" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Result</button>
-        <button id="cl-sort-zone" onclick="setClimbLogSort('zone')" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Zone</button>
-      </div>
+      <div style="font-size:11px;color:var(--muted2);padding:2px 0 4px;">Tap a column header to sort</div>
     </div>
 
     <!-- Example data banner (0 climbs) -->
@@ -1649,27 +1660,27 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
       <!-- Real zone arc -->
       <div class="insight-card" style="margin-bottom:16px;">
-        <div class="insight-label" style="margin-bottom:10px;">Zone arc</div>
-        <svg id="river-svg-sessions" width="100%" viewBox="0 0 320 100" style="display:block;overflow:visible;">
-          <rect x="0" y="0" width="320" height="33" fill="rgba(255,92,58,.05)"/>
-          <rect x="0" y="33" width="320" height="34" fill="rgba(245,166,35,.04)"/>
-          <rect x="0" y="67" width="320" height="33" fill="rgba(200,245,90,.05)"/>
-          <text x="6" y="11" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.4)" letter-spacing=".06em">PANIC</text>
-          <text x="6" y="52" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.4)" letter-spacing=".06em">LEARNING</text>
-          <text x="6" y="95" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(200,245,90,.4)" letter-spacing=".06em">COMFORT</text>
+        <div class="insight-label" style="margin-bottom:6px;">Zone arc</div>
+        <svg id="river-svg-sessions" width="100%" viewBox="0 0 320 60" style="display:block;overflow:visible;">
+          <rect x="0" y="0" width="320" height="20" fill="rgba(255,92,58,.05)"/>
+          <rect x="0" y="20" width="320" height="20" fill="rgba(245,166,35,.04)"/>
+          <rect x="0" y="40" width="320" height="20" fill="rgba(200,245,90,.05)"/>
+          <text x="6" y="8" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(255,92,58,.4)" letter-spacing=".06em">P</text>
+          <text x="6" y="32" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(245,166,35,.4)" letter-spacing=".06em">L</text>
+          <text x="6" y="56" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(200,245,90,.4)" letter-spacing=".06em">C</text>
           <g id="arc-dots-real"></g>
         </svg>
-        <div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;" id="sessions-arc-insight">Log climbs to build your arc.</div>
+        <div id="sessions-arc-insight" style="display:none;"></div>
       </div>
 
       <!-- Real terrain radar -->
       <div class="insight-card" style="margin-bottom:16px;">
-        <div class="insight-label" style="margin-bottom:14px;">Terrain experience</div>
+        <div class="insight-label" style="margin-bottom:8px;">Terrain</div>
         <div style="display:flex;align-items:center;gap:16px;">
-          <svg id="radar-svg" width="160" height="160" viewBox="0 0 220 220" style="flex-shrink:0;"></svg>
+          <svg id="radar-svg" style="display:none;" viewBox="0 0 220 220"></svg>
           <div style="flex:1;min-width:0;" id="radar-breakdown"></div>
         </div>
-        <div id="radar-insight" style="font-size:12px;color:var(--muted);font-style:italic;line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:none;"></div>
+        
       </div>
 
       <!-- Climb table -->
@@ -3315,7 +3326,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'staging-index101',
+    app_version:'staging-index102',
     device_id:getDeviceId()
   };
 
@@ -4119,7 +4130,7 @@ function buildSessionsArc(sessions, isExample){
   if(!g)return;
   g.innerHTML='';
   var ordered=sessions.slice().reverse();
-  var zoneY={comfort:83,learning:50,panic:16}; // Panic=top, Comfort=bottom
+  var zoneY={comfort:52,learning:30,panic:8}; // Panic=top, Comfort=bottom — scaled for 60px height
   var w=320,h=100;
   var pts=ordered.map(function(s,i){
     return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||50,z:s.zone,conf:s.zone_confidence};
@@ -4489,7 +4500,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'staging-index101'
+    app_version:'staging-index102'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4763,7 +4774,7 @@ function computeResult(){
   if(drillComp)drillComp.style.display='none';
 
   // Save to Supabase
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'staging-index101'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'staging-index102'});
 
   // If this is a drill pre check-in, save zone and go to hold screen
   if(prepState.isDrill){
@@ -5940,21 +5951,7 @@ function setClimbLogSort(field){
   renderClimbTable(window._cachedClimbs || []);
 }
 
-function updateSortButtons(){
-  var fields = ['date','grade','terrain','result','zone'];
-  var labels = {date:'Date', grade:'Grade', terrain:'Terrain', result:'Result', zone:'Zone'};
-  fields.forEach(function(f){
-    var btn = document.getElementById('cl-sort-'+f);
-    if(!btn) return;
-    var isActive = climbLogState.sort === f;
-    var arrow = isActive ? (climbLogState.sortDir === 'desc' ? ' ↓' : ' ↑') : '';
-    btn.textContent = labels[f] + arrow;
-    btn.style.background = isActive ? 'var(--surface2)' : 'var(--surface)';
-    btn.style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
-    btn.style.color = isActive ? 'var(--accent)' : 'var(--muted)';
-    btn.style.fontWeight = isActive ? '700' : '600';
-  });
-}
+function updateSortButtons(){ /* headers handle sort display */ }
 
 function sortClimbs(climbs){
   var sorted = climbs.slice();
@@ -5996,110 +5993,139 @@ function renderClimbTable(climbs){
   if(countEl) countEl.textContent = climbs.length + ' climbs';
 
   var sorted = sortClimbs(climbs);
-  var html = '';
 
-  if(climbLogState.view === 'flat'){
-    html = sorted.map(function(s){ return climbTableRow(s); }).join('');
-  } else {
-    // Grouped by route name
-    var groups = {};
-    var groupOrder = [];
-    var unnamed = [];
+  // Build grouped structure if needed
+  var rows = [];
+  if(climbLogState.view === 'grouped'){
+    var groups = {}; var groupOrder = []; var unnamed = [];
     sorted.forEach(function(s){
       if(s.route_name){
-        if(!groups[s.route_name]){ groups[s.route_name] = []; groupOrder.push(s.route_name); }
+        if(!groups[s.route_name]){ groups[s.route_name]=[]; groupOrder.push(s.route_name); }
         groups[s.route_name].push(s);
-      } else {
-        unnamed.push(s);
-      }
+      } else { unnamed.push(s); }
     });
-    // Deduplicate groupOrder
     groupOrder = groupOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
     groupOrder.forEach(function(name){
-      var group = groups[name];
-      var zones = group.map(function(s){ return s.zone; });
-      var lastZone = group[0] ? group[0].zone : 'learning';
-      var c = zoneColor(lastZone);
-      html += '<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);">'
-        + '<div style="font-size:13px;font-weight:700;color:var(--text);">' + name + '</div>'
-        + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + group.length + ' attempt' + (group.length===1?'':'s') + '</div>'
-        + '</div>';
-      html += group.map(function(s){ return climbTableRow(s, true); }).join('');
+      rows.push({type:'group', name:name, count:groups[name].length});
+      groups[name].forEach(function(s){ rows.push({type:'row', s:s}); });
     });
-    if(unnamed.length > 0){
-      html += '<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);">'
-        + '<div style="font-size:13px;font-weight:700;color:var(--muted);">Other attempts</div>'
-        + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + unnamed.length + ' unnamed</div>'
-        + '</div>';
-      html += unnamed.map(function(s){ return climbTableRow(s, true); }).join('');
+    if(unnamed.length){
+      rows.push({type:'group', name:'Other attempts', count:unnamed.length});
+      unnamed.forEach(function(s){ rows.push({type:'row', s:s}); });
     }
+  } else {
+    sorted.forEach(function(s){ rows.push({type:'row', s:s}); });
   }
 
-  el.innerHTML = html;
+  // Sort arrows — use array to avoid quote nesting in onclick
+  var sortDefs = [
+    {f:'grade',  label:'Grade'},
+    {f:'terrain',label:'Terrain'},
+    {f:'zone',   label:'Zone'},
+    {f:'date',   label:'Date'}
+  ];
+  var sortFnStrs = {grade:"setClimbLogSort('grade')",terrain:"setClimbLogSort('terrain')",zone:"setClimbLogSort('zone')",date:"setClimbLogSort('date')"};
+  var headerHtml = '<thead><tr>';
+  sortDefs.forEach(function(def){
+    var isActive = climbLogState.sort === def.f;
+    var arrow = isActive ? (climbLogState.sortDir==='desc'?' ↓':' ↑') : '';
+    headerHtml += '<th onclick="'+sortFnStrs[def.f]+'" class="'+(isActive?'sort-active':'')+'">'
+      + def.label + (arrow?'<span class="sort-arrow">'+arrow+'</span>':'')
+      + '</th>';
+  });
+  headerHtml += '</tr></thead>';
+
+  // Table rows
+  var bodyHtml = '<tbody>';
+  rows.forEach(function(row){
+    if(row.type === 'group'){
+      bodyHtml += '<tr><td colspan="4" style="padding:8px 10px 4px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);">'
+        + row.name + ' <span style="color:var(--muted);font-weight:400;">'+row.count+' attempt'+(row.count===1?'':'s')+'</span></td></tr>';
+      return;
+    }
+    var s = row.s;
+    bodyHtml += buildTableRow(s);
+  });
+  bodyHtml += '</tbody>';
+
+  el.innerHTML = '<table class="cl-table">' + headerHtml + bodyHtml + '</table>';
 }
 
-function climbTableRow(s, indented){
-  var c = zoneColor(s.zone || 'learning');
+function buildTableRow(s){
+  var c = zoneColor(s.zone||'learning');
   var conf = s.zone_confidence === 'confirmed';
-  var rLabels = {sent:'Sent',fell:'Fell',dna:'Backed off',projecting:'Projecting'};
-  var rColors = {sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
   var isExpanded = climbLogState.expandedId === s.id;
-  var isEstimated = !conf;
-  var ip = indented ? 'padding-left:24px;' : '';
   var sid = s.id;
-  var rn = (s.route_name||'').replace(/"/g,'');
-  var gv = (s.grade_value||'').replace(/"/g,'');
-  var ct = (s.climbing_type||'').replace(/"/g,'');
-  var p = [];
 
-  p.push('<div id="cl-row-'+sid+'" onclick="toggleClimbRow(\''+sid+'\')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;'+ip+'border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;-webkit-tap-highlight-color:transparent;">');
-  p.push('<div style="width:3px;border-radius:99px;background:'+c+';flex-shrink:0;align-self:stretch;min-height:36px;"></div>');
-  p.push('<div style="font-size:15px;font-weight:700;color:var(--accent);min-width:52px;flex-shrink:0;letter-spacing:-.02em;">'+(s.grade_value||'—')+'</div>');
-  p.push('<div style="flex:1;min-width:0;">');
-  p.push('<div style="font-size:13px;color:var(--text);font-weight:600;">'+(s.climbing_type||'—')+(s.route_name?(' &middot; <span style="color:var(--muted);font-weight:400;">'+s.route_name+'</span>'):'')+'</div>');
-  p.push('<div style="display:flex;align-items:center;gap:6px;margin-top:3px;">');
-  p.push('<span style="font-size:11px;color:'+(rColors[s.baseline_zone]||'var(--muted)')+';font-weight:600;">'+(rLabels[s.baseline_zone]||s.baseline_zone||'—')+'</span>');
-  p.push('<span style="font-size:11px;color:'+c+';background:'+c+'1a;padding:1px 7px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';font-weight:600;">'+(conf?(s.zone||'—'):((s.zone||'—')+' ~'))+'</span>');
-  p.push('</div></div>');
-  p.push('<div style="text-align:right;flex-shrink:0;">');
-  p.push('<div style="font-size:10px;color:var(--muted2);">'+timeAgoStr(s.created_at)+'</div>');
-  p.push('<div style="font-size:14px;color:var(--muted);margin-top:2px;" id="cl-arrow-'+sid+'">'+(isExpanded?'↑':'↓')+'</div>');
-  p.push('</div></div>');
+  // Zone pill
+  var borderStyle = conf ? 'solid' : 'dashed';
+  var zoneLabel = (s.zone||'—') + (conf?'':' ~');
+  var zonePillHtml = '<span class="cl-zone-pill" style="color:'+c+';background:'+c+'1a;border:1px '+borderStyle+' '+c+';">'+zoneLabel+'</span>';
 
-  if(isExpanded){
-    p.push('<div style="padding:8px 16px 12px;'+ip+'background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);">');
-    p.push('<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">');
-    p.push('<button onclick="event.stopPropagation();editClimbFromLog(\''+sid+'\')" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-size:12px;font-weight:600;padding:10px;cursor:pointer;">✏ Edit</button>');
-    p.push('<button onclick="event.stopPropagation();addAttemptFromLog(\''+rn+'\',\''+gv+'\',\''+ct+'\')" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-size:12px;font-weight:600;padding:10px;cursor:pointer;">+ Attempt</button>');
-    if(isEstimated){
-      p.push('<button onclick="event.stopPropagation();checkZoneFromLog(\''+sid+'\')" style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);border-radius:var(--r-md);color:#f5a623;font-size:12px;font-weight:700;padding:10px;cursor:pointer;">Check zone</button>');
-    } else {
-      p.push('<div></div>');
-    }
-    p.push('<button onclick="event.stopPropagation();drillFromLog(\''+rn+'\',\''+gv+'\',\''+ct+'\')" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--accent);font-size:12px;font-weight:700;padding:10px;cursor:pointer;">Drill</button>');
-    p.push('</div>');
+  // Date — short format
+  var dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
 
-    if(isEstimated){
-      p.push('<div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);">');
-      p.push('<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;">Does this match what you noticed?</div>');
-      p.push('<div style="display:flex;gap:8px;">');
-      p.push('<button onclick="event.stopPropagation();rowZoneValidation(\''+sid+'\',\'yes\',this)" style="flex:1;background:rgba(126,200,122,.12);border:1px solid rgba(126,200,122,.35);border-radius:var(--r-sm);color:#7ec87a;font-size:13px;font-weight:700;padding:8px;cursor:pointer;">Yes</button>');
-      p.push('<button onclick="event.stopPropagation();rowZoneValidation(\''+sid+'\',\'no\',this)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--muted);font-size:13px;font-weight:700;padding:8px;cursor:pointer;">No</button>');
-      p.push('</div>');
-      p.push('<div id="cl-val-note-'+sid+'" style="display:none;margin-top:8px;">');
-      p.push('<textarea placeholder="What felt off about this read?" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:12px;padding:8px 10px;outline:none;resize:none;min-height:60px;line-height:1.5;" id="cl-val-text-'+sid+'"></textarea>');
-      p.push('<button onclick="event.stopPropagation();saveRowValidationNote(\''+sid+'\')" style="width:100%;margin-top:6px;background:var(--accent);border:none;border-radius:var(--r-sm);color:#fff;font-size:12px;font-weight:700;padding:8px;cursor:pointer;">Save note</button>');
-      p.push('</div></div>');
-    }
-    p.push('</div>');
-  }
+  // Main row — use data attributes for all IDs/names to avoid onclick quote nesting
+  var rowHtml = '<tr data-sid="'+sid+'" id="cl-row-'+sid+'" onclick="toggleClimbRow(this.dataset.sid)">'
+    + '<td><span class="cl-grade">' + (s.grade_value||'—') + '</span></td>'
+    + '<td><span class="cl-terrain">' + (s.climbing_type||'—') + '</span></td>'
+    + '<td>' + zonePillHtml + '</td>'
+    + '<td style="color:var(--muted2);font-size:11px;white-space:nowrap;">' + dateStr + ' <span style="color:var(--muted);font-size:12px;">'+(isExpanded?'↑':'↓')+'</span></td>'
+    + '</tr>';
 
-  return p.join('');
+  // Detail row
+  var rLabels = {sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',projecting:'⟳ Projecting'};
+  var rColors = {sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
+  var isEstimated = !conf;
+  var rn = (s.route_name||'').replace(/['"]/g,'');
+  var gv = (s.grade_value||'').replace(/['"]/g,'');
+  var ct = (s.climbing_type||'').replace(/['"]/g,'');
+
+  // Action buttons use data-* attributes — handlers read from dataset
+  var btnStyle = 'font-size:11px;font-weight:600;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:var(--r-sm);';
+  var editBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();editClimbFromLog(this.dataset.sid)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">✏ Edit</button>';
+  var addBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">+ Attempt</button>';
+  var checkBtn = isEstimated ? '<button data-sid="'+sid+'" onclick="event.stopPropagation();checkZoneFromLog(this.dataset.sid)" style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:#f5a623;'+btnStyle+'">Check zone</button>' : '<div></div>';
+  var drillBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" onclick="event.stopPropagation();drillFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct)" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.3);color:var(--accent);'+btnStyle+'">Drill</button>';
+
+  var valYesBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();rowZoneValidation(this.dataset.sid,\'yes\',this)" style="flex:1;background:rgba(126,200,122,.12);border:1px solid rgba(126,200,122,.35);color:#7ec87a;font-size:12px;font-weight:700;padding:7px;cursor:pointer;border-radius:var(--r-sm);">Yes</button>';
+  var valNoBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();rowZoneValidation(this.dataset.sid,\'no\',this)" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;padding:7px;cursor:pointer;border-radius:var(--r-sm);">No</button>';
+  var saveNoteBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();saveRowValidationNote(this.dataset.sid)" style="width:100%;margin-top:4px;background:var(--accent);border:none;color:#fff;font-size:11px;font-weight:700;padding:7px;cursor:pointer;border-radius:var(--r-sm);">Save</button>';
+
+  var detailHtml = '<tr class="cl-row-detail '+(isExpanded?'open':'')+'" id="cl-detail-'+sid+'">'
+    + '<td colspan="4">'
+    + (s.route_name ? '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">'+s.route_name+'</div>' : '')
+    + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">'
+    + '<span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;">Result</span>'
+    + '<span style="font-size:13px;font-weight:700;color:'+(rColors[s.baseline_zone]||'var(--muted)')+'">'+(rLabels[s.baseline_zone]||s.baseline_zone||'—')+'</span>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:'+(isEstimated?'10':'0')+'px;">'
+    + editBtn + addBtn + checkBtn + drillBtn
+    + '</div>'
+    + (isEstimated ?
+      '<div style="padding:8px 0 2px;">'
+      + '<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px;">Does this match what you noticed?</div>'
+      + '<div style="display:flex;gap:6px;">' + valYesBtn + valNoBtn + '</div>'
+      + '<div id="cl-val-note-'+sid+'" style="display:none;margin-top:6px;">'
+      + '<textarea placeholder="What felt off?" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:11px;padding:6px 8px;outline:none;resize:none;min-height:50px;line-height:1.5;" id="cl-val-text-'+sid+'"></textarea>'
+      + saveNoteBtn
+      + '</div></div>'
+      : '')
+    + '</td></tr>';
+
+  return rowHtml + detailHtml;
 }
 
 
 function toggleClimbRow(id){
-  climbLogState.expandedId = climbLogState.expandedId === id ? null : id;
+  var wasExpanded = climbLogState.expandedId === id;
+  climbLogState.expandedId = wasExpanded ? null : id;
+  // Update detail row visibility without full re-render
+  // for performance on large tables
+  var allDetails = document.querySelectorAll('.cl-row-detail');
+  allDetails.forEach(function(el){ el.classList.remove('open'); });
+  var allArrows = document.querySelectorAll('[id^="cl-row-"] td:last-child span');
+  // Just re-render — simpler and ensures sort arrows stay correct
   renderClimbTable(window._cachedClimbs || []);
 }
 
