@@ -136,6 +136,23 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .chip:active{transform:scale(.95);}
 .chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
 
+
+/* ── CLIMB TABLE ── */
+.cl-table{width:100%;border-collapse:collapse;font-size:13px;}
+.cl-table th{position:sticky;top:0;background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 10px;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;z-index:2;border-bottom:1px solid var(--border);}
+.cl-table th.sort-active{color:var(--accent);}
+.cl-table th .sort-arrow{margin-left:3px;opacity:.6;}
+.cl-table td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle;}
+.cl-table tr{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.cl-table tr:hover td{background:rgba(255,255,255,.02);}
+.cl-table tr:last-child td{border-bottom:none;}
+.cl-grade{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;}
+.cl-terrain{color:var(--muted);white-space:nowrap;}
+.cl-zone-pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;}
+.cl-row-detail{display:none;background:rgba(255,255,255,.02);}
+.cl-row-detail.open{display:table-row;}
+.cl-row-detail td{padding:8px 10px 12px;border-bottom:1px solid rgba(255,255,255,.08);}
+
 /* ── RESULT BTNS ── */
 .result-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
 .result-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;padding:20px 12px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;line-height:1.2;}
@@ -745,9 +762,9 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         </div>
       </div>
     </div>
+    <div style="height:24px"></div>
+    <button class="log-btn" id="log-btn" onclick="logClimb()" style="margin:0 0 4px;width:100%;">Log climb</button>
   </div>
-  <div style="height:24px"></div>
-  <button class="log-btn" id="log-btn" onclick="logClimb()">Log climb</button>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -873,35 +890,6 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
     </div>
 
-  <!-- Edit sheet -->
-  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div style="font-size:16px;font-weight:700;">Edit this climb</div>
-      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:6px 12px;cursor:pointer;">Done</button>
-    </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Grade</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="edit-grade-chips"></div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Terrain</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
-      <button class="chip" onclick="editSelTerrain(this,'Slab')">Slab</button>
-      <button class="chip" onclick="editSelTerrain(this,'Vertical')">Vertical</button>
-      <button class="chip" onclick="editSelTerrain(this,'Overhang')">Overhang</button>
-      <button class="chip" onclick="editSelTerrain(this,'Roof')">Roof</button>
-      <button class="chip" onclick="editSelTerrain(this,'Arête')">Arête</button>
-      <button class="chip" onclick="editSelTerrain(this,'Dihedral')">Dihedral</button>
-      <button class="chip" onclick="editSelTerrain(this,'Crack')">Crack</button>
-    </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Result</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-      <button id="edit-btn-sent" onclick="editSelResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
-      <button id="edit-btn-fell" onclick="editSelResult('fell')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fell</button>
-      <button id="edit-btn-dna" onclick="editSelResult('dna')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">— Backed off</button>
-      <button id="edit-btn-projecting" onclick="editSelResult('projecting')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">⟳ Projecting</button>
-    </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
-    <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
-    <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
-  </div>
 </div>
 </div><!-- end screen-celebrate -->
 
@@ -958,11 +946,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
       <div class="field-group" id="rd-bolt-group" style="display:none;">
         <div class="field-label">Bolt count</div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button onclick="rdAdjBolt(-1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div style="text-align:center;"><div id="rd-bolt-val" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;text-align:center;">—</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">bolts</div></div>
-          <button onclick="rdAdjBolt(1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div id="rd-bolt-val" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);">8</div>
+          <div style="font-size:13px;color:var(--muted);">bolts</div>
         </div>
+        <input type="range" id="rd-bolt-slider" min="1" max="35" value="8" step="1"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;"
+          oninput="rdState.bolts=parseInt(this.value);document.getElementById('rd-bolt-val').textContent=this.value"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>1</span><span>35</span></div>
       </div>
       <div class="field-group">
         <div class="field-label">Route height</div>
@@ -973,11 +964,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
             <button id="rd-unit-m" onclick="rdSetUnit('m')" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;">m</button>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button onclick="rdAdjHeight(-1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div style="text-align:center;"><div id="rd-height-val" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;text-align:center;">—</div><div id="rd-height-unit" style="font-size:13px;color:var(--muted);margin-top:2px;">ft</div></div>
-          <button onclick="rdAdjHeight(1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+          <div id="rd-height-val" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;color:var(--accent);">—</div>
+          <div id="rd-height-unit" style="font-size:13px;color:var(--muted);">ft</div>
         </div>
+        <input type="range" id="rd-height-slider" min="10" max="300" value="60" step="5"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;"
+          oninput="rdState.height=parseInt(this.value);document.getElementById('rd-height-val').textContent=this.value"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>10</span><span id="rd-height-max">300ft</span></div>
       </div>
     </div>
     <div class="save-ind" id="rd-save-ind"></div>
@@ -1576,6 +1570,19 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
     <!-- ── YOUR DATA SECTION ── -->
     <div id="sessions-real-section" style="display:none;">
+
+    <!-- SORT + TOGGLE CONTROLS -->
+    <div id="climb-log-controls" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:3px;">
+          <button id="cl-toggle-flat" onclick="setClimbLogView('flat')" style="background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Flat</button>
+          <button id="cl-toggle-grouped" onclick="setClimbLogView('grouped')" style="background:none;border:none;border-radius:8px;color:var(--muted);font-size:12px;font-weight:600;padding:6px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">By route</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);" id="cl-count-label"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted2);padding:2px 0 4px;">Tap a column header to sort</div>
+    </div>
+
     <!-- Example data banner (0 climbs) -->
     <div id="sessions-example-banner" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;margin-bottom:16px;">
       <div style="width:6px;height:6px;border-radius:50%;background:#f5a623;flex-shrink:0;"></div>
@@ -1606,6 +1613,12 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div>
 
     <div id="your-data-section">
+
+      <!-- Climb table -->
+      <div id="climb-table-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+        <div id="sessions-climb-list"><div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div></div>
+      </div>
+    
       <!-- Routes section — appears when named routes exist -->
       <div id="real-routes-section" style="display:none;margin-bottom:20px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -1630,41 +1643,35 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
       <!-- Real zone arc -->
       <div class="insight-card" style="margin-bottom:16px;">
-        <div class="insight-label" style="margin-bottom:10px;">Zone arc</div>
-        <svg id="river-svg-sessions" width="100%" viewBox="0 0 320 100" style="display:block;overflow:visible;">
-          <rect x="0" y="0" width="320" height="33" fill="rgba(255,92,58,.05)"/>
-          <rect x="0" y="33" width="320" height="34" fill="rgba(245,166,35,.04)"/>
-          <rect x="0" y="67" width="320" height="33" fill="rgba(200,245,90,.05)"/>
-          <text x="6" y="11" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.4)" letter-spacing=".06em">PANIC</text>
-          <text x="6" y="52" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.4)" letter-spacing=".06em">LEARNING</text>
-          <text x="6" y="95" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(200,245,90,.4)" letter-spacing=".06em">COMFORT</text>
+        <div class="insight-label" style="margin-bottom:6px;">Zone arc</div>
+        <svg id="river-svg-sessions" width="100%" viewBox="0 0 320 60" style="display:block;overflow:visible;">
+          <rect x="0" y="0" width="320" height="20" fill="rgba(255,92,58,.05)"/>
+          <rect x="0" y="20" width="320" height="20" fill="rgba(245,166,35,.04)"/>
+          <rect x="0" y="40" width="320" height="20" fill="rgba(200,245,90,.05)"/>
+          <text x="6" y="8" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(255,92,58,.4)" letter-spacing=".06em">P</text>
+          <text x="6" y="32" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(245,166,35,.4)" letter-spacing=".06em">L</text>
+          <text x="6" y="56" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(200,245,90,.4)" letter-spacing=".06em">C</text>
           <g id="arc-dots-real"></g>
         </svg>
-        <div style="font-size:11px;color:var(--muted);margin-top:8px;font-style:italic;" id="sessions-arc-insight">Log climbs to build your arc.</div>
+        <div id="sessions-arc-insight" style="display:none;"></div>
       </div>
 
       <!-- Real terrain radar -->
       <div class="insight-card" style="margin-bottom:16px;">
-        <div class="insight-label" style="margin-bottom:14px;">Terrain experience</div>
+        <div class="insight-label" style="margin-bottom:8px;">Terrain</div>
         <div style="display:flex;align-items:center;gap:16px;">
-          <svg id="radar-svg" width="160" height="160" viewBox="0 0 220 220" style="flex-shrink:0;"></svg>
+          <svg id="radar-svg" style="display:none;" viewBox="0 0 220 220"></svg>
           <div style="flex:1;min-width:0;" id="radar-breakdown"></div>
         </div>
-        <div id="radar-insight" style="font-size:12px;color:var(--muted);font-style:italic;line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:none;"></div>
+        
       </div>
-
-      <!-- Real climbs list -->
-      <div class="insight-card">
-        <div class="insight-label" style="margin-bottom:14px;">Recent climbs</div>
-        <div id="sessions-climb-list"><div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div></div>
-      </div>
-    </div><!-- end your-data-section -->
+</div><!-- end your-data-section -->
     </div><!-- end sessions-real-section -->
 
   </div>
 
   <!-- Floating Log a Climb button -->
-  <button onclick="logAnother();showScreen('screen-log');" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);border:none;box-shadow:0 4px 16px rgba(232,118,58,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:90;-webkit-tap-highlight-color:transparent;" title="Log a climb" id="climb-log-fab">
+  <button onclick="logAnother();showScreen('screen-log');" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);border:none;box-shadow:0 4px 16px rgba(232,118,58,.4);cursor:pointer;display:none;align-items:center;justify-content:center;z-index:90;-webkit-tap-highlight-color:transparent;" title="Log a climb" id="climb-log-fab">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
@@ -2372,7 +2379,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <text x="6" y="96" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(126,200,122,.75)" font-weight="600" letter-spacing=".08em" font-weight="600">COMFORT</text>
         <g id="proj-arc-dots"></g>
       </svg>
-      <div id="proj-empty-state" style="display:none;padding:24px 0;text-align:center;"><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">No sessions yet</div><div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Log your first session against this project<br>to start tracking your zone arc.</div><button onclick="logAgainstProject(currentProjectId,currentProjectName)" style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.35);border-radius:12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px 24px;cursor:pointer;-webkit-tap-highlight-color:transparent;">+ Log first session</button></div>
+      <div id="proj-empty-state" style="display:none;padding:24px 0;text-align:center;"><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">No sessions yet</div><div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Log your first session against this project<br>to start tracking your zone arc.</div><button onclick="logAgainstProject(currentProjectId,currentProject&&currentProject.name)" style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.35);border-radius:12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px 24px;cursor:pointer;-webkit-tap-highlight-color:transparent;">+ Log first session</button></div>
       <div id="proj-arc-insight" style="font-size:13px;color:var(--muted);font-style:italic;margin-top:12px;line-height:1.6;padding:10px 14px;background:rgba(232,118,58,.05);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);display:none;"></div>
     </div>
 
@@ -2654,11 +2661,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div id="sp-extra-fields" style="display:none;flex-direction:column;gap:18px;">
       <div class="field-group" id="sp-bolt-group" style="display:none;">
         <div class="field-label">Bolt count</div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button onclick="spAdjBolt(-1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div style="text-align:center;min-width:64px;"><div id="sp-bolt-val" style="font-size:26px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);">—</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">bolts</div></div>
-          <button onclick="spAdjBolt(1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div id="sp-bolt-val" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);">8</div>
+          <div style="font-size:13px;color:var(--muted);">bolts</div>
         </div>
+        <input type="range" id="sp-bolt-slider" min="1" max="35" value="8" step="1"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;"
+          oninput="spState.bolts=parseInt(this.value);document.getElementById('sp-bolt-val').textContent=this.value"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>1</span><span>35</span></div>
       </div>
       <div class="field-group" id="sp-height-group">
         <div class="field-label">Route height</div>
@@ -2669,11 +2679,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
             <button id="sp-unit-m" onclick="spSetUnit('m')" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:6px 14px;cursor:pointer;">m</button>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button onclick="spAdjHeight(-1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div style="text-align:center;min-width:64px;"><div id="sp-height-val" style="font-size:26px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);">—</div><div id="sp-height-unit-lbl" style="font-size:13px;color:var(--muted);margin-top:2px;">ft</div></div>
-          <button onclick="spAdjHeight(1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+          <div id="sp-height-val" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);">—</div>
+          <div id="sp-height-unit-lbl" style="font-size:13px;color:var(--muted);">ft</div>
         </div>
+        <input type="range" id="sp-height-slider" min="10" max="300" value="60" step="5"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;"
+          oninput="spState.height=parseInt(this.value);document.getElementById('sp-height-val').textContent=this.value"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>10</span><span id="sp-height-max">300ft</span></div>
       </div>
     </div>
 
@@ -2744,11 +2757,39 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
   </div>
 
+  <!-- "Does this match what you noticed?" validation -->
+  <div id="zc-validation" style="padding:0 20px 16px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;">Does this match what you noticed?</div>
+      <div style="display:flex;gap:10px;margin-bottom:0;" id="zc-validation-btns">
+        <button onclick="zoneValidation('yes')"
+          style="flex:1;background:rgba(126,200,122,.12);border:1px solid rgba(126,200,122,.35);border-radius:var(--r-md);color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          Yes
+        </button>
+        <button onclick="zoneValidation('no')"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          No
+        </button>
+      </div>
+      <!-- Text box — only shown when No is selected -->
+      <div id="zc-validation-note" style="display:none;margin-top:12px;">
+        <textarea id="zc-validation-text"
+          placeholder="What felt off about this read?"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;"
+          oninput=""></textarea>
+        <button onclick="saveValidationNote()"
+          style="width:100%;margin-top:10px;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          Save note →
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- CTAs -->
-  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;">
+  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;" id="zc-ctas">
     <button onclick="showScreen('screen-celebrate')" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Back to climb →</button>
     <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Log another climb</button>
-    <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Home</button>
+    <button onclick="returnToClimbLogOrHome()" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Back</button>
   </div>
 </div>
 
@@ -2872,7 +2913,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 <div class="screen" id="screen-drill-reveal">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+    <button class="back-btn" onclick="returnToClimbLogOrHome()">← Back</button>
   </div>
   <div class="content">
 
@@ -2923,12 +2964,84 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <!-- CTAs -->
     <div style="display:flex;flex-direction:column;gap:10px;padding-top:8px;">
       <button onclick="logAnother()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Log this climb →</button>
-      <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Home</button>
+      <button onclick="returnToClimbLogOrHome()" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Back</button>
     </div>
 
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════
+     POST-CLIMB SOMATIC CHECK-IN
+     Fires after drill log — comparison-anchored
+     Measures shift against pre-climb state
+     Same scoring model → comfort/learning/panic
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-post-climb">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Post-climb check-in</div>
+    <div style="font-size:22px;font-weight:700;line-height:1.25;margin-bottom:6px;">Now that you're off the route.</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px;">Compare to how you felt before you started. 4 quick questions.</div>
+
+    <!-- Progress bar -->
+    <div style="height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-bottom:24px;overflow:hidden;">
+      <div id="post-prog" style="height:100%;background:var(--accent);border-radius:1px;transition:width .4s ease;width:0%;"></div>
+    </div>
+
+    <!-- Question area -->
+    <div id="post-q-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;margin-bottom:20px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;" id="post-q-phase">Breathing</div>
+      <div style="font-size:20px;font-weight:700;line-height:1.3;margin-bottom:8px;color:var(--text);" id="post-q-text">—</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:18px;" id="post-q-hint">—</div>
+      <div class="response-chips" id="post-q-opts"></div>
+    </div>
+
+    <button id="post-next-btn" onclick="postClimbNext()"
+      style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;opacity:.25;pointer-events:none;-webkit-tap-highlight-color:transparent;">
+      Next →
+    </button>
+
+    <button onclick="skipPostClimbCheckin()"
+      style="width:100%;background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:12px;cursor:pointer;margin-top:4px;-webkit-tap-highlight-color:transparent;">
+      Skip post-climb check-in
+    </button>
+
+  </div>
+</div>
+
+
+  <!-- Edit sheet -->
+  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;">Edit this climb</div>
+      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:6px 12px;cursor:pointer;">Done</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Grade</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="edit-grade-chips"></div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Terrain</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+      <button class="chip" onclick="editSelTerrain(this,'Slab')">Slab</button>
+      <button class="chip" onclick="editSelTerrain(this,'Vertical')">Vertical</button>
+      <button class="chip" onclick="editSelTerrain(this,'Overhang')">Overhang</button>
+      <button class="chip" onclick="editSelTerrain(this,'Roof')">Roof</button>
+      <button class="chip" onclick="editSelTerrain(this,'Arête')">Arête</button>
+      <button class="chip" onclick="editSelTerrain(this,'Dihedral')">Dihedral</button>
+      <button class="chip" onclick="editSelTerrain(this,'Crack')">Crack</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Result</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button id="edit-btn-sent" onclick="editSelResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
+      <button id="edit-btn-fell" onclick="editSelResult('fell')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fell</button>
+      <button id="edit-btn-dna" onclick="editSelResult('dna')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">— Backed off</button>
+      <button id="edit-btn-projecting" onclick="editSelResult('projecting')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">⟳ Projecting</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
+    <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
+    <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
+  </div>
 </div><!-- end .app -->
 
 <script>
@@ -3066,6 +3179,9 @@ function showScreen(id){
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
+  // Show/hide FAB — only visible on sessions screen
+  var fab=document.getElementById('climb-log-fab');
+  if(fab)fab.style.display=id==='screen-sessions'?'flex':'none';
   if(id==='screen-drill')loadDrillRouteOptions();
   if(id==='screen-log')resetLogScreen();
   if(id==='screen-projects')loadProjectsScreen();
@@ -3125,11 +3241,15 @@ var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,
 
 function selectResult(r){
   logState.result=r;
-  // Update button styles
+  // Update button styles — apply correct per-result selected class
+  var classMap={sent:'selected-send',fell:'selected-attempt',dna:'selected-dna',projecting:'selected-attempt'};
   ['sent','fell','dna','projecting'].forEach(function(v){
     var b=document.getElementById('btn-'+v);
     if(!b)return;
-    b.classList.toggle('selected',v===r);
+    // Remove all selected classes first
+    b.classList.remove('selected','selected-send','selected-attempt','selected-dna');
+    // Apply correct class if this is the selected result
+    if(v===r && classMap[v]) b.classList.add(classMap[v]);
   });
   // Reveal grade and route name fields
   var gradeGroup=document.getElementById('log-grade-group');
@@ -3220,7 +3340,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index98',
+    app_version:'staging-index104',
     device_id:getDeviceId()
   };
 
@@ -3238,17 +3358,18 @@ async function logClimb(){
   }
 
   // Navigate AFTER sessId is set so Go Deeper button works immediately
-  if(logState._isDrillPost){
-    // Drill post-climb log — show three-point reveal
-    logState._isDrillPost=false;
-    var postZone=logState.zone||'learning';
-    var preZone=drillState.preZone||'learning';
-    var prediction=drillState.prediction||null;
-    showDrillReveal(prediction, {zone:preZone}, {zone:postZone});
-    clearDrillState();
+  if(_drillPostActive){
+    // Drill post-climb log — collect post-climb somatic data before reveal
+    _drillPostActive=false;
+    startPostClimbCheckin();
   } else {
     showScreen('screen-celebrate');
     renderCelebrate();
+    // If launched from Climb Log, update return path
+    if(climbLogState.returnFrom === 'screen-sessions'){
+      climbLogState.returnFrom = null;
+      climbLogState.expandedId = null;
+    }
   }
   if(btn){btn.textContent='Log climb';btn.classList.add('ready');btn.style.background='';}
 
@@ -4014,7 +4135,7 @@ async function loadClimbLog(){
   buildSessionsArc(climbs);
   buildRadar(climbs);
   window._cachedClimbs=climbs;
-  renderClimbList(climbs);
+  renderClimbTable(climbs);
   buildInsight(climbs);
 }
 
@@ -4023,7 +4144,7 @@ function buildSessionsArc(sessions, isExample){
   if(!g)return;
   g.innerHTML='';
   var ordered=sessions.slice().reverse();
-  var zoneY={comfort:83,learning:50,panic:16}; // Panic=top, Comfort=bottom
+  var zoneY={comfort:52,learning:30,panic:8}; // Panic=top, Comfort=bottom — scaled for 60px height
   var w=320,h=100;
   var pts=ordered.map(function(s,i){
     return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||50,z:s.zone,conf:s.zone_confidence};
@@ -4376,6 +4497,12 @@ function spSetUnit(u){
   document.getElementById('sp-unit-ft').style.borderColor=u==='ft'?'var(--accent)':'var(--border)';
   document.getElementById('sp-unit-m').style.background=u==='m'?'rgba(232,118,58,.15)':'var(--surface)';
   document.getElementById('sp-unit-m').style.borderColor=u==='m'?'var(--accent)':'var(--border)';
+  var slider=document.getElementById('sp-height-slider');
+  var maxLbl=document.getElementById('sp-height-max');
+  var unitLbl=document.getElementById('sp-height-unit-lbl');
+  if(slider){slider.max=u==='ft'?300:90;slider.step=u==='ft'?5:1;slider.value=u==='ft'?60:18;spState.height=parseInt(slider.value);var val=document.getElementById('sp-height-val');if(val)val.textContent=slider.value;}
+  if(maxLbl)maxLbl.textContent=u==='ft'?'300ft':'90m';
+  if(unitLbl)unitLbl.textContent=u;
 }
 function spAdjBolt(d){spState.bolts=(spState.bolts||6)+d;if(spState.bolts<1)spState.bolts=1;document.getElementById('sp-bolt-val').textContent=spState.bolts;}
 function spAdjHeight(d){spState.height=(spState.height||20)+d;if(spState.height<1)spState.height=1;document.getElementById('sp-height-val').textContent=spState.height;}
@@ -4393,7 +4520,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'index98'
+    app_version:'staging-index104'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4667,7 +4794,7 @@ function computeResult(){
   if(drillComp)drillComp.style.display='none';
 
   // Save to Supabase
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index98'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'staging-index104'});
 
   // If this is a drill pre check-in, save zone and go to hold screen
   if(prepState.isDrill){
@@ -4824,6 +4951,7 @@ function toggleCtx(id,arrowId){
 // EXPOSURE DRILL
 // ═══════════════════════════════════════════════════════
 var drillState={preZone:null,preAnswers:{},drillId:null,routeName:'',prediction:null};
+var _drillPostActive=false; // set by completeDrill, read by logClimb after resetLogScreen runs
 function loadDrillState(){
   try{var s=localStorage.getItem('see_drill');if(s){drillState=JSON.parse(s);return true;}}catch(e){}return false;
 }
@@ -4842,9 +4970,9 @@ function startDrillCheckin(){
   showScreen('screen-prepare-pause');
 }
 function completeDrill(){
-  // Store that we're about to log a drill climb
+  // Use module-level flag — logState gets reset by resetLogScreen inside showScreen
+  _drillPostActive=true;
   logState.projectId=null;
-  logState._isDrillPost=true;
   showScreen('screen-log');
 }
 
@@ -4893,6 +5021,11 @@ function rdSetUnit(u){
   if(ft){ft.style.background=u==='ft'?'rgba(232,118,58,.12)':'var(--surface)';ft.style.borderColor=u==='ft'?'var(--accent)':'var(--border)';}
   if(m){m.style.background=u==='m'?'rgba(232,118,58,.12)':'var(--surface)';m.style.borderColor=u==='m'?'var(--accent)':'var(--border)';}
   var lbl=document.getElementById('rd-height-unit');if(lbl)lbl.textContent=u;
+  // Update slider range for unit
+  var slider=document.getElementById('rd-height-slider');
+  var maxLbl=document.getElementById('rd-height-max');
+  if(slider){slider.max=u==='ft'?300:90;slider.step=u==='ft'?5:1;slider.value=u==='ft'?60:18;rdState.height=parseInt(slider.value);var val=document.getElementById('rd-height-val');if(val)val.textContent=slider.value;}
+  if(maxLbl)maxLbl.textContent=u==='ft'?'300ft':'90m';
 }
 async function saveRouteDetails(){
   var nameEl=document.getElementById('rd-route-name');
@@ -5570,6 +5703,544 @@ function showDrillReveal(predicted, pre, post){
 }
 
 // ═══════════════════════════════════════════════════════
+// POST-CLIMB SOMATIC CHECK-IN
+// Comparison-anchored — measures shift vs pre-climb
+// Same scoring model: breath+gut+crux+body → zone
+// ═══════════════════════════════════════════════════════
+var POST_CLIMB_Qs = [
+  {
+    phase: 'Breathing',
+    text: 'Compared to before you started, how did your breathing change?',
+    hint: 'Think about the climb itself — not right now.',
+    opts: ['Steadier than before', 'About the same', 'More restricted or faster', 'I held my breath at some point'],
+    scores: [0, 1, 2, 4]
+  },
+  {
+    phase: 'Gut',
+    text: 'Did anything shift in your gut once you were on the route?',
+    hint: 'Compare to the sensation you noticed in the pre-climb check-in.',
+    opts: ['No change — same as before', 'It settled once I started', 'Increased once I was on it', 'Something new appeared mid-climb'],
+    scores: [1, 0, 2, 2]
+  },
+  {
+    phase: 'Moment of difference',
+    text: 'Was there a moment things felt different than you expected going in?',
+    hint: 'A shift — easier, harder, different sensation than anticipated.',
+    opts: ['Yes — it felt harder than expected', 'Yes — it felt easier than expected', 'Yes — something unexpected happened', 'No — it matched my pre-climb read'],
+    scores: [3, 0, 2, 0]
+  },
+  {
+    phase: 'Body state',
+    text: 'Compared to your pre-climb state, how did your body feel during the climb?',
+    hint: 'Overall — not just one moment.',
+    opts: ['More settled than before', 'About the same', 'More activated or tight', 'Significantly more tense or shut down'],
+    scores: [0, 1, 2, 3]
+  }
+];
+
+var postClimbState = {qi: 0, answers: {}, scores: {}};
+
+function startPostClimbCheckin(){
+  postClimbState = {qi: 0, answers: {}, scores: {}};
+  renderPostQ();
+  showScreen('screen-post-climb');
+}
+
+function renderPostQ(){
+  var q = POST_CLIMB_Qs[postClimbState.qi];
+  if(!q) return;
+
+  var pct = Math.round((postClimbState.qi / POST_CLIMB_Qs.length) * 100);
+  var prog = document.getElementById('post-prog');
+  if(prog) prog.style.width = pct + '%';
+
+  var phase = document.getElementById('post-q-phase');
+  var text = document.getElementById('post-q-text');
+  var hint = document.getElementById('post-q-hint');
+  var opts = document.getElementById('post-q-opts');
+  var nextBtn = document.getElementById('post-next-btn');
+
+  if(phase) phase.textContent = q.phase;
+  if(text) text.textContent = q.text;
+  if(hint) hint.textContent = q.hint;
+  if(nextBtn){ nextBtn.style.opacity = '.25'; nextBtn.style.pointerEvents = 'none'; }
+
+  if(opts){
+    opts.innerHTML = '';
+    q.opts.forEach(function(opt, i){
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = opt;
+      b.onclick = function(){
+        opts.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('selected'); });
+        b.classList.add('selected');
+        postClimbState.answers[postClimbState.qi] = opt;
+        postClimbState.scores[postClimbState.qi] = q.scores[i];
+        if(nextBtn){ nextBtn.style.opacity = '1'; nextBtn.style.pointerEvents = 'all'; }
+        // Persist on every selection — protect against interruption
+        savePostClimbState();
+      };
+      opts.appendChild(b);
+    });
+
+    // Re-apply selected state if this question was already answered
+    // (relevant when navigating back or restoring from localStorage)
+    var savedAnswer = postClimbState.answers[postClimbState.qi];
+    if(savedAnswer){
+      opts.querySelectorAll('.chip').forEach(function(chip){
+        if(chip.textContent === savedAnswer){
+          chip.classList.add('selected');
+          if(nextBtn){ nextBtn.style.opacity = '1'; nextBtn.style.pointerEvents = 'all'; }
+        }
+      });
+    }
+  }
+}
+
+function postClimbNext(){
+  postClimbState.qi++;
+  if(postClimbState.qi >= POST_CLIMB_Qs.length){
+    computePostClimbZone();
+  } else {
+    renderPostQ();
+    // Update button text on last question
+    var nextBtn = document.getElementById('post-next-btn');
+    if(nextBtn && postClimbState.qi === POST_CLIMB_Qs.length - 1){
+      nextBtn.textContent = 'See the shift →';
+    }
+  }
+}
+
+function savePostClimbState(){
+  try{
+    var toSave = {
+      qi: postClimbState.qi,
+      answers: postClimbState.answers,
+      scores: postClimbState.scores,
+      sessId: logState.sessId || null
+    };
+    localStorage.setItem('see_post_climb_state', JSON.stringify(toSave));
+  }catch(e){ console.error('savePostClimbState error:', e); }
+}
+
+function loadPostClimbState(){
+  try{
+    var s = localStorage.getItem('see_post_climb_state');
+    if(s){ var d = JSON.parse(s); postClimbState = {qi:d.qi||0,answers:d.answers||{},scores:d.scores||{}}; return d; }
+  }catch(e){}
+  return null;
+}
+
+function clearPostClimbState(){
+  try{ localStorage.removeItem('see_post_climb_state'); }catch(e){}
+  postClimbState = {qi:0, answers:{}, scores:{}};
+}
+
+function computePostClimbZone(){
+  var total = 0;
+  Object.values(postClimbState.scores).forEach(function(s){ total += s || 0; });
+  var zone = total <= 4 ? 'comfort' : total <= 9 ? 'learning' : 'panic';
+
+  console.log('[PostClimb] score:', total, 'zone:', zone);
+
+  // Save post-climb data — complete set, run zone math
+  if(logState.sessId){
+    sbU('sessions', 'id=eq.' + logState.sessId, {
+      post_climb_zone: zone,
+      post_climb_answers: JSON.stringify(postClimbState.answers),
+      post_climb_completion: 'complete'
+    });
+  }
+
+  // Clear persistence — complete, no need to restore
+  clearPostClimbState();
+
+  // Show three-point reveal with real post-climb zone
+  var prediction = drillState.prediction || null;
+  var preZone = drillState.preZone || 'learning';
+  clearDrillState();
+  showDrillReveal(prediction, {zone: preZone}, {zone: zone});
+}
+
+// ═══════════════════════════════════════════════════════
+// ZONE VALIDATION — "Does this match what you noticed?"
+// ═══════════════════════════════════════════════════════
+function zoneValidation(answer){
+  // Save to Supabase
+  if(logState.sessId){
+    sbU('sessions', 'id=eq.' + logState.sessId, {zone_validation: answer});
+  }
+
+  var btns = document.getElementById('zc-validation-btns');
+  var noteEl = document.getElementById('zc-validation-note');
+  var ctaEl = document.getElementById('zc-ctas');
+
+  if(answer === 'yes'){
+    // Dismiss validation block, show CTAs
+    var valBlock = document.getElementById('zc-validation');
+    if(valBlock) valBlock.innerHTML = '<div style="text-align:center;padding:6px 0 2px;font-size:13px;color:rgba(126,200,122,.7);">✓ Noted</div>';
+    if(ctaEl) ctaEl.style.display = 'flex';
+  } else {
+    // Show text box
+    if(btns){
+      btns.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.4'; });
+    }
+    if(noteEl) noteEl.style.display = 'block';
+  }
+}
+
+function saveValidationNote(){
+  var ta = document.getElementById('zc-validation-text');
+  var note = ta ? ta.value.trim() : '';
+  if(logState.sessId && note){
+    sbU('sessions', 'id=eq.' + logState.sessId, {
+      zone_validation: 'no',
+      zone_validation_note: note
+    });
+  }
+  var noteEl = document.getElementById('zc-validation-note');
+  if(noteEl) noteEl.innerHTML = '<div style="text-align:center;padding:6px 0 2px;font-size:13px;color:var(--muted);">Saved — helps improve the scoring.</div>';
+  var ctaEl = document.getElementById('zc-ctas');
+  if(ctaEl) ctaEl.style.display = 'flex';
+}
+
+function skipPostClimbCheckin(){
+  // Save partial answers with abandoned flag — real signal even if incomplete
+  // Do NOT run through computePostClimbZone — zone math only fires on complete sets
+  if(logState.sessId && Object.keys(postClimbState.answers).length > 0){
+    sbU('sessions', 'id=eq.' + logState.sessId, {
+      post_climb_answers: JSON.stringify(postClimbState.answers),
+      post_climb_completion: 'partial'
+      // post_climb_zone stays null — no zone math on partial
+    });
+  }
+  // Clear persistence — skip means leave, auto-resume must not contradict this
+  clearPostClimbState();
+  clearDrillState();
+  // Route to celebrate with acknowledgment — no two-point reveal
+  showScreen('screen-celebrate');
+  renderCelebrate();
+  // Show drill acknowledgment on celebrate screen
+  setTimeout(function(){
+    var insightEl = document.getElementById('cel-insight-text');
+    var insightCard = document.getElementById('cel-insight-card');
+    if(insightCard) insightCard.style.display = 'block';
+    if(insightEl) insightEl.textContent = 'Drill logged — prediction and pre-climb zone saved. Post-climb check-in skipped.';
+  }, 300);
+}
+
+// ═══════════════════════════════════════════════════════
+// CLIMB LOG — table state
+// ═══════════════════════════════════════════════════════
+var climbLogState = {
+  view: 'flat',        // 'flat' | 'grouped'
+  sort: 'date',        // 'date' | 'grade' | 'terrain' | 'result' | 'zone'
+  sortDir: 'desc',     // 'asc' | 'desc'
+  expandedId: null,    // currently expanded row session id
+  returnFrom: null     // screen to return to after sub-flow
+};
+
+// ═══════════════════════════════════════════════════════
+// CLIMB LOG TABLE
+// Sort, flat/grouped toggle, tap-to-expand rows
+// Per-row actions: Edit / Add attempt / Check zone / Drill
+// ═══════════════════════════════════════════════════════
+
+var GRADE_ORDER = ['VB','V0','V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13','V14','V15','V16','V17',
+  '5.5','5.6','5.7','5.8','5.9','5.10a','5.10b','5.10c','5.10d','5.11a','5.11b','5.11c','5.11d',
+  '5.12a','5.12b','5.12c','5.12d','5.13a','5.13b','5.13c','5.13d','5.14a','5.14b','5.14c','5.14d',
+  '5.15a','5.15b','5.15c','5.15d','5','5+','6a','6a+','6b','6b+','6c','6c+','7a','7a+','7b','7b+',
+  '7c','7c+','8a','8a+','8b','8b+','8c','8c+','9a',
+  'Diff','V.Diff','Severe','H.Severe','VS','H.VS','E1','E2','E3','E4','E5','E6','E7','E8','E9','E10'];
+var ZONE_ORDER = {comfort:0, learning:1, panic:2};
+var RESULT_ORDER = {sent:0, projecting:1, fell:2, dna:3};
+
+function setClimbLogView(view){
+  climbLogState.view = view;
+  climbLogState.expandedId = null;
+  var flatBtn = document.getElementById('cl-toggle-flat');
+  var groupedBtn = document.getElementById('cl-toggle-grouped');
+  if(flatBtn){ flatBtn.style.background = view==='flat' ? 'var(--accent)' : 'none'; flatBtn.style.color = view==='flat' ? '#fff' : 'var(--muted)'; }
+  if(groupedBtn){ groupedBtn.style.background = view==='grouped' ? 'var(--accent)' : 'none'; groupedBtn.style.color = view==='grouped' ? '#fff' : 'var(--muted)'; }
+  renderClimbTable(window._cachedClimbs || []);
+}
+
+function setClimbLogSort(field){
+  if(climbLogState.sort === field){
+    climbLogState.sortDir = climbLogState.sortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    climbLogState.sort = field;
+    climbLogState.sortDir = 'desc';
+  }
+  climbLogState.expandedId = null;
+  updateSortButtons();
+  renderClimbTable(window._cachedClimbs || []);
+}
+
+function updateSortButtons(){ /* headers handle sort display */ }
+
+function sortClimbs(climbs){
+  var sorted = climbs.slice();
+  var dir = climbLogState.sortDir === 'desc' ? -1 : 1;
+  sorted.sort(function(a, b){
+    switch(climbLogState.sort){
+      case 'date':
+        return dir * ((new Date(a.created_at)) - (new Date(b.created_at)));
+      case 'grade':
+        var ai = GRADE_ORDER.indexOf(a.grade_value);
+        var bi = GRADE_ORDER.indexOf(b.grade_value);
+        return dir * (ai - bi);
+      case 'terrain':
+        return dir * ((a.climbing_type||'').localeCompare(b.climbing_type||''));
+      case 'result':
+        return dir * ((RESULT_ORDER[a.baseline_zone]||99) - (RESULT_ORDER[b.baseline_zone]||99));
+      case 'zone':
+        return dir * ((ZONE_ORDER[a.zone]||0) - (ZONE_ORDER[b.zone]||0));
+      default:
+        return 0;
+    }
+  });
+  return sorted;
+}
+
+function renderClimbTable(climbs){
+  var el = document.getElementById('sessions-climb-list');
+  var controls = document.getElementById('climb-log-controls');
+  var countEl = document.getElementById('cl-count-label');
+  if(!el) return;
+
+  if(!climbs || climbs.length === 0){
+    if(controls) controls.style.display = 'none';
+    el.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--muted);">Log climbs to build your history.</div>';
+    return;
+  }
+
+  if(controls) controls.style.display = 'block';
+  if(countEl) countEl.textContent = climbs.length + ' climbs';
+
+  var sorted = sortClimbs(climbs);
+
+  // Build grouped structure if needed
+  var rows = [];
+  if(climbLogState.view === 'grouped'){
+    var groups = {}; var groupOrder = []; var unnamed = [];
+    sorted.forEach(function(s){
+      if(s.route_name){
+        if(!groups[s.route_name]){ groups[s.route_name]=[]; groupOrder.push(s.route_name); }
+        groups[s.route_name].push(s);
+      } else { unnamed.push(s); }
+    });
+    groupOrder = groupOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
+    groupOrder.forEach(function(name){
+      rows.push({type:'group', name:name, count:groups[name].length});
+      groups[name].forEach(function(s){ rows.push({type:'row', s:s}); });
+    });
+    if(unnamed.length){
+      rows.push({type:'group', name:'Other attempts', count:unnamed.length});
+      unnamed.forEach(function(s){ rows.push({type:'row', s:s}); });
+    }
+  } else {
+    sorted.forEach(function(s){ rows.push({type:'row', s:s}); });
+  }
+
+  // Sort arrows — use array to avoid quote nesting in onclick
+  var sortDefs = [
+    {f:'grade',  label:'Grade'},
+    {f:'terrain',label:'Terrain'},
+    {f:'zone',   label:'Zone'},
+    {f:'date',   label:'Date'}
+  ];
+  var sortFnStrs = {grade:"setClimbLogSort('grade')",terrain:"setClimbLogSort('terrain')",zone:"setClimbLogSort('zone')",date:"setClimbLogSort('date')"};
+  var headerHtml = '<thead><tr>';
+  sortDefs.forEach(function(def){
+    var isActive = climbLogState.sort === def.f;
+    var arrow = isActive ? (climbLogState.sortDir==='desc'?' ↓':' ↑') : '';
+    headerHtml += '<th onclick="'+sortFnStrs[def.f]+'" class="'+(isActive?'sort-active':'')+'">'
+      + def.label + (arrow?'<span class="sort-arrow">'+arrow+'</span>':'')
+      + '</th>';
+  });
+  headerHtml += '</tr></thead>';
+
+  // Table rows
+  var bodyHtml = '<tbody>';
+  rows.forEach(function(row){
+    if(row.type === 'group'){
+      bodyHtml += '<tr><td colspan="4" style="padding:8px 10px 4px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);">'
+        + row.name + ' <span style="color:var(--muted);font-weight:400;">'+row.count+' attempt'+(row.count===1?'':'s')+'</span></td></tr>';
+      return;
+    }
+    var s = row.s;
+    bodyHtml += buildTableRow(s);
+  });
+  bodyHtml += '</tbody>';
+
+  el.innerHTML = '<table class="cl-table">' + headerHtml + bodyHtml + '</table>';
+}
+
+function buildTableRow(s){
+  var c = zoneColor(s.zone||'learning');
+  var conf = s.zone_confidence === 'confirmed';
+  var isExpanded = climbLogState.expandedId === s.id;
+  var sid = s.id;
+
+  // Zone pill
+  var borderStyle = conf ? 'solid' : 'dashed';
+  var zoneLabel = (s.zone||'—') + (conf?'':' ~');
+  var zonePillHtml = '<span class="cl-zone-pill" style="color:'+c+';background:'+c+'1a;border:1px '+borderStyle+' '+c+';">'+zoneLabel+'</span>';
+
+  // Date — short format
+  var dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
+
+  // Main row — use data attributes for all IDs/names to avoid onclick quote nesting
+  var rowHtml = '<tr data-sid="'+sid+'" id="cl-row-'+sid+'" onclick="toggleClimbRow(this.dataset.sid)">'
+    + '<td><span class="cl-grade">' + (s.grade_value||'—') + '</span></td>'
+    + '<td><span class="cl-terrain">' + (s.climbing_type||'—') + '</span></td>'
+    + '<td>' + zonePillHtml + '</td>'
+    + '<td style="color:var(--muted2);font-size:11px;white-space:nowrap;">' + dateStr + ' <span style="color:var(--muted);font-size:12px;">'+(isExpanded?'↑':'↓')+'</span></td>'
+    + '</tr>';
+
+  // Detail row
+  var rLabels = {sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',projecting:'⟳ Projecting'};
+  var rColors = {sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
+  var isEstimated = !conf;
+  var rn = (s.route_name||'').replace(/['"]/g,'');
+  var gv = (s.grade_value||'').replace(/['"]/g,'');
+  var ct = (s.climbing_type||'').replace(/['"]/g,'');
+
+  // Action buttons use data-* attributes — handlers read from dataset
+  var btnStyle = 'font-size:11px;font-weight:600;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:var(--r-sm);';
+  var editBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();editClimbFromLog(this.dataset.sid)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">✏ Edit</button>';
+  var addBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">+ Attempt</button>';
+  var checkBtn = isEstimated ? '<button data-sid="'+sid+'" onclick="event.stopPropagation();checkZoneFromLog(this.dataset.sid)" style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:#f5a623;'+btnStyle+'">Check zone</button>' : '<div></div>';
+  var drillBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" onclick="event.stopPropagation();drillFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct)" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.3);color:var(--accent);'+btnStyle+'">Drill</button>';
+
+  var valYesBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();rowZoneValidation(this.dataset.sid,\'yes\',this)" style="flex:1;background:rgba(126,200,122,.12);border:1px solid rgba(126,200,122,.35);color:#7ec87a;font-size:12px;font-weight:700;padding:7px;cursor:pointer;border-radius:var(--r-sm);">Yes</button>';
+  var valNoBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();rowZoneValidation(this.dataset.sid,\'no\',this)" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;padding:7px;cursor:pointer;border-radius:var(--r-sm);">No</button>';
+  var saveNoteBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();saveRowValidationNote(this.dataset.sid)" style="width:100%;margin-top:4px;background:var(--accent);border:none;color:#fff;font-size:11px;font-weight:700;padding:7px;cursor:pointer;border-radius:var(--r-sm);">Save</button>';
+
+  var detailHtml = '<tr class="cl-row-detail '+(isExpanded?'open':'')+'" id="cl-detail-'+sid+'">'
+    + '<td colspan="4">'
+    + (s.route_name ? '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">'+s.route_name+'</div>' : '')
+    + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">'
+    + '<span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;">Result</span>'
+    + '<span style="font-size:13px;font-weight:700;color:'+(rColors[s.baseline_zone]||'var(--muted)')+'">'+(rLabels[s.baseline_zone]||s.baseline_zone||'—')+'</span>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:'+(isEstimated?'10':'0')+'px;">'
+    + editBtn + addBtn + checkBtn + drillBtn
+    + '</div>'
+    + (isEstimated ?
+      '<div style="padding:8px 0 2px;">'
+      + '<div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px;">Does this match what you noticed?</div>'
+      + '<div style="display:flex;gap:6px;">' + valYesBtn + valNoBtn + '</div>'
+      + '<div id="cl-val-note-'+sid+'" style="display:none;margin-top:6px;">'
+      + '<textarea placeholder="What felt off?" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:11px;padding:6px 8px;outline:none;resize:none;min-height:50px;line-height:1.5;" id="cl-val-text-'+sid+'"></textarea>'
+      + saveNoteBtn
+      + '</div></div>'
+      : '')
+    + '</td></tr>';
+
+  return rowHtml + detailHtml;
+}
+
+
+function toggleClimbRow(id){
+  var wasExpanded = climbLogState.expandedId === id;
+  climbLogState.expandedId = wasExpanded ? null : id;
+  // Update detail row visibility without full re-render
+  // for performance on large tables
+  var allDetails = document.querySelectorAll('.cl-row-detail');
+  allDetails.forEach(function(el){ el.classList.remove('open'); });
+  var allArrows = document.querySelectorAll('[id^="cl-row-"] td:last-child span');
+  // Just re-render — simpler and ensures sort arrows stay correct
+  renderClimbTable(window._cachedClimbs || []);
+}
+
+// Per-row actions
+function editClimbFromLog(sessId){
+  // Set up edit sheet with this session's data
+  var climbs = window._cachedClimbs || [];
+  var sess = climbs.find(function(s){ return s.id === sessId; });
+  if(!sess) return;
+  logState.sessId = sessId;
+  logState.result = sess.baseline_zone;
+  logState.grade = sess.grade_value;
+  logState.terrain = sess.climbing_type;
+  logState.routeName = sess.route_name;
+  climbLogState.returnFrom = 'screen-sessions';
+  openEditSheet();
+}
+
+function addAttemptFromLog(routeName, grade, terrain){
+  climbLogState.returnFrom = 'screen-sessions';
+  logState = {result:null, grade:grade||null, gradeSys:'YDS', terrain:terrain||null, routeName:routeName||null, sessId:null, zone:null, zoneConf:null, projectId:null};
+  showScreen('screen-log');
+  setTimeout(function(){
+    if(grade){ buildGradeGrid('YDS'); document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){ b.classList.toggle('selected', b.textContent===grade); }); document.getElementById('log-grade-group').style.display='flex'; document.getElementById('log-rname-group').style.display='flex'; }
+    if(terrain){ document.querySelectorAll('.terrain-chips .chip').forEach(function(b){ b.classList.toggle('selected', b.textContent.trim()===terrain); }); }
+    if(routeName){ var inp = document.getElementById('log-rname-input'); if(inp) inp.value = routeName; logState.routeName = routeName; }
+    if(grade && terrain) checkLogReady();
+  }, 50);
+}
+
+function checkZoneFromLog(sessId){
+  climbLogState.returnFrom = 'screen-sessions';
+  var climbs = window._cachedClimbs || [];
+  var sess = climbs.find(function(s){ return s.id === sessId; });
+  if(!sess) return;
+  logState.sessId = sessId;
+  logState.grade = sess.grade_value;
+  logState.terrain = sess.climbing_type;
+  logState.result = sess.baseline_zone;
+  logState.zone = sess.zone;
+  logState.zoneConf = sess.zone_confidence;
+  startDeeper();
+}
+
+function drillFromLog(routeName, grade, terrain){
+  climbLogState.returnFrom = 'screen-sessions';
+  clearDrillState();
+  drillState.routeName = routeName || '';
+  showScreen('screen-drill');
+  setTimeout(function(){
+    var sel = document.getElementById('drill-route-select');
+    var nameInp = document.getElementById('drill-route-name');
+    if(nameInp && routeName) nameInp.value = routeName;
+  }, 50);
+}
+
+// Per-row zone validation — reuses same Supabase columns as Zone Confirmed screen
+function rowZoneValidation(sessId, answer, btn){
+  sbU('sessions', 'id=eq.' + sessId, {zone_validation: answer});
+  var noteWrap = document.getElementById('cl-val-note-' + sessId);
+  var parent = btn.closest('div');
+  if(answer === 'yes'){
+    parent.innerHTML = '<div style="font-size:12px;color:rgba(126,200,122,.7);text-align:center;padding:4px;">✓ Noted</div>';
+  } else {
+    if(btn.parentNode) btn.parentNode.querySelectorAll('button').forEach(function(b){ b.style.opacity='.4'; });
+    if(noteWrap) noteWrap.style.display = 'block';
+  }
+}
+
+function saveRowValidationNote(sessId){
+  var ta = document.getElementById('cl-val-text-' + sessId);
+  var note = ta ? ta.value.trim() : '';
+  if(note) sbU('sessions', 'id=eq.' + sessId, {zone_validation:'no', zone_validation_note:note});
+  var noteWrap = document.getElementById('cl-val-note-' + sessId);
+  if(noteWrap) noteWrap.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:4px;">Saved.</div>';
+}
+
+function returnToClimbLogOrHome(){
+  // Consume returnFrom — routes back to Climb Log if launched from there
+  if(climbLogState && climbLogState.returnFrom === 'screen-sessions'){
+    climbLogState.returnFrom = null;
+    climbLogState.expandedId = null;
+    showScreen('screen-sessions');
+  } else {
+    showScreen('screen-home');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // DATA & PRIVACY
 // ═══════════════════════════════════════════════════════
 function confirmDeleteData(){
@@ -5607,18 +6278,39 @@ function showPrivacyScreen(){
 // FEEDBACK — paired quant + qual on key questions
 // ═══════════════════════════════════════════════════════
 // Restore any pending Exposure Drill
-if(loadDrillState()&&drillState.preZone){
-  var holdZone=document.getElementById('drill-hold-zone');
-  if(holdZone){
-    var zL={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
-    var zC={comfort:'#7ec87a',learning:'#f5a623',panic:'#e84444'};
-    var z=drillState.preZone||'learning';
-    holdZone.textContent=zL[z]||'Learning zone';
-    holdZone.style.color=zC[z]||'#f5a623';
+// Page-load restoration — ordered priority, most-recent-incomplete-stage first
+(function(){
+  // Priority 1: mid-post-climb-questions + pre-climb data exists
+  var savedPost = null;
+  try{ var sp = localStorage.getItem('see_post_climb_state'); if(sp) savedPost = JSON.parse(sp); }catch(e){}
+
+  if(savedPost && typeof savedPost.qi === 'number' && loadDrillState() && drillState.preZone){
+    // Restore postClimbState
+    postClimbState = {qi: savedPost.qi, answers: savedPost.answers||{}, scores: savedPost.scores||{}};
+    // Restore sessId if saved
+    if(savedPost.sessId) logState.sessId = savedPost.sessId;
+    // Resume at correct question
+    renderPostQ();
+    // Re-select any already-answered options
+    showScreen('screen-post-climb');
+    showToast('Finishing your post-climb check-in.');
+    return;
   }
-  showScreen('screen-drill-hold');
-  showToast('Pending drill restored — ready to log your climb.');
-}
+
+  // Priority 2: pre-climb complete, on hold screen (existing behavior)
+  if(loadDrillState()&&drillState.preZone){
+    var holdZone=document.getElementById('drill-hold-zone');
+    if(holdZone){
+      var zL={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
+      var zC={comfort:'#7ec87a',learning:'#f5a623',panic:'#e84444'};
+      var z=drillState.preZone||'learning';
+      holdZone.textContent=zL[z]||'Learning zone';
+      holdZone.style.color=zC[z]||'#f5a623';
+    }
+    showScreen('screen-drill-hold');
+    showToast('Pending drill restored — ready to log your climb.');
+  }
+})();
 buildGradeGrid('YDS');
 spSetGradeSys('YDS');
 loadHomeInsight();
