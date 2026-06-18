@@ -745,9 +745,9 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         </div>
       </div>
     </div>
+    <div style="height:24px"></div>
+    <button class="log-btn" id="log-btn" onclick="logClimb()" style="margin:0 0 4px;width:100%;">Log climb</button>
   </div>
-  <div style="height:24px"></div>
-  <button class="log-btn" id="log-btn" onclick="logClimb()">Log climb</button>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -1576,6 +1576,25 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
     <!-- ── YOUR DATA SECTION ── -->
     <div id="sessions-real-section" style="display:none;">
+
+    <!-- SORT + TOGGLE CONTROLS -->
+    <div id="climb-log-controls" style="display:none;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:3px;">
+          <button id="cl-toggle-flat" onclick="setClimbLogView('flat')" style="background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Flat</button>
+          <button id="cl-toggle-grouped" onclick="setClimbLogView('grouped')" style="background:none;border:none;border-radius:8px;color:var(--muted);font-size:12px;font-weight:600;padding:6px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">By route</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);" id="cl-count-label"></div>
+      </div>
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;">
+        <button id="cl-sort-date" onclick="setClimbLogSort('date')" style="background:var(--surface2);border:1px solid var(--accent);border-radius:99px;color:var(--accent);font-size:11px;font-weight:700;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Date ↓</button>
+        <button id="cl-sort-grade" onclick="setClimbLogSort('grade')" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Grade</button>
+        <button id="cl-sort-terrain" onclick="setClimbLogSort('terrain')" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Terrain</button>
+        <button id="cl-sort-result" onclick="setClimbLogSort('result')" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Result</button>
+        <button id="cl-sort-zone" onclick="setClimbLogSort('zone')" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-weight:600;padding:5px 12px;white-space:nowrap;cursor:pointer;flex-shrink:0;">Zone</button>
+      </div>
+    </div>
+
     <!-- Example data banner (0 climbs) -->
     <div id="sessions-example-banner" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:10px;margin-bottom:16px;">
       <div style="width:6px;height:6px;border-radius:50%;background:#f5a623;flex-shrink:0;"></div>
@@ -1653,9 +1672,8 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <div id="radar-insight" style="font-size:12px;color:var(--muted);font-style:italic;line-height:1.6;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:none;"></div>
       </div>
 
-      <!-- Real climbs list -->
-      <div class="insight-card">
-        <div class="insight-label" style="margin-bottom:14px;">Recent climbs</div>
+      <!-- Climb table -->
+      <div id="climb-table-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
         <div id="sessions-climb-list"><div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div></div>
       </div>
     </div><!-- end your-data-section -->
@@ -1664,7 +1682,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
 
   <!-- Floating Log a Climb button -->
-  <button onclick="logAnother();showScreen('screen-log');" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);border:none;box-shadow:0 4px 16px rgba(232,118,58,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:90;-webkit-tap-highlight-color:transparent;" title="Log a climb" id="climb-log-fab">
+  <button onclick="logAnother();showScreen('screen-log');" style="position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);border:none;box-shadow:0 4px 16px rgba(232,118,58,.4);cursor:pointer;display:none;align-items:center;justify-content:center;z-index:90;-webkit-tap-highlight-color:transparent;" title="Log a climb" id="climb-log-fab">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 </div>
@@ -2744,11 +2762,39 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
   </div>
 
+  <!-- "Does this match what you noticed?" validation -->
+  <div id="zc-validation" style="padding:0 20px 16px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;">Does this match what you noticed?</div>
+      <div style="display:flex;gap:10px;margin-bottom:0;" id="zc-validation-btns">
+        <button onclick="zoneValidation('yes')"
+          style="flex:1;background:rgba(126,200,122,.12);border:1px solid rgba(126,200,122,.35);border-radius:var(--r-md);color:#7ec87a;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          Yes
+        </button>
+        <button onclick="zoneValidation('no')"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:13px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          No
+        </button>
+      </div>
+      <!-- Text box — only shown when No is selected -->
+      <div id="zc-validation-note" style="display:none;margin-top:12px;">
+        <textarea id="zc-validation-text"
+          placeholder="What felt off about this read?"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;"
+          oninput=""></textarea>
+        <button onclick="saveValidationNote()"
+          style="width:100%;margin-top:10px;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          Save note →
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- CTAs -->
-  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;">
+  <div style="padding:0 20px 28px;display:flex;flex-direction:column;gap:10px;" id="zc-ctas">
     <button onclick="showScreen('screen-celebrate')" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Back to climb →</button>
     <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Log another climb</button>
-    <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Home</button>
+    <button onclick="returnToClimbLogOrHome()" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Back</button>
   </div>
 </div>
 
@@ -2872,7 +2918,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 <div class="screen" id="screen-drill-reveal">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+    <button class="back-btn" onclick="returnToClimbLogOrHome()">← Back</button>
   </div>
   <div class="content">
 
@@ -2923,8 +2969,50 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <!-- CTAs -->
     <div style="display:flex;flex-direction:column;gap:10px;padding-top:8px;">
       <button onclick="logAnother()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Log this climb →</button>
-      <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Home</button>
+      <button onclick="returnToClimbLogOrHome()" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Back</button>
     </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     POST-CLIMB SOMATIC CHECK-IN
+     Fires after drill log — comparison-anchored
+     Measures shift against pre-climb state
+     Same scoring model → comfort/learning/panic
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-post-climb">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Post-climb check-in</div>
+    <div style="font-size:22px;font-weight:700;line-height:1.25;margin-bottom:6px;">Now that you're off the route.</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px;">Compare to how you felt before you started. 4 quick questions.</div>
+
+    <!-- Progress bar -->
+    <div style="height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-bottom:24px;overflow:hidden;">
+      <div id="post-prog" style="height:100%;background:var(--accent);border-radius:1px;transition:width .4s ease;width:0%;"></div>
+    </div>
+
+    <!-- Question area -->
+    <div id="post-q-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;margin-bottom:20px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;" id="post-q-phase">Breathing</div>
+      <div style="font-size:20px;font-weight:700;line-height:1.3;margin-bottom:8px;color:var(--text);" id="post-q-text">—</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:18px;" id="post-q-hint">—</div>
+      <div class="response-chips" id="post-q-opts"></div>
+    </div>
+
+    <button id="post-next-btn" onclick="postClimbNext()"
+      style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;opacity:.25;pointer-events:none;-webkit-tap-highlight-color:transparent;">
+      Next →
+    </button>
+
+    <button onclick="skipPostClimbCheckin()"
+      style="width:100%;background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:12px;cursor:pointer;margin-top:4px;-webkit-tap-highlight-color:transparent;">
+      Skip post-climb check-in
+    </button>
 
   </div>
 </div>
@@ -3066,6 +3154,9 @@ function showScreen(id){
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
+  // Show/hide FAB — only visible on sessions screen
+  var fab=document.getElementById('climb-log-fab');
+  if(fab)fab.style.display=id==='screen-sessions'?'flex':'none';
   if(id==='screen-drill')loadDrillRouteOptions();
   if(id==='screen-log')resetLogScreen();
   if(id==='screen-projects')loadProjectsScreen();
@@ -3125,11 +3216,15 @@ var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,
 
 function selectResult(r){
   logState.result=r;
-  // Update button styles
+  // Update button styles — apply correct per-result selected class
+  var classMap={sent:'selected-send',fell:'selected-attempt',dna:'selected-dna',projecting:'selected-attempt'};
   ['sent','fell','dna','projecting'].forEach(function(v){
     var b=document.getElementById('btn-'+v);
     if(!b)return;
-    b.classList.toggle('selected',v===r);
+    // Remove all selected classes first
+    b.classList.remove('selected','selected-send','selected-attempt','selected-dna');
+    // Apply correct class if this is the selected result
+    if(v===r && classMap[v]) b.classList.add(classMap[v]);
   });
   // Reveal grade and route name fields
   var gradeGroup=document.getElementById('log-grade-group');
@@ -3220,7 +3315,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index98',
+    app_version:'staging-index101',
     device_id:getDeviceId()
   };
 
@@ -3239,16 +3334,17 @@ async function logClimb(){
 
   // Navigate AFTER sessId is set so Go Deeper button works immediately
   if(logState._isDrillPost){
-    // Drill post-climb log — show three-point reveal
+    // Drill post-climb log — collect post-climb somatic data before reveal
     logState._isDrillPost=false;
-    var postZone=logState.zone||'learning';
-    var preZone=drillState.preZone||'learning';
-    var prediction=drillState.prediction||null;
-    showDrillReveal(prediction, {zone:preZone}, {zone:postZone});
-    clearDrillState();
+    startPostClimbCheckin();
   } else {
     showScreen('screen-celebrate');
     renderCelebrate();
+    // If launched from Climb Log, update return path
+    if(climbLogState.returnFrom === 'screen-sessions'){
+      climbLogState.returnFrom = null;
+      climbLogState.expandedId = null;
+    }
   }
   if(btn){btn.textContent='Log climb';btn.classList.add('ready');btn.style.background='';}
 
@@ -4014,7 +4110,7 @@ async function loadClimbLog(){
   buildSessionsArc(climbs);
   buildRadar(climbs);
   window._cachedClimbs=climbs;
-  renderClimbList(climbs);
+  renderClimbTable(climbs);
   buildInsight(climbs);
 }
 
@@ -4393,7 +4489,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'index98'
+    app_version:'staging-index101'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4667,7 +4763,7 @@ function computeResult(){
   if(drillComp)drillComp.style.display='none';
 
   // Save to Supabase
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index98'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'staging-index101'});
 
   // If this is a drill pre check-in, save zone and go to hold screen
   if(prepState.isDrill){
@@ -5570,6 +5666,529 @@ function showDrillReveal(predicted, pre, post){
 }
 
 // ═══════════════════════════════════════════════════════
+// POST-CLIMB SOMATIC CHECK-IN
+// Comparison-anchored — measures shift vs pre-climb
+// Same scoring model: breath+gut+crux+body → zone
+// ═══════════════════════════════════════════════════════
+var POST_CLIMB_Qs = [
+  {
+    phase: 'Breathing',
+    text: 'Compared to before you started, how did your breathing change?',
+    hint: 'Think about the climb itself — not right now.',
+    opts: ['Steadier than before', 'About the same', 'More restricted or faster', 'I held my breath at some point'],
+    scores: [0, 1, 2, 4]
+  },
+  {
+    phase: 'Gut',
+    text: 'Did anything shift in your gut once you were on the route?',
+    hint: 'Compare to the sensation you noticed in the pre-climb check-in.',
+    opts: ['No change — same as before', 'It settled once I started', 'Increased once I was on it', 'Something new appeared mid-climb'],
+    scores: [1, 0, 2, 2]
+  },
+  {
+    phase: 'Moment of difference',
+    text: 'Was there a moment things felt different than you expected going in?',
+    hint: 'A shift — easier, harder, different sensation than anticipated.',
+    opts: ['Yes — it felt harder than expected', 'Yes — it felt easier than expected', 'Yes — something unexpected happened', 'No — it matched my pre-climb read'],
+    scores: [3, 0, 2, 0]
+  },
+  {
+    phase: 'Body state',
+    text: 'Compared to your pre-climb state, how did your body feel during the climb?',
+    hint: 'Overall — not just one moment.',
+    opts: ['More settled than before', 'About the same', 'More activated or tight', 'Significantly more tense or shut down'],
+    scores: [0, 1, 2, 3]
+  }
+];
+
+var postClimbState = {qi: 0, answers: {}, scores: {}};
+
+function startPostClimbCheckin(){
+  postClimbState = {qi: 0, answers: {}, scores: {}};
+  renderPostQ();
+  showScreen('screen-post-climb');
+}
+
+function renderPostQ(){
+  var q = POST_CLIMB_Qs[postClimbState.qi];
+  if(!q) return;
+
+  var pct = Math.round((postClimbState.qi / POST_CLIMB_Qs.length) * 100);
+  var prog = document.getElementById('post-prog');
+  if(prog) prog.style.width = pct + '%';
+
+  var phase = document.getElementById('post-q-phase');
+  var text = document.getElementById('post-q-text');
+  var hint = document.getElementById('post-q-hint');
+  var opts = document.getElementById('post-q-opts');
+  var nextBtn = document.getElementById('post-next-btn');
+
+  if(phase) phase.textContent = q.phase;
+  if(text) text.textContent = q.text;
+  if(hint) hint.textContent = q.hint;
+  if(nextBtn){ nextBtn.style.opacity = '.25'; nextBtn.style.pointerEvents = 'none'; }
+
+  if(opts){
+    opts.innerHTML = '';
+    q.opts.forEach(function(opt, i){
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = opt;
+      b.onclick = function(){
+        opts.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('selected'); });
+        b.classList.add('selected');
+        postClimbState.answers[postClimbState.qi] = opt;
+        postClimbState.scores[postClimbState.qi] = q.scores[i];
+        if(nextBtn){ nextBtn.style.opacity = '1'; nextBtn.style.pointerEvents = 'all'; }
+        // Persist on every selection — protect against interruption
+        savePostClimbState();
+      };
+      opts.appendChild(b);
+    });
+
+    // Re-apply selected state if this question was already answered
+    // (relevant when navigating back or restoring from localStorage)
+    var savedAnswer = postClimbState.answers[postClimbState.qi];
+    if(savedAnswer){
+      opts.querySelectorAll('.chip').forEach(function(chip){
+        if(chip.textContent === savedAnswer){
+          chip.classList.add('selected');
+          if(nextBtn){ nextBtn.style.opacity = '1'; nextBtn.style.pointerEvents = 'all'; }
+        }
+      });
+    }
+  }
+}
+
+function postClimbNext(){
+  postClimbState.qi++;
+  if(postClimbState.qi >= POST_CLIMB_Qs.length){
+    computePostClimbZone();
+  } else {
+    renderPostQ();
+    // Update button text on last question
+    var nextBtn = document.getElementById('post-next-btn');
+    if(nextBtn && postClimbState.qi === POST_CLIMB_Qs.length - 1){
+      nextBtn.textContent = 'See the shift →';
+    }
+  }
+}
+
+function savePostClimbState(){
+  try{
+    var toSave = {
+      qi: postClimbState.qi,
+      answers: postClimbState.answers,
+      scores: postClimbState.scores,
+      sessId: logState.sessId || null
+    };
+    localStorage.setItem('see_post_climb_state', JSON.stringify(toSave));
+  }catch(e){ console.error('savePostClimbState error:', e); }
+}
+
+function loadPostClimbState(){
+  try{
+    var s = localStorage.getItem('see_post_climb_state');
+    if(s){ var d = JSON.parse(s); postClimbState = {qi:d.qi||0,answers:d.answers||{},scores:d.scores||{}}; return d; }
+  }catch(e){}
+  return null;
+}
+
+function clearPostClimbState(){
+  try{ localStorage.removeItem('see_post_climb_state'); }catch(e){}
+  postClimbState = {qi:0, answers:{}, scores:{}};
+}
+
+function computePostClimbZone(){
+  var total = 0;
+  Object.values(postClimbState.scores).forEach(function(s){ total += s || 0; });
+  var zone = total <= 4 ? 'comfort' : total <= 9 ? 'learning' : 'panic';
+
+  console.log('[PostClimb] score:', total, 'zone:', zone);
+
+  // Save post-climb data — complete set, run zone math
+  if(logState.sessId){
+    sbU('sessions', 'id=eq.' + logState.sessId, {
+      post_climb_zone: zone,
+      post_climb_answers: JSON.stringify(postClimbState.answers),
+      post_climb_completion: 'complete'
+    });
+  }
+
+  // Clear persistence — complete, no need to restore
+  clearPostClimbState();
+
+  // Show three-point reveal with real post-climb zone
+  var prediction = drillState.prediction || null;
+  var preZone = drillState.preZone || 'learning';
+  clearDrillState();
+  showDrillReveal(prediction, {zone: preZone}, {zone: zone});
+}
+
+// ═══════════════════════════════════════════════════════
+// ZONE VALIDATION — "Does this match what you noticed?"
+// ═══════════════════════════════════════════════════════
+function zoneValidation(answer){
+  // Save to Supabase
+  if(logState.sessId){
+    sbU('sessions', 'id=eq.' + logState.sessId, {zone_validation: answer});
+  }
+
+  var btns = document.getElementById('zc-validation-btns');
+  var noteEl = document.getElementById('zc-validation-note');
+  var ctaEl = document.getElementById('zc-ctas');
+
+  if(answer === 'yes'){
+    // Dismiss validation block, show CTAs
+    var valBlock = document.getElementById('zc-validation');
+    if(valBlock) valBlock.innerHTML = '<div style="text-align:center;padding:6px 0 2px;font-size:13px;color:rgba(126,200,122,.7);">✓ Noted</div>';
+    if(ctaEl) ctaEl.style.display = 'flex';
+  } else {
+    // Show text box
+    if(btns){
+      btns.querySelectorAll('button').forEach(function(b){ b.style.opacity = '.4'; });
+    }
+    if(noteEl) noteEl.style.display = 'block';
+  }
+}
+
+function saveValidationNote(){
+  var ta = document.getElementById('zc-validation-text');
+  var note = ta ? ta.value.trim() : '';
+  if(logState.sessId && note){
+    sbU('sessions', 'id=eq.' + logState.sessId, {
+      zone_validation: 'no',
+      zone_validation_note: note
+    });
+  }
+  var noteEl = document.getElementById('zc-validation-note');
+  if(noteEl) noteEl.innerHTML = '<div style="text-align:center;padding:6px 0 2px;font-size:13px;color:var(--muted);">Saved — helps improve the scoring.</div>';
+  var ctaEl = document.getElementById('zc-ctas');
+  if(ctaEl) ctaEl.style.display = 'flex';
+}
+
+function skipPostClimbCheckin(){
+  // Save partial answers with abandoned flag — real signal even if incomplete
+  // Do NOT run through computePostClimbZone — zone math only fires on complete sets
+  if(logState.sessId && Object.keys(postClimbState.answers).length > 0){
+    sbU('sessions', 'id=eq.' + logState.sessId, {
+      post_climb_answers: JSON.stringify(postClimbState.answers),
+      post_climb_completion: 'partial'
+      // post_climb_zone stays null — no zone math on partial
+    });
+  }
+  // Clear persistence — skip means leave, auto-resume must not contradict this
+  clearPostClimbState();
+  clearDrillState();
+  // Route to celebrate with acknowledgment — no two-point reveal
+  showScreen('screen-celebrate');
+  renderCelebrate();
+  // Show drill acknowledgment on celebrate screen
+  setTimeout(function(){
+    var insightEl = document.getElementById('cel-insight-text');
+    var insightCard = document.getElementById('cel-insight-card');
+    if(insightCard) insightCard.style.display = 'block';
+    if(insightEl) insightEl.textContent = 'Drill logged — prediction and pre-climb zone saved. Post-climb check-in skipped.';
+  }, 300);
+}
+
+// ═══════════════════════════════════════════════════════
+// CLIMB LOG — table state
+// ═══════════════════════════════════════════════════════
+var climbLogState = {
+  view: 'flat',        // 'flat' | 'grouped'
+  sort: 'date',        // 'date' | 'grade' | 'terrain' | 'result' | 'zone'
+  sortDir: 'desc',     // 'asc' | 'desc'
+  expandedId: null,    // currently expanded row session id
+  returnFrom: null     // screen to return to after sub-flow
+};
+
+// ═══════════════════════════════════════════════════════
+// CLIMB LOG TABLE
+// Sort, flat/grouped toggle, tap-to-expand rows
+// Per-row actions: Edit / Add attempt / Check zone / Drill
+// ═══════════════════════════════════════════════════════
+
+var GRADE_ORDER = ['VB','V0','V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13','V14','V15','V16','V17',
+  '5.5','5.6','5.7','5.8','5.9','5.10a','5.10b','5.10c','5.10d','5.11a','5.11b','5.11c','5.11d',
+  '5.12a','5.12b','5.12c','5.12d','5.13a','5.13b','5.13c','5.13d','5.14a','5.14b','5.14c','5.14d',
+  '5.15a','5.15b','5.15c','5.15d','5','5+','6a','6a+','6b','6b+','6c','6c+','7a','7a+','7b','7b+',
+  '7c','7c+','8a','8a+','8b','8b+','8c','8c+','9a',
+  'Diff','V.Diff','Severe','H.Severe','VS','H.VS','E1','E2','E3','E4','E5','E6','E7','E8','E9','E10'];
+var ZONE_ORDER = {comfort:0, learning:1, panic:2};
+var RESULT_ORDER = {sent:0, projecting:1, fell:2, dna:3};
+
+function setClimbLogView(view){
+  climbLogState.view = view;
+  climbLogState.expandedId = null;
+  var flatBtn = document.getElementById('cl-toggle-flat');
+  var groupedBtn = document.getElementById('cl-toggle-grouped');
+  if(flatBtn){ flatBtn.style.background = view==='flat' ? 'var(--accent)' : 'none'; flatBtn.style.color = view==='flat' ? '#fff' : 'var(--muted)'; }
+  if(groupedBtn){ groupedBtn.style.background = view==='grouped' ? 'var(--accent)' : 'none'; groupedBtn.style.color = view==='grouped' ? '#fff' : 'var(--muted)'; }
+  renderClimbTable(window._cachedClimbs || []);
+}
+
+function setClimbLogSort(field){
+  if(climbLogState.sort === field){
+    climbLogState.sortDir = climbLogState.sortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    climbLogState.sort = field;
+    climbLogState.sortDir = 'desc';
+  }
+  climbLogState.expandedId = null;
+  updateSortButtons();
+  renderClimbTable(window._cachedClimbs || []);
+}
+
+function updateSortButtons(){
+  var fields = ['date','grade','terrain','result','zone'];
+  var labels = {date:'Date', grade:'Grade', terrain:'Terrain', result:'Result', zone:'Zone'};
+  fields.forEach(function(f){
+    var btn = document.getElementById('cl-sort-'+f);
+    if(!btn) return;
+    var isActive = climbLogState.sort === f;
+    var arrow = isActive ? (climbLogState.sortDir === 'desc' ? ' ↓' : ' ↑') : '';
+    btn.textContent = labels[f] + arrow;
+    btn.style.background = isActive ? 'var(--surface2)' : 'var(--surface)';
+    btn.style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
+    btn.style.color = isActive ? 'var(--accent)' : 'var(--muted)';
+    btn.style.fontWeight = isActive ? '700' : '600';
+  });
+}
+
+function sortClimbs(climbs){
+  var sorted = climbs.slice();
+  var dir = climbLogState.sortDir === 'desc' ? -1 : 1;
+  sorted.sort(function(a, b){
+    switch(climbLogState.sort){
+      case 'date':
+        return dir * ((new Date(a.created_at)) - (new Date(b.created_at)));
+      case 'grade':
+        var ai = GRADE_ORDER.indexOf(a.grade_value);
+        var bi = GRADE_ORDER.indexOf(b.grade_value);
+        return dir * (ai - bi);
+      case 'terrain':
+        return dir * ((a.climbing_type||'').localeCompare(b.climbing_type||''));
+      case 'result':
+        return dir * ((RESULT_ORDER[a.baseline_zone]||99) - (RESULT_ORDER[b.baseline_zone]||99));
+      case 'zone':
+        return dir * ((ZONE_ORDER[a.zone]||0) - (ZONE_ORDER[b.zone]||0));
+      default:
+        return 0;
+    }
+  });
+  return sorted;
+}
+
+function renderClimbTable(climbs){
+  var el = document.getElementById('sessions-climb-list');
+  var controls = document.getElementById('climb-log-controls');
+  var countEl = document.getElementById('cl-count-label');
+  if(!el) return;
+
+  if(!climbs || climbs.length === 0){
+    if(controls) controls.style.display = 'none';
+    el.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--muted);">Log climbs to build your history.</div>';
+    return;
+  }
+
+  if(controls) controls.style.display = 'block';
+  if(countEl) countEl.textContent = climbs.length + ' climbs';
+
+  var sorted = sortClimbs(climbs);
+  var html = '';
+
+  if(climbLogState.view === 'flat'){
+    html = sorted.map(function(s){ return climbTableRow(s); }).join('');
+  } else {
+    // Grouped by route name
+    var groups = {};
+    var groupOrder = [];
+    var unnamed = [];
+    sorted.forEach(function(s){
+      if(s.route_name){
+        if(!groups[s.route_name]){ groups[s.route_name] = []; groupOrder.push(s.route_name); }
+        groups[s.route_name].push(s);
+      } else {
+        unnamed.push(s);
+      }
+    });
+    // Deduplicate groupOrder
+    groupOrder = groupOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
+    groupOrder.forEach(function(name){
+      var group = groups[name];
+      var zones = group.map(function(s){ return s.zone; });
+      var lastZone = group[0] ? group[0].zone : 'learning';
+      var c = zoneColor(lastZone);
+      html += '<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--text);">' + name + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + group.length + ' attempt' + (group.length===1?'':'s') + '</div>'
+        + '</div>';
+      html += group.map(function(s){ return climbTableRow(s, true); }).join('');
+    });
+    if(unnamed.length > 0){
+      html += '<div style="padding:10px 16px 6px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--muted);">Other attempts</div>'
+        + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">' + unnamed.length + ' unnamed</div>'
+        + '</div>';
+      html += unnamed.map(function(s){ return climbTableRow(s, true); }).join('');
+    }
+  }
+
+  el.innerHTML = html;
+}
+
+function climbTableRow(s, indented){
+  var c = zoneColor(s.zone || 'learning');
+  var conf = s.zone_confidence === 'confirmed';
+  var rLabels = {sent:'Sent',fell:'Fell',dna:'Backed off',projecting:'Projecting'};
+  var rColors = {sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
+  var isExpanded = climbLogState.expandedId === s.id;
+  var isEstimated = !conf;
+  var ip = indented ? 'padding-left:24px;' : '';
+  var sid = s.id;
+  var rn = (s.route_name||'').replace(/"/g,'');
+  var gv = (s.grade_value||'').replace(/"/g,'');
+  var ct = (s.climbing_type||'').replace(/"/g,'');
+  var p = [];
+
+  p.push('<div id="cl-row-'+sid+'" onclick="toggleClimbRow(\''+sid+'\')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;'+ip+'border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;-webkit-tap-highlight-color:transparent;">');
+  p.push('<div style="width:3px;border-radius:99px;background:'+c+';flex-shrink:0;align-self:stretch;min-height:36px;"></div>');
+  p.push('<div style="font-size:15px;font-weight:700;color:var(--accent);min-width:52px;flex-shrink:0;letter-spacing:-.02em;">'+(s.grade_value||'—')+'</div>');
+  p.push('<div style="flex:1;min-width:0;">');
+  p.push('<div style="font-size:13px;color:var(--text);font-weight:600;">'+(s.climbing_type||'—')+(s.route_name?(' &middot; <span style="color:var(--muted);font-weight:400;">'+s.route_name+'</span>'):'')+'</div>');
+  p.push('<div style="display:flex;align-items:center;gap:6px;margin-top:3px;">');
+  p.push('<span style="font-size:11px;color:'+(rColors[s.baseline_zone]||'var(--muted)')+';font-weight:600;">'+(rLabels[s.baseline_zone]||s.baseline_zone||'—')+'</span>');
+  p.push('<span style="font-size:11px;color:'+c+';background:'+c+'1a;padding:1px 7px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';font-weight:600;">'+(conf?(s.zone||'—'):((s.zone||'—')+' ~'))+'</span>');
+  p.push('</div></div>');
+  p.push('<div style="text-align:right;flex-shrink:0;">');
+  p.push('<div style="font-size:10px;color:var(--muted2);">'+timeAgoStr(s.created_at)+'</div>');
+  p.push('<div style="font-size:14px;color:var(--muted);margin-top:2px;" id="cl-arrow-'+sid+'">'+(isExpanded?'↑':'↓')+'</div>');
+  p.push('</div></div>');
+
+  if(isExpanded){
+    p.push('<div style="padding:8px 16px 12px;'+ip+'background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);">');
+    p.push('<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">');
+    p.push('<button onclick="event.stopPropagation();editClimbFromLog(\''+sid+'\')" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-size:12px;font-weight:600;padding:10px;cursor:pointer;">✏ Edit</button>');
+    p.push('<button onclick="event.stopPropagation();addAttemptFromLog(\''+rn+'\',\''+gv+'\',\''+ct+'\')" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-size:12px;font-weight:600;padding:10px;cursor:pointer;">+ Attempt</button>');
+    if(isEstimated){
+      p.push('<button onclick="event.stopPropagation();checkZoneFromLog(\''+sid+'\')" style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);border-radius:var(--r-md);color:#f5a623;font-size:12px;font-weight:700;padding:10px;cursor:pointer;">Check zone</button>');
+    } else {
+      p.push('<div></div>');
+    }
+    p.push('<button onclick="event.stopPropagation();drillFromLog(\''+rn+'\',\''+gv+'\',\''+ct+'\')" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--accent);font-size:12px;font-weight:700;padding:10px;cursor:pointer;">Drill</button>');
+    p.push('</div>');
+
+    if(isEstimated){
+      p.push('<div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);">');
+      p.push('<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;">Does this match what you noticed?</div>');
+      p.push('<div style="display:flex;gap:8px;">');
+      p.push('<button onclick="event.stopPropagation();rowZoneValidation(\''+sid+'\',\'yes\',this)" style="flex:1;background:rgba(126,200,122,.12);border:1px solid rgba(126,200,122,.35);border-radius:var(--r-sm);color:#7ec87a;font-size:13px;font-weight:700;padding:8px;cursor:pointer;">Yes</button>');
+      p.push('<button onclick="event.stopPropagation();rowZoneValidation(\''+sid+'\',\'no\',this)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--muted);font-size:13px;font-weight:700;padding:8px;cursor:pointer;">No</button>');
+      p.push('</div>');
+      p.push('<div id="cl-val-note-'+sid+'" style="display:none;margin-top:8px;">');
+      p.push('<textarea placeholder="What felt off about this read?" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:12px;padding:8px 10px;outline:none;resize:none;min-height:60px;line-height:1.5;" id="cl-val-text-'+sid+'"></textarea>');
+      p.push('<button onclick="event.stopPropagation();saveRowValidationNote(\''+sid+'\')" style="width:100%;margin-top:6px;background:var(--accent);border:none;border-radius:var(--r-sm);color:#fff;font-size:12px;font-weight:700;padding:8px;cursor:pointer;">Save note</button>');
+      p.push('</div></div>');
+    }
+    p.push('</div>');
+  }
+
+  return p.join('');
+}
+
+
+function toggleClimbRow(id){
+  climbLogState.expandedId = climbLogState.expandedId === id ? null : id;
+  renderClimbTable(window._cachedClimbs || []);
+}
+
+// Per-row actions
+function editClimbFromLog(sessId){
+  // Set up edit sheet with this session's data
+  var climbs = window._cachedClimbs || [];
+  var sess = climbs.find(function(s){ return s.id === sessId; });
+  if(!sess) return;
+  logState.sessId = sessId;
+  logState.result = sess.baseline_zone;
+  logState.grade = sess.grade_value;
+  logState.terrain = sess.climbing_type;
+  logState.routeName = sess.route_name;
+  climbLogState.returnFrom = 'screen-sessions';
+  openEditSheet();
+}
+
+function addAttemptFromLog(routeName, grade, terrain){
+  climbLogState.returnFrom = 'screen-sessions';
+  logState = {result:null, grade:grade||null, gradeSys:'YDS', terrain:terrain||null, routeName:routeName||null, sessId:null, zone:null, zoneConf:null, projectId:null};
+  showScreen('screen-log');
+  setTimeout(function(){
+    if(grade){ buildGradeGrid('YDS'); document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){ b.classList.toggle('selected', b.textContent===grade); }); document.getElementById('log-grade-group').style.display='flex'; document.getElementById('log-rname-group').style.display='flex'; }
+    if(terrain){ document.querySelectorAll('.terrain-chips .chip').forEach(function(b){ b.classList.toggle('selected', b.textContent.trim()===terrain); }); }
+    if(routeName){ var inp = document.getElementById('log-rname-input'); if(inp) inp.value = routeName; logState.routeName = routeName; }
+    if(grade && terrain) checkLogReady();
+  }, 50);
+}
+
+function checkZoneFromLog(sessId){
+  climbLogState.returnFrom = 'screen-sessions';
+  var climbs = window._cachedClimbs || [];
+  var sess = climbs.find(function(s){ return s.id === sessId; });
+  if(!sess) return;
+  logState.sessId = sessId;
+  logState.grade = sess.grade_value;
+  logState.terrain = sess.climbing_type;
+  logState.result = sess.baseline_zone;
+  logState.zone = sess.zone;
+  logState.zoneConf = sess.zone_confidence;
+  startDeeper();
+}
+
+function drillFromLog(routeName, grade, terrain){
+  climbLogState.returnFrom = 'screen-sessions';
+  clearDrillState();
+  drillState.routeName = routeName || '';
+  showScreen('screen-drill');
+  setTimeout(function(){
+    var sel = document.getElementById('drill-route-select');
+    var nameInp = document.getElementById('drill-route-name');
+    if(nameInp && routeName) nameInp.value = routeName;
+  }, 50);
+}
+
+// Per-row zone validation — reuses same Supabase columns as Zone Confirmed screen
+function rowZoneValidation(sessId, answer, btn){
+  sbU('sessions', 'id=eq.' + sessId, {zone_validation: answer});
+  var noteWrap = document.getElementById('cl-val-note-' + sessId);
+  var parent = btn.closest('div');
+  if(answer === 'yes'){
+    parent.innerHTML = '<div style="font-size:12px;color:rgba(126,200,122,.7);text-align:center;padding:4px;">✓ Noted</div>';
+  } else {
+    if(btn.parentNode) btn.parentNode.querySelectorAll('button').forEach(function(b){ b.style.opacity='.4'; });
+    if(noteWrap) noteWrap.style.display = 'block';
+  }
+}
+
+function saveRowValidationNote(sessId){
+  var ta = document.getElementById('cl-val-text-' + sessId);
+  var note = ta ? ta.value.trim() : '';
+  if(note) sbU('sessions', 'id=eq.' + sessId, {zone_validation:'no', zone_validation_note:note});
+  var noteWrap = document.getElementById('cl-val-note-' + sessId);
+  if(noteWrap) noteWrap.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:4px;">Saved.</div>';
+}
+
+function returnToClimbLogOrHome(){
+  // Consume returnFrom — routes back to Climb Log if launched from there
+  if(climbLogState && climbLogState.returnFrom === 'screen-sessions'){
+    climbLogState.returnFrom = null;
+    climbLogState.expandedId = null;
+    showScreen('screen-sessions');
+  } else {
+    showScreen('screen-home');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // DATA & PRIVACY
 // ═══════════════════════════════════════════════════════
 function confirmDeleteData(){
@@ -5607,18 +6226,39 @@ function showPrivacyScreen(){
 // FEEDBACK — paired quant + qual on key questions
 // ═══════════════════════════════════════════════════════
 // Restore any pending Exposure Drill
-if(loadDrillState()&&drillState.preZone){
-  var holdZone=document.getElementById('drill-hold-zone');
-  if(holdZone){
-    var zL={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
-    var zC={comfort:'#7ec87a',learning:'#f5a623',panic:'#e84444'};
-    var z=drillState.preZone||'learning';
-    holdZone.textContent=zL[z]||'Learning zone';
-    holdZone.style.color=zC[z]||'#f5a623';
+// Page-load restoration — ordered priority, most-recent-incomplete-stage first
+(function(){
+  // Priority 1: mid-post-climb-questions + pre-climb data exists
+  var savedPost = null;
+  try{ var sp = localStorage.getItem('see_post_climb_state'); if(sp) savedPost = JSON.parse(sp); }catch(e){}
+
+  if(savedPost && typeof savedPost.qi === 'number' && loadDrillState() && drillState.preZone){
+    // Restore postClimbState
+    postClimbState = {qi: savedPost.qi, answers: savedPost.answers||{}, scores: savedPost.scores||{}};
+    // Restore sessId if saved
+    if(savedPost.sessId) logState.sessId = savedPost.sessId;
+    // Resume at correct question
+    renderPostQ();
+    // Re-select any already-answered options
+    showScreen('screen-post-climb');
+    showToast('Finishing your post-climb check-in.');
+    return;
   }
-  showScreen('screen-drill-hold');
-  showToast('Pending drill restored — ready to log your climb.');
-}
+
+  // Priority 2: pre-climb complete, on hold screen (existing behavior)
+  if(loadDrillState()&&drillState.preZone){
+    var holdZone=document.getElementById('drill-hold-zone');
+    if(holdZone){
+      var zL={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
+      var zC={comfort:'#7ec87a',learning:'#f5a623',panic:'#e84444'};
+      var z=drillState.preZone||'learning';
+      holdZone.textContent=zL[z]||'Learning zone';
+      holdZone.style.color=zC[z]||'#f5a623';
+    }
+    showScreen('screen-drill-hold');
+    showToast('Pending drill restored — ready to log your climb.');
+  }
+})();
 buildGradeGrid('YDS');
 spSetGradeSys('YDS');
 loadHomeInsight();
