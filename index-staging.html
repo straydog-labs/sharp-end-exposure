@@ -890,35 +890,6 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
     </div>
 
-  <!-- Edit sheet -->
-  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div style="font-size:16px;font-weight:700;">Edit this climb</div>
-      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:6px 12px;cursor:pointer;">Done</button>
-    </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Grade</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="edit-grade-chips"></div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Terrain</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
-      <button class="chip" onclick="editSelTerrain(this,'Slab')">Slab</button>
-      <button class="chip" onclick="editSelTerrain(this,'Vertical')">Vertical</button>
-      <button class="chip" onclick="editSelTerrain(this,'Overhang')">Overhang</button>
-      <button class="chip" onclick="editSelTerrain(this,'Roof')">Roof</button>
-      <button class="chip" onclick="editSelTerrain(this,'Arête')">Arête</button>
-      <button class="chip" onclick="editSelTerrain(this,'Dihedral')">Dihedral</button>
-      <button class="chip" onclick="editSelTerrain(this,'Crack')">Crack</button>
-    </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Result</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-      <button id="edit-btn-sent" onclick="editSelResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
-      <button id="edit-btn-fell" onclick="editSelResult('fell')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fell</button>
-      <button id="edit-btn-dna" onclick="editSelResult('dna')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">— Backed off</button>
-      <button id="edit-btn-projecting" onclick="editSelResult('projecting')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">⟳ Projecting</button>
-    </div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
-    <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
-    <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
-  </div>
 </div>
 </div><!-- end screen-celebrate -->
 
@@ -975,11 +946,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       </div>
       <div class="field-group" id="rd-bolt-group" style="display:none;">
         <div class="field-label">Bolt count</div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button onclick="rdAdjBolt(-1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div style="text-align:center;"><div id="rd-bolt-val" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;text-align:center;">—</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">bolts</div></div>
-          <button onclick="rdAdjBolt(1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div id="rd-bolt-val" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);">8</div>
+          <div style="font-size:13px;color:var(--muted);">bolts</div>
         </div>
+        <input type="range" id="rd-bolt-slider" min="1" max="35" value="8" step="1"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;"
+          oninput="rdState.bolts=parseInt(this.value);document.getElementById('rd-bolt-val').textContent=this.value"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>1</span><span>35</span></div>
       </div>
       <div class="field-group">
         <div class="field-label">Route height</div>
@@ -990,11 +964,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
             <button id="rd-unit-m" onclick="rdSetUnit('m')" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;">m</button>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button onclick="rdAdjHeight(-1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div style="text-align:center;"><div id="rd-height-val" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;text-align:center;">—</div><div id="rd-height-unit" style="font-size:13px;color:var(--muted);margin-top:2px;">ft</div></div>
-          <button onclick="rdAdjHeight(1)" style="width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+          <div id="rd-height-val" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;min-width:52px;color:var(--accent);">—</div>
+          <div id="rd-height-unit" style="font-size:13px;color:var(--muted);">ft</div>
         </div>
+        <input type="range" id="rd-height-slider" min="10" max="300" value="60" step="5"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;"
+          oninput="rdState.height=parseInt(this.value);document.getElementById('rd-height-val').textContent=this.value"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>10</span><span id="rd-height-max">300ft</span></div>
       </div>
     </div>
     <div class="save-ind" id="rd-save-ind"></div>
@@ -1636,6 +1613,12 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div>
 
     <div id="your-data-section">
+
+      <!-- Climb table -->
+      <div id="climb-table-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
+        <div id="sessions-climb-list"><div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div></div>
+      </div>
+    
       <!-- Routes section — appears when named routes exist -->
       <div id="real-routes-section" style="display:none;margin-bottom:20px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -1682,12 +1665,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         </div>
         
       </div>
-
-      <!-- Climb table -->
-      <div id="climb-table-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
-        <div id="sessions-climb-list"><div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div></div>
-      </div>
-    </div><!-- end your-data-section -->
+</div><!-- end your-data-section -->
     </div><!-- end sessions-real-section -->
 
   </div>
@@ -2401,7 +2379,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <text x="6" y="96" font-family="Space Grotesk,sans-serif" font-size="7.5" fill="rgba(126,200,122,.75)" font-weight="600" letter-spacing=".08em" font-weight="600">COMFORT</text>
         <g id="proj-arc-dots"></g>
       </svg>
-      <div id="proj-empty-state" style="display:none;padding:24px 0;text-align:center;"><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">No sessions yet</div><div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Log your first session against this project<br>to start tracking your zone arc.</div><button onclick="logAgainstProject(currentProjectId,currentProjectName)" style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.35);border-radius:12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px 24px;cursor:pointer;-webkit-tap-highlight-color:transparent;">+ Log first session</button></div>
+      <div id="proj-empty-state" style="display:none;padding:24px 0;text-align:center;"><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">No sessions yet</div><div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Log your first session against this project<br>to start tracking your zone arc.</div><button onclick="logAgainstProject(currentProjectId,currentProject&&currentProject.name)" style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.35);border-radius:12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px 24px;cursor:pointer;-webkit-tap-highlight-color:transparent;">+ Log first session</button></div>
       <div id="proj-arc-insight" style="font-size:13px;color:var(--muted);font-style:italic;margin-top:12px;line-height:1.6;padding:10px 14px;background:rgba(232,118,58,.05);border-radius:8px;border-left:2px solid rgba(232,118,58,.3);display:none;"></div>
     </div>
 
@@ -2683,11 +2661,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div id="sp-extra-fields" style="display:none;flex-direction:column;gap:18px;">
       <div class="field-group" id="sp-bolt-group" style="display:none;">
         <div class="field-label">Bolt count</div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button onclick="spAdjBolt(-1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div style="text-align:center;min-width:64px;"><div id="sp-bolt-val" style="font-size:26px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);">—</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">bolts</div></div>
-          <button onclick="spAdjBolt(1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div id="sp-bolt-val" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);">8</div>
+          <div style="font-size:13px;color:var(--muted);">bolts</div>
         </div>
+        <input type="range" id="sp-bolt-slider" min="1" max="35" value="8" step="1"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;"
+          oninput="spState.bolts=parseInt(this.value);document.getElementById('sp-bolt-val').textContent=this.value"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>1</span><span>35</span></div>
       </div>
       <div class="field-group" id="sp-height-group">
         <div class="field-label">Route height</div>
@@ -2698,11 +2679,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
             <button id="sp-unit-m" onclick="spSetUnit('m')" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:6px 14px;cursor:pointer;">m</button>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;">
-          <button onclick="spAdjHeight(-1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-          <div style="text-align:center;min-width:64px;"><div id="sp-height-val" style="font-size:26px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);">—</div><div id="sp-height-unit-lbl" style="font-size:13px;color:var(--muted);margin-top:2px;">ft</div></div>
-          <button onclick="spAdjHeight(1)" style="width:44px;height:44px;border-radius:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:26px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px;">
+          <div id="sp-height-val" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);">—</div>
+          <div id="sp-height-unit-lbl" style="font-size:13px;color:var(--muted);">ft</div>
         </div>
+        <input type="range" id="sp-height-slider" min="10" max="300" value="60" step="5"
+          style="width:100%;accent-color:var(--accent);cursor:pointer;"
+          oninput="spState.height=parseInt(this.value);document.getElementById('sp-height-val').textContent=this.value"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>10</span><span id="sp-height-max">300ft</span></div>
       </div>
     </div>
 
@@ -3028,6 +3012,36 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
 </div>
 
+
+  <!-- Edit sheet -->
+  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;">Edit this climb</div>
+      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:6px 12px;cursor:pointer;">Done</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Grade</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="edit-grade-chips"></div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Terrain</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
+      <button class="chip" onclick="editSelTerrain(this,'Slab')">Slab</button>
+      <button class="chip" onclick="editSelTerrain(this,'Vertical')">Vertical</button>
+      <button class="chip" onclick="editSelTerrain(this,'Overhang')">Overhang</button>
+      <button class="chip" onclick="editSelTerrain(this,'Roof')">Roof</button>
+      <button class="chip" onclick="editSelTerrain(this,'Arête')">Arête</button>
+      <button class="chip" onclick="editSelTerrain(this,'Dihedral')">Dihedral</button>
+      <button class="chip" onclick="editSelTerrain(this,'Crack')">Crack</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Result</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button id="edit-btn-sent" onclick="editSelResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
+      <button id="edit-btn-fell" onclick="editSelResult('fell')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fell</button>
+      <button id="edit-btn-dna" onclick="editSelResult('dna')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">— Backed off</button>
+      <button id="edit-btn-projecting" onclick="editSelResult('projecting')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">⟳ Projecting</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
+    <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
+    <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
+  </div>
 </div><!-- end .app -->
 
 <script>
@@ -3326,7 +3340,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'staging-index102',
+    app_version:'staging-index104',
     device_id:getDeviceId()
   };
 
@@ -3344,9 +3358,9 @@ async function logClimb(){
   }
 
   // Navigate AFTER sessId is set so Go Deeper button works immediately
-  if(logState._isDrillPost){
+  if(_drillPostActive){
     // Drill post-climb log — collect post-climb somatic data before reveal
-    logState._isDrillPost=false;
+    _drillPostActive=false;
     startPostClimbCheckin();
   } else {
     showScreen('screen-celebrate');
@@ -4483,6 +4497,12 @@ function spSetUnit(u){
   document.getElementById('sp-unit-ft').style.borderColor=u==='ft'?'var(--accent)':'var(--border)';
   document.getElementById('sp-unit-m').style.background=u==='m'?'rgba(232,118,58,.15)':'var(--surface)';
   document.getElementById('sp-unit-m').style.borderColor=u==='m'?'var(--accent)':'var(--border)';
+  var slider=document.getElementById('sp-height-slider');
+  var maxLbl=document.getElementById('sp-height-max');
+  var unitLbl=document.getElementById('sp-height-unit-lbl');
+  if(slider){slider.max=u==='ft'?300:90;slider.step=u==='ft'?5:1;slider.value=u==='ft'?60:18;spState.height=parseInt(slider.value);var val=document.getElementById('sp-height-val');if(val)val.textContent=slider.value;}
+  if(maxLbl)maxLbl.textContent=u==='ft'?'300ft':'90m';
+  if(unitLbl)unitLbl.textContent=u;
 }
 function spAdjBolt(d){spState.bolts=(spState.bolts||6)+d;if(spState.bolts<1)spState.bolts=1;document.getElementById('sp-bolt-val').textContent=spState.bolts;}
 function spAdjHeight(d){spState.height=(spState.height||20)+d;if(spState.height<1)spState.height=1;document.getElementById('sp-height-val').textContent=spState.height;}
@@ -4500,7 +4520,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'staging-index102'
+    app_version:'staging-index104'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4774,7 +4794,7 @@ function computeResult(){
   if(drillComp)drillComp.style.display='none';
 
   // Save to Supabase
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'staging-index102'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'staging-index104'});
 
   // If this is a drill pre check-in, save zone and go to hold screen
   if(prepState.isDrill){
@@ -4931,6 +4951,7 @@ function toggleCtx(id,arrowId){
 // EXPOSURE DRILL
 // ═══════════════════════════════════════════════════════
 var drillState={preZone:null,preAnswers:{},drillId:null,routeName:'',prediction:null};
+var _drillPostActive=false; // set by completeDrill, read by logClimb after resetLogScreen runs
 function loadDrillState(){
   try{var s=localStorage.getItem('see_drill');if(s){drillState=JSON.parse(s);return true;}}catch(e){}return false;
 }
@@ -4949,9 +4970,9 @@ function startDrillCheckin(){
   showScreen('screen-prepare-pause');
 }
 function completeDrill(){
-  // Store that we're about to log a drill climb
+  // Use module-level flag — logState gets reset by resetLogScreen inside showScreen
+  _drillPostActive=true;
   logState.projectId=null;
-  logState._isDrillPost=true;
   showScreen('screen-log');
 }
 
@@ -5000,6 +5021,11 @@ function rdSetUnit(u){
   if(ft){ft.style.background=u==='ft'?'rgba(232,118,58,.12)':'var(--surface)';ft.style.borderColor=u==='ft'?'var(--accent)':'var(--border)';}
   if(m){m.style.background=u==='m'?'rgba(232,118,58,.12)':'var(--surface)';m.style.borderColor=u==='m'?'var(--accent)':'var(--border)';}
   var lbl=document.getElementById('rd-height-unit');if(lbl)lbl.textContent=u;
+  // Update slider range for unit
+  var slider=document.getElementById('rd-height-slider');
+  var maxLbl=document.getElementById('rd-height-max');
+  if(slider){slider.max=u==='ft'?300:90;slider.step=u==='ft'?5:1;slider.value=u==='ft'?60:18;rdState.height=parseInt(slider.value);var val=document.getElementById('rd-height-val');if(val)val.textContent=slider.value;}
+  if(maxLbl)maxLbl.textContent=u==='ft'?'300ft':'90m';
 }
 async function saveRouteDetails(){
   var nameEl=document.getElementById('rd-route-name');
