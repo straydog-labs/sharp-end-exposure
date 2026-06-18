@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>[Staging 94] Sharp End Exposure</title>
+<title>Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,6 +37,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 /* ── SCREENS ── */
 .screen{display:none}.screen.active{display:block;width:100%;min-height:calc(100vh - 52px);}
 .content{max-width:480px;margin-left:auto;margin-right:auto;}
+#research-sheet{transform:translateY(100%);}
 #research-sheet.open{transform:translateY(0);}
 
 /* ── BETA BADGE ── */
@@ -466,6 +467,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
           </div>
           <div>
             <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.78);font-family:'Space Grotesk',sans-serif;display:block;">Prepare</span>
+            <span style="font-size:11px;color:var(--muted);font-family:'Space Grotesk',sans-serif;display:block;margin-top:2px;line-height:1.4;">Quick check-in, anytime</span>
             <span style="font-size:10px;color:rgba(255,255,255,.3);line-height:1.45;display:block;margin-top:2px;">Somatic check-in · any time</span>
           </div>
         </button>
@@ -488,6 +490,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
           </div>
           <div>
             <span style="font-size:13px;font-weight:700;color:#e8763a;font-family:'Space Grotesk',sans-serif;display:block;">Exposure Drill</span>
+            <span style="font-size:11px;color:var(--muted);font-family:'Space Grotesk',sans-serif;display:block;margin-top:2px;line-height:1.4;">Predict, climb, compare</span>
             <span style="font-size:10px;color:rgba(255,255,255,.3);line-height:1.45;display:block;margin-top:2px;">Pre · climb · post · see the shift</span>
           </div>
         </button>
@@ -505,6 +508,58 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 <!-- ═══════════════════════════════════════
      EXPOSURE DRILL — ENTRY
 ═══════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════
+     ZONE PREDICTION SCREEN
+     Fires before Exposure Drill pre check-in
+     7-position slider, science in info link
+     Labels locked: Comfort / Comfort edge /
+     Learning (comfort side) / Learning /
+     Learning (panic side) / Panic edge / Panic
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-zone-predict">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-drill')">← Back</button>
+  </div>
+  <div class="content" style="padding-top:32px;">
+
+    <div style="margin-bottom:32px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Before you check in</div>
+      <div style="font-size:24px;font-weight:700;line-height:1.25;margin-bottom:8px;">What's your gut read on this climb?</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;">Before the somatic check-in. No right answer.
+        <button onclick="openResearchSheet('general')" style="background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;padding:0 4px;vertical-align:middle;" title="Why we ask this">ⓘ</button>
+      </div>
+    </div>
+
+    <!-- Zone pill — updates as slider moves -->
+    <div style="text-align:center;margin-bottom:24px;min-height:42px;">
+      <div id="predict-pill" style="display:inline-block;padding:10px 24px;border-radius:99px;font-size:16px;font-weight:700;background:rgba(245,166,35,.15);color:#f5a623;border:1.5px solid #f5a623;">Learning</div>
+    </div>
+
+    <!-- Slider -->
+    <div style="padding:0 4px;margin-bottom:12px;">
+      <input type="range" id="zone-predict-slider" min="1" max="7" value="4" step="1"
+        style="width:100%;accent-color:var(--accent);height:6px;cursor:pointer;"
+        oninput="updateZonePrediction(this.value)"/>
+    </div>
+
+    <!-- Labels row -->
+    <div style="display:flex;justify-content:space-between;margin-bottom:32px;padding:0 2px;">
+      <div style="font-size:10px;color:rgba(126,200,122,.7);font-weight:600;">Comfort</div>
+      <div style="font-size:10px;color:rgba(245,166,35,.7);font-weight:600;">Learning</div>
+      <div style="font-size:10px;color:rgba(232,68,68,.7);font-weight:600;">Panic</div>
+    </div>
+
+    <!-- Selected position description -->
+    <div id="predict-description" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:32px;min-height:60px;">
+      <div style="font-size:13px;color:var(--muted);line-height:1.65;" id="predict-desc-text">At your edge — activated, engaged. Where deliberate practice lives.</div>
+    </div>
+
+    <button onclick="confirmZonePrediction()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Continue →</button>
+
+  </div>
+</div>
+
 <div class="screen" id="screen-drill">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
@@ -512,6 +567,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Exposure Drill</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:12px;padding:10px 14px;background:rgba(232,118,58,.05);border-radius:var(--r-md);border-left:2px solid rgba(232,118,58,.2);">The structured option. Predict your zone, check in, climb something specific, then see how your prediction and your body's actual read compared. Requires climbing something during this session.</div>
     <div style="font-size:24px;font-weight:700;color:var(--text);line-height:1.25;margin-bottom:10px;">A structured awareness practice.</div>
     <div style="font-size:var(--t-sm);color:var(--muted);line-height:1.7;margin-bottom:24px;">Three steps. A pre-climb somatic check-in, the climb itself, then a post-climb log and reflection. The shift between before and after is the data.</div>
 
@@ -528,19 +584,23 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:28px;">
       <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border-radius:var(--r-md);border:1px solid rgba(245,166,35,.2);">
         <div style="width:28px;height:28px;border-radius:50%;background:rgba(245,166,35,.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;">1</div>
-        <div><div style="font-size:var(--t-sm);font-weight:600;color:var(--text);">Pre-climb check-in</div><div style="font-size:var(--t-xs);color:var(--muted);">Somatic baseline before you leave the ground</div></div>
+        <div><div style="font-size:var(--t-sm);font-weight:600;color:var(--text);">Predict your zone</div><div style="font-size:var(--t-xs);color:var(--muted);">Gut read before the somatic data</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border-radius:var(--r-md);border:1px solid var(--border);">
         <div style="width:28px;height:28px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted);flex-shrink:0;">2</div>
-        <div><div style="font-size:var(--t-sm);font-weight:600;color:var(--text);">Climb it</div><div style="font-size:var(--t-xs);color:var(--muted);">The app holds your pre-climb data</div></div>
+        <div><div style="font-size:var(--t-sm);font-weight:600;color:var(--text);">Pre-climb check-in</div><div style="font-size:var(--t-xs);color:var(--muted);">Somatic baseline before you leave the ground</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border-radius:var(--r-md);border:1px solid var(--border);">
         <div style="width:28px;height:28px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted);flex-shrink:0;">3</div>
-        <div><div style="font-size:var(--t-sm);font-weight:600;color:var(--text);">Log + reflect</div><div style="font-size:var(--t-xs);color:var(--muted);">Post-climb log and Go Deeper · the shift is revealed</div></div>
+        <div><div style="font-size:var(--t-sm);font-weight:600;color:var(--text);">Climb it</div><div style="font-size:var(--t-xs);color:var(--muted);">The app holds your pre-climb data</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border-radius:var(--r-md);border:1px solid var(--border);">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--muted);flex-shrink:0;">4</div>
+        <div><div style="font-size:var(--t-sm);font-weight:600;color:var(--text);">Log + see the shift</div><div style="font-size:var(--t-xs);color:var(--muted);">Predicted, pre-climb, and post-climb compared</div></div>
       </div>
     </div>
 
-    <button class="btn btn-p" onclick="startDrillCheckin()" style="width:100%;justify-content:center;padding:18px;font-size:16px;border-radius:var(--r-md);">Start pre-climb check-in →</button>
+    <button class="btn btn-p" onclick="startDrillWithPrediction()" style="width:100%;justify-content:center;padding:18px;font-size:16px;border-radius:var(--r-md);">Start drill →</button>
   </div>
 </div>
 
@@ -1622,6 +1682,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="screen-title">Prepare<span class="sub">A somatic check-in — at any point in your decision window.</span></div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:4px;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:var(--r-md);border-left:2px solid rgba(255,255,255,.08);">A quick read on where you are right now. No climb required — works days before, the morning of, or standing at the base.</div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;">
       <div class="pause-eyebrow">Before anything else</div>
       <div style="font-size:17px;font-weight:600;margin-bottom:12px;line-height:1.3;">Take one breath.<br>Notice what’s present — if anything.</div>
@@ -1727,7 +1788,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <!-- Labels -->
         <text x="100" y="104" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.8)" font-weight="600">Comfort</text>
         <text x="100" y="73" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8.5" fill="rgba(245,166,35,.75)">Learning</text>
-        <text x="100" y="26" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(232,68,68,.7)">Panic</text>
+        <text x="100" y="18" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(232,68,68,.7)">Panic</text>
         <!-- Animated dot -->
         <circle id="result-zone-dot" cx="100" cy="100" r="9" fill="#f5a623" opacity="0">
           <animate id="result-dot-anim" attributeName="opacity" from="0" to="1" dur="0.5s" begin="indefinite" fill="freeze"/>
@@ -2791,7 +2852,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
      Opens over current screen — no navigation away
 ═══════════════════════════════════════ -->
 <div id="research-sheet-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(4px);" onclick="closeResearchSheet()"></div>
-<div id="research-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);z-index:201;max-height:80vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s ease;">
+<div id="research-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);z-index:201;max-height:80vh;overflow-y:auto;transition:transform .3s ease;">
   <div style="position:sticky;top:0;background:var(--surface);padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:1;">
     <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);" id="research-sheet-title">Research</div>
     <button onclick="closeResearchSheet()" style="background:var(--surface2);border:none;border-radius:50%;width:30px;height:30px;color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">×</button>
@@ -2799,6 +2860,72 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   <div style="padding:20px;" id="research-sheet-content"></div>
   <div style="padding:0 20px 32px;">
     <button onclick="showScreen('screen-research');closeResearchSheet();" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">Open full Research tab →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     THREE-POINT REVEAL SCREEN
+     Predicted → Pre-climb → Post-climb
+     Horizontal timeline, Y=zone position
+     Four copy registers based on match pattern
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-drill-reveal">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-home')">← Home</button>
+  </div>
+  <div class="content">
+
+    <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Exposure drill result</div>
+    <div style="font-size:22px;font-weight:700;margin-bottom:20px;" id="drill-reveal-headline">Your read across the drill</div>
+
+    <!-- THREE-POINT TIMELINE -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 16px;margin-bottom:12px;">
+
+      <!-- Y axis labels + SVG -->
+      <div style="display:flex;gap:6px;align-items:stretch;">
+        <div style="display:flex;flex-direction:column;justify-content:space-between;padding:8px 0;flex-shrink:0;">
+          <div style="font-size:8px;color:rgba(232,68,68,.5);font-weight:700;">P</div>
+          <div style="font-size:8px;color:rgba(245,166,35,.5);font-weight:700;">L</div>
+          <div style="font-size:8px;color:rgba(126,200,122,.5);font-weight:700;">C</div>
+        </div>
+        <svg id="drill-reveal-svg" style="display:block;flex:1;" viewBox="0 0 300 100" preserveAspectRatio="none">
+          <!-- Zone bands -->
+          <rect x="0" y="0" width="300" height="33" fill="rgba(232,68,68,.04)"/>
+          <rect x="0" y="33" width="300" height="34" fill="rgba(245,166,35,.04)"/>
+          <rect x="0" y="67" width="300" height="33" fill="rgba(126,200,122,.04)"/>
+          <!-- Content injected by JS -->
+        </svg>
+      </div>
+
+      <!-- Point labels below -->
+      <div style="display:flex;justify-content:space-between;padding:10px 20px 0;margin-top:4px;border-top:1px solid rgba(255,255,255,.05);">
+        <div style="text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);">Predicted</div>
+          <div style="font-size:11px;color:var(--muted2);" id="drill-label-predict">—</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);">Pre-climb</div>
+          <div style="font-size:11px;color:var(--muted2);" id="drill-label-pre">—</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);">Post-climb</div>
+          <div style="font-size:11px;color:var(--muted2);" id="drill-label-post">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICAL COPY — four registers -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:12px;">
+      <div style="font-size:13px;color:var(--muted);line-height:1.75;" id="drill-reveal-copy">—</div>
+    </div>
+
+    <!-- CTAs -->
+    <div style="display:flex;flex-direction:column;gap:10px;padding-top:8px;">
+      <button onclick="logAnother()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Log this climb →</button>
+      <button onclick="showScreen('screen-home')" style="background:none;border:none;color:rgba(255,255,255,.3);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;text-align:center;width:100%;">← Home</button>
+    </div>
+
   </div>
 </div>
 
@@ -2819,16 +2946,27 @@ const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authoriza
 async function sbI(table,payload){
   try{
     const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    if(!r.ok){
+      const err=await r.json().catch(function(){return {};});
+      console.error('sbI HTTP error:',r.status,table,err.message||err);
+      return null;
+    }
     const d=await r.json();
-    // Supabase returns array for INSERT with return=representation
     return Array.isArray(d)?d[0]:d;
-  }catch(e){console.error('sbI',e);return null;}
+  }catch(e){
+    console.error('sbI network error:',e.message,table);
+    return null;
+  }
 }
 async function sbS(table,params=''){
   try{
     const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:SB_HEADERS});
+    if(!r.ok){console.error('sbS HTTP error:',r.status,table);return [];}
     return await r.json();
-  }catch(e){console.error('sbS',e);return [];}
+  }catch(e){
+    console.error('sbS network error:',e.message,table);
+    return [];
+  }
 }
 async function sbU(table,filter,payload){
   try{
@@ -3082,7 +3220,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'index94',
+    app_version:'index98',
     device_id:getDeviceId()
   };
 
@@ -3100,8 +3238,18 @@ async function logClimb(){
   }
 
   // Navigate AFTER sessId is set so Go Deeper button works immediately
-  showScreen('screen-celebrate');
-  renderCelebrate();
+  if(logState._isDrillPost){
+    // Drill post-climb log — show three-point reveal
+    logState._isDrillPost=false;
+    var postZone=logState.zone||'learning';
+    var preZone=drillState.preZone||'learning';
+    var prediction=drillState.prediction||null;
+    showDrillReveal(prediction, {zone:preZone}, {zone:postZone});
+    clearDrillState();
+  } else {
+    showScreen('screen-celebrate');
+    renderCelebrate();
+  }
   if(btn){btn.textContent='Log climb';btn.classList.add('ready');btn.style.background='';}
 
   // Background refresh home arc and climb log
@@ -4245,7 +4393,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'index94'
+    app_version:'index98'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4403,12 +4551,13 @@ var Qs=[
 
 function startPrepare(){showScreen('screen-prepare');}
 function startPrepareFlow(){
+  // Regular check-in: skip pause screen, go straight to Q1
+  // Pause screen fires for Exposure Drill only (via startDrillCheckin)
   prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false};
-  // Stage 1: Show temporal distance pause screen before Q1
-  showScreen('screen-prepare-pause');
+  renderQ();showScreen('s-assess');
 }
 function startPrepareQuestions(){
-  // Called from pause screen "Ready →" — proceeds to Q1
+  // Called from pause screen "Ready →" — drill path only
   renderQ();showScreen('s-assess');
 }
 function renderQ(){
@@ -4484,11 +4633,20 @@ function computeResult(){
   if(signalsList&&prepState.answers){
     console.log('[computeResult Stage 3] prepState.answers:', JSON.stringify(prepState.answers));
     var signals=[];
-    var labelMap={breath:'Breath',breathing:'Breath',gut:'Gut',gut_sensation:'Gut',body:'Body',body_state:'Body',focus:'Focus',thought:'Thought quality',decision:'Decision clarity',commitment:'Commitment'};
+    // Map question index to readable label using Qs array
+    var indexLabelMap={};
+    if(window.Qs){
+      window.Qs.forEach(function(q,i){indexLabelMap[i]=q.phase;});
+    } else {
+      // Fallback map based on known Prepare question order
+      indexLabelMap={0:'Breath',1:'Gut',2:'Breath check',3:'Gut check',4:'Body scan',5:'Commitment',6:'Motivation'};
+    }
+    var labelMap={breath:'Breath',breathing:'Breath',gut:'Gut',gut_sensation:'Gut',body:'Body',body_state:'Body',focus:'Focus',thought:'Thought quality',decision:'Decision clarity',commitment:'Commitment',bodyscan:'Body scan'};
     Object.keys(prepState.answers).forEach(function(k){
       var val=prepState.answers[k];
       if(val&&typeof val==='string'&&k!=='bodyscan'){
-        var label=labelMap[k]||(k.charAt(0).toUpperCase()+k.slice(1).replace(/_/g,' '));
+        // Try numeric index first, then string key
+        var label=indexLabelMap[parseInt(k)]||indexLabelMap[k]||labelMap[k]||(k.charAt(0).toUpperCase()+k.slice(1).replace(/_/g,' '));
         signals.push({label:label,val:val});
       }
     });
@@ -4509,9 +4667,25 @@ function computeResult(){
   if(drillComp)drillComp.style.display='none';
 
   // Save to Supabase
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index94'});
+  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'index98'});
 
-  // Show screen then animate dot
+  // If this is a drill pre check-in, save zone and go to hold screen
+  if(prepState.isDrill){
+    drillState.preZone=zone;
+    drillState.preAnswers=Object.assign({},prepState.answers);
+    saveDrillState();
+    // Update hold screen zone label
+    var holdZone=document.getElementById('drill-hold-zone');
+    if(holdZone){
+      var zoneLabels={comfort:'Comfort zone',learning:'Learning zone',panic:'Panic zone'};
+      holdZone.textContent=zoneLabels[zone]||'Learning zone';
+      holdZone.style.color=zoneC;
+    }
+    showScreen('screen-drill-hold');
+    return;
+  }
+
+  // Show screen then animate dot (regular check-in)
   showScreen('s-result');
   setTimeout(function(){
     if(dotAnim)dotAnim.beginElement();
@@ -4649,7 +4823,7 @@ function toggleCtx(id,arrowId){
 // ═══════════════════════════════════════════════════════
 // EXPOSURE DRILL
 // ═══════════════════════════════════════════════════════
-var drillState={preZone:null,preAnswers:{},drillId:null,routeName:''};
+var drillState={preZone:null,preAnswers:{},drillId:null,routeName:'',prediction:null};
 function loadDrillState(){
   try{var s=localStorage.getItem('see_drill');if(s){drillState=JSON.parse(s);return true;}}catch(e){}return false;
 }
@@ -4664,10 +4838,13 @@ function startDrillCheckin(){
   drillState.routeName=rn?rn.value.trim():'';
   // Reuse prepare flow for pre-climb check-in
   prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false,isDrill:true};
-  renderQ();showScreen('s-assess');
+  // Drill path: show temporal distance pause before Q1
+  showScreen('screen-prepare-pause');
 }
 function completeDrill(){
+  // Store that we're about to log a drill climb
   logState.projectId=null;
+  logState._isDrillPost=true;
   showScreen('screen-log');
 }
 
@@ -5212,7 +5389,16 @@ function openResearchSheet(zone){
   if(title)title.textContent=data.title;
   if(body)body.innerHTML=data.body;
   if(overlay)overlay.style.display='block';
-  if(sheet){sheet.style.display='block';requestAnimationFrame(function(){sheet.classList.add('open');});}
+  if(sheet){
+    // Must set display:block THEN wait for paint before adding open class
+    // Single rAF not enough — browser may batch display+class change together
+    sheet.style.display='block';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        sheet.classList.add('open');
+      });
+    });
+  }
   document.body.style.overflow='hidden';
 }
 
@@ -5222,6 +5408,165 @@ function closeResearchSheet(){
   if(sheet){sheet.classList.remove('open');setTimeout(function(){sheet.style.display='none';},300);}
   if(overlay)overlay.style.display='none';
   document.body.style.overflow='';
+}
+
+// ═══════════════════════════════════════════════════════
+// ZONE PREDICTION
+// ═══════════════════════════════════════════════════════
+var ZONE_PREDICT_LABELS = [
+  null, // 0 unused
+  {label:'Comfort',          color:'#7ec87a', zone:'comfort',  desc:'Lower activation — familiar territory. Solid ground to climb from.'},
+  {label:'Comfort edge',     color:'#a8d878', zone:'comfort',  desc:'Between Comfort and Learning. Slightly elevated, still settled.'},
+  {label:'Learning (comfort side)', color:'#f5a623', zone:'learning', desc:'In the Learning zone, closer to the comfort boundary. Activated but not at the edge.'},
+  {label:'Learning',         color:'#f5a623', zone:'learning', desc:'At your edge — activated, engaged. Where deliberate practice lives.'},
+  {label:'Learning (panic side)',   color:'#f08020', zone:'learning', desc:'In the Learning zone, closer to the panic boundary. High activation, still in range.'},
+  {label:'Panic edge',       color:'#e86040', zone:'panic',    desc:'Between Learning and Panic. Activation approaching the upper threshold.'},
+  {label:'Panic',            color:'#e84444', zone:'panic',    desc:'High activation — beyond the optimal window for this challenge today.'}
+];
+
+var _zonePrediction = null;
+
+function updateZonePrediction(val){
+  val = parseInt(val);
+  var data = ZONE_PREDICT_LABELS[val];
+  if(!data) return;
+
+  var pill = document.getElementById('predict-pill');
+  var desc = document.getElementById('predict-desc-text');
+
+  if(pill){
+    pill.textContent = data.label;
+    pill.style.background = data.color + '22';
+    pill.style.color = data.color;
+    pill.style.borderColor = data.color;
+  }
+  if(desc) desc.textContent = data.desc;
+
+  _zonePrediction = {
+    value: val,
+    label: data.label,
+    zone: data.zone
+  };
+}
+
+function confirmZonePrediction(){
+  if(!_zonePrediction){
+    _zonePrediction = {value:4, label:'Learning', zone:'learning'};
+  }
+  drillState = drillState || {};
+  drillState.prediction = _zonePrediction;
+  console.log('[ZonePredict] prediction stored:', JSON.stringify(_zonePrediction));
+  // Proceed to actual drill pre check-in
+  startDrillCheckin();
+}
+
+// Route Exposure Drill entry through prediction screen
+function startDrillWithPrediction(){
+  // Reset prediction
+  _zonePrediction = null;
+  var slider = document.getElementById('zone-predict-slider');
+  if(slider){ slider.value = 4; updateZonePrediction(4); }
+  showScreen('screen-zone-predict');
+}
+
+// ═══════════════════════════════════════════════════════
+// THREE-POINT REVEAL
+// ═══════════════════════════════════════════════════════
+var ZONE_RANK = {comfort:0, learning:1, panic:2};
+var ZONE_Y = {comfort:85, learning:50, panic:15}; // Y positions in SVG (0=top=Panic)
+
+function zoneDistance(a, b){
+  return Math.abs(ZONE_RANK[a] - ZONE_RANK[b]);
+}
+
+function showDrillReveal(predicted, pre, post){
+  // predicted: {zone, label} or null if no prediction
+  // pre: {zone} from pre-climb check-in
+  // post: {zone} from post-climb check-in
+
+  console.log('[DrillReveal] predicted:', predicted, 'pre:', pre, 'post:', post);
+
+  var zoneNames = {comfort:'Comfort', learning:'Learning', panic:'Panic'};
+  var zoneColors = {comfort:'#7ec87a', learning:'#f5a623', panic:'#e84444'};
+
+  // Update labels
+  var labelPredict = document.getElementById('drill-label-predict');
+  var labelPre = document.getElementById('drill-label-pre');
+  var labelPost = document.getElementById('drill-label-post');
+  if(labelPredict) labelPredict.textContent = predicted ? (predicted.label || zoneNames[predicted.zone]) : '—';
+  if(labelPre) labelPre.textContent = zoneNames[pre.zone] || '—';
+  if(labelPost) labelPost.textContent = zoneNames[post.zone] || '—';
+
+  // Build SVG timeline
+  var svg = document.getElementById('drill-reveal-svg');
+  if(svg){
+    var x1=50, x2=150, x3=250;
+    var y1 = predicted ? ZONE_Y[predicted.zone] : ZONE_Y.learning;
+    var y2 = ZONE_Y[pre.zone];
+    var y3 = ZONE_Y[post.zone];
+
+    var c1 = predicted ? zoneColors[predicted.zone] : '#888';
+    var c2 = zoneColors[pre.zone];
+    var c3 = zoneColors[post.zone];
+
+    // Curved connecting line
+    var path = 'M '+x1+' '+y1+' C '+((x1+x2)/2)+' '+y1+' '+((x1+x2)/2)+' '+y2+' '+x2+' '+y2
+             + ' C '+((x2+x3)/2)+' '+y2+' '+((x2+x3)/2)+' '+y3+' '+x3+' '+y3;
+
+    var parts = [];
+    parts.push('<path d="'+path+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5"/>');
+
+    // Predicted = hollow dot
+    if(predicted){
+      parts.push('<circle cx="'+x1+'" cy="'+y1+'" r="7" fill="none" stroke="'+c1+'" stroke-width="1.5" stroke-dasharray="3,2"/>');
+    }
+    // Pre = filled dot
+    parts.push('<circle cx="'+x2+'" cy="'+y2+'" r="7" fill="'+c2+'"/>');
+    // Post = filled dot, slightly larger (final confirmed)
+    parts.push('<circle cx="'+x3+'" cy="'+y3+'" r="9" fill="'+c3+'"/>');
+    parts.push('<circle cx="'+x3+'" cy="'+y3+'" r="14" fill="none" stroke="'+c3+'" stroke-width="1" opacity=".35"/>');
+
+    svg.innerHTML = parts.join('');
+  }
+
+  // Determine copy register
+  var predZone = predicted ? predicted.zone : null;
+  var allMatch = predZone && predZone === pre.zone && pre.zone === post.zone;
+  var predRight = predZone && predZone === post.zone;
+  var prePostMatch = pre.zone === post.zone;
+  var allDiverge = predZone && predZone !== pre.zone && pre.zone !== post.zone && predZone !== post.zone;
+
+  var headline = document.getElementById('drill-reveal-headline');
+  var copyEl = document.getElementById('drill-reveal-copy');
+
+  var copy = '';
+
+  if(allMatch){
+    // All three match — plain, brief
+    if(headline) headline.textContent = 'Consistent across all three reads.';
+    copy = zoneNames[post.zone]+' zone throughout — predicted, pre-climb, and post-climb all aligned. Your read was accurate, and your body confirmed it.';
+  } else if(prePostMatch && !predRight){
+    // Prediction wrong, pre/post match — body was accurate, expectation was off
+    if(headline) headline.textContent = 'Your read was accurate. Your expectation was off.';
+    copy = 'You expected '+zoneNames[predZone]+'. Both check-ins confirmed '+zoneNames[post.zone]+'.'
+      +' Your somatic read before and during the climb was consistent — the gap was between what you expected and what was actually present.';
+  } else if(predRight && !prePostMatch){
+    // Prediction right, pre/post diverge — called it, but body shifted
+    if(headline) headline.textContent = 'You called it — but your body shifted during.';
+    copy = 'You expected '+zoneNames[predZone]+' and that is where you landed post-climb.'
+      +' Pre-climb read '+zoneNames[pre.zone]+'. Something changed once you were on the route'
+      +' — the post-climb confirmed what you predicted, but the path there was not linear.';
+  } else {
+    // All diverge — hardest case, locked copy
+    if(headline) headline.textContent = "Your body's read changed meaningfully.";
+    copy = "Your body's read changed meaningfully once you were actually on the route — that's exactly what this tool exists to catch."
+      + (predZone ? ' Pre-climb: '+zoneNames[pre.zone]+'. Post-climb: '+zoneNames[post.zone]+'. You expected '+zoneNames[predZone]+'.' : ' Pre-climb: '+zoneNames[pre.zone]+'. Post-climb: '+zoneNames[post.zone]+'.')
+      + ' Something activated during the attempt that was not present before — the part worth paying attention to.';
+  }
+
+  if(copyEl) copyEl.textContent = copy;
+
+  showScreen('screen-drill-reveal');
 }
 
 // ═══════════════════════════════════════════════════════
