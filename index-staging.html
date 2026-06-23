@@ -990,7 +990,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q1-label">—</span>
-    <span class="deeper-progress">1 of 4</span>
+    <span class="deeper-progress">1 of 7</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1032,7 +1032,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q2-label">—</span>
-    <span class="deeper-progress">2 of 4</span>
+    <span class="deeper-progress">2 of 7</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1074,7 +1074,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q3-label">—</span>
-    <span class="deeper-progress">3 of 4</span>
+    <span class="deeper-progress">3 of 7</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1124,7 +1124,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q4-label">—</span>
-    <span class="deeper-progress">4 of 4 · Core</span>
+    <span class="deeper-progress">4 of 7 · Core</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -2288,6 +2288,16 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
   <div class="content">
     <div class="screen-title">Share feedback<span class="sub">2 minutes · shapes what gets built next.</span></div>
+    <!-- Quick feedback path — sits above full guided flow -->
+    <div id="fb-quick" style="margin-bottom:20px;padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Just want to leave a note?</div>
+      <textarea id="fb-quick-text" placeholder="What's on your mind? Anything about the app — bugs, ideas, what surprised you." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px 12px;outline:none;resize:none;min-height:80px;line-height:1.6;margin-bottom:10px;"></textarea>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="submitQuickFeedback()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Submit note →</button>
+        <button onclick="document.getElementById('fb-quick').style.display='none'" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;cursor:pointer;padding:4px;">Or answer the full questions ↓</button>
+      </div>
+    </div>
+
     <div id="fb-content">
       <div class="fb-progress"><div class="fb-fill" id="fb-prog" style="width:0%"></div></div>
       <div style="font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;" id="fb-step-lbl">Question 1 of 4</div>
@@ -3042,6 +3052,56 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
     <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
   </div>
+<!-- ═══════════════════════════════════════
+     BASELINE INTAKE QUESTIONNAIRE
+     Fires once — new users on first open,
+     existing users after next completed log
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-baseline">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;" id="baseline-eyebrow">Before your first climb log</div>
+    <div style="font-size:26px;font-weight:700;line-height:1.2;margin-bottom:6px;">Set your starting point.</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px;">6 quick questions. Takes about 2 minutes. Helps put everything you log in context.</div>
+
+    <!-- Progress bar -->
+    <div style="height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-bottom:24px;overflow:hidden;">
+      <div id="baseline-prog" style="height:100%;background:var(--accent);border-radius:1px;transition:width .4s ease;width:0%;"></div>
+    </div>
+
+    <!-- Question area -->
+    <div id="baseline-q-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;margin-bottom:20px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="baseline-q-num">Question 1 of 6</div>
+      <div style="font-size:20px;font-weight:700;line-height:1.3;margin-bottom:6px;color:var(--text);" id="baseline-q-text">—</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:16px;" id="baseline-q-label"></div>
+      <div id="baseline-q-opts" class="response-chips" style="flex-wrap:wrap;gap:8px;"></div>
+    </div>
+
+    <button id="baseline-next-btn" onclick="baselineNext()"
+      style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;opacity:.25;pointer-events:none;-webkit-tap-highlight-color:transparent;margin-bottom:10px;">
+      Next →
+    </button>
+    <button onclick="baselineSkipQuestion()"
+      style="width:100%;background:none;border:none;color:rgba(255,255,255,.25);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+      Skip this question
+    </button>
+  </div>
+</div>
+
+<!-- Baseline transition card — shown after completion -->
+<div class="screen" id="screen-baseline-done">
+  <div class="content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;">
+    <div style="font-size:40px;margin-bottom:20px;">✓</div>
+    <div style="font-size:24px;font-weight:700;margin-bottom:8px;">Your baseline is set.</div>
+    <div style="font-size:15px;color:var(--muted);line-height:1.65;max-width:280px;margin-bottom:32px;">Every climb you log builds on this.</div>
+    <button onclick="baselineDone()" style="background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px 40px;cursor:pointer;-webkit-tap-highlight-color:transparent;" id="baseline-done-btn">
+      Log your first climb →
+    </button>
+  </div>
+</div>
+
 </div><!-- end .app -->
 
 <script>
@@ -3183,7 +3243,7 @@ function showScreen(id){
   var fab=document.getElementById('climb-log-fab');
   if(fab)fab.style.display=id==='screen-sessions'?'flex':'none';
   if(id==='screen-drill')loadDrillRouteOptions();
-  if(id==='screen-log')resetLogScreen();
+  if(id==='screen-log'){resetLogScreen();window._sessionStartTime=Date.now();}
   if(id==='screen-projects')loadProjectsScreen();
   if(id==='screen-home')loadHomeInsight();
   if(id==='screen-feedback')initFeedback();
@@ -3302,6 +3362,16 @@ async function logClimb(){
 
   // Resolve climb_id — find existing or create new
   var climbId=_selectedClimbId||null;
+  // 6.4: Drill route name fallback — use drillState.routeName if no logState.routeName
+  if(!logState.routeName && drillState && drillState.routeName){
+    logState.routeName = drillState.routeName;
+  }
+  // Auto-naming fallback: no name, no climb ID — generate Climb [n]
+  if(!logState.routeName && !climbId){
+    var n = (window._userClimbCount||0) + 1;
+    logState.routeName = 'Climb ' + n;
+    console.log('[logClimb] auto-named:', logState.routeName);
+  }
   console.log('[logClimb] routeName:',logState.routeName,'selectedClimbId:',_selectedClimbId);
   if(!climbId&&logState.routeName){
     var climbs=await loadClimbCache();
@@ -3340,15 +3410,53 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'staging-index104',
-    device_id:getDeviceId()
+    app_version:'staging-index105',
+    device_id:getDeviceId(),
+    // Silent capture: drill prediction
+    drill_prediction_zone: (drillState&&drillState.prediction)?drillState.prediction.zone:null,
+    drill_prediction_value: (drillState&&drillState.prediction)?drillState.prediction.value:null,
+    drill_prediction_label: (drillState&&drillState.prediction)?drillState.prediction.label:null,
+    // Silent capture: prepare-to-log linkage
+    prepare_session_id: window._prepareSessionId||null,
+    // Silent capture: session duration
+    session_duration_seconds: window._sessionStartTime ? Math.round((Date.now()-window._sessionStartTime)/1000) : null,
+    // Silent capture: default focus
+    session_focus: 'unset'
   };
+
+  // 6.6: Project attempt number (silent)
+  if(logState.projectId){
+    try{
+      var existingAttempts = await sbS('sessions','select=id&project_id=eq.'+logState.projectId+'&device_id=eq.'+getDeviceId());
+      payload.project_attempt_number = (Array.isArray(existingAttempts)?existingAttempts.length:0)+1;
+    }catch(e){}
+  }
+
+  // 6.10: Grade vs baseline (silent)
+  try{
+    var baselineRange = localStorage.getItem('see_baseline_grade_range');
+    if(baselineRange && logState.grade && window.GRADE_ORDER){
+      var gradeIdx = window.GRADE_ORDER.indexOf(logState.grade);
+      // Map baseline range to indices
+      var rangeMap = {
+        '5.8 and below':[0,4],'5.9–5.10a':[5,6],'5.10b–5.10d':[7,9],
+        '5.11a–5.11c':[10,12],'5.11d–5.12b':[13,15],'5.12c+':[16,99],
+        'VB–V2':[0,2],'V3–V4':[3,4],'V5–V6':[5,6],'V7–V8':[7,8],'V9+':[9,99]
+      };
+      var range = rangeMap[baselineRange];
+      if(range && gradeIdx > -1){
+        payload.grade_vs_baseline = gradeIdx < range[0] ? 'below' : gradeIdx > range[1] ? 'above' : 'within';
+      }
+    }
+  }catch(e){}
 
   var raw=await sbI('sessions',payload);
   var saved=Array.isArray(raw)?raw[0]:raw;
   if(saved&&saved.id){
     logState.sessId=saved.id;
     showToast('Logged ✓');
+    window._prepareSessionId = null; // clear after use
+    window._sessionStartTime = null;
   } else {
     console.error('Session save failed:',raw);
     // Preserve form state — show error, let user retry without re-entering
@@ -3732,11 +3840,10 @@ document.addEventListener('click',function(e){
 });
 
 function resetLogScreen(){
-  _selectedClimbId=null;
   _climbCache=null; // refresh cache on next log
-  // Only reset if not logging against a project with prefill
-  if(logState.projectId&&logState.grade)return; // keep prefill for project logging
-  _selectedClimbId=null;
+  // Preserve _selectedClimbId and projectId when arriving via launchLogWithClimb or project
+  // _selectedClimbId is only cleared by logAnother() and clearClimbSelection()
+  if(_selectedClimbId || (logState.projectId&&logState.grade))return;
   logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:logState.projectId||null,projectName:logState.projectName||null};
   ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
     var b=document.getElementById(id);if(b){b.classList.remove('selected');b.style.borderColor='';b.style.background='';}
@@ -3878,12 +3985,25 @@ function startDeeper(){
   if(!logState.sessId){showToast('Saving... try in a moment');return;}
   deepAnswers={q1:null,q2:null,q3:null,q4:null,q5:null,q6:null,q7:null};
   deepScores={breath:null,gut:null,crux:null,body:null};
-  // Update progress labels to show 4 core questions
-  ['q1','q2','q3','q4'].forEach(function(q,i){
+  // Track deeper start time (silent)
+  window._deeperStartedAt = new Date().toISOString();
+  if(logState.sessId) sbU('sessions','id=eq.'+logState.sessId,{deeper_started_at:window._deeperStartedAt});
+  // Reset Q5/Q6/Q7 chip selections and textareas from any prior run
+  ['screen-q5','screen-q6','screen-q7'].forEach(function(sid){
+    var scr=document.getElementById(sid);
+    if(scr)scr.querySelectorAll('.chip.selected').forEach(function(b){b.classList.remove('selected');});
+  });
+  ['went-well-text','still-learning-text','surprised-text'].forEach(function(id){
+    var ta=document.getElementById(id);if(ta)ta.value='';
+  });
+  // Update progress labels for all 7 questions
+  ['q1','q2','q3','q4','q5','q6','q7'].forEach(function(q,i){
     var lbl=document.getElementById(q+'-label');
     if(lbl)lbl.textContent=(logState.grade||'—')+' · '+(logState.terrain||'—');
+  });
+  ['q1','q2','q3','q4'].forEach(function(q,i){
     var prog=document.querySelector('#screen-'+q+' .deeper-progress');
-    if(prog)prog.textContent=(i+1)+' of 4';
+    if(prog)prog.textContent=(i+1)+' of 7';
   });
   showScreen('screen-q1');
 }
@@ -3940,14 +4060,7 @@ async function afterQ4(){
     });
   }
 
-  // Show zone update on celebrate screen pill
-  var pillEl=document.getElementById('cel-zone-pill');
-  if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
-
-  // Update zone pill in place on celebrate screen — transition from estimated to confirmed
-  var pillEl=document.getElementById('cel-zone-pill');
-  if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
-
+  // Show zone update on celebrate screen pill — transition from estimated to confirmed
   // Hide confirm button — already confirmed
   var deeperBtn=document.getElementById('cel-deeper-btn');
   if(deeperBtn)deeperBtn.style.display='none';
@@ -3986,17 +4099,26 @@ async function afterQ4(){
   // Also update celebrate screen pill for when they return
   var pillEl=document.getElementById('cel-zone-pill');
   if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
-  var deeperBtn=document.getElementById('cel-deeper-btn');
-  if(deeperBtn)deeperBtn.style.display='none';
+  // deeperBtn already cleared above — final confirm
+  var db2=document.getElementById('cel-deeper-btn');
+  if(db2)db2.style.display='none';
 }
 
 async function finishDeeper(){
-  // Save remaining optional answers
+  // Save remaining optional answers + silent chip capture
   if(logState.sessId){
     var extraPayload={};
     if(deepAnswers.q5)extraPayload.went_well=deepAnswers.q5;
     if(deepAnswers.q6){var slText=document.getElementById('still-learning-text');extraPayload.still_learning=slText?slText.value:deepAnswers.q6;}
     if(deepAnswers.q7){var supText=document.getElementById('surprised-text');extraPayload.surprised_by=supText?supText.value:deepAnswers.q7;}
+    // 6.8: Silent chip selections
+    var wwChips=Array.from(document.querySelectorAll('#screen-q5 .chip.selected')).map(function(b){return b.textContent;}).join(',');
+    var slChips=Array.from(document.querySelectorAll('#screen-q6 .chip.selected')).map(function(b){return b.textContent;}).join(',');
+    var supChips=Array.from(document.querySelectorAll('#screen-q7 .chip.selected')).map(function(b){return b.textContent;}).join(',');
+    if(wwChips)extraPayload.went_well_chips=wwChips;
+    if(slChips)extraPayload.still_learning_chips=slChips;
+    if(supChips)extraPayload.surprised_chips=supChips;
+    extraPayload.deeper_completed_at=new Date().toISOString();
     if(Object.keys(extraPayload).length)await sbU('sessions','id=eq.'+logState.sessId,extraPayload);
   }
   renderReflection();
@@ -4286,8 +4408,8 @@ function buildRadar(sessions){
   }
 
   // Hide legacy radar svg
-  var svg=document.getElementById('radar-svg');
-  if(svg)svg.style.display='none';
+  var radarSvg=document.getElementById('radar-svg');
+  if(radarSvg)radarSvg.style.display='none';
 
   container.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Zone by terrain</div>'
     +active.map(function(t){
@@ -4420,9 +4542,9 @@ function buildHomeArc(sessions, isExample){
 
   var last=sessions[0];
   if(lastBadge&&last){
-    var c=zoneColor(last.zone||'learning');
+    var lastC=zoneColor(last.zone||'learning');
     lastBadge.textContent=zoneName(last.zone||'learning');
-    lastBadge.style.background=c+'1a';lastBadge.style.color=c;lastBadge.style.border='1px solid '+c+'55';
+    lastBadge.style.background=lastC+'1a';lastBadge.style.color=lastC;lastBadge.style.border='1px solid '+lastC+'55';
   }
   if(sessCount)sessCount.textContent=isExample?'Example data':sessions.length+' climbs';
 
@@ -4520,7 +4642,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'staging-index104'
+    app_version:'staging-index105'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4681,6 +4803,7 @@ function startPrepareFlow(){
   // Regular check-in: skip pause screen, go straight to Q1
   // Pause screen fires for Exposure Drill only (via startDrillCheckin)
   prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false};
+  window._prepareStartedAt = new Date().toISOString();
   renderQ();showScreen('s-assess');
 }
 function startPrepareQuestions(){
@@ -4793,8 +4916,23 @@ function computeResult(){
   var drillComp=document.getElementById('prepare-drill-comparison');
   if(drillComp)drillComp.style.display='none';
 
-  // Save to Supabase
-  sbI('sessions',{zone:zone,zone_confidence:'confirmed',baseline_zone:'checkin',is_checkin:true,device_id:getDeviceId(),app_version:'staging-index104'});
+  // Save to Supabase — with full prepare answers (silent capture)
+  var prepareSessPayload = {
+    zone:zone, zone_confidence:'confirmed', baseline_zone:'checkin', is_checkin:true,
+    device_id:getDeviceId(), app_version:'staging-index105',
+    prepare_breath: prepState.answers[0]||null,
+    prepare_gut: prepState.answers[1]||null,
+    prepare_breath_post: prepState.answers[3]||null,
+    prepare_gut_post: prepState.answers[4]||null,
+    prepare_motivation: prepState.answers[6]||null,
+    prepare_body_scan: prepState.answers['bodyscan']||null,
+    prepare_answers: JSON.stringify(prepState.answers),
+    prepare_started_at: window._prepareStartedAt||null,
+    prepare_completed_at: new Date().toISOString()
+  };
+  sbI('sessions', prepareSessPayload).then(function(saved){
+    if(saved && saved.id) window._prepareSessionId = saved.id;
+  });
 
   // If this is a drill pre check-in, save zone and go to hold screen
   if(prepState.isDrill){
@@ -4970,10 +5108,26 @@ function startDrillCheckin(){
   showScreen('screen-prepare-pause');
 }
 function completeDrill(){
-  // Use module-level flag — logState gets reset by resetLogScreen inside showScreen
   _drillPostActive=true;
   logState.projectId=null;
-  showScreen('screen-log');
+  // If drill has a route name, check cache for matching climb
+  if(drillState.routeName){
+    var climbs = window._cachedClimbs || [];
+    var match = climbs.find(function(s){ return s.route_name && s.route_name.toLowerCase().trim() === drillState.routeName.toLowerCase().trim() && s.climb_id; });
+    if(match && match.climb_id){
+      launchLogWithClimb(match.climb_id, drillState.routeName, match.grade_value, match.climbing_type);
+      return;
+    }
+    // No match — pre-fill name field only
+    showScreen('screen-log');
+    setTimeout(function(){
+      var inp = document.getElementById('log-rname-input');
+      if(inp){ inp.value = drillState.routeName; logState.routeName = drillState.routeName; }
+      var rg = document.getElementById('log-rname-group'); if(rg) rg.style.display='flex';
+    }, 50);
+  } else {
+    showScreen('screen-log');
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -5946,7 +6100,8 @@ var climbLogState = {
 // Per-row actions: Edit / Add attempt / Check zone / Drill
 // ═══════════════════════════════════════════════════════
 
-var GRADE_ORDER = ['VB','V0','V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13','V14','V15','V16','V17',
+window.GRADE_ORDER = window.GRADE_ORDER || [];
+var GRADE_ORDER = window.GRADE_ORDER = ['VB','V0','V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12','V13','V14','V15','V16','V17',
   '5.5','5.6','5.7','5.8','5.9','5.10a','5.10b','5.10c','5.10d','5.11a','5.11b','5.11c','5.11d',
   '5.12a','5.12b','5.12c','5.12d','5.13a','5.13b','5.13c','5.13d','5.14a','5.14b','5.14c','5.14d',
   '5.15a','5.15b','5.15c','5.15d','5','5+','6a','6a+','6b','6b+','6c','6c+','7a','7a+','7b','7b+',
@@ -6110,7 +6265,7 @@ function buildTableRow(s){
   // Action buttons use data-* attributes — handlers read from dataset
   var btnStyle = 'font-size:11px;font-weight:600;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:var(--r-sm);';
   var editBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();editClimbFromLog(this.dataset.sid)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">✏ Edit</button>';
-  var addBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">+ Attempt</button>';
+  var addBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" data-cid="'+(s.climb_id||'')+'" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct,this.dataset.cid||null)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">+ Attempt</button>';
   var checkBtn = isEstimated ? '<button data-sid="'+sid+'" onclick="event.stopPropagation();checkZoneFromLog(this.dataset.sid)" style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:#f5a623;'+btnStyle+'">Check zone</button>' : '<div></div>';
   var drillBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" onclick="event.stopPropagation();drillFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct)" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.3);color:var(--accent);'+btnStyle+'">Drill</button>';
 
@@ -6170,16 +6325,20 @@ function editClimbFromLog(sessId){
   openEditSheet();
 }
 
-function addAttemptFromLog(routeName, grade, terrain){
+function addAttemptFromLog(routeName, grade, terrain, climbId){
   climbLogState.returnFrom = 'screen-sessions';
   logState = {result:null, grade:grade||null, gradeSys:'YDS', terrain:terrain||null, routeName:routeName||null, sessId:null, zone:null, zoneConf:null, projectId:null};
-  showScreen('screen-log');
-  setTimeout(function(){
-    if(grade){ buildGradeGrid('YDS'); document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){ b.classList.toggle('selected', b.textContent===grade); }); document.getElementById('log-grade-group').style.display='flex'; document.getElementById('log-rname-group').style.display='flex'; }
-    if(terrain){ document.querySelectorAll('.terrain-chips .chip').forEach(function(b){ b.classList.toggle('selected', b.textContent.trim()===terrain); }); }
-    if(routeName){ var inp = document.getElementById('log-rname-input'); if(inp) inp.value = routeName; logState.routeName = routeName; }
-    if(grade && terrain) checkLogReady();
-  }, 50);
+  if(climbId){
+    launchLogWithClimb(climbId, routeName, grade, terrain);
+  } else {
+    showScreen('screen-log');
+    setTimeout(function(){
+      if(grade){ buildGradeGrid('YDS'); document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){ b.classList.toggle('selected', b.textContent===grade); }); var gg=document.getElementById('log-grade-group'); if(gg)gg.style.display='flex'; var rg=document.getElementById('log-rname-group'); if(rg)rg.style.display='flex'; }
+      if(terrain){ document.querySelectorAll('.terrain-chips .chip').forEach(function(b){ b.classList.toggle('selected', b.textContent.trim()===terrain); }); }
+      if(routeName){ var inp = document.getElementById('log-rname-input'); if(inp) inp.value = routeName; logState.routeName = routeName; }
+      if(grade && terrain) checkLogReady();
+    }, 50);
+  }
 }
 
 function checkZoneFromLog(sessId){
@@ -6238,6 +6397,250 @@ function returnToClimbLogOrHome(){
   } else {
     showScreen('screen-home');
   }
+}
+
+
+// ═══════════════════════════════════════════════════════
+// CLIMB CONTAINER AWARENESS
+// launchLogWithClimb — shared entry point for any flow
+// that already knows which climb it's logging against
+// ═══════════════════════════════════════════════════════
+function launchLogWithClimb(climbId, climbName, grade, terrain){
+  _selectedClimbId = climbId || null;
+  logState.routeName = climbName || null;
+  logState.grade = grade || logState.grade;
+  logState.terrain = terrain || logState.terrain;
+  logState.gradeSys = logState.gradeSys || 'YDS';
+
+  showScreen('screen-log');
+
+  setTimeout(function(){
+    // Hide climb name search — not needed, climb is known
+    var rnameGroup = document.getElementById('log-rname-group');
+    if(rnameGroup) rnameGroup.style.display = 'none';
+
+    // Pre-fill grade
+    if(grade){
+      buildGradeGrid(logState.gradeSys || 'YDS');
+      document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){
+        b.classList.toggle('selected', b.textContent === grade);
+      });
+      var gradeGroup = document.getElementById('log-grade-group');
+      if(gradeGroup) gradeGroup.style.display = 'flex';
+    }
+
+    // Pre-fill terrain
+    if(terrain){
+      document.querySelectorAll('.terrain-chips .chip').forEach(function(b){
+        b.classList.toggle('selected', b.textContent.trim() === terrain);
+      });
+    }
+
+    // Show locked banner
+    var banner = document.getElementById('log-project-banner');
+    var nameEl = document.getElementById('log-project-name');
+    if(banner && climbName){
+      banner.style.display = 'flex';
+      var bannerText = logState.projectName
+        ? logState.projectName + ' · Adding attempt to ' + climbName
+        : 'Adding attempt · ' + climbName;
+      if(nameEl) nameEl.textContent = bannerText;
+      // Remove dismiss button — not optional context
+      var dismissBtn = banner.querySelector('button');
+      if(dismissBtn) dismissBtn.style.display = 'none';
+    }
+
+    checkLogReady();
+  }, 50);
+}
+
+// ═══════════════════════════════════════════════════════
+// BASELINE INTAKE QUESTIONNAIRE
+// ═══════════════════════════════════════════════════════
+var BASELINE_Qs = [
+  {
+    key: 'baseline_grade_range',
+    text: 'What grades do you typically climb?',
+    label: 'Your comfortable range — not your max.',
+    multi: false,
+    opts: ['5.8 and below','5.9–5.10a','5.10b–5.10d','5.11a–5.11c','5.11d–5.12b','5.12c+','VB–V2','V3–V4','V5–V6','V7–V8','V9+']
+  },
+  {
+    key: 'baseline_environment',
+    text: 'Where do you climb most?',
+    label: '',
+    multi: false,
+    opts: ['Mostly indoors','Mostly outdoors','Both equally']
+  },
+  {
+    key: 'baseline_terrain',
+    text: 'What terrain do you spend most time on?',
+    label: '',
+    multi: false,
+    opts: ['Slab','Vertical','Overhang','Roof','Crack','Mix of everything']
+  },
+  {
+    key: 'baseline_pre_climb_state',
+    text: 'How would you describe your typical experience before a hard climb?',
+    label: 'What you usually notice — not what you think you should notice.',
+    multi: false,
+    opts: ['Usually settled — I feel ready','Usually activated — some nerves, manageable','Usually pretty anxious — it takes effort to commit','Varies a lot — depends on the route','I don\'t notice much either way']
+  },
+  {
+    key: 'baseline_experience',
+    text: 'How long have you been climbing?',
+    label: '',
+    multi: false,
+    opts: ['Less than 1 year','1–3 years','3–5 years','5–10 years','10+ years']
+  },
+  {
+    key: 'baseline_goals',
+    text: 'What are you hoping to get from tracking your climbs?',
+    label: 'Pick as many as apply.',
+    multi: true,
+    opts: ['Understand my patterns better','Get better at committing on hard moves','Manage fear more consciously','Track my progression over time','Just curious']
+  }
+];
+
+var baselineState = {qi: 0, answers: {}};
+
+function checkAndShowBaseline(){
+  var flag = localStorage.getItem('see_baseline_complete');
+  if(flag) return; // already done or skipped
+  var count = window._userClimbCount || 0;
+  if(count === 0){
+    // New user — show baseline on first open
+    baselineState = {qi:0, answers:{}};
+    document.getElementById('baseline-eyebrow').textContent = 'Before your first climb log';
+    document.getElementById('baseline-done-btn').textContent = 'Log your first climb →';
+    renderBaselineQ();
+    showScreen('screen-baseline');
+  }
+  // Existing users handled post-log in renderCelebrate()
+}
+
+function showBaselinePostLog(){
+  // Called from celebrate screen for existing users
+  baselineState = {qi:0, answers:{}};
+  document.getElementById('baseline-eyebrow').textContent = 'Quick — before you go';
+  document.getElementById('baseline-done-btn').textContent = 'Done → Back to home';
+  renderBaselineQ();
+  showScreen('screen-baseline');
+}
+
+function renderBaselineQ(){
+  var q = BASELINE_Qs[baselineState.qi];
+  if(!q) return;
+
+  var pct = Math.round((baselineState.qi / BASELINE_Qs.length) * 100);
+  var prog = document.getElementById('baseline-prog');
+  if(prog) prog.style.width = pct + '%';
+
+  var numEl = document.getElementById('baseline-q-num');
+  var textEl = document.getElementById('baseline-q-text');
+  var labelEl = document.getElementById('baseline-q-label');
+  var optsEl = document.getElementById('baseline-q-opts');
+  var nextBtn = document.getElementById('baseline-next-btn');
+
+  if(numEl) numEl.textContent = 'Question ' + (baselineState.qi + 1) + ' of 6';
+  if(textEl) textEl.textContent = q.text;
+  if(labelEl) labelEl.textContent = q.label || '';
+  if(nextBtn){ nextBtn.style.opacity = '.25'; nextBtn.style.pointerEvents = 'none'; }
+  if(nextBtn) nextBtn.textContent = baselineState.qi === BASELINE_Qs.length - 1 ? 'Finish →' : 'Next →';
+
+  if(optsEl){
+    optsEl.innerHTML = '';
+    q.opts.forEach(function(opt){
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = opt;
+      b.onclick = function(){
+        if(!q.multi){
+          optsEl.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('selected'); });
+        }
+        b.classList.toggle('selected');
+        // Enable next if at least one selected
+        var anySelected = optsEl.querySelectorAll('.chip.selected').length > 0;
+        if(nextBtn){ nextBtn.style.opacity = anySelected ? '1' : '.25'; nextBtn.style.pointerEvents = anySelected ? 'all' : 'none'; }
+      };
+      optsEl.appendChild(b);
+    });
+  }
+}
+
+function baselineNext(){
+  var q = BASELINE_Qs[baselineState.qi];
+  var optsEl = document.getElementById('baseline-q-opts');
+  var selected = optsEl ? Array.from(optsEl.querySelectorAll('.chip.selected')).map(function(b){ return b.textContent; }) : [];
+  if(q.multi){
+    baselineState.answers[q.key] = selected;
+  } else {
+    baselineState.answers[q.key] = selected[0] || null;
+  }
+  baselineState.qi++;
+  if(baselineState.qi >= BASELINE_Qs.length){
+    saveBaseline();
+  } else {
+    renderBaselineQ();
+  }
+}
+
+function baselineSkipQuestion(){
+  var q = BASELINE_Qs[baselineState.qi];
+  baselineState.answers[q.key] = null;
+  baselineState.qi++;
+  if(baselineState.qi >= BASELINE_Qs.length){
+    saveBaseline();
+  } else {
+    renderBaselineQ();
+  }
+}
+
+async function saveBaseline(){
+  localStorage.setItem('see_baseline_complete', '1');
+  // Save to localStorage for instant client-side access
+  if(baselineState.answers.baseline_grade_range)
+    localStorage.setItem('see_baseline_grade_range', baselineState.answers.baseline_grade_range);
+  if(baselineState.answers.baseline_pre_climb_state)
+    localStorage.setItem('see_baseline_pre_climb', baselineState.answers.baseline_pre_climb_state);
+
+  // Save to Supabase sessions table with is_baseline=true
+  var payload = {
+    device_id: getDeviceId(),
+    is_baseline: true,
+    baseline_grade_range: baselineState.answers.baseline_grade_range || null,
+    baseline_environment: baselineState.answers.baseline_environment || null,
+    baseline_terrain: baselineState.answers.baseline_terrain || null,
+    baseline_pre_climb_state: baselineState.answers.baseline_pre_climb_state || null,
+    baseline_experience: baselineState.answers.baseline_experience || null,
+    baseline_goals: baselineState.answers.baseline_goals ? JSON.stringify(baselineState.answers.baseline_goals) : null,
+    app_version: 'staging-index105'
+  };
+  sbI('sessions', payload);
+  showScreen('screen-baseline-done');
+}
+
+function baselineDone(){
+  var count = window._userClimbCount || 0;
+  if(count === 0){
+    showScreen('screen-log');
+  } else {
+    showScreen('screen-home');
+  }
+}
+
+function submitQuickFeedback(){
+  var ta = document.getElementById('fb-quick-text');
+  var text = ta ? ta.value.trim() : '';
+  if(!text){ showToast('Add a note first'); return; }
+  sbI('feedback', {answers: JSON.stringify({quick: text}), device_id: getDeviceId()});
+  // Show same success state
+  document.getElementById('fb-quick').style.display = 'none';
+  var succ = document.getElementById('fb-success');
+  if(succ) succ.style.display = 'block';
+  var form = document.getElementById('fb-content');
+  if(form) form.style.display = 'none';
+  showToast('Feedback sent ✓');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6314,6 +6717,8 @@ function showPrivacyScreen(){
 buildGradeGrid('YDS');
 spSetGradeSys('YDS');
 loadHomeInsight();
+// Check baseline after home insight loads
+setTimeout(checkAndShowBaseline, 300);
 </script>
 </body>
 </html>
