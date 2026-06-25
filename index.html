@@ -6206,20 +6206,32 @@ function renderClimbTable(climbs){
   var rows = [];
   if(climbLogState.view === 'grouped'){
     var groups = {}; var groupOrder = []; var unnamed = [];
-    // Sort attempts within each climb date desc
+    // Group by climb_id first — route_name alone can cause false grouping
     sorted.forEach(function(s){
-      if(s.route_name){
-        if(!groups[s.route_name]){
-          groups[s.route_name]={sessions:[], climbId:s.climb_id||null, grade:s.grade_value, terrain:s.climbing_type};
-          groupOrder.push(s.route_name);
+      var key = s.climb_id || null;
+      if(key){
+        if(!groups[key]){
+          groups[key]={sessions:[], climbId:key, name:s.route_name||'Unnamed climb', grade:s.grade_value, terrain:s.climbing_type};
+          groupOrder.push(key);
         }
-        groups[s.route_name].sessions.push(s);
-      } else { unnamed.push(s); }
+        groups[key].sessions.push(s);
+      } else if(s.route_name){
+        // No climb_id but has a name — group by name as fallback
+        var nameKey = 'name:'+s.route_name;
+        if(!groups[nameKey]){
+          groups[nameKey]={sessions:[], climbId:null, name:s.route_name, grade:s.grade_value, terrain:s.climbing_type};
+          groupOrder.push(nameKey);
+        }
+        groups[nameKey].sessions.push(s);
+      } else {
+        unnamed.push(s);
+      }
     });
     groupOrder = groupOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
-    groupOrder.forEach(function(name){
-      var g = groups[name];
-      var safeId = name.replace(/[^a-z0-9]/gi,'_');
+    groupOrder.forEach(function(key){
+      var g = groups[key];
+      var name = g.name;
+      var safeId = key.replace(/[^a-z0-9]/gi,'_');
       // Sort attempts date desc within climb
       g.sessions.sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); });
       rows.push({type:'climb', name:name, count:g.sessions.length, climbId:g.climbId, grade:g.grade, terrain:g.terrain});
