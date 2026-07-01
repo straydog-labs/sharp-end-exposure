@@ -471,6 +471,17 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <span class="btn-arrow">→</span>
       </button>
 
+      <!-- Seed your arc card — shown when < 15 climbs and not yet seeded -->
+      <div id="home-seed-card" style="display:none;background:rgba(232,118,58,.08);border:1px solid rgba(232,118,58,.25);border-radius:var(--r-lg);padding:14px 16px;cursor:pointer;" onclick="showSeedArc()">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:3px;">Seed your arc</div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.5;">Add 10 recent climbs to see your patterns now</div>
+          </div>
+          <span style="font-size:20px;color:var(--accent);">→</span>
+        </div>
+      </div>
+
       <!-- Connector line -->
       <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.2);letter-spacing:.02em;line-height:1.5;padding:0 8px;">Three tools to go deeper — before, across time, and in full.</div>
 
@@ -726,7 +737,14 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
     <!-- GRADE — appears after result -->
     <div class="field-group" id="log-grade-group" style="display:none;animation:fadeUp .25s ease;">
-      <div class="field-label">Grade</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div class="field-label" style="margin-bottom:0;">Grade</div>
+        <button id="voice-log-btn" onclick="startVoiceLog()" title="Log by voice"
+          style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:99px;color:var(--accent);font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:5px;">
+          <span id="voice-log-icon">🎤</span>
+          <span id="voice-log-label">Voice</span>
+        </button>
+      </div>
       <div class="grade-toggle">
         <button class="toggle-btn" onclick="setGradeSystem('V')" id="btn-V"><span class="sys-name">V</span><span class="sys-label">Hueco</span></button>
         <button class="toggle-btn active" onclick="setGradeSystem('YDS')" id="btn-YDS"><span class="sys-name">5.x</span><span class="sys-label">Yosemite</span></button>
@@ -747,6 +765,16 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <button class="chip" onclick="selectTerrain(this,'Arête')">Arête</button>
         <button class="chip" onclick="selectTerrain(this,'Dihedral')">Dihedral</button>
         <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
+      </div>
+    </div>
+
+    <!-- Voice parsed summary card -->
+    <div id="voice-parsed-card" style="display:none;background:rgba(232,118,58,.08);border:1px solid rgba(232,118,58,.3);border-radius:var(--r-lg);padding:14px 16px;margin-top:4px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Heard</div>
+      <div id="voice-parsed-summary" style="font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.6;"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="confirmVoiceParse()" style="flex:1;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;">Looks right ✓</button>
+        <button onclick="dismissVoiceCard()" style="background:none;border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px 14px;cursor:pointer;">Clear</button>
       </div>
     </div>
 
@@ -3119,6 +3147,67 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════
+     SEED YOUR ARC — bulk entry flow
+     10 recent climbs to seed the arc fast
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-seed-arc">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-home')">← Skip</button>
+  </div>
+  <div class="content">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Seed your arc</div>
+    <div style="font-size:24px;font-weight:700;line-height:1.2;margin-bottom:6px;">Add recent climbs</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;">Up to 10 climbs to give your arc real shape. Takes under 2 minutes.</div>
+
+    <!-- AI input -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">Describe your recent climbing</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <textarea id="seed-ai-text" placeholder="e.g. sent a 5.11a overhang last week, working a 5.12a slab project, usually climb 5.10s comfortably..."
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px 12px;outline:none;resize:none;min-height:72px;line-height:1.6;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="seedAIparse()" style="flex:1;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Parse with AI →</button>
+        <button id="seed-voice-btn" onclick="startSeedVoice()" style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">🎤</button>
+      </div>
+      <div id="seed-ai-status" style="display:none;font-size:11px;color:var(--muted);margin-top:8px;text-align:center;">Parsing...</div>
+    </div>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <div style="font-size:11px;color:var(--muted2);">or add manually</div>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+
+    <!-- Rapid tap cards -->
+    <div id="seed-cards-wrap" style="margin-bottom:16px;"></div>
+
+    <button onclick="addSeedCard()" style="width:100%;background:var(--surface);border:1px dashed var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;margin-bottom:20px;">+ Add a climb</button>
+
+    <!-- Arc preview -->
+    <div id="seed-arc-preview" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Arc preview</div>
+      <svg id="seed-arc-svg" width="100%" viewBox="0 0 320 60" style="display:block;overflow:visible;">
+        <rect x="0" y="0" width="320" height="20" fill="rgba(255,92,58,.05)"/>
+        <rect x="0" y="20" width="320" height="20" fill="rgba(245,166,35,.04)"/>
+        <rect x="0" y="40" width="320" height="20" fill="rgba(200,245,90,.05)"/>
+        <text x="6" y="8" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(255,92,58,.4)" letter-spacing=".06em">P</text>
+        <text x="6" y="32" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(245,166,35,.4)" letter-spacing=".06em">L</text>
+        <text x="6" y="56" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(200,245,90,.4)" letter-spacing=".06em">C</text>
+        <g id="seed-arc-dots"></g>
+      </svg>
+    </div>
+
+    <button id="seed-save-btn" onclick="saveSeededClimbs()" style="display:none;width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:10px;">
+      Save to arc →
+    </button>
+    <button onclick="showScreen('screen-home')" style="width:100%;background:none;border:none;color:rgba(255,255,255,.25);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;">Skip for now</button>
+  </div>
+</div>
+
 </div><!-- end .app -->
 
 <script>
@@ -3428,7 +3517,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'staging-index108',
+    app_version:'staging-index109',
     device_id:getDeviceId(),
     // Silent capture: drill prediction
     drill_prediction_zone: (drillState&&drillState.prediction)?drillState.prediction.zone:null,
@@ -4517,6 +4606,48 @@ async function loadHomeInsight(){
   }
 
   buildHomeArc(climbs, false);
+
+  // Smarter insight copy — terrain + baseline aware
+  var zones = climbs.reduce(function(a,s){a[s.zone]=(a[s.zone]||0)+1;return a;},{});
+  var dom = Object.keys(zones).sort(function(a,b){return zones[b]-zones[a];})[0]||'learning';
+  var domPct = Math.round(((zones[dom]||0)/total)*100);
+  var recent = climbs.slice(0,5);
+  var recentDom = recent.reduce(function(a,s){a[s.zone]=(a[s.zone]||0)+1;return a;},{});
+  var recentTop = Object.keys(recentDom).sort(function(a,b){return recentDom[b]-recentDom[a];})[0]||dom;
+  var zL = {comfort:'Comfort',learning:'Learning',panic:'Panic'};
+
+  var baselinePreClimb = localStorage.getItem('see_baseline_pre_climb')||null;
+  var terrainZones = {};
+  climbs.forEach(function(s){
+    if(s.climbing_type&&s.zone){
+      if(!terrainZones[s.climbing_type]) terrainZones[s.climbing_type]={comfort:0,learning:0,panic:0,total:0};
+      terrainZones[s.climbing_type][s.zone]=(terrainZones[s.climbing_type][s.zone]||0)+1;
+      terrainZones[s.climbing_type].total++;
+    }
+  });
+  var terrainList = Object.keys(terrainZones).filter(function(t){return terrainZones[t].total>=2;});
+  var panicTerrain = terrainList.slice().sort(function(a,b){
+    return (terrainZones[b].panic/terrainZones[b].total)-(terrainZones[a].panic/terrainZones[a].total);
+  })[0]||null;
+  var comfortTerrain = terrainList.slice().sort(function(a,b){
+    return (terrainZones[b].comfort/terrainZones[b].total)-(terrainZones[a].comfort/terrainZones[a].total);
+  })[0]||null;
+
+  // Show seed arc card
+  var seedCard = document.getElementById('home-seed-card');
+  var seedDone = localStorage.getItem('see_seed_complete');
+  if(seedCard) seedCard.style.display = (total < 15 && !seedDone) ? 'block' : 'none';
+
+  var msg='';
+  if(total<3){ msg=total+' climb'+(total===1?'':'s')+' logged. Keep going — patterns emerge around 5.'; }
+  else if(baselinePreClimb&&baselinePreClimb.includes('anxious')&&dom==='comfort'){ msg='Your baseline was high activation. Recent sessions are tracking '+zL[dom]+' — something has shifted.'; }
+  else if(baselinePreClimb&&baselinePreClimb.includes('settled')&&dom==='panic'){ msg='You logged as typically settled — but sessions are skewing '+zL[dom]+'. Worth noticing.'; }
+  else if(panicTerrain&&comfortTerrain&&panicTerrain!==comfortTerrain){ msg=panicTerrain+' skews your activation higher. '+comfortTerrain+' is where you\'re most settled.'; }
+  else if(recentTop!==dom){ msg='Last 5 sessions trending '+zL[recentTop]+'. Overall you\'re '+domPct+'% '+zL[dom]+'.'; }
+  else { msg=total+' climbs logged. '+domPct+'% '+zL[dom]+' zone overall.'; }
+
+  var homeInsightText = document.getElementById('home-say-more-text');
+  if(homeInsightText&&msg) homeInsightText.innerHTML = msg;
 }
 
 function buildHomeArc(sessions, isExample){
@@ -4666,7 +4797,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'staging-index108'
+    app_version:'staging-index109'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -4943,7 +5074,7 @@ function computeResult(){
   // Save to Supabase — with full prepare answers (silent capture)
   var prepareSessPayload = {
     zone:zone, zone_confidence:'confirmed', baseline_zone:'checkin', is_checkin:true,
-    device_id:getDeviceId(), app_version:'staging-index108',
+    device_id:getDeviceId(), app_version:'staging-index109',
     prepare_breath: prepState.answers[0]||null,
     prepare_gut: prepState.answers[1]||null,
     prepare_breath_post: prepState.answers[3]||null,
@@ -6708,7 +6839,13 @@ async function saveBaseline(){
 function baselineDone(){
   var count = window._userClimbCount || 0;
   if(count === 0){
-    showScreen('screen-log');
+    // New user — offer seed arc before first log
+    var seedDone = localStorage.getItem('see_seed_complete');
+    if(!seedDone){
+      showSeedArc();
+    } else {
+      showScreen('screen-log');
+    }
   } else {
     showScreen('screen-home');
   }
@@ -6942,6 +7079,498 @@ function toggleClimbTable(){
       ? 'var(--r-xl)'
       : 'var(--r-xl) var(--r-xl) 0 0';
   }
+}
+
+// ═══════════════════════════════════════════════════════
+// GRADE NORMALIZER — normalizeSpokenGrade(transcript, activeSys)
+// Parses spoken/typed grade strings into structured grade objects
+// Returns {grade, sys, ambiguous}
+// ═══════════════════════════════════════════════════════
+function normalizeSpokenGrade(transcript, activeSys){
+  var t = transcript.toLowerCase().trim();
+  var result = {grade: null, sys: activeSys || 'YDS', ambiguous: false};
+
+  // ── YDS Routes (5.x) ──
+  // "five nine" → 5.9, "five ten" → 5.10a, "five eleven a" → 5.11a
+  var ydsMatch = t.match(/five\s+(nine|ten|eleven|twelve|thirteen|fourteen|fifteen)(\s+[abcd])?/);
+  if(ydsMatch){
+    var numMap = {nine:'9',ten:'10',eleven:'11',twelve:'12',thirteen:'13',fourteen:'14',fifteen:'15'};
+    var num = numMap[ydsMatch[1]];
+    var letter = ydsMatch[2] ? ydsMatch[2].trim() : null;
+    if(parseInt(num) < 10){
+      result.grade = '5.' + num;
+      result.sys = 'YDS';
+      result.ambiguous = false;
+    } else if(letter){
+      result.grade = '5.' + num + letter;
+      result.sys = 'YDS';
+      result.ambiguous = false;
+    } else {
+      // "five ten" without letter — default to a, flag ambiguous
+      result.grade = '5.' + num + 'a';
+      result.sys = 'YDS';
+      result.ambiguous = true;
+    }
+    return result;
+  }
+
+  // Direct YDS notation: "5.11a", "5.10", "5.9"
+  var ydsDirectMatch = t.match(/5\.([0-9]{1,2})([abcd])?/);
+  if(ydsDirectMatch){
+    var num = ydsDirectMatch[1];
+    var letter = ydsDirectMatch[2] || null;
+    if(parseInt(num) < 10){
+      result.grade = '5.' + num;
+      result.sys = 'YDS';
+      result.ambiguous = false;
+    } else if(letter){
+      result.grade = '5.' + num + letter;
+      result.sys = 'YDS';
+      result.ambiguous = false;
+    } else {
+      result.grade = '5.' + num + 'a';
+      result.sys = 'YDS';
+      result.ambiguous = true;
+    }
+    return result;
+  }
+
+  // ── V-Scale Bouldering ──
+  // "v six", "vee six", "v6"
+  var vMatch = t.match(/(?:v(?:ee)?|vee)\s*([0-9]+)/);
+  if(vMatch){
+    result.grade = 'V' + vMatch[1];
+    result.sys = 'V';
+    result.ambiguous = false;
+    return result;
+  }
+
+  // If activeSys is V and bare number given: "six" → V6
+  if((activeSys === 'V') && t.match(/^[0-9]+$/)){
+    result.grade = 'V' + t;
+    result.sys = 'V';
+    result.ambiguous = false;
+    return result;
+  }
+
+  // ── French Sport Grades ──
+  // "font six a", "six a plus", "6a+", "7b+"
+  var frFontMatch = t.match(/(?:font\s*)?([4-9])([abc])(\+)?/);
+  if(frFontMatch){
+    result.grade = frFontMatch[1] + frFontMatch[2] + (frFontMatch[3]||'');
+    result.sys = 'FR';
+    result.ambiguous = false;
+    return result;
+  }
+
+  // "six a plus" spoken
+  var frSpokenMatch = t.match(/(four|five|six|seven|eight|nine)\s+([abc])(?:\s+(plus))?/);
+  if(frSpokenMatch){
+    var numMap2 = {four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9'};
+    var num = numMap2[frSpokenMatch[1]];
+    var letter = frSpokenMatch[2];
+    var plus = frSpokenMatch[3] ? '+' : '';
+    result.grade = num + letter + plus;
+    result.sys = 'FR';
+    result.ambiguous = false;
+    return result;
+  }
+
+  // ── UK Technical ──
+  // "e three", "e3", "HVS", "VS"
+  if(activeSys === 'UK'){
+    var ukMatch = t.match(/e\s*([0-9]+)/i) || t.match(/(hvs|vs|s|hs|ms|d|vd|mvs)/i);
+    if(ukMatch){
+      result.grade = ukMatch[0].toUpperCase().replace(/\s+/g,'');
+      result.sys = 'UK';
+      result.ambiguous = false;
+      return result;
+    }
+  }
+
+  // ── Half grades ──
+  // "five eleven and a half" → 5.11a ambiguous
+  var halfMatch = t.match(/five\s+(ten|eleven|twelve|thirteen)\s+and\s+a\s+half/);
+  if(halfMatch){
+    var numMap3 = {ten:'10',eleven:'11',twelve:'12',thirteen:'13'};
+    result.grade = '5.' + numMap3[halfMatch[1]] + 'a';
+    result.sys = 'YDS';
+    result.ambiguous = true;
+    return result;
+  }
+
+  // Nothing matched
+  result.grade = null;
+  result.ambiguous = true;
+  return result;
+}
+
+// ── Extract result from transcript ──
+function extractResultFromTranscript(t){
+  t = t.toLowerCase();
+  if(t.includes('sent') || t.includes('send') || t.includes('topped') || t.includes('topped out') || t.includes('flashed')) return 'sent';
+  if(t.includes('backed off') || t.includes('back off') || t.includes('bailed') || t.includes('dna') || t.includes('did not')) return 'dna';
+  if(t.includes('fell') || t.includes('fall') || t.includes('took a fall') || t.includes('whipped')) return 'fell';
+  if(t.includes('projecting') || t.includes('project') || t.includes('working')) return 'projecting';
+  return null;
+}
+
+// ── Extract terrain from transcript ──
+function extractTerrainFromTranscript(t){
+  t = t.toLowerCase();
+  if(t.includes('overhang') || t.includes('overhanging')) return 'Overhang';
+  if(t.includes('slab')) return 'Slab';
+  if(t.includes('roof')) return 'Roof';
+  if(t.includes('crack')) return 'Crack';
+  if(t.includes('arete') || t.includes('arête') || t.includes('arête')) return 'Arête';
+  if(t.includes('dihedral') || t.includes('corner')) return 'Dihedral';
+  if(t.includes('vertical') || t.includes('face')) return 'Vertical';
+  if(t.includes('trad')) return 'Trad lead';
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+// VOICE INPUT — log screen
+// Web Speech API, no backend
+// ═══════════════════════════════════════════════════════
+var _voiceParsed = null; // stores last parsed voice result
+
+function startVoiceLog(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    showToast('Voice not supported in this browser. Try Chrome.');
+    return;
+  }
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 3;
+
+  var btn = document.getElementById('voice-log-btn');
+  var icon = document.getElementById('voice-log-icon');
+  var label = document.getElementById('voice-log-label');
+
+  // Listening state
+  if(icon) icon.textContent = '⏺';
+  if(label) label.textContent = 'Listening...';
+  if(btn) btn.style.background = 'rgba(232,68,68,.2)';
+  showToast('Speak your climb — e.g. "sent 5.11a overhang"');
+
+  recognition.onresult = function(event){
+    var transcript = event.results[0][0].transcript;
+    parseVoiceTranscript(transcript);
+    resetVoiceBtn();
+  };
+
+  recognition.onerror = function(e){
+    showToast('Voice error: ' + (e.error||'unknown') + '. Try again.');
+    resetVoiceBtn();
+  };
+
+  recognition.onend = function(){
+    resetVoiceBtn();
+  };
+
+  recognition.start();
+}
+
+function resetVoiceBtn(){
+  var icon = document.getElementById('voice-log-icon');
+  var label = document.getElementById('voice-log-label');
+  var btn = document.getElementById('voice-log-btn');
+  if(icon) icon.textContent = '🎤';
+  if(label) label.textContent = 'Voice';
+  if(btn) btn.style.background = 'rgba(232,118,58,.12)';
+}
+
+function parseVoiceTranscript(transcript, forSeed){
+  var sys = logState.gradeSys || localStorage.getItem('see_grade_sys') || 'YDS';
+  var gradeResult = normalizeSpokenGrade(transcript, sys);
+  var result = extractResultFromTranscript(transcript);
+  var terrain = extractTerrainFromTranscript(transcript);
+
+  _voiceParsed = {grade: gradeResult.grade, gradeAmbiguous: gradeResult.ambiguous, result: result, terrain: terrain, transcript: transcript};
+
+  if(forSeed) return _voiceParsed; // return for seed flow
+
+  // Apply to log screen fields
+  if(result) selectResult(result);
+
+  if(gradeResult.grade){
+    logState.grade = gradeResult.grade;
+    logState.gradeSys = gradeResult.sys;
+    buildGradeGrid(gradeResult.sys);
+    document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){
+      b.classList.toggle('selected', b.textContent === gradeResult.grade);
+    });
+    var gg = document.getElementById('log-grade-group');
+    if(gg) gg.style.display = 'flex';
+  }
+
+  if(terrain){
+    logState.terrain = terrain;
+    document.querySelectorAll('.terrain-chips .chip').forEach(function(b){
+      b.classList.toggle('selected', b.textContent.trim() === terrain);
+    });
+  }
+
+  // Show parsed summary card
+  var parts = [];
+  if(result){ var rLabels={sent:'Sent ✓',fell:'Fell',dna:'Backed off',projecting:'Projecting'}; parts.push('<strong>'+(rLabels[result]||result)+'</strong>'); }
+  if(gradeResult.grade){ parts.push('<strong>'+gradeResult.grade+(gradeResult.ambiguous?' <span style="color:#f5a623;font-size:11px;">(tap to correct)</span>':'')+'</strong>'); }
+  if(terrain){ parts.push('<strong>'+terrain+'</strong>'); }
+
+  var card = document.getElementById('voice-parsed-card');
+  var summary = document.getElementById('voice-parsed-summary');
+  if(summary) summary.innerHTML = '"'+transcript+'"<br><span style="color:var(--muted);font-size:12px;">→ '+parts.join(' · ')+'</span>';
+  if(card) card.style.display = 'block';
+
+  checkLogReady();
+}
+
+function confirmVoiceParse(){
+  var card = document.getElementById('voice-parsed-card');
+  if(card) card.style.display = 'none';
+  _voiceParsed = null;
+}
+
+function dismissVoiceCard(){
+  var card = document.getElementById('voice-parsed-card');
+  if(card) card.style.display = 'none';
+  _voiceParsed = null;
+}
+
+// ═══════════════════════════════════════════════════════
+// SEED YOUR ARC — bulk entry
+// ═══════════════════════════════════════════════════════
+var _seedCards = []; // [{grade, zone, result, terrain, routeName}]
+
+function showSeedArc(){
+  _seedCards = [];
+  renderSeedCards();
+  updateSeedArcPreview();
+  document.getElementById('seed-save-btn').style.display = 'none';
+  document.getElementById('seed-arc-preview').style.display = 'none';
+  var ta = document.getElementById('seed-ai-text');
+  if(ta) ta.value = '';
+  showScreen('screen-seed-arc');
+}
+
+function addSeedCard(prefill){
+  if(_seedCards.length >= 10){ showToast('Max 10 climbs'); return; }
+  _seedCards.push(prefill || {grade:null, zone:null, result:'fell', terrain:null, routeName:''});
+  renderSeedCards();
+  updateSeedArcPreview();
+}
+
+function removeSeedCard(idx){
+  _seedCards.splice(idx, 1);
+  renderSeedCards();
+  updateSeedArcPreview();
+}
+
+function updateSeedCard(idx, field, value){
+  if(_seedCards[idx]) _seedCards[idx][field] = value;
+  updateSeedArcPreview();
+  checkSeedSaveReady();
+}
+
+function checkSeedSaveReady(){
+  var valid = _seedCards.filter(function(c){ return c.grade && c.zone; });
+  var saveBtn = document.getElementById('seed-save-btn');
+  var previewWrap = document.getElementById('seed-arc-preview');
+  if(saveBtn) saveBtn.style.display = valid.length > 0 ? 'block' : 'none';
+  if(previewWrap) previewWrap.style.display = valid.length > 0 ? 'block' : 'none';
+}
+
+function renderSeedCards(){
+  var wrap = document.getElementById('seed-cards-wrap');
+  if(!wrap) return;
+  if(_seedCards.length === 0){ wrap.innerHTML = ''; return; }
+
+  var sys = localStorage.getItem('see_grade_sys') || 'YDS';
+  var grades = sys === 'V'
+    ? ['VB','V0','V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12']
+    : ['5.6','5.7','5.8','5.9','5.10a','5.10b','5.10c','5.10d','5.11a','5.11b','5.11c','5.11d','5.12a','5.12b','5.12c','5.12d','5.13a','5.13b','5.13c','5.13d','5.14a','5.14b'];
+
+  wrap.innerHTML = _seedCards.map(function(card, idx){
+    var zoneColors = {comfort:'#7ec87a',learning:'#f5a623',panic:'#e84444'};
+    var zoneOpts = ['comfort','learning','panic'].map(function(z){
+      var c = zoneColors[z];
+      var sel = card.zone === z;
+      return '<button data-idx="'+idx+'" data-zone="'+z+'" data-field="zone" onclick="updateSeedCard(this.dataset.idx,this.dataset.field,this.dataset.zone);renderSeedCards();" '
+        + 'style="flex:1;background:'+(sel?c+'22':'var(--surface2)')+';border:1px solid '+(sel?c:'var(--border)')+';border-radius:var(--r-sm);color:'+(sel?c:'var(--muted)')+';font-size:11px;font-weight:700;padding:7px;cursor:pointer;text-transform:capitalize;">'+z+'</button>';
+    }).join('');
+
+    var gradeOpts = grades.map(function(g){
+      var sel = card.grade === g;
+      return '<button data-idx="'+idx+'" data-grade="'+g+'" data-field="grade" onclick="updateSeedCard(this.dataset.idx,this.dataset.field,this.dataset.grade);renderSeedCards();" '
+        + 'style="background:'+(sel?'var(--accent)':'var(--surface2)')+';border:1px solid '+(sel?'var(--accent)':'var(--border)')+';border-radius:6px;color:'+(sel?'#fff':'var(--muted)')+';font-size:11px;font-weight:600;padding:4px 8px;cursor:pointer;white-space:nowrap;">'+g+'</button>';
+    }).join('');
+
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px;">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--accent);">Climb '+(idx+1)+'</div>'
+      + '<button onclick="removeSeedCard('+idx+')" style="background:none;border:none;color:var(--muted2);font-size:18px;cursor:pointer;line-height:1;">×</button>'
+      + '</div>'
+      // Zone
+      + '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">How activated were you?</div>'
+      + '<div style="display:flex;gap:6px;margin-bottom:12px;">' + zoneOpts + '</div>'
+      // Grade
+      + '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Grade</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">' + gradeOpts + '</div>'
+      + '</div>';
+  }).join('');
+
+  checkSeedSaveReady();
+}
+
+function updateSeedArcPreview(){
+  var dotsEl = document.getElementById('seed-arc-dots');
+  if(!dotsEl) return;
+  var valid = _seedCards.filter(function(c){ return c.zone; });
+  if(valid.length === 0){ dotsEl.innerHTML = ''; return; }
+
+  var zoneY = {comfort:52, learning:30, panic:8};
+  var zoneC = {comfort:'#7ec87a', learning:'#f5a623', panic:'#e84444'};
+  var n = valid.length;
+  var html = '';
+  var pts = [];
+
+  valid.forEach(function(card, i){
+    var x = n === 1 ? 160 : 20 + (i / (n-1)) * 280;
+    var y = zoneY[card.zone] || 30;
+    var c = zoneC[card.zone] || '#f5a623';
+    pts.push(x+','+y);
+    // Open circle — seeded data
+    html += '<circle cx="'+x.toFixed(1)+'" cy="'+y+'" r="5" fill="none" stroke="'+c+'" stroke-width="2"/>';
+  });
+
+  if(pts.length > 1){
+    html = '<polyline points="'+pts.join(' ')+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linejoin="round"/>' + html;
+  }
+
+  dotsEl.innerHTML = html;
+}
+
+async function saveSeededClimbs(){
+  var valid = _seedCards.filter(function(c){ return c.grade && c.zone; });
+  if(valid.length === 0){ showToast('Add at least one climb with grade and zone'); return; }
+
+  var saveBtn = document.getElementById('seed-save-btn');
+  if(saveBtn){ saveBtn.textContent = 'Saving...'; saveBtn.style.opacity = '.6'; saveBtn.style.pointerEvents = 'none'; }
+
+  var deviceId = getDeviceId();
+  var promises = valid.map(function(card){
+    return sbI('sessions', {
+      device_id: deviceId,
+      grade_value: card.grade,
+      climbing_type: card.terrain || null,
+      zone: card.zone,
+      zone_confidence: 'estimated',
+      baseline_zone: card.result || 'fell',
+      route_name: card.routeName || null,
+      is_seeded: true,
+      is_checkin: false,
+      app_version: 'staging-index109'
+    });
+  });
+
+  try{
+    await Promise.all(promises);
+    localStorage.setItem('see_seed_complete', '1');
+    showToast(valid.length + ' climbs seeded ✓');
+    showScreen('screen-sessions');
+    loadClimbLog();
+  } catch(e){
+    showToast('Save error — try again');
+    if(saveBtn){ saveBtn.textContent = 'Save to arc →'; saveBtn.style.opacity = '1'; saveBtn.style.pointerEvents = 'all'; }
+  }
+}
+
+async function seedAIparse(){
+  var ta = document.getElementById('seed-ai-text');
+  var text = ta ? ta.value.trim() : '';
+  if(!text){ showToast('Describe your climbing first'); return; }
+
+  var status = document.getElementById('seed-ai-status');
+  if(status) status.style.display = 'block';
+
+  // Show rapid tap UI immediately — API fires in parallel
+  // Pre-populate with one empty card if none exist
+  if(_seedCards.length === 0) addSeedCard();
+
+  // Fire API call — non-blocking, 3 second window
+  var apiTimeout = new Promise(function(resolve){ setTimeout(function(){ resolve(null); }, 3000); });
+
+  var apiCall = fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: 'Parse this climbing description into a JSON array of up to 10 climbs. Each object: {grade_value, zone (comfort/learning/panic), result (sent/fell/dna), climbing_type, route_name}. Return ONLY valid JSON array, no preamble. Description: ' + text
+      }]
+    })
+  }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+
+  var result = await Promise.race([apiCall, apiTimeout]);
+
+  if(status) status.style.display = 'none';
+
+  if(result && result.content && result.content[0]){
+    try{
+      var raw = result.content[0].text;
+      var clean = raw.replace(/```json|```/g,'').trim();
+      var parsed = JSON.parse(clean);
+      if(Array.isArray(parsed) && parsed.length > 0){
+        // Replace cards with parsed results
+        _seedCards = parsed.slice(0,10).map(function(c){
+          return {
+            grade: c.grade_value || null,
+            zone: c.zone || null,
+            result: c.result || 'fell',
+            terrain: c.climbing_type || null,
+            routeName: c.route_name || ''
+          };
+        });
+        renderSeedCards();
+        updateSeedArcPreview();
+        showToast('AI parsed ' + _seedCards.length + ' climbs — review and save');
+        return;
+      }
+    }catch(e){}
+  }
+  // API failed or timed out — rapid tap UI already showing
+  showToast('Using manual entry — fill in your climbs below');
+}
+
+function startSeedVoice(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    showToast('Voice not supported. Type your description instead.');
+    return;
+  }
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = new SpeechRecognition();
+  rec.lang = 'en-US';
+  rec.interimResults = false;
+  var btn = document.getElementById('seed-voice-btn');
+  if(btn){ btn.textContent = '⏺'; btn.style.background = 'rgba(232,68,68,.2)'; }
+  showToast('Speak your recent climbing...');
+
+  rec.onresult = function(e){
+    var t = e.results[0][0].transcript;
+    var ta = document.getElementById('seed-ai-text');
+    if(ta) ta.value = t;
+    if(btn){ btn.textContent = '🎤'; btn.style.background = 'rgba(232,118,58,.12)'; }
+    seedAIparse();
+  };
+  rec.onerror = function(){
+    if(btn){ btn.textContent = '🎤'; btn.style.background = 'rgba(232,118,58,.12)'; }
+  };
+  rec.start();
 }
 
 // ═══════════════════════════════════════════════════════
