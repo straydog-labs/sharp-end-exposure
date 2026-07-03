@@ -131,7 +131,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .grade-btn.sel,.grade-btn.selected{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
 
 /* ── CHIPS ── */
-.terrain-chips,.response-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.terrain-chips,.response-chips{display:flex;flex-wrap:wrap;gap:8px;width:100%;overflow:hidden;}
 .chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:16px;padding:12px 20px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;white-space:nowrap;font-weight:500;}
 .chip:active{transform:scale(.95);}
 .chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
@@ -735,6 +735,9 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <div style="font-size:11px;color:var(--muted);margin-top:4px;">Named climbs link across sessions and build richer patterns over time.</div>
     </div>
 
+    <!-- Voice hint -->
+    <div id="voice-hint" style="display:none;text-align:center;font-size:11px;color:var(--muted);margin:-4px 0 8px;">or use voice ↓</div>
+
     <!-- GRADE — appears after result -->
     <div class="field-group" id="log-grade-group" style="display:none;animation:fadeUp .25s ease;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -824,7 +827,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
           <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Activation zone</div>
           <div id="cel-zone-pill"></div>
         </div>
-        <button id="cel-deeper-btn" onclick="startDeeper()" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">Confirm →</button>
+        <button id="cel-deeper-btn" onclick="startDeeper()" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">Go Deeper →</button>
       </div>
       <div style="padding:0 16px 12px;font-size:11px;color:var(--muted2);">4 questions · ~15 seconds · zone updates in place</div>
       <!-- Zone shift — shown after Go Deeper updates zone -->
@@ -1602,10 +1605,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <!-- SORT + TOGGLE CONTROLS -->
     <div id="climb-log-controls" style="display:none;margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:3px;">
-          <button id="cl-toggle-flat" onclick="setClimbLogView('flat')" style="background:none;border:none;border-radius:8px;color:var(--muted);font-size:12px;font-weight:600;padding:6px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Flat</button>
-          <button id="cl-toggle-grouped" onclick="setClimbLogView('grouped')" style="background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">By route</button>
-        </div>
+  <div></div><!-- flat/grouped toggle removed — grouped is default and only view -->
         <div style="font-size:11px;color:var(--muted);" id="cl-count-label"></div>
       </div>
       <div style="font-size:11px;color:var(--muted2);padding:2px 0 4px;">Tap a column header to sort</div>
@@ -3121,7 +3121,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="baseline-q-num">Question 1 of 6</div>
       <div style="font-size:20px;font-weight:700;line-height:1.3;margin-bottom:6px;color:var(--text);" id="baseline-q-text">—</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:16px;" id="baseline-q-label"></div>
-      <div id="baseline-q-opts" class="response-chips" style="flex-wrap:wrap;gap:8px;"></div>
+      <div id="baseline-q-opts" class="response-chips" style="flex-wrap:wrap;gap:8px;width:100%;overflow:hidden;"></div>
     </div>
 
     <button id="baseline-next-btn" onclick="baselineNext()"
@@ -3421,8 +3421,10 @@ function selectResult(r){
   // Reveal grade and route name fields
   var gradeGroup=document.getElementById('log-grade-group');
   var rnameGroup=document.getElementById('log-rname-group');
+  var voiceHint=document.getElementById('voice-hint');
   if(gradeGroup){gradeGroup.style.display='flex';}
   if(rnameGroup){rnameGroup.style.display='flex';}
+  if(voiceHint){voiceHint.style.display='block';}
   checkLogReady();
 }
 
@@ -3517,7 +3519,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'staging-index109',
+    app_version:'staging-index110',
     device_id:getDeviceId(),
     // Silent capture: drill prediction
     drill_prediction_zone: (drillState&&drillState.prediction)?drillState.prediction.zone:null,
@@ -4633,10 +4635,9 @@ async function loadHomeInsight(){
     return (terrainZones[b].comfort/terrainZones[b].total)-(terrainZones[a].comfort/terrainZones[a].total);
   })[0]||null;
 
-  // Show seed arc card
+  // Show seed arc card until 15 climbs — gentle persistent reminder
   var seedCard = document.getElementById('home-seed-card');
-  var seedDone = localStorage.getItem('see_seed_complete');
-  if(seedCard) seedCard.style.display = (total < 15 && !seedDone) ? 'block' : 'none';
+  if(seedCard) seedCard.style.display = total < 15 ? 'block' : 'none';
 
   var msg='';
   if(total<3){ msg=total+' climb'+(total===1?'':'s')+' logged. Keep going — patterns emerge around 5.'; }
@@ -4797,7 +4798,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'staging-index109'
+    app_version:'staging-index110'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -5074,7 +5075,7 @@ function computeResult(){
   // Save to Supabase — with full prepare answers (silent capture)
   var prepareSessPayload = {
     zone:zone, zone_confidence:'confirmed', baseline_zone:'checkin', is_checkin:true,
-    device_id:getDeviceId(), app_version:'staging-index109',
+    device_id:getDeviceId(), app_version:'staging-index110',
     prepare_breath: prepState.answers[0]||null,
     prepare_gut: prepState.answers[1]||null,
     prepare_breath_post: prepState.answers[3]||null,
@@ -6289,8 +6290,8 @@ function setClimbLogView(view){
 
 function _syncViewToggleButtons(){
   var view = climbLogState.view;
-  var flatBtn = document.getElementById('cl-toggle-flat');
-  var groupedBtn = document.getElementById('cl-toggle-grouped');
+  var flatBtn = null; // toggle removed
+  var groupedBtn = null; // toggle removed
   if(flatBtn){ flatBtn.style.background = view==='flat' ? 'var(--accent)' : 'none'; flatBtn.style.color = view==='flat' ? '#fff' : 'var(--muted)'; flatBtn.style.fontWeight = view==='flat' ? '700' : '600'; }
   if(groupedBtn){ groupedBtn.style.background = view==='grouped' ? 'var(--accent)' : 'none'; groupedBtn.style.color = view==='grouped' ? '#fff' : 'var(--muted)'; groupedBtn.style.fontWeight = view==='grouped' ? '700' : '600'; }
 }
@@ -7042,15 +7043,25 @@ function buildSpiderChart(sessions){
     return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="5" fill="'+c+'" stroke="var(--bg)" stroke-width="1.5"/>';
   }).join('');
 
-  // Labels
+  // Labels — dynamic anchoring with extra clearance for edge labels
   var labelHtml = active.map(function(t,i){
-    var p = axisPoint(i, maxR + 26);
-    var anchor = p.x < cx - 5 ? 'end' : p.x > cx + 5 ? 'start' : 'middle';
+    var labelR = maxR + 30;
+    var p = axisPoint(i, labelR);
+    // Determine anchor based on position, with threshold for middle
+    var anchor;
+    if(p.x < cx - 15) anchor = 'end';
+    else if(p.x > cx + 15) anchor = 'start';
+    else anchor = 'middle';
+    // Clamp x to stay within viewBox with margin
+    var margin = 8;
+    var clampedX = Math.max(margin + 30, Math.min(260 - margin - 20, p.x));
     var d = data[t];
     var dom = d.panic > d.learning && d.panic > d.comfort ? 'P' : d.learning >= d.comfort ? 'L' : 'C';
     var domColor = d.panic > d.learning && d.panic > d.comfort ? '#e84444' : d.learning >= d.comfort ? '#f5a623' : '#7ec87a';
-    return '<text x="'+p.x.toFixed(1)+'" y="'+(p.y-6).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">'+t+'</text>'
-      + '<text x="'+p.x.toFixed(1)+'" y="'+(p.y+7).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="9" fill="'+domColor+'">'+d.total+' · '+dom+'</text>';
+    // Shorten long terrain names for SVG labels
+    var shortLabel = t === 'Overhang' ? 'O-hang' : t === 'Dihedral' ? 'Dihdr' : t;
+    return '<text x="'+clampedX.toFixed(1)+'" y="'+(p.y-6).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">'+shortLabel+'</text>'
+      + '<text x="'+clampedX.toFixed(1)+'" y="'+(p.y+7).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="9" fill="'+domColor+'">'+d.total+' · '+dom+'</text>';
   }).join('');
 
   // Zone legend
@@ -7089,6 +7100,16 @@ function toggleClimbTable(){
 function normalizeSpokenGrade(transcript, activeSys){
   var t = transcript.toLowerCase().trim();
   var result = {grade: null, sys: activeSys || 'YDS', ambiguous: false};
+
+  // Pre-processing: fix concatenated digit artifacts from speech recognition
+  // "511" → "5.11", "510" → "5.10", "512" → "5.12" etc
+  t = t.replace(/\b5([0-9]{2})([abcd])?\b/g, function(match, digits, letter){
+    return '5.' + digits + (letter || '');
+  });
+  // "send" → "sent" (common mishear)
+  t = t.replace(/\bsend\b/g, 'sent');
+  // "overhead" → "overhang"
+  t = t.replace(/\boverhead\b/g, 'overhang');
 
   // ── YDS Routes (5.x) ──
   // "five nine" → 5.9, "five ten" → 5.10a, "five eleven a" → 5.11a
@@ -7208,7 +7229,9 @@ function normalizeSpokenGrade(transcript, activeSys){
 // ── Extract result from transcript ──
 function extractResultFromTranscript(t){
   t = t.toLowerCase();
-  if(t.includes('sent') || t.includes('send') || t.includes('topped') || t.includes('topped out') || t.includes('flashed')) return 'sent';
+  // Fix common speech recognition mishears
+  t = t.replace(/\bsend\b/g, 'sent').replace(/\boverhead\b/g, 'overhang');
+  if(t.includes('sent') || t.includes('topped') || t.includes('topped out') || t.includes('flashed')) return 'sent';
   if(t.includes('backed off') || t.includes('back off') || t.includes('bailed') || t.includes('dna') || t.includes('did not')) return 'dna';
   if(t.includes('fell') || t.includes('fall') || t.includes('took a fall') || t.includes('whipped')) return 'fell';
   if(t.includes('projecting') || t.includes('project') || t.includes('working')) return 'projecting';
@@ -7218,7 +7241,7 @@ function extractResultFromTranscript(t){
 // ── Extract terrain from transcript ──
 function extractTerrainFromTranscript(t){
   t = t.toLowerCase();
-  if(t.includes('overhang') || t.includes('overhanging')) return 'Overhang';
+  if(t.includes('overhang') || t.includes('overhanging') || t.includes('overhead')) return 'Overhang';
   if(t.includes('slab')) return 'Slab';
   if(t.includes('roof')) return 'Roof';
   if(t.includes('crack')) return 'Crack';
@@ -7408,6 +7431,13 @@ function renderSeedCards(){
         + 'style="background:'+(sel?'var(--accent)':'var(--surface2)')+';border:1px solid '+(sel?'var(--accent)':'var(--border)')+';border-radius:6px;color:'+(sel?'#fff':'var(--muted)')+';font-size:11px;font-weight:600;padding:4px 8px;cursor:pointer;white-space:nowrap;">'+g+'</button>';
     }).join('');
 
+    var terrains = ['Slab','Vertical','Overhang','Roof','Arête','Crack'];
+    var terrainOpts = terrains.map(function(ter){
+      var sel = card.terrain === ter;
+      return '<button data-idx="'+idx+'" data-terrain="'+ter+'" data-field="terrain" onclick="updateSeedCard(this.dataset.idx,this.dataset.field,this.dataset.terrain);renderSeedCards();" '
+        + 'style="background:'+(sel?'rgba(232,118,58,.2)':'var(--surface2)')+';border:1px solid '+(sel?'var(--accent)':'var(--border)')+';border-radius:99px;color:'+(sel?'var(--accent)':'var(--muted)')+';font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;white-space:nowrap;">'+ter+'</button>';
+    }).join('');
+
     return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px;">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
       + '<div style="font-size:12px;font-weight:700;color:var(--accent);">Climb '+(idx+1)+'</div>'
@@ -7418,7 +7448,10 @@ function renderSeedCards(){
       + '<div style="display:flex;gap:6px;margin-bottom:12px;">' + zoneOpts + '</div>'
       // Grade
       + '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Grade</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">' + gradeOpts + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;">' + gradeOpts + '</div>'
+      // Terrain (optional)
+      + '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Terrain <span style="font-weight:400;text-transform:none;">(optional)</span></div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;">' + terrainOpts + '</div>'
       + '</div>';
   }).join('');
 
@@ -7544,7 +7577,7 @@ async function seedAIparse(){
     }catch(e){}
   }
   // API failed or timed out — rapid tap UI already showing
-  showToast('Using manual entry — fill in your climbs below');
+  showToast('Add your climbs below — or try the description again.');
 }
 
 function startSeedVoice(){
