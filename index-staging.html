@@ -132,7 +132,8 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 
 /* ── CHIPS ── */
 .terrain-chips,.response-chips{display:flex;flex-wrap:wrap;gap:8px;width:100%;overflow:hidden;}
-.chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:16px;padding:12px 20px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;white-space:nowrap;font-weight:500;}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:16px;padding:12px 20px;cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent;white-space:nowrap;font-weight:500;box-sizing:border-box;max-width:100%;}
+#baseline-q-opts .chip{white-space:normal;word-break:break-word;width:100%;display:block;border-radius:var(--r-lg);text-align:left;}
 .chip:active{transform:scale(.95);}
 .chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
 
@@ -706,6 +707,20 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div>
     <div class="screen-title">Log a climb<span class="sub">What just happened out there?</span></div>
 
+    <!-- Voice entry point — always visible, primary not secondary -->
+    <div class="field-group">
+      <button id="voice-log-btn" onclick="startVoiceLog()"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:10px;transition:border-color .15s;"
+        onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <span id="voice-log-icon" style="font-size:20px;line-height:1;flex-shrink:0;">&#127908;</span>
+        <div style="text-align:left;">
+          <div id="voice-log-label" style="font-size:14px;font-weight:700;color:var(--accent);">Log by voice</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:1px;">Say "sent 5.11a overhang"</div>
+        </div>
+        <span style="margin-left:auto;font-size:18px;color:var(--muted);">→</span>
+      </button>
+    </div>
+
     <!-- RESULT FIRST — outcome leads -->
     <div class="field-group">
       <div class="field-label">Result</div>
@@ -735,19 +750,9 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <div style="font-size:11px;color:var(--muted);margin-top:4px;">Named climbs link across sessions and build richer patterns over time.</div>
     </div>
 
-    <!-- Voice hint -->
-    <div id="voice-hint" style="display:none;text-align:center;font-size:11px;color:var(--muted);margin:-4px 0 8px;">or use voice ↓</div>
-
     <!-- GRADE — appears after result -->
     <div class="field-group" id="log-grade-group" style="display:none;animation:fadeUp .25s ease;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-        <div class="field-label" style="margin-bottom:0;">Grade</div>
-        <button id="voice-log-btn" onclick="startVoiceLog()" title="Log by voice"
-          style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:99px;color:var(--accent);font-size:11px;font-weight:700;padding:5px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:5px;">
-          <span id="voice-log-icon">🎤</span>
-          <span id="voice-log-label">Voice</span>
-        </button>
-      </div>
+      <div class="field-label">Grade</div>
       <div class="grade-toggle">
         <button class="toggle-btn" onclick="setGradeSystem('V')" id="btn-V"><span class="sys-name">V</span><span class="sys-label">Hueco</span></button>
         <button class="toggle-btn active" onclick="setGradeSystem('YDS')" id="btn-YDS"><span class="sys-name">5.x</span><span class="sys-label">Yosemite</span></button>
@@ -3121,7 +3126,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
       <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="baseline-q-num">Question 1 of 6</div>
       <div style="font-size:20px;font-weight:700;line-height:1.3;margin-bottom:6px;color:var(--text);" id="baseline-q-text">—</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:16px;" id="baseline-q-label"></div>
-      <div id="baseline-q-opts" class="response-chips" style="flex-wrap:wrap;gap:8px;width:100%;overflow:hidden;"></div>
+      <div id="baseline-q-opts" style="display:flex;flex-direction:column;gap:8px;width:100%;"></div>
     </div>
 
     <button id="baseline-next-btn" onclick="baselineNext()"
@@ -3165,11 +3170,11 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:16px;">
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">Describe your recent climbing</div>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <textarea id="seed-ai-text" placeholder="e.g. sent a 5.11a overhang last week, working a 5.12a slab project, usually climb 5.10s comfortably..."
+        <textarea id="seed-ai-text" placeholder="Describe your recent climbs — grades, terrain, results..."
           style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px 12px;outline:none;resize:none;min-height:72px;line-height:1.6;"></textarea>
       </div>
       <div style="display:flex;gap:8px;">
-        <button onclick="seedAIparse()" style="flex:1;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Parse with AI →</button>
+        <button onclick="seedAIparse()" style="flex:1;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Fill from description →</button>
         <button id="seed-voice-btn" onclick="startSeedVoice()" style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">🎤</button>
       </div>
       <div id="seed-ai-status" style="display:none;font-size:11px;color:var(--muted);margin-top:8px;text-align:center;">Parsing...</div>
@@ -3421,10 +3426,8 @@ function selectResult(r){
   // Reveal grade and route name fields
   var gradeGroup=document.getElementById('log-grade-group');
   var rnameGroup=document.getElementById('log-rname-group');
-  var voiceHint=document.getElementById('voice-hint');
   if(gradeGroup){gradeGroup.style.display='flex';}
   if(rnameGroup){rnameGroup.style.display='flex';}
-  if(voiceHint){voiceHint.style.display='block';}
   checkLogReady();
 }
 
@@ -3519,7 +3522,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'staging-index110',
+    app_version:'staging-index111',
     device_id:getDeviceId(),
     // Silent capture: drill prediction
     drill_prediction_zone: (drillState&&drillState.prediction)?drillState.prediction.zone:null,
@@ -3950,13 +3953,14 @@ document.addEventListener('click',function(e){
 
 function resetLogScreen(){
   _climbCache=null; // refresh cache on next log
+  // Always clear result button visual state — never carry over from previous session
+  ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
+    var b=document.getElementById(id);
+    if(b){b.classList.remove('selected','selected-send','selected-attempt','selected-dna');b.style.borderColor='';b.style.background='';}
+  });
   // Preserve _selectedClimbId and projectId when arriving via launchLogWithClimb or project
-  // _selectedClimbId is only cleared by logAnother() and clearClimbSelection()
   if(_selectedClimbId || (logState.projectId&&logState.grade))return;
   logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:logState.projectId||null,projectName:logState.projectName||null};
-  ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
-    var b=document.getElementById(id);if(b){b.classList.remove('selected');b.style.borderColor='';b.style.background='';}
-  });
   document.querySelectorAll('.terrain-chips .chip').forEach(function(b){b.classList.remove('selected');});
   document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
   var gradeGroup=document.getElementById('log-grade-group');
@@ -4798,7 +4802,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'staging-index110'
+    app_version:'staging-index111'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -5075,7 +5079,7 @@ function computeResult(){
   // Save to Supabase — with full prepare answers (silent capture)
   var prepareSessPayload = {
     zone:zone, zone_confidence:'confirmed', baseline_zone:'checkin', is_checkin:true,
-    device_id:getDeviceId(), app_version:'staging-index110',
+    device_id:getDeviceId(), app_version:'staging-index111',
     prepare_breath: prepState.answers[0]||null,
     prepare_gut: prepState.answers[1]||null,
     prepare_breath_post: prepState.answers[3]||null,
@@ -7274,9 +7278,9 @@ function startVoiceLog(){
   var label = document.getElementById('voice-log-label');
 
   // Listening state
-  if(icon) icon.textContent = '⏺';
+  if(icon) icon.innerHTML = '&#9210;';
   if(label) label.textContent = 'Listening...';
-  if(btn) btn.style.background = 'rgba(232,68,68,.2)';
+  if(btn){ btn.style.background = 'rgba(232,68,68,.1)'; btn.style.borderColor = '#e84444'; }
   showToast('Speak your climb — e.g. "sent 5.11a overhang"');
 
   recognition.onresult = function(event){
@@ -7301,9 +7305,9 @@ function resetVoiceBtn(){
   var icon = document.getElementById('voice-log-icon');
   var label = document.getElementById('voice-log-label');
   var btn = document.getElementById('voice-log-btn');
-  if(icon) icon.textContent = '🎤';
-  if(label) label.textContent = 'Voice';
-  if(btn) btn.style.background = 'rgba(232,118,58,.12)';
+  if(icon) icon.innerHTML = '&#127908;';
+  if(label) label.textContent = 'Log by voice';
+  if(btn){ btn.style.background = 'var(--surface)'; btn.style.borderColor = 'var(--border)'; }
 }
 
 function parseVoiceTranscript(transcript, forSeed){
