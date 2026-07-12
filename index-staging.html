@@ -159,9 +159,10 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 .result-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;padding:20px 12px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;line-height:1.2;}
 .result-btn .emoji{font-size:24px;display:block;margin-bottom:6px;}
 .result-btn:active{transform:scale(.97);}
-.result-btn.selected-send{background:var(--accent);border-color:var(--accent);color:#0f0f0f;}
-.result-btn.selected-attempt{background:transparent;border-color:var(--learning);color:var(--learning);}
-.result-btn.selected-dna{background:transparent;border-color:var(--border2);color:var(--muted);}
+.result-btn.selected-send{background:var(--accent);border-color:var(--accent);color:#fff;}
+.result-btn.selected-attempt{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
+.result-btn.selected-dna{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
+.result-btn.selected-projecting{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
 
 /* ── LOG BTN ── */
 .log-btn{margin:0 20px 24px;background:var(--accent);border:none;border-radius:14px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:20px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;opacity:.25;pointer-events:none;width:calc(100% - 40px);}
@@ -707,7 +708,18 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
     </div>
     <div class="screen-title">Log a climb<span class="sub">What just happened out there?</span></div>
 
-    <!-- AI input — text + voice, always visible, routes to confirm screen -->
+    <!-- Primary entry paths -->
+    <div class="field-group">
+      <button onclick="showVoiceLog()"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:20px;">&#127908;</span>
+        <div style="text-align:left;"><div style="color:var(--accent);">Log with voice</div><div style="font-size:12px;color:var(--muted);font-weight:400;margin-top:1px;">Guided — one question at a time</div></div>
+        <span style="margin-left:auto;color:var(--muted);">→</span>
+      </button>
+      <div style="text-align:center;font-size:11px;color:var(--muted2);margin-bottom:10px;">――― or tap below ―――</div>
+    </div>
+
+    <!-- AI text + mic input -->
     <div class="field-group">
       <div style="display:flex;gap:8px;align-items:flex-start;">
         <textarea id="log-ai-text" placeholder="Describe this climb..." rows="2"
@@ -836,7 +848,8 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
           <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Activation zone</div>
           <div id="cel-zone-pill"></div>
         </div>
-        <button id="cel-deeper-btn" onclick="startDeeper()" aria-label="Go Deeper — confirm your zone" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">Go Deeper →</button>
+        <button id="cel-deeper-btn" onclick="startDeeper()" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">Go Deeper →</button>
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:5px;">Confirm your zone · 4 questions · ~15 seconds</div>
       </div>
       <div style="padding:0 16px 12px;font-size:11px;color:var(--muted2);">4 questions · ~15 seconds · zone updates in place</div>
       <!-- Zone shift — shown after Go Deeper updates zone -->
@@ -1176,7 +1189,8 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
         <text x="140" y="21" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6.5" fill="rgba(245,166,35,.8)">L</text>
         <text x="140" y="8" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(232,68,68,.7)">P</text>
         <text x="85" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(126,200,122,.65)">Comfort</text>
-        <text x="195" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(232,68,68,.65)">Panic</text>
+        <text x="145" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(186,117,23,.65)">Learning</text>
+        <text x="210" y="32" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="9" fill="rgba(232,68,68,.65)">Panic</text>
       </svg>
       <div class="q-number">Body state</div>
       <div class="q-text-dark">What did you notice in your body for most of this climb?</div>
@@ -3283,6 +3297,56 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════
+     GUIDED VOICE/TAP LOG FLOW
+     screen-voice-log
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-voice-log">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-log')">← Tap form</button>
+  </div>
+  <div class="content" style="display:flex;flex-direction:column;min-height:calc(100vh - 60px);">
+
+    <!-- Progress -->
+    <div style="display:flex;gap:4px;margin-bottom:24px;">
+      <div id="vl-prog-1" style="flex:1;height:3px;border-radius:99px;background:var(--accent);"></div>
+      <div id="vl-prog-2" style="flex:1;height:3px;border-radius:99px;background:var(--border);"></div>
+      <div id="vl-prog-3" style="flex:1;height:3px;border-radius:99px;background:var(--border);"></div>
+      <div id="vl-prog-4" style="flex:1;height:3px;border-radius:99px;background:var(--border);"></div>
+      <div id="vl-prog-5" style="flex:1;height:3px;border-radius:99px;background:var(--border);"></div>
+    </div>
+
+    <!-- Question -->
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;" id="vl-step-label">Step 1 of 5</div>
+    <div style="font-size:24px;font-weight:700;line-height:1.2;margin-bottom:6px;" id="vl-question">What grade was it?</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:24px;" id="vl-hint">Speak or tap below</div>
+
+    <!-- Mic button -->
+    <div style="text-align:center;margin-bottom:20px;">
+      <button id="vl-mic-btn" onclick="startVLVoice()"
+        style="width:64px;height:64px;border-radius:50%;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);cursor:pointer;-webkit-tap-highlight-color:transparent;display:inline-flex;align-items:center;justify-content:center;font-size:28px;">
+        <span id="vl-mic-icon">&#127908;</span>
+      </button>
+      <div id="vl-heard" style="margin-top:8px;font-size:13px;color:var(--accent);min-height:20px;font-weight:600;"></div>
+    </div>
+
+    <!-- Tap chips — step-specific -->
+    <div id="vl-chips" style="flex:1;overflow-y:auto;"></div>
+
+    <!-- Confirm button -->
+    <div style="margin-top:16px;">
+      <button id="vl-confirm-btn" onclick="vlConfirm()" disabled
+        style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:.4;transition:opacity .2s;">
+        Next →
+      </button>
+      <div style="text-align:center;margin-top:12px;">
+        <button onclick="showScreen('screen-log')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;cursor:pointer;">Switch to tap form →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- end .app -->
 
 <script>
@@ -3595,7 +3659,7 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     project_id:logState.projectId||null,
-    app_version:'staging-index113',
+    app_version:'staging-index114',
     device_id:getDeviceId(),
     // Silent capture: drill prediction
     drill_prediction_zone: (drillState&&drillState.prediction)?drillState.prediction.zone:null,
@@ -3635,14 +3699,14 @@ async function logClimb(){
     }
   }catch(e){}
 
-  var raw = null;
-  try{
-    raw = await sbI('sessions', payload);
-  }catch(networkErr){
+  var raw = await sbI('sessions', payload);
+  // sbI returns null on both network failure and HTTP error
+  // Queue offline if null — never show red error for network failure
+  if(raw === null){
     offlineQueueAdd(payload, logState.routeName, climbId);
     showScreen('screen-celebrate');
     renderCelebrate();
-    console.warn('[logClimb] network error — queued offline');
+    console.warn('[logClimb] save returned null — queued offline');
     return;
   }
   var saved=Array.isArray(raw)?raw[0]:raw;
@@ -3709,18 +3773,7 @@ async function renderCelebrate(){
 
   // Confirm button — always visible, always clickable (sessId now guaranteed set)
   var deeperBtn=document.getElementById('cel-deeper-btn');
-  if(deeperBtn){
-    deeperBtn.style.display='flex';
-    // Add subtitle if not already present
-    var subEl = document.getElementById('cel-deeper-sub');
-    if(!subEl){
-      subEl = document.createElement('div');
-      subEl.id = 'cel-deeper-sub';
-      subEl.style.cssText = 'font-size:11px;color:var(--muted);text-align:center;margin-top:4px;';
-      subEl.textContent = 'Confirm your zone · 4 questions · ~15 seconds';
-      deeperBtn.parentNode.insertBefore(subEl, deeperBtn.nextSibling);
-    }
-  }
+  if(deeperBtn) deeperBtn.style.display='flex';
 
   // Fetch history
   var history=await sbS('sessions','select=zone,zone_confidence,climbing_type,grade_value,baseline_zone,created_at&device_id=eq.'+getDeviceId()+'&is_checkin=eq.false&order=created_at.desc&limit=100');
@@ -3728,7 +3781,7 @@ async function renderCelebrate(){
   var total=history.length;
   window._userClimbCount=total;
 
-  if(climbNumEl)climbNumEl.textContent='Climb #'+total;
+  if(climbNumEl)climbNumEl.textContent=ordinal(total)+' climb';
 
   // Mini arc
   renderCelArc(history);
@@ -4046,6 +4099,7 @@ document.addEventListener('click',function(e){
 
 function resetLogScreen(){
   _climbCache=null; // refresh cache on next log
+  var _aiText=document.getElementById('log-ai-text'); if(_aiText)_aiText.value='';
   // Always clear result button visual state — never carry over from previous session
   ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
     var b=document.getElementById(id);
@@ -4274,7 +4328,8 @@ async function afterQ4(){
   if(deeperBtn)deeperBtn.style.display='none';
 
   // Show zone shift if changed
-  var shiftEl=document.getElementById('cel-zone-shift');
+  var shiftEl = (logState.zoneConf==='confirmed') ? document.getElementById('cel-zone-shift') : null;
+  if(shiftEl && false){} // original check
   if(shiftEl){
     if(prevZone&&prevZone!==logState.zone){
       var fromColor=zoneColor(prevZone);
@@ -4302,14 +4357,16 @@ async function afterQ4(){
     }
   }
 
-  // Show zone confirmed screen — two registers based on match vs diverge
-  showZoneConfirmed(prevZone, logState.zone);
-  // Also update celebrate screen pill for when they return
+  // Update celebrate screen pill
   var pillEl=document.getElementById('cel-zone-pill');
   if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
-  // deeperBtn already cleared above — final confirm
+  // Hide Go Deeper button
   var db2=document.getElementById('cel-deeper-btn');
   if(db2)db2.style.display='none';
+  // Store prevZone for zone confirmed screen
+  window._prevZoneForConfirm = prevZone;
+  // Route to Q5 reflection questions (not zone confirmed directly)
+  showScreen('screen-q5');
 }
 
 async function finishDeeper(){
@@ -4329,8 +4386,10 @@ async function finishDeeper(){
     extraPayload.deeper_completed_at=new Date().toISOString();
     if(Object.keys(extraPayload).length)await sbU('sessions','id=eq.'+logState.sessId,extraPayload);
   }
-  renderReflection();
-  showScreen('screen-reflection');
+  // Show zone confirmed screen after Q5-Q7
+  var prev = window._prevZoneForConfirm || logState.zone;
+  showZoneConfirmed(prev, logState.zone);
+  window._prevZoneForConfirm = null;
 }
 
 function renderReflection(){
@@ -4467,8 +4526,9 @@ async function loadClimbLog(){
   buildSessionsArc(climbs);
   buildRadar(climbs);
   // Filter out ghost sessions with no grade, terrain, or zone (Bug 9)
+  // Filter ghost sessions — must have grade OR zone to show
   var validClimbs = climbs.filter(function(s){
-    return s.grade_value || s.climbing_type || s.zone;
+    return s.grade_value || s.zone;
   });
   window._cachedClimbs=validClimbs;
   renderClimbTable(validClimbs);
@@ -4903,7 +4963,7 @@ async function submitProject(){
     environment:spState.env||null,
     rock_type:spState.rock||null,
     device_id:getDeviceId(),
-    app_version:'staging-index113'
+    app_version:'staging-index114'
   };
   if(spState.bolts)payload.bolt_count=spState.bolts;
   if(spState.height)payload.route_height_ft=spState.unit==='ft'?spState.height:Math.round(spState.height*3.281);
@@ -5180,7 +5240,7 @@ function computeResult(){
   // Save to Supabase — with full prepare answers (silent capture)
   var prepareSessPayload = {
     zone:zone, zone_confidence:'confirmed', baseline_zone:'checkin', is_checkin:true,
-    device_id:getDeviceId(), app_version:'staging-index113',
+    device_id:getDeviceId(), app_version:'staging-index114',
     prepare_breath: prepState.answers[0]||null,
     prepare_gut: prepState.answers[1]||null,
     prepare_breath_post: prepState.answers[3]||null,
@@ -7162,7 +7222,7 @@ function buildSpiderChart(sessions){
     var dom = d.panic > d.learning && d.panic > d.comfort ? 'P' : d.learning >= d.comfort ? 'L' : 'C';
     var domColor = d.panic > d.learning && d.panic > d.comfort ? '#e84444' : d.learning >= d.comfort ? '#f5a623' : '#7ec87a';
     // Shorten long terrain names for SVG labels
-    var shortLabel = t === 'Overhang' ? 'O-hang' : t === 'Dihedral' ? 'Dihdr' : t;
+    var shortLabel = t === 'Overhang' ? 'O-hang' : t === 'Dihedral' ? 'Dihdr' : t === 'Vertical' ? 'Vert' : t;
     return '<text x="'+clampedX.toFixed(1)+'" y="'+(p.y-6).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">'+shortLabel+'</text>'
       + '<text x="'+clampedX.toFixed(1)+'" y="'+(p.y+7).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="9" fill="'+domColor+'">'+d.total+' · '+dom+'</text>';
   }).join('');
@@ -7788,7 +7848,7 @@ async function parseClimbInput(input, inputType, deviceId){
       max_tokens:1000,
       system: "You are a climbing session parser. Extract structured data from a climber's description. " +
         (userCtx ? userCtx + " " : "") +
-        "Return ONLY valid JSON. CRITICAL DISTINCTION: breathing field captures RESPIRATORY signals (tight chest, shallow breath, held breath, breathing fast, restricted breathing). body_state captures MUSCULAR/PHYSICAL signals (gripped, frozen, locked up, loose, activated, tense muscles). Do not confuse them. Fields: grade_value, grade_system (YDS/V/FR/UK), climbing_type (terrain), baseline_zone (sent/fell/dna/projecting), breathing (easy and steady/slightly faster/shallow or tight/held breath), gut (settled and neutral/flutter or movement/tension or nausea), crux (no standout moment/hesitated then committed/backed off/panicked), body_state (loose and fluid/activated/tight/frozen), zone_estimate (comfort/learning/panic), confidence (high/low). Use null for fields not mentioned.",
+        "Return ONLY valid JSON. CRITICAL: breathing captures RESPIRATORY signals only — examples: tight chest, shallow breathing, held breath, breathing was tight, couldnt breathe, breathing fast, restricted breathing. body_state captures MUSCULAR signals only — examples: muscles tight, gripped up, felt frozen, body heavy, locked off, arms pumped. crux captures hesitation/decision moments — examples: froze at the crux, seized up, couldnt commit, hesitated, backed off, panicked, locked off. Fields: grade_value, grade_system (YDS/V/FR/UK), climbing_type (terrain), baseline_zone (sent/fell/dna/projecting), breathing (easy and steady/slightly faster/shallow or tight/held breath), gut (settled and neutral/flutter or movement/tension or nausea), crux (no standout moment/hesitated then committed/backed off/panicked), body_state (loose and fluid/activated/tight/frozen), zone_estimate (comfort/learning/panic), confidence (high/low). Use null for fields not mentioned.",
       messages:[{role:'user', content:input}]
     })
   }).then(function(r){return r.json();}).catch(function(){return null;});
@@ -7872,7 +7932,7 @@ function showConfirmScreen(parseResult, source){
   if(confEl){
     var conf = parseResult.confidence || 'low';
     confEl.innerHTML = conf === 'high'
-      ? '<span style="color:#7ec87a;">&#10003; High confidence parse</span>'
+      ? ''
       : '<span style="color:#f5a623;">&#9651; Some fields uncertain — review before saving</span>';
   }
 
@@ -8269,6 +8329,250 @@ function ordinal(n){
   var s=['th','st','nd','rd'];
   var v=n%100;
   return n+(s[(v-20)%10]||s[v]||s[0]);
+}
+
+// ═══════════════════════════════════════════════════════
+// GUIDED VOICE/TAP LOG FLOW — screen-voice-log
+// ═══════════════════════════════════════════════════════
+var _vlStep = 1;
+var _vlAnswer = null; // current step's pending answer
+
+var VL_STEPS = [
+  {
+    num: 1, label: 'Step 1 of 5', question: 'What grade was it?', hint: 'Speak or tap below',
+    type: 'grade',
+    buildChips: function(){
+      var sys = localStorage.getItem('see_grade_sys')||'YDS';
+      var grades = sys==='V'
+        ? ['VB','V0','V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12']
+        : ['5.6','5.7','5.8','5.9','5.10a','5.10b','5.10c','5.10d','5.11a','5.11b','5.11c','5.11d','5.12a','5.12b','5.12c','5.12d','5.13a','5.13b','5.14a'];
+      return '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+grades.map(function(g){
+        return '<button data-val="'+g+'" onclick="vlSelectChip(this,this.dataset.val)" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:600;padding:8px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;">'+g+'</button>';
+      }).join('')+'</div>';
+    },
+    onConfirm: function(val){
+      var g = normalizeSpokenGrade(val, localStorage.getItem('see_grade_sys')||'YDS');
+      logState.grade = g.grade || val;
+      logState.gradeSys = g.sys || 'YDS';
+    }
+  },
+  {
+    num: 2, label: 'Step 2 of 5', question: 'Did you send it?', hint: 'Speak or tap',
+    type: 'result',
+    buildChips: function(){
+      var opts = [{v:'sent',l:'Sent ✓'},{v:'fell',l:'Fell'},{v:'dna',l:'Backed off'},{v:'projecting',l:'Projecting'}];
+      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+opts.map(function(o){
+        return '<button data-val="'+o.v+'" onclick="vlSelectChip(this,this.dataset.val)" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:center;">'+o.l+'</button>';
+      }).join('')+'</div>';
+    },
+    onConfirm: function(val){ logState.result = extractResultFromTranscript(val)||val; }
+  },
+  {
+    num: 3, label: 'Step 3 of 5', question: 'What terrain?', hint: 'Speak or tap',
+    type: 'terrain',
+    buildChips: function(){
+      var terrains = ['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack','Trad lead'];
+      return '<div style="display:flex;flex-wrap:wrap;gap:8px;">'+terrains.map(function(t){
+        return '<button data-val="'+t+'" onclick="vlSelectChip(this,this.dataset.val)" style="background:var(--surface);border:1px solid var(--border);border-radius:99px;color:var(--text);font-size:14px;font-weight:600;padding:10px 18px;cursor:pointer;-webkit-tap-highlight-color:transparent;">'+t+'</button>';
+      }).join('')+'</div>';
+    },
+    onConfirm: function(val){ logState.terrain = extractTerrainFromTranscript(val)||val; }
+  },
+  {
+    num: 4, label: 'Step 4 of 5', question: 'How activated were you?', hint: 'Your gut read — before seeing the data',
+    type: 'zone',
+    buildChips: function(){
+      var zones = [{v:'comfort',l:'Comfort',c:'#7ec87a'},{v:'learning',l:'Learning',c:'#f5a623'},{v:'panic',l:'Panic',c:'#e84444'}];
+      return '<div style="display:flex;gap:10px;">'+zones.map(function(z){
+        return '<button data-val="'+z.v+'" onclick="vlSelectChip(this,this.dataset.val)" style="flex:1;background:'+z.c+'18;border:1px solid '+z.c+'44;border-radius:12px;color:'+z.c+';font-size:15px;font-weight:700;padding:18px 8px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:center;">'+z.l+'</button>';
+      }).join('')+'</div>';
+    },
+    onConfirm: function(val){
+      var t = val.toLowerCase();
+      if(t.includes('comfort')) logState.zone='comfort';
+      else if(t.includes('panic')) logState.zone='panic';
+      else logState.zone='learning';
+    }
+  },
+  {
+    num: 5, label: 'Step 5 of 5', question: 'Route name?', hint: 'Optional — tap Skip to continue',
+    type: 'name',
+    buildChips: function(){
+      return '<input id="vl-name-input" type="text" placeholder="Route name (optional)" '
+        + 'style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:Space Grotesk,sans-serif;font-size:16px;padding:14px 16px;outline:none;box-sizing:border-box;" '
+        + 'oninput="vlSetAnswer(this.value)">'
+        + '<button onclick="vlSkip()" style="width:100%;margin-top:12px;background:none;border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:Space Grotesk,sans-serif;font-size:14px;padding:12px;cursor:pointer;">Skip</button>';
+    },
+    onConfirm: function(val){ logState.routeName = val||null; }
+  }
+];
+
+function showVoiceLog(){
+  _vlStep = 1;
+  _vlAnswer = null;
+  vlRenderStep();
+  showScreen('screen-voice-log');
+}
+
+function vlRenderStep(){
+  var step = VL_STEPS[_vlStep-1];
+  document.getElementById('vl-step-label').textContent = step.label;
+  document.getElementById('vl-question').textContent = step.question;
+  document.getElementById('vl-hint').textContent = step.hint;
+  document.getElementById('vl-chips').innerHTML = step.buildChips();
+  document.getElementById('vl-heard').textContent = '';
+  // Progress bars
+  for(var i=1;i<=5;i++){
+    var bar = document.getElementById('vl-prog-'+i);
+    if(bar) bar.style.background = i<=_vlStep ? 'var(--accent)' : 'var(--border)';
+  }
+  // Confirm button
+  var confirmBtn = document.getElementById('vl-confirm-btn');
+  if(confirmBtn){
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '.4';
+    confirmBtn.textContent = _vlStep < 5 ? 'Next →' : 'Review →';
+  }
+  _vlAnswer = null;
+  // Reset mic
+  var micIcon = document.getElementById('vl-mic-icon');
+  if(micIcon) micIcon.innerHTML = '&#127908;';
+  var micBtn = document.getElementById('vl-mic-btn');
+  if(micBtn){ micBtn.style.background='rgba(232,118,58,.12)'; micBtn.style.borderColor='rgba(232,118,58,.3)'; }
+}
+
+function vlSelectChip(btn, val){
+  // Deselect all chips in container
+  var chips = btn.parentNode.querySelectorAll('button');
+  chips.forEach(function(b){
+    b.style.background='var(--surface)';
+    b.style.borderColor='var(--border)';
+    b.style.color='var(--text)';
+  });
+  // Select this one
+  btn.style.background='var(--accent)';
+  btn.style.borderColor='var(--accent)';
+  btn.style.color='#fff';
+  vlSetAnswer(val);
+}
+
+function vlSetAnswer(val){
+  _vlAnswer = val;
+  var confirmBtn = document.getElementById('vl-confirm-btn');
+  if(confirmBtn){ confirmBtn.disabled=false; confirmBtn.style.opacity='1'; }
+}
+
+function vlSkip(){
+  _vlAnswer = '';
+  vlConfirm();
+}
+
+function vlConfirm(){
+  if(_vlAnswer===null) return;
+  var step = VL_STEPS[_vlStep-1];
+  step.onConfirm(_vlAnswer);
+
+  if(_vlStep < 5){
+    _vlStep++;
+    vlRenderStep();
+  } else {
+    // All 5 steps done — route to confirm screen with captured data
+    var parseResult = {
+      grade_value: logState.grade||null,
+      grade_system: logState.gradeSys||'YDS',
+      climbing_type: logState.terrain||null,
+      baseline_zone: logState.result||null,
+      zone_estimate: logState.zone||null,
+      breathing: null, gut: null, crux: null, body_state: null,
+      confidence: 'high'
+    };
+    showConfirmScreen(parseResult, 'log');
+  }
+}
+
+function startVLVoice(){
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
+    showToast('Voice not supported — tap chips below');
+    return;
+  }
+  var SpeechRecognition = window.SpeechRecognition||window.webkitSpeechRecognition;
+  var rec = new SpeechRecognition();
+  rec.lang='en-US'; rec.interimResults=false;
+  var micBtn = document.getElementById('vl-mic-btn');
+  var micIcon = document.getElementById('vl-mic-icon');
+  var heard = document.getElementById('vl-heard');
+  if(micIcon) micIcon.innerHTML='&#9210;';
+  if(micBtn){ micBtn.style.background='rgba(232,68,68,.15)'; micBtn.style.borderColor='#e84444'; }
+
+  rec.onresult = function(e){
+    var t = e.results[0][0].transcript;
+    if(micIcon) micIcon.innerHTML='&#127908;';
+    if(micBtn){ micBtn.style.background='rgba(232,118,58,.12)'; micBtn.style.borderColor='rgba(232,118,58,.3)'; }
+    if(heard) heard.textContent='"'+t+'"';
+    // Parse based on step type
+    var step = VL_STEPS[_vlStep-1];
+    var val = t;
+    if(step.type==='grade'){
+      var g = normalizeSpokenGrade(t, localStorage.getItem('see_grade_sys')||'YDS');
+      if(g.grade){ val=g.grade; if(heard) heard.textContent='Heard: '+g.grade+(g.ambiguous?' (uncertain)':''); }
+    } else if(step.type==='result'){
+      var r = extractResultFromTranscript(t);
+      if(r) val=r;
+    } else if(step.type==='terrain'){
+      var ter = extractTerrainFromTranscript(t);
+      if(ter) val=ter;
+    }
+    vlSetAnswer(val);
+  };
+  rec.onerror = function(){
+    if(micIcon) micIcon.innerHTML='&#127908;';
+    if(micBtn){ micBtn.style.background='rgba(232,118,58,.12)'; micBtn.style.borderColor='rgba(232,118,58,.3)'; }
+    // Failure is silent — tap chips are right there
+  };
+  rec.start();
+}
+
+// ═══════════════════════════════════════════════════════
+// NOTES FIELD — per climb
+// Entry point on celebrate screen
+// Saves to session_notes column
+// ═══════════════════════════════════════════════════════
+function showNotesEditor(){
+  var sessId = logState.sessId;
+  if(!sessId){ showToast('Log a climb first'); return; }
+  var overlay = document.createElement('div');
+  overlay.id = 'notes-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;';
+  overlay.innerHTML =
+    '<div style="padding:16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">'
+    + '<div style="font-size:16px;font-weight:700;">Add a note</div>'
+    + '<button onclick="closeNotesEditor()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;">×</button>'
+    + '</div>'
+    + '<textarea id="notes-textarea" placeholder="Anything else about this climb..." '
+    + 'style="flex:1;background:var(--bg);border:none;color:var(--text);font-family:Space Grotesk,sans-serif;font-size:16px;padding:20px;outline:none;resize:none;line-height:1.6;"></textarea>'
+    + '<div style="padding:16px;border-top:1px solid var(--border);">'
+    + '<button onclick="saveNote()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:Space Grotesk,sans-serif;font-size:17px;font-weight:700;padding:16px;cursor:pointer;">Save note</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+}
+
+function closeNotesEditor(){
+  var el = document.getElementById('notes-overlay');
+  if(el) el.remove();
+}
+
+async function saveNote(){
+  var ta = document.getElementById('notes-textarea');
+  var text = ta ? ta.value.trim() : '';
+  if(!text){ closeNotesEditor(); return; }
+  if(!logState.sessId){ showToast('Session ID not found'); return; }
+  try{
+    await sbU('sessions','id=eq.'+logState.sessId,{session_notes:text});
+    closeNotesEditor();
+    showToast('Note saved');
+  }catch(e){
+    showToast('Could not save note — try again');
+  }
 }
 
 // ═══════════════════════════════════════════════════════
