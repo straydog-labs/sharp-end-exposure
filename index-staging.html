@@ -2623,7 +2623,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
      Shows on first open only
      Email/password + Google (pending) + anonymous
 ═══════════════════════════════════════ -->
-<div class="screen" id="screen-auth" style="display:none;">
+<div class="screen" id="screen-auth">
   <div class="content" style="display:flex;flex-direction:column;min-height:100vh;justify-content:center;padding-top:40px;padding-bottom:40px;">
 
     <!-- Wordmark -->
@@ -8345,33 +8345,59 @@ spSetGradeSys(_savedGradeSys);
 setTimeout(flushOfflineQueue, 1000);
 // Init auth first — then route appropriately
 initAuth();
-setTimeout(async function(){
-  // Check session from Supabase
-  var session = null;
-  if(supabaseClient){
-    try{
-      var res = await supabaseClient.auth.getSession();
-      session = res.data && res.data.session ? res.data.session : null;
-      window._authUser = session ? session.user : null;
-    }catch(e){}
-  }
+// Route on load — check localStorage first (instant), then check auth session
+function routeOnLoad(){
   var dismissed = localStorage.getItem('see_auth_dismissed');
   var hasSeenBaseline = localStorage.getItem('see_baseline_complete');
-  if(!dismissed && !session){
-    // First open, not logged in — show auth screen
-    showScreen('screen-auth');
-  } else if(!hasSeenBaseline){
-    // Auth done or dismissed but no baseline yet — show baseline
-    showScreen('screen-baseline');
+  // Check auth session async — but always show SOMETHING immediately
+  if(supabaseClient){
+    supabaseClient.auth.getSession().then(function(res){
+      var session = res && res.data && res.data.session ? res.data.session : null;
+      window._authUser = session ? session.user : null;
+      window._authToken = session ? session.access_token : null;
+      if(session){
+        // Authenticated — go to Climb Log
+        if(!hasSeenBaseline){
+          showScreen('screen-baseline');
+        } else {
+          showScreen('screen-sessions');
+          loadDashboard();
+        }
+      } else if(!dismissed){
+        // Not authed, not dismissed — show auth
+        showScreen('screen-auth');
+      } else if(!hasSeenBaseline){
+        showScreen('screen-baseline');
+      } else {
+        showScreen('screen-sessions');
+        loadDashboard();
+      }
+    }).catch(function(){
+      // Auth check failed — fall back to localStorage only
+      if(!dismissed){
+        showScreen('screen-auth');
+      } else if(!hasSeenBaseline){
+        showScreen('screen-baseline');
+      } else {
+        showScreen('screen-sessions');
+        loadDashboard();
+      }
+    });
   } else {
-    // Returning user — go straight to Climb Log
-    showScreen('screen-sessions');
-    loadDashboard();
+    // No auth client — localStorage only
+    if(!dismissed){
+      showScreen('screen-auth');
+    } else if(!hasSeenBaseline){
+      showScreen('screen-baseline');
+    } else {
+      showScreen('screen-sessions');
+      loadDashboard();
+    }
   }
-}, 400);
+}
+setTimeout(routeOnLoad, 100);
 loadHomeInsight();
-// Check baseline after home insight loads
-setTimeout(checkAndShowBaseline, 300);
+
 </script>
 </body>
 </html>
