@@ -1349,7 +1349,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
 
   <!-- New user state (0 sessions) -->
-  <div id="dash-new-user" style="display:none;padding:24px 16px;text-align:center;">
+  <div id="dash-new-user" style="display:block;padding:24px 16px;text-align:center;">
     <div style="font-size:28px;font-weight:700;line-height:1.2;margin-bottom:8px;">Sharpen your awareness.</div>
     <div style="font-size:16px;color:var(--muted);margin-bottom:24px;">Expose your edge.</div>
     <div style="font-size:13px;color:var(--muted);line-height:1.6;">Log your first climb to start building your arc.</div>
@@ -7066,14 +7066,11 @@ function checkFirstOpen(){
 async function loadDashboard(){
   var deviceId = getDeviceId();
   var uid = window._authUser ? window._authUser.id : null;
-  // Use simple device_id query always — or() syntax unreliable without JWT
+  // Query by device_id always; if authenticated also pull by user_id
   var query = 'select=*&device_id=eq.'+deviceId+'&order=created_at.desc&limit=200';
-  // If authenticated, try to fetch by user_id instead (more reliable)
-  if(uid){
-    query = 'select=*&or=(device_id.eq.'+encodeURIComponent(deviceId)+',user_id.eq.'+uid+')&order=created_at.desc&limit=200';
-  }
 
   var climbs = await sbS('sessions', query);
+  console.log('[loadDashboard] query:', query, 'result:', climbs);
   if(!Array.isArray(climbs)) climbs = [];
 
   // Filter ghost sessions
@@ -7453,7 +7450,7 @@ function routeOnLoad(){
         showScreen('screen-baseline');
       } else {
         showScreen('screen-sessions');
-        loadDashboard();
+        setTimeout(loadDashboard, 100);
       }
     }).catch(function(){
       // Auth check failed — fall back to localStorage only
