@@ -1349,7 +1349,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
   </div>
 
   <!-- New user state (0 sessions) -->
-  <div id="dash-new-user" style="display:none;padding:24px 16px;text-align:center;">
+  <div id="dash-new-user" style="display:block;padding:24px 16px;text-align:center;">
     <div style="font-size:28px;font-weight:700;line-height:1.2;margin-bottom:8px;">Sharpen your awareness.</div>
     <div style="font-size:16px;color:var(--muted);margin-bottom:24px;">Expose your edge.</div>
     <div style="font-size:13px;color:var(--muted);line-height:1.6;">Log your first climb to start building your arc.</div>
@@ -2366,7 +2366,7 @@ html{scroll-behavior:smooth;}body{background:var(--bg);color:var(--text);font-fa
 </div>
 
 <div class="screen" id="screen-auth">
-  <div class="content" style="display:flex;flex-direction:column;min-height:100vh;justify-content:center;padding-top:40px;padding-bottom:40px;">
+  <div style="display:flex;flex-direction:column;min-height:100vh;justify-content:center;padding-top:40px;padding-bottom:40px;max-width:480px;margin:0 auto;padding-left:16px;padding-right:16px;box-sizing:border-box;">
 
     <!-- Wordmark -->
     <div style="text-align:center;margin-bottom:40px;">
@@ -2588,6 +2588,9 @@ try{
 
 window._authUser = null;
 window._authToken = null;
+// JS error logger for runSEETests
+window._seeErrorLog = [];
+window.addEventListener('error', function(e){ window._seeErrorLog.push(e.message + ' (' + e.filename?.split('/').pop() + ':' + e.lineno + ')'); });
 
 function initAuth(){
   if(!supabaseClient) return;
@@ -6769,7 +6772,108 @@ async function runSEETests(){
   function fail(name, reason){ results.push({name:name,status:'FAIL',reason:reason}); console.log('%c FAIL %c ' + name + (reason?' — '+reason:''), 'background:#e84444;color:#fff;font-weight:bold;padding:1px 6px;', 'color:#e84444'); }
   function skip(name, reason){ results.push({name:name,status:'SKIP'}); console.log('%c SKIP %c ' + name + (reason?' — '+reason:''), 'background:#f5a623;color:#000;font-weight:bold;padding:1px 6px;', 'color:#f5a623'); }
 
-  // Test 1: Create test session
+  // ── SECTION A: JS environment ──────────────────────────
+  console.log('%c A — JS Environment ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
+
+  // A1: No uncaught JS errors — check window.onerror log
+  try{
+    if(window._seeErrorLog && window._seeErrorLog.length > 0){
+      fail('No JS errors on load', window._seeErrorLog.join(' | '));
+    } else {
+      pass('No JS errors on load');
+    }
+  }catch(e){ pass('No JS errors on load (error log not initialised)'); }
+
+  // A2: Core functions exist
+  try{
+    var required = ['showScreen','loadDashboard','logClimb','startDeeper','finishDeeper','showZoneConfirmed','overrideZone','getDeviceId','sbI','sbS','sbU','resolveZone','buildSessionsArc','buildSpiderChart','routeOnLoad'];
+    var missing = required.filter(function(f){ return typeof window[f] !== 'function'; });
+    if(missing.length === 0){ pass('Core functions defined (' + required.length + ')'); }
+    else { fail('Core functions defined', 'Missing: ' + missing.join(', ')); }
+  }catch(e){ fail('Core functions defined', e.message); }
+
+  // A3: GRADE_ORDER accessible
+  try{
+    if(window.GRADE_ORDER && window.GRADE_ORDER.length > 0){ pass('GRADE_ORDER accessible (' + window.GRADE_ORDER.length + ' grades)'); }
+    else { fail('GRADE_ORDER accessible', 'Not found or empty'); }
+  }catch(e){ fail('GRADE_ORDER accessible', e.message); }
+
+  // A4: Supabase client initialised
+  try{
+    if(window.supabaseClient){ pass('Supabase auth client initialised'); }
+    else { fail('Supabase auth client initialised', 'supabaseClient is null'); }
+  }catch(e){ fail('Supabase auth client initialised', e.message); }
+
+  // ── SECTION B: CSS / rendering ─────────────────────────
+  console.log('%c B — CSS / Rendering ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
+
+  // B1: Active screen has non-zero height
+  try{
+    var activeScreen = document.querySelector('.screen.active');
+    if(!activeScreen){ fail('Active screen exists', 'No .screen.active found'); }
+    else {
+      var h = activeScreen.offsetHeight;
+      if(h > 50){ pass('Active screen renders (' + activeScreen.id + ', ' + h + 'px)'); }
+      else { fail('Active screen renders', activeScreen.id + ' height=' + h + 'px — collapsed'); }
+    }
+  }catch(e){ fail('Active screen renders', e.message); }
+
+  // B2: Screen-auth content not collapsed
+  try{
+    var authEl = document.getElementById('screen-auth');
+    if(!authEl){ skip('Auth screen content height', 'screen-auth not found'); }
+    else {
+      var authContent = authEl.querySelector('.content') || authEl.firstElementChild;
+      var ch = authContent ? authContent.offsetHeight : 0;
+      if(ch > 50 || authEl.id !== document.querySelector('.screen.active').id){
+        pass('Auth screen content height OK (' + ch + 'px)');
+      } else {
+        fail('Auth screen content height', 'Content collapsed to ' + ch + 'px — CSS conflict');
+      }
+    }
+  }catch(e){ fail('Auth screen content height', e.message); }
+
+  // B3: Nav has 4 tabs
+  try{
+    var navBtns = document.querySelectorAll('.footer-btn');
+    if(navBtns.length === 4){ pass('Nav has 4 tabs'); }
+    else { fail('Nav has 4 tabs', 'Found ' + navBtns.length + ' tabs'); }
+  }catch(e){ fail('Nav has 4 tabs', e.message); }
+
+  // B4: No purple stray icon (&#128100; outside nav)
+  try{
+    var allBtns = Array.from(document.querySelectorAll('button'));
+    var strayIcon = allBtns.filter(function(b){
+      return b.textContent.includes('\u{1F464}') && !b.closest('.footer-nav');
+    });
+    if(strayIcon.length === 0){ pass('No stray profile icon outside nav'); }
+    else { fail('No stray profile icon outside nav', strayIcon.length + ' found'); }
+  }catch(e){ fail('No stray profile icon outside nav', e.message); }
+
+  // B5: screen-zone-confirmed exists and has content
+  try{
+    var zcEl = document.getElementById('screen-zone-confirmed');
+    if(!zcEl){ fail('screen-zone-confirmed exists', 'Element not found'); }
+    else {
+      var hasZonePill = !!document.getElementById('zc-zone-pill');
+      var hasOverride = !!document.querySelector('[onclick*="overrideZone"]');
+      var hasSomatic = !!document.getElementById('zc-somatic-rows');
+      if(hasZonePill && hasOverride && hasSomatic){ pass('screen-zone-confirmed has full content'); }
+      else { fail('screen-zone-confirmed has full content', 'Missing: ' + [!hasZonePill&&'zone-pill', !hasOverride&&'override-btns', !hasSomatic&&'somatic-rows'].filter(Boolean).join(', ')); }
+    }
+  }catch(e){ fail('screen-zone-confirmed exists', e.message); }
+
+  // B6: Research tab has 6+ res-cards
+  try{
+    var resCards = document.querySelectorAll('#screen-research .res-card');
+    if(resCards.length >= 6){ pass('Research has ' + resCards.length + ' res-cards'); }
+    else { fail('Research res-cards', 'Found ' + resCards.length + ', expected 6+'); }
+  }catch(e){ fail('Research res-cards', e.message); }
+
+  // ── SECTION C: Data layer ───────────────────────────────
+  console.log('%c C — Data Layer ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
+
+  // C1: Create test session
   try{
     var testPayload = {
       device_id: getDeviceId(),
@@ -6779,17 +6883,16 @@ async function runSEETests(){
       zone_confidence: 'estimated',
       baseline_zone: 'sent',
       is_checkin: false,
-      app_version: 'staging-index113'
+      is_test: true,
+      app_version: 'staging-index120'
     };
-    // Check if is_test column exists — add if so
-    try{ testPayload.is_test = true; }catch(e){}
     var saved = await sbI('sessions', testPayload);
     var row = Array.isArray(saved) ? saved[0] : saved;
     if(row && row.id){ testId = row.id; pass('Create test session (ID: ' + testId.substring(0,8) + '...)'); }
-    else { fail('Create test session', 'No ID returned'); }
+    else { fail('Create test session', 'No ID returned — response: ' + JSON.stringify(saved)); }
   }catch(e){ fail('Create test session', e.message); }
 
-  // Test 2: Verify session saved
+  // C2: Read back
   if(testId){
     try{
       var fetched = await sbS('sessions', 'select=id,zone,grade_value&id=eq.'+testId);
@@ -6798,35 +6901,33 @@ async function runSEETests(){
     }catch(e){ fail('Read test session back', e.message); }
   } else { skip('Read test session back', 'Insert failed'); }
 
-  // Test 3: Zone calculation check
-  try{
-    // Verify GRADE_ORDER array exists
-    if(window.GRADE_ORDER && window.GRADE_ORDER.length > 0){ pass('GRADE_ORDER accessible (' + window.GRADE_ORDER.length + ' grades)'); }
-    else { fail('GRADE_ORDER accessible', 'Not found or empty'); }
-  }catch(e){ fail('GRADE_ORDER accessible', e.message); }
-
-  // Test 4: Climb ID resolution
+  // C3: Climbs table readable
   try{
     var climbs = await sbS('climbs', 'select=id,name&device_id=eq.'+getDeviceId()+'&limit=1');
     if(Array.isArray(climbs)){ pass('Climbs table readable (' + climbs.length + ' rows for device)'); }
-    else { fail('Climbs table readable', 'Unexpected response'); }
+    else { fail('Climbs table readable', 'Unexpected response: ' + JSON.stringify(climbs)); }
   }catch(e){ fail('Climbs table readable', e.message); }
 
-  // Test 5: Offline queue simulation
+  // C4: Sessions table readable
+  try{
+    var sessions = await sbS('sessions', 'select=id&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=5');
+    if(Array.isArray(sessions)){ pass('Sessions table readable (' + sessions.length + ' rows for device)'); }
+    else { fail('Sessions table readable', 'Unexpected response'); }
+  }catch(e){ fail('Sessions table readable', e.message); }
+
+  // C5: Offline queue
   try{
     var queueBefore = JSON.parse(localStorage.getItem('see_offline_queue')||'[]');
-    // Simulate adding to queue
     offlineQueueAdd({test:true, device_id: getDeviceId()}, 'Test Route', null);
     var queueAfter = JSON.parse(localStorage.getItem('see_offline_queue')||'[]');
     if(queueAfter.length > queueBefore.length){
       pass('Offline queue write works');
-      // Clean up test entry
       var cleaned = queueAfter.filter(function(e){ return !e.payload.test; });
       localStorage.setItem('see_offline_queue', JSON.stringify(cleaned));
     } else { fail('Offline queue write works', 'Queue length did not increase'); }
   }catch(e){ fail('Offline queue write works', e.message); }
 
-  // Test 6: Delete test session
+  // C6: Delete test session
   if(testId){
     try{
       await fetch('https://kwtbqgoqtewrlsjgepwq.supabase.co/rest/v1/sessions?id=eq.'+testId, {
@@ -6837,11 +6938,11 @@ async function runSEETests(){
     }catch(e){ fail('Delete test session', e.message); }
   } else { skip('Delete test session', 'Nothing to delete'); }
 
-  // Summary
+  // ── Summary ─────────────────────────────────────────────
   var passed = results.filter(function(r){return r.status==='PASS';}).length;
   var failed = results.filter(function(r){return r.status==='FAIL';}).length;
   var skipped = results.filter(function(r){return r.status==='SKIP';}).length;
-  console.log('%c Results: ' + passed + ' passed, ' + failed + ' failed, ' + skipped + ' skipped ', 
+  console.log('%c Results: ' + passed + ' passed, ' + failed + ' failed, ' + skipped + ' skipped ',
     failed > 0 ? 'background:#e84444;color:#fff;font-weight:bold;padding:2px 8px;' : 'background:#7ec87a;color:#000;font-weight:bold;padding:2px 8px;');
   return {passed, failed, skipped, results};
 }
@@ -7066,14 +7167,11 @@ function checkFirstOpen(){
 async function loadDashboard(){
   var deviceId = getDeviceId();
   var uid = window._authUser ? window._authUser.id : null;
-  // Use simple device_id query always — or() syntax unreliable without JWT
+  // Query by device_id always; if authenticated also pull by user_id
   var query = 'select=*&device_id=eq.'+deviceId+'&order=created_at.desc&limit=200';
-  // If authenticated, try to fetch by user_id instead (more reliable)
-  if(uid){
-    query = 'select=*&or=(device_id.eq.'+encodeURIComponent(deviceId)+',user_id.eq.'+uid+')&order=created_at.desc&limit=200';
-  }
 
   var climbs = await sbS('sessions', query);
+  console.log('[loadDashboard] query:', query, 'result:', climbs);
   if(!Array.isArray(climbs)) climbs = [];
 
   // Filter ghost sessions
@@ -7453,7 +7551,7 @@ function routeOnLoad(){
         showScreen('screen-baseline');
       } else {
         showScreen('screen-sessions');
-        loadDashboard();
+        setTimeout(loadDashboard, 100);
       }
     }).catch(function(){
       // Auth check failed — fall back to localStorage only
