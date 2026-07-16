@@ -2615,7 +2615,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index126';
+var app_version = 'staging-index128';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -2771,6 +2771,7 @@ function showScreen(id){
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadDashboard();
+  if(id==='screen-baseline'){baselineState.qi=0;renderBaselineQ();}
   // Show/hide FAB — only visible on sessions screen
   var fab=document.getElementById('climb-log-fab');
   if(fab)fab.style.display=id==='screen-sessions'?'flex':'none';
@@ -6760,6 +6761,13 @@ function hideOfflineBanner(){
 }
 
 async function flushOfflineQueue(){
+  // Clear entries older than 24 hours to prevent stuck banner
+  try{
+    var q = JSON.parse(localStorage.getItem('see_offline_queue')||'[]');
+    var cutoff = Date.now() - 86400000;
+    var fresh = q.filter(function(e){ return !e.ts || e.ts > cutoff; });
+    if(fresh.length !== q.length) localStorage.setItem('see_offline_queue', JSON.stringify(fresh));
+  }catch(e){}
   try{
     var queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)||'[]');
     if(queue.length === 0) return;
