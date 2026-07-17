@@ -163,7 +163,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .result-btn.selected-send{background:var(--accent);border-color:var(--accent);color:#fff;}
 .result-btn.selected-attempt{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
 .result-btn.selected-dna{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
-.result-btn.selected-projecting{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
+
 
 /* ── LOG BTN ── */
 .log-btn{margin:0 20px 24px;background:var(--accent);border:none;border-radius:14px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:20px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;opacity:.25;pointer-events:none;width:calc(100% - 40px);}
@@ -484,7 +484,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div id="dash-new-user" style="display:block;padding:24px 16px;text-align:center;">
     <div style="font-size:28px;font-weight:700;line-height:1.2;margin-bottom:8px;">Sharpen your awareness.</div>
     <div style="font-size:16px;color:var(--muted);margin-bottom:24px;">Expose your edge.</div>
-    <div style="font-size:13px;color:var(--muted);line-height:1.6;">Log your first climb to start building your arc.</div>
   </div>
 
   <!-- Building state (1-9 sessions) -->
@@ -500,7 +499,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div class="screen-title" style="margin-bottom:0;" id="climb-log-title">Climb Log</div>
       <div style="font-size:var(--t-xs);color:var(--muted);" id="sess-total-count"></div>
     </div>
-    <div style="font-size:var(--t-xs);color:var(--muted);margin-bottom:16px;">Your climbing data, mapped.</div>
 
     <!-- ── AI INSIGHT CARD ── -->
     <div id="ai-insight-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:16px;">
@@ -835,69 +833,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 </div>
 
 
-<!-- ═══════════════════════════════════════
-     SEED YOUR ARC — bulk entry flow
-     10 recent climbs to seed the arc fast
-═══════════════════════════════════════ -->
-<div class="screen" id="screen-seed-arc">
-  <div class="page-header">
-    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-sessions')">← Skip</button>
-  </div>
-  <div class="content">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Seed your arc</div>
-    <div style="font-size:24px;font-weight:700;line-height:1.2;margin-bottom:6px;">Add recent climbs</div>
-    <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;">Up to 10 climbs to give your arc real shape. Takes under 2 minutes.</div>
-
-    <!-- AI input -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">Describe your recent climbing</div>
-      <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <textarea id="seed-ai-text" placeholder="Describe your recent climbs — grades, terrain, results..."
-          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px 12px;outline:none;resize:none;min-height:72px;line-height:1.6;"></textarea>
-      </div>
-      <div style="display:flex;gap:8px;">
-      </div>
-      <div id="seed-ai-status" style="display:none;font-size:11px;color:var(--muted);margin-top:8px;text-align:center;">Parsing...</div>
-    </div>
-
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-      <div style="font-size:11px;color:var(--muted2);">or add manually</div>
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-    </div>
-
-    <!-- Rapid tap cards -->
-    <div id="seed-cards-wrap" style="margin-bottom:16px;"></div>
-
-    <button onclick="addSeedCard()" style="width:100%;background:var(--surface);border:1px dashed var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;margin-bottom:20px;">+ Add a climb</button>
-
-    <!-- Arc preview -->
-    <div id="seed-arc-preview" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:20px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Arc preview</div>
-      <svg id="seed-arc-svg" width="100%" viewBox="0 0 320 60" style="display:block;overflow:visible;">
-        <rect x="0" y="0" width="320" height="20" fill="rgba(255,92,58,.05)"/>
-        <rect x="0" y="20" width="320" height="20" fill="rgba(245,166,35,.04)"/>
-        <rect x="0" y="40" width="320" height="20" fill="rgba(200,245,90,.05)"/>
-        <text x="6" y="8" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(255,92,58,.4)" letter-spacing=".06em">P</text>
-        <text x="6" y="32" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(245,166,35,.4)" letter-spacing=".06em">L</text>
-        <text x="6" y="56" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(200,245,90,.4)" letter-spacing=".06em">C</text>
-        <g id="seed-arc-dots"></g>
-      </svg>
-    </div>
-
-    <button id="seed-save-btn" onclick="saveSeededClimbs()" style="display:none;width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:10px;">
-      Save to arc →
-    </button>
-    <button onclick="showScreen('screen-sessions')" style="width:100%;background:none;border:none;color:rgba(255,255,255,.25);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;">Skip for now</button>
-  </div>
-</div>
-
-
-<!-- ═══════════════════════════════════════
-     LOGGED — CELEBRATION
-═══════════════════════════════════════ -->
 <div class="screen" id="screen-celebrate">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
@@ -927,7 +862,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <button id="cel-deeper-btn" onclick="startDeeper()" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">Go Deeper →</button>
       </div>
       <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Confirm your zone · 4 questions · ~15 seconds</div>
-      <div style="padding:0 16px 12px;font-size:11px;color:var(--muted2);">4 questions · ~15 seconds · zone updates in place</div>
+  
       <!-- Zone shift — shown after Go Deeper updates zone -->
       <div id="cel-zone-shift" style="display:none;margin:0 16px 14px;padding:10px 14px;background:rgba(232,118,58,.06);border-radius:var(--r-md);border-left:2px solid var(--accent);"></div>
     </div>
@@ -1019,13 +954,29 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="screen" id="screen-log">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-sessions')">← Home</button>
+    <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
-  <div class="content">
-      <div style="font-size:13px;color:#7ec87a;font-weight:600;">Logging against: </div>
-      <button onclick="" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;">×</button>
-    </div>
     <div class="screen-title">Log a climb<span class="sub">What just happened out there?</span></div>
+
+
+
+    <!-- TERRAIN + SETTING — Indoor/Outdoor first, terrain chips below -->
+    <div class="field-group">
+      <div class="field-label">Terrain</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button id="btn-indoor" onclick="selectSetting('indoor',this)" class="chip" style="flex:1;">Indoor</button>
+        <button id="btn-outdoor" onclick="selectSetting('outdoor',this)" class="chip" style="flex:1;">Outdoor</button>
+      </div>
+      <div class="terrain-chips">
+        <button class="chip" onclick="selectTerrain(this,'Slab')">Slab</button>
+        <button class="chip" onclick="selectTerrain(this,'Vertical')">Vertical</button>
+        <button class="chip" onclick="selectTerrain(this,'Overhang')">Overhang</button>
+        <button class="chip" onclick="selectTerrain(this,'Roof')">Roof</button>
+        <button class="chip" onclick="selectTerrain(this,'Arête')">Arête</button>
+        <button class="chip" onclick="selectTerrain(this,'Dihedral')">Dihedral</button>
+        <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
+      </div>
+    </div>
 
 
     <!-- RESULT FIRST — outcome leads -->
@@ -1035,12 +986,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <button class="result-btn" id="btn-sent" onclick="selectResult('sent')"><span class="emoji">✓</span>Sent</button>
         <button class="result-btn" id="btn-fell" onclick="selectResult('fell')"><span class="emoji">◎</span>Fell</button>
         <button class="result-btn" id="btn-dna" onclick="selectResult('dna')"><span class="emoji">—</span>Backed off</button>
-        <button class="result-btn" id="btn-projecting" onclick="selectResult('projecting')"><span class="emoji">⟳</span>Projecting</button>
       </div>
     </div>
 
     <!-- CLIMB AUTOCOMPLETE — prominent, shown after result selected -->
-    <div class="field-group" id="log-rname-group" style="display:none;animation:fadeUp .25s ease;">
+    <div class="field-group" id="log-rname-group">
       <div class="field-label">Climb name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
       <div style="position:relative;">
         <input id="log-rname-input" type="text" placeholder="Search existing or type new climb name…" autocomplete="off"
@@ -1058,7 +1008,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <!-- GRADE — appears after result -->
-    <div class="field-group" id="log-grade-group" style="display:none;animation:fadeUp .25s ease;">
+    <div class="field-group" id="log-grade-group">
       <div class="field-label">Grade</div>
       <div class="grade-toggle">
         <button class="toggle-btn" onclick="setGradeSystem('V')" id="btn-V"><span class="sys-name">V</span><span class="sys-label">Hueco</span></button>
@@ -1068,22 +1018,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
       <div class="grade-grid" id="grade-grid"></div>
     </div>
-
-    <!-- TERRAIN — always visible -->
-    <div class="field-group">
-      <div class="field-label">Terrain</div>
-      <div class="terrain-chips">
-        <button class="chip" onclick="selectTerrain(this,'Slab')">Slab</button>
-        <button class="chip" onclick="selectTerrain(this,'Vertical')">Vertical</button>
-        <button class="chip" onclick="selectTerrain(this,'Overhang')">Overhang</button>
-        <button class="chip" onclick="selectTerrain(this,'Roof')">Roof</button>
-        <button class="chip" onclick="selectTerrain(this,'Arête')">Arête</button>
-        <button class="chip" onclick="selectTerrain(this,'Dihedral')">Dihedral</button>
-        <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
-      </div>
-    </div>
-      </div>
-
+</div>
 
 <!-- ═══════════════════════════════════════
      ZONE CONFIRMED — after Go Deeper Q7
@@ -1464,7 +1399,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="screen" id="screen-profile">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-sessions')">← Home</button>
+    <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
   <div class="content">
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">Account</div>
@@ -1502,7 +1437,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <!-- Anonymous view -->
-    <div     <div style="text-align:center;margin-top:28px;margin-bottom:8px;"><div style="font-size:11px;color:var(--muted2);">staging-index117</div></div>
+    <div     <div style="text-align:center;margin-top:28px;margin-bottom:8px;"><div style="font-size:11px;color:var(--muted2);">staging-index131</div></div>
 
     id="profile-anon" style="display:none;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:16px;">
@@ -1536,7 +1471,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="screen" id="screen-research" style="padding-bottom:0;">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-sessions')">← Home</button>
+    <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
   <div class="content">
     <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Straydog Labs</div>
@@ -1653,6 +1588,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
 </div>
 </div>
+</div>
 
 
 <!-- ═══════════════════════════════════════
@@ -1719,7 +1655,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="screen" id="screen-privacy">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-sessions')">← Home</button>
+    <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
   <div class="content">
     <div class="screen-title">Data &amp; Privacy</div>
@@ -1737,7 +1673,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <div style="background:rgba(232,68,68,.06);border:1px solid rgba(232,68,68,.2);border-radius:var(--r-xl);padding:20px;">
       <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e84444;margin-bottom:10px;">Delete my data</div>
-      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Permanently deletes all your climbs, projects, and feedback from our database. This cannot be undone.</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Permanently deletes all your climbs and feedback from our database. This cannot be undone.</div>
       <button onclick="confirmDeleteData()" style="width:100%;background:rgba(232,68,68,.15);border:1px solid rgba(232,68,68,.4);border-radius:var(--r-md);color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;" id="delete-data-btn">Delete all my data</button>
       <div id="delete-data-confirm" style="display:none;margin-top:12px;">
         <div style="font-size:13px;color:var(--muted);margin-bottom:12px;text-align:center;">Are you sure? This cannot be undone.</div>
@@ -1898,7 +1834,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <button id="edit-btn-sent" onclick="editSelResult('sent')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">✓ Sent</button>
       <button id="edit-btn-fell" onclick="editSelResult('fell')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fell</button>
       <button id="edit-btn-dna" onclick="editSelResult('dna')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">— Backed off</button>
-      <button id="edit-btn-projecting" onclick="editSelResult('projecting')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">⟳ Projecting</button>
     </div>
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
     <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
@@ -1911,7 +1846,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 
 
-</div>
 
 <div class="screen" id="screen-zone-predict">
   <div class="page-header">
@@ -2139,13 +2073,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <button onclick="showScreen('screen-sessions')" style="display:block;text-align:center;width:100%;background:none;border:none;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);color:var(--muted);cursor:pointer;padding:14px;-webkit-tap-highlight-color:transparent;">View all sessions →</button>
   </div>
 </div>
-
-
-    </div>
-    <div style="height:24px"></div>
-    <button class="log-btn" id="log-btn" onclick="logClimb()" style="margin:0 0 4px;width:100%;">Log climb</button>
-  </div>
-</div>
 <!-- end screen-celebrate -->
 
 <!-- ═══════════════════════════════════════
@@ -2371,7 +2298,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 
 
-</div>
 
 
 <!-- ═══════════════════════════════════════
@@ -2380,7 +2306,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="screen" id="screen-prepare">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-sessions')">← Home</button>
+    <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
   <div class="content">
     <div class="screen-title">Prepare<span class="sub">A somatic check-in — at any point in your decision window.</span></div>
@@ -2465,7 +2391,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="screen" id="s-result">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-sessions')">← Home</button>
+    <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
   <div class="content">
 
@@ -2615,7 +2541,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index129';
+var app_version = 'staging-index133';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -2703,9 +2629,9 @@ var EXAMPLE_ARC = [
   {grade_value:'5.12a',climbing_type:'Overhang',baseline_zone:'dna',zone:'panic',zone_confidence:'confirmed',route_name:'Power of Now',created_at:'2026-04-14T10:00:00Z'},
   {grade_value:'5.12a',climbing_type:'Overhang',baseline_zone:'fell',zone:'panic',zone_confidence:'confirmed',route_name:'Power of Now',created_at:'2026-04-17T10:00:00Z'},
   {grade_value:'5.12a',climbing_type:'Overhang',baseline_zone:'fell',zone:'learning',zone_confidence:'confirmed',route_name:'Power of Now',created_at:'2026-04-21T10:00:00Z'},
-  {grade_value:'5.12a',climbing_type:'Overhang',baseline_zone:'projecting',zone:'learning',zone_confidence:'confirmed',route_name:'Power of Now',created_at:'2026-04-25T10:00:00Z'},
+  {grade_value:'5.12a',climbing_type:'Overhang',baseline_zone:'sent',zone:'learning',zone_confidence:'confirmed',route_name:'Power of Now',created_at:'2026-04-25T10:00:00Z'},
   {grade_value:'5.11d',climbing_type:'Slab',baseline_zone:'sent',zone:'learning',zone_confidence:'estimated',route_name:'Glass Slab',created_at:'2026-04-28T10:00:00Z'},
-  {grade_value:'5.12a',climbing_type:'Overhang',baseline_zone:'projecting',zone:'learning',zone_confidence:'confirmed',route_name:'Power of Now',created_at:'2026-05-02T10:00:00Z'},
+  {grade_value:'5.12a',climbing_type:'Overhang',baseline_zone:'sent',zone:'learning',zone_confidence:'confirmed',route_name:'Power of Now',created_at:'2026-05-02T10:00:00Z'},
   {grade_value:'5.12a',climbing_type:'Overhang',baseline_zone:'sent',zone:'comfort',zone_confidence:'confirmed',route_name:'Power of Now',created_at:'2026-05-06T10:00:00Z'},
   {grade_value:'5.12b',climbing_type:'Overhang',baseline_zone:'fell',zone:'learning',zone_confidence:'confirmed',route_name:'Extension',created_at:'2026-05-09T10:00:00Z'},
   {grade_value:'5.12a',climbing_type:'Roof',baseline_zone:'fell',zone:'panic',zone_confidence:'confirmed',route_name:'Roof Problem',created_at:'2026-05-13T10:00:00Z'},
@@ -2738,7 +2664,7 @@ function resolveZone(data){
   // Result path — estimated from climb outcome
   var r=data.result||'';
   if(r==='sent')return{zone:'comfort',confidence:'estimated'};
-  if(r==='projecting')return{zone:'learning',confidence:'estimated'};
+  
   if(r==='fell')return{zone:'learning',confidence:'estimated'};
   if(r==='dna')return{zone:'panic',confidence:'estimated'};
   return{zone:'learning',confidence:'estimated'};
@@ -2830,13 +2756,23 @@ function selectGrade(btn,sys){
 // ═══════════════════════════════════════════════════════
 // LOG FLOW
 // ═══════════════════════════════════════════════════════
-var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null};
+var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null};
+
+
+function selectSetting(val, btn){
+  logState.setting = val;
+  ['btn-indoor','btn-outdoor'].forEach(function(id){
+    var b = document.getElementById(id);
+    if(b){ b.classList.remove('selected'); }
+  });
+  if(btn) btn.classList.add('selected');
+}
 
 function selectResult(r){
   logState.result=r;
   // Update button styles — apply correct per-result selected class
-  var classMap={sent:'selected-send',fell:'selected-attempt',dna:'selected-dna',projecting:'selected-attempt'};
-  ['sent','fell','dna','projecting'].forEach(function(v){
+  var classMap={sent:'selected-send',fell:'selected-attempt',dna:'selected-dna'};
+  ['sent','fell','dna'].forEach(function(v){
     var b=document.getElementById('btn-'+v);
     if(!b)return;
     // Remove all selected classes first
@@ -2859,7 +2795,6 @@ function selectTerrain(btn,terrain){
   checkLogReady();
 }
 
-function checkProjectPrompt(){}
 
 function checkLogReady(){
   var btn=document.getElementById('log-btn');
@@ -2868,14 +2803,6 @@ function checkLogReady(){
   btn.classList.toggle('ready',!!ready);
 }
 
-function toggleLogProject(){
-  var check=document.getElementById('log-proj-check');
-  var tick=document.getElementById('log-proj-tick');
-  var enabled=tick&&tick.style.display!=='none';
-  if(tick)tick.style.display=enabled?'none':'block';
-  if(check)check.style.borderColor=enabled?'rgba(126,200,122,.5)':'#7ec87a';
-  if(check)check.style.background=enabled?'':'rgba(126,200,122,.15)';
-}
 
 async function logClimb(){
   if(!logState.result||!logState.grade||!logState.terrain){showToast('Pick result, grade, and terrain first');return;}
@@ -2928,6 +2855,7 @@ async function logClimb(){
   var payload={
     baseline_zone:logState.result,
     grade_value:logState.grade,
+    setting:logState.setting||null,
     grade_system:logState.gradeSys,
     climbing_type:logState.terrain,
     route_name:logState.routeName||null,
@@ -2935,7 +2863,6 @@ async function logClimb(){
     zone:logState.zone,
     zone_confidence:logState.zoneConf,
     user_id: window._authUser ? window._authUser.id : null,
-    project_id:logState.projectId||null,
     app_version:app_version,
     device_id:getDeviceId(),
     // Silent capture: drill prediction
@@ -3030,8 +2957,8 @@ async function renderCelebrate(){
   if(gradEl)gradEl.textContent=logState.grade||'—';
   if(terrEl)terrEl.textContent=logState.terrain||'—';
 
-  var resultLabels={sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',projecting:'⟳ Projecting'};
-  var resultColors={sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
+  var resultLabels={sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off'};
+  var resultColors={sent:'#7ec87a',fell:'#f5a623',dna:'#e84444'};
   if(badgeEl){
     badgeEl.textContent=resultLabels[logState.result]||logState.result;
     badgeEl.style.color=resultColors[logState.result]||'var(--muted)';
@@ -3366,11 +3293,11 @@ document.addEventListener('click',function(e){
 function resetLogScreen(){
   _climbCache=null; // refresh cache on next log
   // Always clear result button visual state — never carry over from previous session
-  ['btn-sent','btn-fell','btn-dna','btn-projecting'].forEach(function(id){
+  ['btn-sent','btn-fell','btn-dna'].forEach(function(id){
     var b=document.getElementById(id);
     if(b){b.classList.remove('selected','selected-send','selected-attempt','selected-dna');b.style.borderColor='';b.style.background='';}
   });
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null,projectId:logState.projectId||null,projectName:logState.projectName||null};
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null};
   document.querySelectorAll('.terrain-chips .chip').forEach(function(b){b.classList.remove('selected');});
   document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
   var gradeGroup=document.getElementById('log-grade-group');
@@ -3384,12 +3311,11 @@ function resetLogScreen(){
 }
 
 function logAnother(){
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,routeName:null,sessId:null,zone:null,zoneConf:null};
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null};
   resetLogScreen();
   showScreen('screen-log');
 }
 
-function returnToProject(){}
 
 // Edit sheet
 function openEditSheet(){
@@ -3409,7 +3335,7 @@ function openEditSheet(){
     });
   }
   // Set result buttons
-  ['sent','fell','dna','projecting'].forEach(function(v){
+  ['sent','fell','dna'].forEach(function(v){
     var b=document.getElementById('edit-btn-'+v);
     if(b)b.style.borderColor=v===logState.result?'var(--accent)':'var(--border)';
   });
@@ -3417,7 +3343,7 @@ function openEditSheet(){
 }
 function editSelResult(r){
   logState.result=r;
-  ['sent','fell','dna','projecting'].forEach(function(v){
+  ['sent','fell','dna'].forEach(function(v){
     var b=document.getElementById('edit-btn-'+v);
     if(b)b.style.borderColor=v===r?'var(--accent)':'var(--border)';
   });
@@ -3445,30 +3371,6 @@ function selectFocus(btn,v){
   if(logState.sessId)sbU('sessions','id=eq.'+logState.sessId,{session_focus:v});
 }
 
-function logAgainstProject(pid,pname){
-  logState.projectId=pid;logState.projectName=pname;
-
-  showScreen('screen-log');
-  // Apply pre-fills to UI after screen shown
-  setTimeout(function(){
-    if(logState.grade){
-      buildGradeGrid(logState.gradeSys||'YDS');
-      document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){
-        if(b.textContent===logState.grade){b.classList.add('selected');}
-      });
-      var gradeGroup=document.getElementById('log-grade-group');
-      if(gradeGroup)gradeGroup.style.display='flex';
-      var rnameGroup=document.getElementById('log-rname-group');
-      if(rnameGroup)rnameGroup.style.display='flex';
-    }
-    if(logState.terrain){
-      document.querySelectorAll('.terrain-chips .chip').forEach(function(b){
-        b.classList.toggle('selected',b.textContent===logState.terrain);
-      });
-    }
-    checkLogReady();
-  },50);
-}
 
 // ═══════════════════════════════════════════════════════
 // GO DEEPER — Zone confirmation flow
@@ -3635,7 +3537,7 @@ function renderReflection(){
   var rZone=document.getElementById('reflect-zone-pill');
   if(rGrade)rGrade.textContent=grade;
   if(rTerrain)rTerrain.textContent=terrain;
-  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',projecting:'Projecting'};
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off'};
   if(rResult)rResult.textContent=resultLabels[logState.result]||'—';
   if(rZone)rZone.innerHTML=zonePill(logState.zone,false);
 
@@ -3824,7 +3726,7 @@ function renderClimbList(climbs, isExample){
     el.innerHTML='<div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div>';
     return;
   }
-  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',projecting:'Projecting'};
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off'};
   var toggleHtml='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
     +'<div style="font-size:11px;color:var(--muted);">'+climbs.length+' climbs</div>'
 
@@ -3860,7 +3762,6 @@ function climbRow(s,resultLabels){
   var conf=s.zone_confidence==='confirmed';
   var pillStyle=conf?'border:1.5px solid '+c+';':'border:1.5px dashed '+c+';';
   var timeAgo=timeAgoStr(s.created_at);
-  var projectBadge=s.project_id?'<span style="font-size:10px;font-weight:700;color:#7ec87a;background:rgba(126,200,122,.12);padding:2px 7px;border-radius:99px;border:1px solid rgba(126,200,122,.3);">⛰</span>':'';
   var routeLabel=s.route_name?'<span style="font-size:11px;color:var(--muted2);">'+s.route_name+'</span>':'';
   return '<div style="display:flex;gap:10px;align-items:stretch;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
     +'<div style="width:4px;border-radius:99px;background:'+c+';flex-shrink:0;margin:2px 0;"></div>'
@@ -3872,7 +3773,7 @@ function climbRow(s,resultLabels){
     +'<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">'+(s.climbing_type||'—')+' · '+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</div>'
     +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">'
     +'<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 7px;border-radius:99px;'+pillStyle+'">'+(conf?zoneName(s.zone):zoneName(s.zone)+' ~')+'</span>'
-    +routeLabel+projectBadge
+    +routeLabel
     +'</div>'
     +'</div>'
     +'</div>';
@@ -4031,10 +3932,6 @@ async function loadHomeInsight(){
     return (terrainZones[b].comfort/terrainZones[b].total)-(terrainZones[a].comfort/terrainZones[a].total);
   })[0]||null;
 
-  // Show seed arc card until 15 climbs — gentle persistent reminder
-  var seedCard = document.getElementById('home-seed-card');
-  if(seedCard) seedCard.style.display = total < 15 ? 'block' : 'none';
-
   var msg='';
   if(total<3){ msg=total+' climb'+(total===1?'':'s')+' logged.'; }
   else if(panicTerrain&&comfortTerrain&&panicTerrain!==comfortTerrain&&terrainZones[panicTerrain].total>=2){
@@ -4122,10 +4019,9 @@ function toggleHomeSayMore(){
   if(b)b.textContent=open?'Say more ›':'Say less ›';
 }
 
-// ═══════════════════════════════════════════════════════
-// PROJECTS
-// ═══════════════════════════════════════════════════════
-var currentProjectId=null;var currentProject=null;
+
+
+var currentProject = null; // projects removed
 var spState={name:'',disc:'',env:null,rock:null,bolts:null,height:null,unit:'ft'};
 
 function spCheckReady(){
@@ -4385,7 +4281,7 @@ function renderBodyScan(wrap){
   wrap.innerHTML=html;
 }
 
-function startLogFromPrepare(){logState.projectId=null;showScreen('screen-log');}
+function startLogFromPrepare(){showScreen('screen-log');}
 
 function getZone(score){return score<=4?'comfort':score<=9?'learning':'panic';}
 
@@ -4533,7 +4429,6 @@ function startDrillCheckin(){
 }
 function completeDrill(){
   _drillPostActive=true;
-  logState.projectId=null;
   // If drill has a route name, check cache for matching climb
   if(drillState.routeName){
     var climbs = window._cachedClimbs || [];
@@ -5003,8 +4898,8 @@ function showZoneConfirmed(prevZone, confirmedZone){
   var resultEl=document.getElementById('zc-result');
   if(gradeEl)gradeEl.textContent=logState.grade||'—';
   if(terrEl)terrEl.textContent=logState.terrain||'—';
-  var resultLabels={sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',projecting:'⟳ Projecting'};
-  var resultColors={sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
+  var resultLabels={sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off'};
+  var resultColors={sent:'#7ec87a',fell:'#f5a623',dna:'#e84444'};
   if(resultEl){resultEl.textContent=resultLabels[logState.result]||'';resultEl.style.color=resultColors[logState.result]||'var(--muted)';}
 
   // Header
@@ -5525,7 +5420,7 @@ var GRADE_ORDER = window.GRADE_ORDER = ['VB','V0','V1','V2','V3','V4','V5','V6',
   '7c','7c+','8a','8a+','8b','8b+','8c','8c+','9a',
   'Diff','V.Diff','Severe','H.Severe','VS','H.VS','E1','E2','E3','E4','E5','E6','E7','E8','E9','E10'];
 var ZONE_ORDER = {comfort:0, learning:1, panic:2};
-var RESULT_ORDER = {sent:0, projecting:1, fell:2, dna:3};
+var RESULT_ORDER = {sent:0, fell:1, dna:2};
 
 function setClimbLogView(view){
   climbLogState.view = view;
@@ -5718,8 +5613,8 @@ function buildTableRow(s){
     + '</tr>';
 
   // Detail row
-  var rLabels = {sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',projecting:'⟳ Projecting'};
-  var rColors = {sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',projecting:'#e8763a'};
+  var rLabels = {sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off'};
+  var rColors = {sent:'#7ec87a',fell:'#f5a623',dna:'#e84444'};
   var isEstimated = !conf;
   var rn = (s.route_name||'').replace(/['"]/g,'');
   var gv = (s.grade_value||'').replace(/['"]/g,'');
@@ -5790,7 +5685,7 @@ function editClimbFromLog(sessId){
 
 function addAttemptFromLog(routeName, grade, terrain, climbId){
   climbLogState.returnFrom = 'screen-sessions';
-  logState = {result:null, grade:grade||null, gradeSys:'YDS', terrain:terrain||null, routeName:routeName||null, sessId:null, zone:null, zoneConf:null, projectId:null};
+  logState = {result:null, grade:grade||null, gradeSys:'YDS', terrain:terrain||null, routeName:routeName||null, sessId:null, zone:null, zoneConf:null};
   if(climbId){
     launchLogWithClimb(climbId, routeName, grade, terrain);
   } else {
@@ -5914,7 +5809,7 @@ var BASELINE_Qs = [
     text: 'What grades do you typically climb?',
     label: 'Your comfortable range — not your max.',
     multi: false,
-    opts: ['5.8 and below','5.9–5.10a','5.10b–5.10d','5.11a–5.11c','5.11d–5.12b','5.12c+','VB–V2','V3–V4','V5–V6','V7–V8','V9+']
+    opts: ['5.8 and below','5.9–5.10a','5.10b–5.10d','5.11a–5.11c','5.11d–5.12b','5.12c+']
   },
   {
     key: 'baseline_environment',
@@ -6065,7 +5960,7 @@ async function saveBaseline(){
     baseline_pre_climb_state: baselineState.answers.baseline_pre_climb_state || null,
     baseline_experience: baselineState.answers.baseline_experience || null,
     baseline_goals: baselineState.answers.baseline_goals ? JSON.stringify(baselineState.answers.baseline_goals) : null,
-    app_version: 'staging-index105'
+    app_version: app_version
   };
   sbI('sessions', payload);
   showScreen('screen-baseline-done');
@@ -6075,15 +5970,10 @@ function baselineDone(){
   localStorage.setItem('see_baseline_complete','1');
   var count = window._userClimbCount || 0;
   if(count === 0){
-    // New user — offer seed arc before first log
-    var seedDone = localStorage.getItem('see_seed_complete');
-    if(!seedDone){
-      showSeedArc();
-    } else {
-      showScreen('screen-log');
-    }
+    showScreen('screen-log');
   } else {
     showScreen('screen-sessions');
+    loadDashboard();
   }
 }
 
@@ -6160,8 +6050,6 @@ async function openClimbExposure(climbId){
   var projActions = document.getElementById('proj-actions');
   if(projActions) projActions.style.display = 'none';
 
-  // Arc
-  buildProjectArc(sessList);
 
   // Attempt list
   var listEl = document.getElementById('proj-sessions-list');
@@ -6172,7 +6060,7 @@ async function openClimbExposure(climbId){
       var html = '';
       sessList.slice().reverse().forEach(function(s){
         var c = zoneColor(s.zone||'learning');
-        var rLabels = {sent:'Sent',fell:'Fell',dna:'Backed off',projecting:'Projecting'};
+        var rLabels = {sent:'Sent',fell:'Fell',dna:'Backed off'};
         var dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
         html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
           + '<div style="width:3px;border-radius:99px;background:'+c+';align-self:stretch;min-height:32px;flex-shrink:0;"></div>'
@@ -6466,7 +6354,7 @@ function extractResultFromTranscript(t){
   if(t.includes('sent') || t.includes('topped') || t.includes('topped out') || t.includes('flashed')) return 'sent';
   if(t.includes('backed off') || t.includes('back off') || t.includes('bailed') || t.includes('dna') || t.includes('did not')) return 'dna';
   if(t.includes('fell') || t.includes('fall') || t.includes('took a fall') || t.includes('whipped')) return 'fell';
-  if(t.includes('projecting') || t.includes('project') || t.includes('working')) return 'projecting';
+  // projecting result type removed
   return null;
 }
 
@@ -6489,175 +6377,16 @@ function extractTerrainFromTranscript(t){
 // Web Speech API, no backend
 // ═══════════════════════════════════════════════════════ // stores last parsed voice result
 
+
 // ═══════════════════════════════════════════════════════
-// SEED YOUR ARC — bulk entry
-// ═══════════════════════════════════════════════════════
-var _seedCards = []; // [{grade, zone, result, terrain, routeName}]
 
-function showSeedArc(){
-  _seedCards = [];
-  renderSeedCards();
-  updateSeedArcPreview();
-  document.getElementById('seed-save-btn').style.display = 'none';
-  document.getElementById('seed-arc-preview').style.display = 'none';
-  var ta = document.getElementById('seed-ai-text');
-  if(ta) ta.value = '';
-  showScreen('screen-seed-arc');
-}
 
-function addSeedCard(prefill){
-  if(_seedCards.length >= 10){ showToast('Max 10 climbs'); return; }
-  _seedCards.push(prefill || {grade:null, zone:null, result:'fell', terrain:null, routeName:''});
-  renderSeedCards();
-  updateSeedArcPreview();
-}
 
-function removeSeedCard(idx){
-  _seedCards.splice(idx, 1);
-  renderSeedCards();
-  updateSeedArcPreview();
-}
 
-function updateSeedCard(idx, field, value){
-  if(_seedCards[idx]) _seedCards[idx][field] = value;
-  updateSeedArcPreview();
-  checkSeedSaveReady();
-}
 
-function checkSeedSaveReady(){
-  var valid = _seedCards.filter(function(c){ return c.grade && c.zone; });
-  var saveBtn = document.getElementById('seed-save-btn');
-  var previewWrap = document.getElementById('seed-arc-preview');
-  if(saveBtn) saveBtn.style.display = valid.length > 0 ? 'block' : 'none';
-  if(previewWrap) previewWrap.style.display = valid.length > 0 ? 'block' : 'none';
-}
 
-function renderSeedCards(){
-  var wrap = document.getElementById('seed-cards-wrap');
-  if(!wrap) return;
-  if(_seedCards.length === 0){ wrap.innerHTML = ''; return; }
 
-  var sys = localStorage.getItem('see_grade_sys') || 'YDS';
-  var grades = sys === 'V'
-    ? ['VB','V0','V1','V2','V3','V4','V5','V6','V7','V8','V9','V10','V11','V12']
-    : ['5.6','5.7','5.8','5.9','5.10a','5.10b','5.10c','5.10d','5.11a','5.11b','5.11c','5.11d','5.12a','5.12b','5.12c','5.12d','5.13a','5.13b','5.13c','5.13d','5.14a','5.14b'];
 
-  wrap.innerHTML = _seedCards.map(function(card, idx){
-    var zoneColors = {comfort:'#7ec87a',learning:'#f5a623',panic:'#e84444'};
-    var zoneOpts = ['comfort','learning','panic'].map(function(z){
-      var c = zoneColors[z];
-      var sel = card.zone === z;
-      return '<button data-idx="'+idx+'" data-zone="'+z+'" data-field="zone" onclick="updateSeedCard(this.dataset.idx,this.dataset.field,this.dataset.zone);renderSeedCards();" '
-        + 'style="flex:1;background:'+(sel?c+'22':'var(--surface2)')+';border:1px solid '+(sel?c:'var(--border)')+';border-radius:var(--r-sm);color:'+(sel?c:'var(--muted)')+';font-size:11px;font-weight:700;padding:7px;cursor:pointer;text-transform:capitalize;">'+z+'</button>';
-    }).join('');
-
-    var resultColors2 = {sent:'#7ec87a',fell:'#f5a623',dna:'#e84444'};
-    var resultLabels2 = {sent:'Sent',fell:'Fell',dna:'Backed off'};
-    var resultOpts = ['sent','fell','dna'].map(function(r){
-      var c2 = resultColors2[r];
-      var sel2 = card.result === r;
-      return '<button data-idx="'+idx+'" data-result="'+r+'" data-field="result" onclick="updateSeedCard(this.dataset.idx,this.dataset.field,this.dataset.result);renderSeedCards();" '
-        + 'style="flex:1;background:'+(sel2?c2+'22':'var(--surface2)')+';border:1px solid '+(sel2?c2:'var(--border)')+';border-radius:var(--r-sm);color:'+(sel2?c2:'var(--muted)')+';font-size:11px;font-weight:700;padding:7px;cursor:pointer;">'+resultLabels2[r]+'</button>';
-    }).join('');
-
-    var gradeOpts = grades.map(function(g){
-      var sel = card.grade === g;
-      return '<button data-idx="'+idx+'" data-grade="'+g+'" data-field="grade" onclick="updateSeedCard(this.dataset.idx,this.dataset.field,this.dataset.grade);renderSeedCards();" '
-        + 'style="background:'+(sel?'var(--accent)':'var(--surface2)')+';border:1px solid '+(sel?'var(--accent)':'var(--border)')+';border-radius:6px;color:'+(sel?'#fff':'var(--muted)')+';font-size:11px;font-weight:600;padding:4px 8px;cursor:pointer;white-space:nowrap;">'+g+'</button>';
-    }).join('');
-
-    var terrains = ['Slab','Vertical','Overhang','Roof','Arête','Crack'];
-    var terrainOpts = terrains.map(function(ter){
-      var sel = card.terrain === ter;
-      return '<button data-idx="'+idx+'" data-terrain="'+ter+'" data-field="terrain" onclick="updateSeedCard(this.dataset.idx,this.dataset.field,this.dataset.terrain);renderSeedCards();" '
-        + 'style="background:'+(sel?'rgba(232,118,58,.2)':'var(--surface2)')+';border:1px solid '+(sel?'var(--accent)':'var(--border)')+';border-radius:99px;color:'+(sel?'var(--accent)':'var(--muted)')+';font-size:11px;font-weight:600;padding:4px 10px;cursor:pointer;white-space:nowrap;">'+ter+'</button>';
-    }).join('');
-
-    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px;">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
-      + '<div style="font-size:12px;font-weight:700;color:var(--accent);">Climb '+(idx+1)+'</div>'
-      + '<button onclick="removeSeedCard('+idx+')" style="background:none;border:none;color:var(--muted2);font-size:18px;cursor:pointer;line-height:1;">×</button>'
-      + '</div>'
-      // Result
-      + '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Result</div>'
-      + '<div style="display:flex;gap:6px;margin-bottom:12px;">' + resultOpts + '</div>'
-      // Zone
-      + '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">How activated were you?</div>'
-      + '<div style="display:flex;gap:6px;margin-bottom:12px;">' + zoneOpts + '</div>'
-      // Grade
-      + '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Grade</div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;">' + gradeOpts + '</div>'
-      // Terrain (optional)
-      + '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;">Terrain <span style="font-weight:400;text-transform:none;">(optional)</span></div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;">' + terrainOpts + '</div>'
-      + '</div>';
-  }).join('');
-
-  checkSeedSaveReady();
-}
-
-function updateSeedArcPreview(){
-  var dotsEl = document.getElementById('seed-arc-dots');
-  if(!dotsEl) return;
-  var valid = _seedCards.filter(function(c){ return c.zone; });
-  if(valid.length === 0){ dotsEl.innerHTML = ''; return; }
-
-  var zoneY = {comfort:52, learning:30, panic:8};
-  var zoneC = {comfort:'#7ec87a', learning:'#f5a623', panic:'#e84444'};
-  var n = valid.length;
-  var html = '';
-  var pts = [];
-
-  valid.forEach(function(card, i){
-    var x = n === 1 ? 160 : 20 + (i / (n-1)) * 280;
-    var y = zoneY[card.zone] || 30;
-    var c = zoneC[card.zone] || '#f5a623';
-    pts.push(x+','+y);
-    // Open circle — seeded data
-    html += '<circle cx="'+x.toFixed(1)+'" cy="'+y+'" r="5" fill="none" stroke="'+c+'" stroke-width="2"/>';
-  });
-
-  if(pts.length > 1){
-    html = '<polyline points="'+pts.join(' ')+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" stroke-linejoin="round"/>' + html;
-  }
-
-  dotsEl.innerHTML = html;
-}
-
-async function saveSeededClimbs(){
-  var valid = _seedCards.filter(function(c){ return c.grade && c.zone; });
-  if(valid.length === 0){ showToast('Add at least one climb with grade and zone'); return; }
-
-  var saveBtn = document.getElementById('seed-save-btn');
-  if(saveBtn){ saveBtn.textContent = 'Saving...'; saveBtn.style.opacity = '.6'; saveBtn.style.pointerEvents = 'none'; }
-
-  var deviceId = getDeviceId();
-  var promises = valid.map(function(card){
-    return sbI('sessions', {
-      device_id: deviceId,
-      grade_value: card.grade,
-      climbing_type: card.terrain || null,
-      zone: card.zone,
-      zone_confidence: 'estimated',
-      baseline_zone: card.result || 'fell',
-      route_name: card.routeName || null,
-      is_seeded: true,
-      is_checkin: false,
-      app_version: 'staging-index109'
-    });
-  });
-
-  try{
-    await Promise.all(promises);
-    localStorage.setItem('see_seed_complete', '1');
-    showToast(valid.length + ' climbs seeded ✓');
-    showScreen('screen-sessions');
-    loadDashboard();
-  } catch(e){
-    showToast('Save error — try again');
-    if(saveBtn){ saveBtn.textContent = 'Save to arc →'; saveBtn.style.opacity = '1'; saveBtn.style.pointerEvents = 'all'; }
-  }
-}
 
 // ═══════════════════════════════════════════════════════
 
@@ -6741,24 +6470,11 @@ function offlineQueueAdd(payload, routeName, climbId){
     queue.push({type:'session', payload:payload, routeName:routeName||null, climbId:climbId||null, ts:Date.now()});
     localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
     // Show subtle banner
-    showOfflineBanner();
+    
   }catch(e){ console.error('Offline queue add error:', e); }
 }
 
-function showOfflineBanner(){
-  var existing = document.getElementById('offline-banner');
-  if(existing) return;
-  var banner = document.createElement('div');
-  banner.id = 'offline-banner';
-  banner.style.cssText = 'position:fixed;top:52px;left:0;right:0;background:rgba(245,166,35,.15);border-bottom:1px solid rgba(245,166,35,.3);padding:8px 16px;text-align:center;font-size:12px;color:#f5a623;font-weight:600;z-index:200;';
-  banner.textContent = "Saved locally — will sync when you're back online";
-  document.body.appendChild(banner);
-}
 
-function hideOfflineBanner(){
-  var banner = document.getElementById('offline-banner');
-  if(banner) banner.remove();
-}
 
 async function flushOfflineQueue(){
   // Clear entries older than 24 hours to prevent stuck banner
@@ -6801,7 +6517,7 @@ async function flushOfflineQueue(){
     }
     localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
     if(remaining.length === 0 && queue.length > 0){
-      hideOfflineBanner();
+      
       showToast('Synced ✓');
     }
   }catch(e){ console.error('Flush offline queue error:', e); }
@@ -7164,7 +6880,7 @@ async function authSignOut(){
 }
 
 function confirmDeleteAccount(){
-  if(confirm('Delete your account? This cannot be undone. Your session data will remain in our database until manually removed.')){
+  if(confirm('Delete your account? This cannot be undone. Your climb and feedback data will remain in our database until manually removed.')){
     showToast('Account deletion requested — contact support to complete');
     // Full self-serve delete in a later build
   }
@@ -7237,11 +6953,6 @@ async function loadDashboard(){
     var sends = climbs.filter(function(s){ return s.baseline_zone==='sent'; }).length;
     sentEl.textContent = total > 0 ? Math.round((sends/total)*100)+'%' : '—';
   }
-
-  // Show/hide seed card
-  var seedCard = document.getElementById('home-seed-card');
-  var seedDone = localStorage.getItem('see_seed_complete');
-  if(seedCard) seedCard.style.display = (total < 15 && !seedDone) ? 'block' : 'none';
 
   // Dashboard state based on session count
   var dashNew = document.getElementById('dash-new-user');
@@ -7463,7 +7174,7 @@ async function finishPrepareClimb(){
       prepare_gut_pre: _pcState.gutPre,
       prepare_breath_post: _pcState.breathPost,
       prepare_gut_post: _pcState.gutPost,
-      app_version: 'staging-index116'
+      app_version: app_version
     });
   }catch(e){ console.warn('Prepare for a climb save failed:', e); }
 
@@ -7487,7 +7198,7 @@ async function submitProfileFeedback(){
       answers: JSON.stringify({quick: text}),
       device_id: getDeviceId(),
       user_id: window._authUser ? window._authUser.id : null,
-      app_version: 'staging-index116'
+      app_version: app_version
     });
     if(ta) ta.value = '';
     showToast('Feedback sent — thank you');
@@ -7510,8 +7221,6 @@ async function executeDeleteData(){
   var device=getDeviceId();
   try{
     await fetch(SB_URL+'/rest/v1/sessions?device_id=eq.'+device,{method:'DELETE',headers:SB_HEADERS});
-    await fetch(SB_URL+'/rest/v1/projects?device_id=eq.'+device,{method:'DELETE',headers:SB_HEADERS});
-    await fetch(SB_URL+'/rest/v1/feedback?device_id=eq.'+device,{method:'DELETE',headers:SB_HEADERS});
     // Clear local storage
     localStorage.removeItem('see_device_id');
     localStorage.removeItem('see_drill');
