@@ -157,7 +157,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 /* ── RESULT BTNS ── */
 .result-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-.result-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;padding:20px 12px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;line-height:1.2;}
+.result-btn{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;padding:20px 12px;text-align:center;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;line-height:1.2;}
 .result-btn .emoji{font-size:24px;display:block;margin-bottom:6px;}
 .result-btn:active{transform:scale(.97);}
 .result-btn.selected-send{background:var(--accent);border-color:var(--accent);color:#fff;}
@@ -861,7 +861,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         </div>
         <button id="cel-deeper-btn" onclick="startDeeper()" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">Go Deeper →</button>
       </div>
-      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Confirm your zone · 7 questions · ~2 minutes</div>
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Confirm your zone · 4 questions · ~1 minute</div>
   
       <!-- Zone shift — shown after Go Deeper updates zone -->
       <div id="cel-zone-shift" style="display:none;margin:0 16px 14px;padding:10px 14px;background:rgba(232,118,58,.06);border-radius:var(--r-md);border-left:2px solid var(--accent);"></div>
@@ -978,18 +978,26 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
     </div>
 
-
-    <!-- RESULT FIRST — outcome leads -->
+    <!-- RESULT — 3-column, icon + label -->
     <div class="field-group">
       <div class="field-label">Result</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button class="result-btn" id="btn-sent" onclick="selectResult('sent')"><span class="emoji">✓</span>Sent</button>
-        <button class="result-btn" id="btn-fell" onclick="selectResult('fell')"><span class="emoji">◎</span>Fell</button>
-        <button class="result-btn" id="btn-dna" onclick="selectResult('dna')"><span class="emoji">—</span>Backed off</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <button class="result-btn" id="btn-sent" onclick="selectResult('sent')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>Sent</span>
+        </button>
+        <button class="result-btn" id="btn-fell" onclick="selectResult('fell')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+          <span>Fell</span>
+        </button>
+        <button class="result-btn" id="btn-dna" onclick="selectResult('dna')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+          <span>Backed off</span>
+        </button>
       </div>
     </div>
 
-    <!-- CLIMB AUTOCOMPLETE — prominent, shown after result selected -->
+        <!-- CLIMB AUTOCOMPLETE — prominent, shown after result selected -->
     <div class="field-group" id="log-rname-group">
       <div class="field-label">Climb name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
       <div style="position:relative;">
@@ -1018,6 +1026,56 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
       <div class="grade-grid" id="grade-grid"></div>
     </div>
+
+    <!-- REFLECTION — optional, collapsed by default -->
+    <div class="field-group" id="log-reflection-group">
+      <button onclick="toggleReflection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;">
+        <span>Add reflection <span style="font-size:12px;opacity:.6;">(optional)</span></span>
+        <span id="refl-chevron" style="font-size:18px;transition:transform .2s;">›</span>
+      </button>
+      <div id="refl-body" style="display:none;margin-top:12px;">
+
+        <!-- What went well -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What went well</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">footwork</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">stayed present</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">committed at crux</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">trusted my feet</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">controlled breathing</button>
+          </div>
+          <textarea id="went-well-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+        </div>
+
+        <!-- What to work on -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What to work on</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">footwork precision</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">clipping position</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">breathing at crux</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">committing to moves</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">body tension</button>
+          </div>
+          <textarea id="still-learning-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+        </div>
+
+        <!-- Anything surprise you -->
+        <div style="margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything surprise you</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'surprised')">my body responded differently than expected</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'surprised')">I made a decision I didn't anticipate</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'surprised')">the fear was different than I thought</button>
+            <button class="chip refl-chip" onclick="toggleReflChip(this,'surprised')">nothing surprised me</button>
+          </div>
+          <textarea id="surprised-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+        </div>
+
+      </div>
+    </div>
+
     <button class="log-btn" id="log-btn" onclick="logClimb()" style="margin:0 0 4px;width:100%;">Log climb</button>
 </div>
 
@@ -1287,110 +1345,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 </div>
 
 
-<!-- ═══════════════════════════════════════
-     GO DEEPER — Q5 WHAT WENT WELL
-═══════════════════════════════════════ -->
-<div class="screen" id="screen-q5">
-  <div class="page-header">
-    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-q4')">← Back</button>
-  </div>
-  <div class="deeper-header">
-    <span class="deeper-climb-label" id="q5-label">—</span>
-    <span class="deeper-progress">5 of 7</span>
-  </div>
-  <div class="content">
-    <div class="question-card">
-      <div class="q-number">What went well</div>
-      <div class="q-text-dark">What did you do well on this climb?</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;">Movement, decisions, awareness, commitment — anything that felt right.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-        <button class="chip" onclick="toggleReflChip(this,'ww')">footwork</button>
-        <button class="chip" onclick="toggleReflChip(this,'ww')">stayed present</button>
-        <button class="chip" onclick="toggleReflChip(this,'ww')">read the route</button>
-        <button class="chip" onclick="toggleReflChip(this,'ww')">committed at crux</button>
-        <button class="chip" onclick="toggleReflChip(this,'ww')">controlled breathing</button>
-        <button class="chip" onclick="toggleReflChip(this,'ww')">managed fear well</button>
-        <button class="chip" onclick="toggleReflChip(this,'ww')">trusted my feet</button>
-        <button class="chip" onclick="toggleReflChip(this,'ww')">stayed relaxed</button>
-      </div>
-      <textarea id="went-well-text" rows="2" placeholder="Or describe it..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;line-height:1.6;"></textarea>
-    </div>
-  </div>
-  <div style="height:16px;"></div>
-  <button class="next-btn ready" onclick="showScreen('screen-q6')">Next →</button>
-  <button style="display:block;text-align:center;padding:10px;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;width:100%;" onclick="showScreen('screen-q6')">Skip</button>
-</div>
 
 
-<!-- ═══════════════════════════════════════
-     GO DEEPER — Q6 STILL LEARNING
-═══════════════════════════════════════ -->
-<div class="screen" id="screen-q6">
-  <div class="page-header">
-    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-q5')">← Back</button>
-  </div>
-  <div class="deeper-header">
-    <span class="deeper-climb-label" id="q6-label">—</span>
-    <span class="deeper-progress">6 of 7</span>
-  </div>
-  <div class="content">
-    <div class="question-card">
-      <div class="q-number">Still learning</div>
-      <div class="q-text-dark">What's the next thing to develop?</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;">Not what went wrong — what's the specific next thing to work on.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
-        <button class="chip" onclick="toggleReflChip(this,'sl')">footwork precision</button>
-        <button class="chip" onclick="toggleReflChip(this,'sl')">clipping position</button>
-        <button class="chip" onclick="toggleReflChip(this,'sl')">route reading</button>
-        <button class="chip" onclick="toggleReflChip(this,'sl')">breathing at crux</button>
-        <button class="chip" onclick="toggleReflChip(this,'sl')">committing to moves</button>
-        <button class="chip" onclick="toggleReflChip(this,'sl')">trusting gear</button>
-        <button class="chip" onclick="toggleReflChip(this,'sl')">body tension</button>
-        <button class="chip" onclick="toggleReflChip(this,'sl')">rest positions</button>
-        <button class="chip" onclick="toggleReflChip(this,'sl')">fall practice</button>
-      </div>
-      <textarea id="still-learning-text" rows="2" placeholder="Or describe it..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;line-height:1.6;"></textarea>
-    </div>
-  </div>
-  <div style="height:16px;"></div>
-  <button class="next-btn ready" onclick="showScreen('screen-q7')">Next →</button>
-  <button style="display:block;text-align:center;padding:10px;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;width:100%;" onclick="showScreen('screen-q7')">Skip</button>
-</div>
 
 
-<!-- ═══════════════════════════════════════
-     GO DEEPER — Q7 SURPRISED BY
-═══════════════════════════════════════ -->
-<div class="screen" id="screen-q7">
-  <div class="page-header">
-    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-q6')">← Back</button>
-  </div>
-  <div class="deeper-header">
-    <span class="deeper-climb-label" id="q7-label">—</span>
-    <span class="deeper-progress">7 of 7</span>
-  </div>
-  <div class="content">
-    <div class="question-card">
-      <div class="q-number">Surprised by</div>
-      <div class="q-text-dark">Did anything surprise you?</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;">A sensation, a decision, a feeling — anything you noticed in yourself that you didn't expect.</div>
-      <div class="response-chips">
-        <button class="chip" onclick="selectDeepChip(this,'q7')">My body responded differently than expected</button>
-        <button class="chip" onclick="selectDeepChip(this,'q7')">I made a decision I didn't anticipate</button>
-        <button class="chip" onclick="selectDeepChip(this,'q7')">The fear was different than I thought</button>
-        <button class="chip" onclick="selectDeepChip(this,'q7')">I felt more capable than expected</button>
-        <button class="chip" onclick="selectDeepChip(this,'q7')">Nothing surprised me</button>
-      </div>
-      <textarea id="surprised-text" rows="2" placeholder="What was unexpected..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;line-height:1.6;margin-top:14px;"></textarea>
-    </div>
-  </div>
-  <div style="height:16px;"></div>
-  <button class="next-btn ready" onclick="finishDeeper()">See reflection →</button>
-  <button style="display:block;text-align:center;padding:10px;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;width:100%;" onclick="finishDeeper()">Skip</button>
-</div>
 
 
 <!-- ═══════════════════════════════════════
@@ -2540,7 +2498,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index138';
+var app_version = 'staging-index139';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -2728,12 +2686,81 @@ function buildGradeGrid(sys,containerId){
   var grid=document.getElementById(containerId);
   if(!grid)return;
   grid.innerHTML='';
-  GRADES[sys].forEach(function(g){
+
+  var grades=GRADES[sys];
+  var centerIdx=0;
+
+  // Find baseline center grade
+  var baselineRange=localStorage.getItem('see_baseline_grade_range')||'';
+  var rangeMap={
+    '5.8 and below':4,'5.9–5.10a':6,'5.10b–5.10d':8,
+    '5.11a–5.11c':11,'5.11d–5.12b':14,'5.12c+':16,
+    'VB–V2':1,'V3–V4':3,'V5–V6':5,'V7–V8':7,'V9+':9
+  };
+  if(rangeMap[baselineRange]!==undefined){
+    centerIdx=Math.min(rangeMap[baselineRange], grades.length-1);
+  }
+
+  // If user already selected a grade, center on that instead
+  if(logState.grade && grades.indexOf(logState.grade)>-1){
+    centerIdx=grades.indexOf(logState.grade);
+  }
+
+  var windowSize=4;
+  var winStart=Math.max(0,centerIdx-windowSize);
+  var winEnd=Math.min(grades.length-1,centerIdx+windowSize);
+
+  // "Show easier" button
+  if(winStart>0){
+    var easierBtn=document.createElement('button');
+    easierBtn.className='grade-show-more';
+    easierBtn.textContent='↑ Show easier grades';
+    easierBtn.style.cssText='width:100%;padding:8px;background:none;border:1px dashed var(--border);border-radius:var(--r-md);color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;margin-bottom:4px;';
+    easierBtn.onclick=function(){
+      this.style.display='none';
+      var extras=grid.querySelectorAll('.grade-btn-hidden-easier');
+      extras.forEach(function(b){b.classList.remove('grade-btn-hidden-easier');b.style.display='';});
+    };
+    grid.appendChild(easierBtn);
+  }
+
+  // Render all grades, hide those outside window
+  grades.forEach(function(g,i){
     var b=document.createElement('button');
-    b.className='grade-btn';b.textContent=g;
+    b.className='grade-btn';
+    b.textContent=g;
+    if(i===centerIdx&&!logState.grade){
+      var badge=document.createElement('span');
+      badge.textContent='baseline';
+      badge.style.cssText='font-size:9px;background:var(--accent);color:#fff;border-radius:3px;padding:1px 4px;margin-left:4px;vertical-align:middle;';
+      b.appendChild(badge);
+    }
     b.onclick=function(){selectGrade(this,sys);};
+    if(i<winStart){
+      b.classList.add('grade-btn-hidden-easier');
+      b.style.display='none';
+    }
     grid.appendChild(b);
   });
+
+  // "Show harder" button
+  if(winEnd<grades.length-1){
+    var harderBtn=document.createElement('button');
+    harderBtn.className='grade-show-more';
+    harderBtn.textContent='↓ Show harder grades';
+    harderBtn.style.cssText='width:100%;padding:8px;background:none;border:1px dashed var(--border);border-radius:var(--r-md);color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;margin-top:4px;';
+    harderBtn.onclick=function(){
+      this.style.display='none';
+      var allBtns=grid.querySelectorAll('.grade-btn');
+      allBtns.forEach(function(b,idx){if(idx>winEnd)b.style.display='';});
+    };
+    grid.appendChild(harderBtn);
+
+    // Hide grades above window initially
+    var allBtns=grid.querySelectorAll('.grade-btn');
+    allBtns.forEach(function(b,idx){if(idx>winEnd){b.style.display='none';}});
+  }
+
   // Mark active system button
   ['V','YDS','FR','UK'].forEach(function(s){
     var sb=document.getElementById('btn-'+s);
@@ -2756,6 +2783,20 @@ function selectGrade(btn,sys){
 // LOG FLOW
 // ═══════════════════════════════════════════════════════
 var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null};
+
+
+function toggleReflection(btn){
+  var body=document.getElementById('refl-body');
+  var chevron=document.getElementById('refl-chevron');
+  if(!body)return;
+  var open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  if(chevron)chevron.style.transform=open?'':'rotate(90deg)';
+}
+
+function toggleReflChip(btn, section){
+  btn.classList.toggle('selected');
+}
 
 
 function selectSetting(val, btn){
@@ -2873,7 +2914,14 @@ async function logClimb(){
     // Silent capture: session duration
     session_duration_seconds: window._sessionStartTime ? Math.round((Date.now()-window._sessionStartTime)/1000) : null,
     // Silent capture: default focus
-    session_focus: 'unset'
+    session_focus: 'unset',
+    // Reflection (optional — only if filled in)
+    went_well:(function(){var t=document.getElementById('went-well-text');var chips=Array.from(document.querySelectorAll('#log-reflection-group .refl-chip.selected[onclick*="went-well"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})(),
+    still_learning:(function(){var t=document.getElementById('still-learning-text');var chips=Array.from(document.querySelectorAll('#log-reflection-group .refl-chip.selected[onclick*="still-learning"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})(),
+    surprised_by:(function(){var t=document.getElementById('surprised-text');var chips=Array.from(document.querySelectorAll('#log-reflection-group .refl-chip.selected[onclick*="surprised"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})(),
+    went_well_chips:(function(){return Array.from(document.querySelectorAll('#log-reflection-group .refl-chip.selected[onclick*="went-well"]')).map(function(b){return b.textContent.trim();}).join(',')||null;})(),
+    still_learning_chips:(function(){return Array.from(document.querySelectorAll('#log-reflection-group .refl-chip.selected[onclick*="still-learning"]')).map(function(b){return b.textContent.trim();}).join(',')||null;})(),
+    surprised_chips:(function(){return Array.from(document.querySelectorAll('#log-reflection-group .refl-chip.selected[onclick*="surprised"]')).map(function(b){return b.textContent.trim();}).join(',')||null;})()
   };
 
   // 6.10: Grade vs baseline (silent)
@@ -3297,9 +3345,18 @@ function resetLogScreen(){
     if(b){b.classList.remove('selected','selected-send','selected-attempt','selected-dna');b.style.borderColor='';b.style.background='';}
   });
   logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null};
+  // Reset reflection section
+  var reflBody=document.getElementById('refl-body');
+  var reflChevron=document.getElementById('refl-chevron');
+  if(reflBody)reflBody.style.display='none';
+  if(reflChevron)reflChevron.style.transform='';
+  ['went-well-text','still-learning-text','surprised-text'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  document.querySelectorAll('.refl-chip.selected').forEach(function(b){b.classList.remove('selected');});
+  
   document.querySelectorAll('.terrain-chips .chip').forEach(function(b){b.classList.remove('selected');});
   document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
   // grade and route-name fields stay visible — no re-hiding on reset
+  
   var rname=document.getElementById('log-rname-input');if(rname)rname.value='';
   var logBtn=document.getElementById('log-btn');if(logBtn){logBtn.classList.remove('ready');logBtn.textContent='Log climb';logBtn.style.background='';}
   buildGradeGrid('YDS');
@@ -3307,6 +3364,8 @@ function resetLogScreen(){
 
 function logAnother(){
   logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null};
+  
+  
   resetLogScreen();
   showScreen('screen-log');
 }
@@ -3380,15 +3439,8 @@ function startDeeper(){
   // Track deeper start time (silent)
   window._deeperStartedAt = new Date().toISOString();
   if(logState.sessId) sbU('sessions','id=eq.'+logState.sessId,{deeper_started_at:window._deeperStartedAt});
-  // Reset Q5/Q6/Q7 chip selections and textareas from any prior run
-  ['screen-q5','screen-q6','screen-q7'].forEach(function(sid){
-    var scr=document.getElementById(sid);
-    if(scr)scr.querySelectorAll('.chip.selected').forEach(function(b){b.classList.remove('selected');});
-  });
-  ['went-well-text','still-learning-text','surprised-text'].forEach(function(id){
-    var ta=document.getElementById(id);if(ta)ta.value='';
-  });
-  // Update progress labels for all 7 questions
+  // Reflection chips/textareas reset handled in resetLogScreen()
+  // Update progress labels for all questions
   ['q1','q2','q3','q4','q5','q6','q7'].forEach(function(q,i){
     var lbl=document.getElementById(q+'-label');
     if(lbl)lbl.textContent=(logState.grade||'—')+' · '+(logState.terrain||'—');
@@ -3497,32 +3549,12 @@ async function afterQ4(){
   if(db2)db2.style.display='none';
   // Store prevZone for zone confirmed screen
   window._prevZoneForConfirm = prevZone;
-  // Route to Q5 reflection questions (not zone confirmed directly)
-  showScreen('screen-q5');
-}
-
-async function finishDeeper(){
-  // Save remaining optional answers + silent chip capture
-  if(logState.sessId){
-    var extraPayload={};
-    if(deepAnswers.q5)extraPayload.went_well=deepAnswers.q5;
-    if(deepAnswers.q6){var slText=document.getElementById('still-learning-text');extraPayload.still_learning=slText?slText.value:deepAnswers.q6;}
-    if(deepAnswers.q7){var supText=document.getElementById('surprised-text');extraPayload.surprised_by=supText?supText.value:deepAnswers.q7;}
-    // 6.8: Silent chip selections
-    var wwChips=Array.from(document.querySelectorAll('#screen-q5 .chip.selected')).map(function(b){return b.textContent;}).join(',');
-    var slChips=Array.from(document.querySelectorAll('#screen-q6 .chip.selected')).map(function(b){return b.textContent;}).join(',');
-    var supChips=Array.from(document.querySelectorAll('#screen-q7 .chip.selected')).map(function(b){return b.textContent;}).join(',');
-    if(wwChips)extraPayload.went_well_chips=wwChips;
-    if(slChips)extraPayload.still_learning_chips=slChips;
-    if(supChips)extraPayload.surprised_chips=supChips;
-    extraPayload.deeper_completed_at=new Date().toISOString();
-    if(Object.keys(extraPayload).length)await sbU('sessions','id=eq.'+logState.sessId,extraPayload);
-  }
-  // Show zone confirmed screen after Q5-Q7
+  // Route directly to zone confirmed (reflection moved to log screen)
   var prev = window._prevZoneForConfirm || logState.zone;
   showZoneConfirmed(prev, logState.zone);
   window._prevZoneForConfirm = null;
 }
+
 
 function renderReflection(){
   var grade=logState.grade||'—',terrain=logState.terrain||'—';
@@ -3685,7 +3717,7 @@ async function loadClimbLog(){
   buildSpiderChart(climbs);
   // Show spider card only when data exists
   var spiderCard = document.getElementById('spider-chart-card');
-  if(spiderCard) spiderCard.style.display = climbs && climbs.length >= 2 ? 'block' : 'none';
+  if(spiderCard) spiderCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
 }
 
 function buildSessionsArc(sessions, isExample){
@@ -6563,7 +6595,7 @@ async function runSEETests(){
 
   // A2: Core functions exist
   try{
-    var required = ['showScreen','loadClimbLog','logClimb','startDeeper','finishDeeper','showZoneConfirmed','overrideZone','getDeviceId','sbI','sbS','sbU','resolveZone','buildSessionsArc','buildSpiderChart','routeOnLoad'];
+    var required = ['showScreen','loadClimbLog','logClimb','startDeeper','showZoneConfirmed','overrideZone','getDeviceId','sbI','sbS','sbU','resolveZone','buildSessionsArc','buildSpiderChart','routeOnLoad'];
     var missing = required.filter(function(f){ return typeof window[f] !== 'function'; });
     if(missing.length === 0){ pass('Core functions defined (' + required.length + ')'); }
     else { fail('Core functions defined', 'Missing: ' + missing.join(', ')); }
