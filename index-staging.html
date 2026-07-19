@@ -763,14 +763,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
 
       <!-- Real terrain radar -->
-      <div class="insight-card" style="margin-bottom:16px;">
-        <div class="insight-label" style="margin-bottom:8px;">Terrain</div>
-        <div style="display:flex;align-items:center;gap:16px;">
-          <svg id="radar-svg" style="display:none;" viewBox="0 0 220 220"></svg>
-          <div style="flex:1;min-width:0;" id="radar-breakdown"></div>
-        </div>
-        
-      </div>
+      
 </div><!-- end your-data-section -->
     </div><!-- end sessions-real-section -->
 
@@ -1170,7 +1163,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q1-label">—</span>
-    <span class="deeper-progress">1 of 7</span>
+    <span class="deeper-progress">1 of 4</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1213,7 +1206,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q2-label">—</span>
-    <span class="deeper-progress">2 of 7</span>
+    <span class="deeper-progress">2 of 4</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1256,7 +1249,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q3-label">—</span>
-    <span class="deeper-progress">3 of 7</span>
+    <span class="deeper-progress">3 of 4</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -1307,7 +1300,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="deeper-header">
     <span class="deeper-climb-label" id="q4-label">—</span>
-    <span class="deeper-progress">4 of 7 · Core</span>
+    <span class="deeper-progress">4 of 4 · Core</span>
   </div>
   <div class="content">
     <div class="question-card">
@@ -2498,7 +2491,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index139';
+var app_version = 'staging-index140';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -2728,7 +2721,7 @@ function buildGradeGrid(sys,containerId){
   grades.forEach(function(g,i){
     var b=document.createElement('button');
     b.className='grade-btn';
-    b.textContent=g;
+    b.textContent=g;b.dataset.grade=g;
     if(i===centerIdx&&!logState.grade){
       var badge=document.createElement('span');
       badge.textContent='baseline';
@@ -2775,7 +2768,7 @@ function setGradeSystem(sys){
 function selectGrade(btn,sys){
   document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
   btn.classList.add('selected');
-  logState.grade=btn.textContent;logState.gradeSys=sys||currentGradeSys;
+  logState.grade=btn.dataset.grade||btn.textContent;logState.gradeSys=sys||currentGradeSys;
   checkLogReady();
 }
 
@@ -2993,6 +2986,7 @@ async function logClimb(){
 var _celebrateRendered=false;
 
 async function renderCelebrate(){
+  var shiftEl=document.getElementById('cel-zone-shift');if(shiftEl)shiftEl.style.display='none';
   _celebrateRendered=true;
   var gradEl=document.getElementById('card-grade-big');
   var terrEl=document.getElementById('card-terrain-big');
@@ -3447,7 +3441,7 @@ function startDeeper(){
   });
   ['q1','q2','q3','q4'].forEach(function(q,i){
     var prog=document.querySelector('#screen-'+q+' .deeper-progress');
-    if(prog)prog.textContent=(i+1)+' of 7';
+    if(prog)prog.textContent=(i+1)+' of 4';
   });
   showScreen('screen-q1');
   // Apply parsed somatic data from voice/text input if available
@@ -3669,7 +3663,6 @@ async function loadClimbLog(){
   if(total===0){
     // 0 climbs: example data expanded by default
     buildSessionsArc(EXAMPLE_ARC, true);
-    buildRadar(EXAMPLE_ARC);
     buildSpiderChart(EXAMPLE_ARC);
     var sc=document.getElementById('spider-chart-card'); if(sc)sc.style.display='block';
     renderClimbList(EXAMPLE_ARC, true);
@@ -3705,7 +3698,6 @@ async function loadClimbLog(){
 
   // Arc, radar, list — all use climbs
   buildSessionsArc(climbs);
-  buildRadar(climbs);
   // Filter out ghost sessions with no grade, terrain, or zone (Bug 9)
   // Filter ghost sessions — must have grade OR zone to show
   var validClimbs = climbs.filter(function(s){
@@ -4667,7 +4659,7 @@ function spSetGradeSys(sys){
   grid.innerHTML='';
   GRADES[sys].forEach(function(g){
     var b=document.createElement('button');
-    b.className='grade-btn';b.textContent=g;
+    b.className='grade-btn';b.textContent=g;b.dataset.grade=g;
     b.onclick=function(){
       grid.querySelectorAll('.grade-btn').forEach(function(x){x.classList.remove('selected');});
       b.classList.add('selected');
@@ -5735,7 +5727,7 @@ function addAttemptFromLog(routeName, grade, terrain, climbId){
   } else {
     showScreen('screen-log');
     setTimeout(function(){
-      if(grade){ buildGradeGrid('YDS'); document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){ b.classList.toggle('selected', b.textContent===grade); }); var gg=document.getElementById('log-grade-group'); if(gg)gg.style.display='flex'; var rg=document.getElementById('log-rname-group'); if(rg)rg.style.display='flex'; }
+      if(grade){ buildGradeGrid('YDS'); document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){ b.classList.toggle('selected', (b.dataset.grade||b.textContent)===grade); }); var gg=document.getElementById('log-grade-group'); if(gg)gg.style.display='flex'; var rg=document.getElementById('log-rname-group'); if(rg)rg.style.display='flex'; }
       if(terrain){ document.querySelectorAll('.terrain-chips .chip').forEach(function(b){ b.classList.toggle('selected', b.textContent.trim()===terrain); }); }
       if(routeName){ var inp = document.getElementById('log-rname-input'); if(inp) inp.value = routeName; logState.routeName = routeName; }
       if(grade && terrain) checkLogReady();
