@@ -798,6 +798,68 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
      existing users after next completed log
 ═══════════════════════════════════════ -->
 <!-- ═══════════════════════════════════════
+     ROUTE HISTORY — screen-route-history
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-route-history">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" id="rh-back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
+  </div>
+  <div style="padding:0 16px 80px;">
+
+    <!-- Route name + subtitle -->
+    <div style="margin-bottom:20px;">
+      <div id="rh-name" style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;">—</div>
+      <div id="rh-subtitle" style="font-size:14px;color:var(--muted);"></div>
+    </div>
+
+    <!-- Beta notes card -->
+    <div class="insight-card" style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Route beta</div>
+      <textarea id="rh-beta-notes" placeholder="Add notes about this route — movement, holds, sequence..." style="width:100%;background:transparent;border:1px dashed var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;resize:none;min-height:72px;box-sizing:border-box;" oninput="saveRouteBeta()"></textarea>
+    </div>
+
+    <!-- Stats row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div class="insight-card" style="text-align:center;padding:14px;">
+        <div id="rh-attempts" style="font-size:28px;font-weight:700;color:var(--accent);">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Attempts</div>
+      </div>
+      <div class="insight-card" style="text-align:center;padding:14px;">
+        <div id="rh-sends" style="font-size:28px;font-weight:700;color:#7ec87a;">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Sends</div>
+      </div>
+    </div>
+
+    <!-- Insights card — hidden if no data meets threshold -->
+    <div class="insight-card" id="rh-insights-card" style="margin-bottom:12px;display:none;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Insights</div>
+      <div id="rh-pattern-row" style="display:none;font-size:13px;color:var(--text);padding-bottom:10px;"></div>
+      <div id="rh-divider" style="display:none;height:1px;background:var(--border);margin:0 -18px;width:calc(100% + 36px);"></div>
+      <div id="rh-terrain-row" style="display:none;font-size:13px;color:var(--text);padding-top:10px;"></div>
+    </div>
+
+    <!-- Route arc -->
+    <div class="insight-card" style="margin-bottom:12px;" id="rh-arc-card">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">This route's arc <span style="font-size:10px;font-weight:400;color:var(--muted2);">older → recent</span></div>
+      <svg id="rh-arc-svg" width="100%" height="80" viewBox="0 0 320 80" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;"></svg>
+      <div style="display:flex;gap:12px;margin-top:6px;">
+        <span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);"></span>confirmed</span>
+        <span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--muted);"></span>estimated</span>
+      </div>
+    </div>
+
+    <!-- Attempts list -->
+    <div class="insight-card" id="rh-attempts-card">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Attempts</div>
+      <div id="rh-attempts-list"></div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
      CLIMB DATA TABLE — screen-climb-table
 ═══════════════════════════════════════ -->
 <div class="screen" id="screen-climb-table">
@@ -2595,7 +2657,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index143';
+var app_version = 'staging-index145';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -3002,7 +3064,7 @@ function renderClimbDataTable(){
     var hasNotes=s.went_well||s.still_learning||s.surprised_by;
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
     var c=zoneColor(s.zone||'learning');
-    return '<tr style="border-bottom:1px solid rgba(255,255,255,.05);">'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" onclick="launchLogWithClimb(\''+s.id+'\')">📋</span>':'')+'</td>'      +'</tr>';
+    return '<tr style="border-bottom:1px solid rgba(255,255,255,.05);">'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" onclick="launchLogWithClimb(\''+s.id+'\')">📋</span>':'')+'</td>'      +'</tr>';
   }).join('');
 }
 
@@ -5798,12 +5860,14 @@ function renderClimbTable(climbs){
       rows.push({type:'climb', name:name, count:g.sessions.length, climbId:g.climbId, grade:g.grade, terrain:g.terrain});
       // Only show attempts if group not collapsed (default expanded)
       if(!_collapsedGroups[safeId]){
-        // Only show attempt rows if there are multiple sessions — single attempt folds into header
+        // Single-attempt: keep zone+date in header display AND restore attempt row underneath
         if(g.sessions.length > 1){
           g.sessions.forEach(function(s){ rows.push({type:'attempt', s:s}); });
         } else {
-          // Single attempt: augment the climb row with zone/date data
+          // Augment header with zone/date display
           rows[rows.length-1].singleSession = g.sessions[0];
+          // Restore attempt row so Edit/+Attempt/Check Zone/Drill remain accessible
+          rows.push({type:'attempt', s:g.sessions[0]});
         }
       }
     });
@@ -6290,76 +6354,264 @@ function toggleClimbGroup(safeId){
 
 async function openClimbExposure(climbId){
   if(!climbId) return;
-  climbLogState.returnFrom = 'screen-sessions';
+  window._rhClimbId = climbId;
 
-  // Get climb record — try cache first
-  var climb = _climbCache ? _climbCache.find(function(c){ return c.id === climbId; }) : null;
-
-  // Load all sessions for this climb via climb_id FK
-  var sessions = await sbS('sessions', 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&device_id=eq.'+getDeviceId()+'&order=created_at.asc');
+  // Load climb record and sessions
+  var climbRec = _climbCache ? _climbCache.find(function(c){ return c.id===climbId; }) : null;
+  var sessions = await sbS('sessions', 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&device_id=eq.'+getDeviceId()+'&is_baseline=eq.false&is_checkin=eq.false&order=created_at.asc');
   var sessList = Array.isArray(sessions) ? sessions : [];
+  window._rhSessions = sessList;
 
-  // Populate hero — fallback to first session if no climb record
-  var nameEl = document.getElementById('proj-name');
-  var gradeEl = document.getElementById('proj-grade');
-  var typeEl  = document.getElementById('proj-type');
-  var name  = climb ? climb.name  : (sessList[0] ? sessList[0].route_name  : '—');
-  var grade = climb ? climb.grade_value : (sessList[0] ? sessList[0].grade_value  : '—');
-  var terrain = climb ? climb.climbing_type : (sessList[0] ? sessList[0].climbing_type : '');
-  if(nameEl)  nameEl.textContent  = name  || '—';
-  if(gradeEl) gradeEl.textContent = grade || '—';
-  if(typeEl)  typeEl.textContent  = terrain || '';
+  var name    = climbRec ? climbRec.name        : (sessList[0] ? sessList[0].route_name    : '—');
+  var grade   = climbRec ? climbRec.grade_value : (sessList[0] ? sessList[0].grade_value   : '—');
+  var terrain = climbRec ? climbRec.climbing_type : (sessList[0] ? sessList[0].climbing_type : '');
+
+  // Route header
+  var nameEl = document.getElementById('rh-name');
+  var subEl  = document.getElementById('rh-subtitle');
+  if(nameEl) nameEl.textContent = name || '—';
+  if(subEl)  subEl.textContent  = [grade, terrain].filter(Boolean).join(' · ');
+
+  // Beta notes
+  var betaEl = document.getElementById('rh-beta-notes');
+  if(betaEl){
+    betaEl.value = (climbRec && climbRec.beta_notes) ? climbRec.beta_notes : '';
+    window._rhClimbName = name;
+  }
 
   // Stats
-  var sessCount = document.getElementById('proj-stat-sessions');
-  var sendsCount = document.getElementById('proj-stat-sends');
-  var daysEl = document.getElementById('proj-stat-days');
-  if(sessCount)  sessCount.textContent  = sessList.length;
-  if(sendsCount) sendsCount.textContent = sessList.filter(function(s){ return s.baseline_zone==='sent'; }).length;
-  if(daysEl && sessList.length > 0){
-    var first = new Date(sessList[0].created_at);
-    daysEl.textContent = Math.round((Date.now() - first) / 86400000);
-  }
+  var attempts = sessList.length;
+  var sends    = sessList.filter(function(s){ return s.baseline_zone==='sent'||s.result==='sent'; }).length;
+  var attEl = document.getElementById('rh-attempts');
+  var senEl = document.getElementById('rh-sends');
+  if(attEl) attEl.textContent = attempts;
+  if(senEl) senEl.textContent = sends;
 
-  // Status badge — derived from attempts, no project status
+  // Insights
+  renderRouteInsights(sessList, terrain);
 
-  var hasSend = sessList.some(function(s){ return s.baseline_zone === 'sent'; });
-  if(badge){
-    badge.textContent = hasSend ? 'Sent \u2713' : sessList.length + ' attempt' + (sessList.length===1?'':'s');
-    badge.style.background = hasSend ? 'rgba(232,118,58,.2)' : 'rgba(126,200,122,.2)';
-    badge.style.color = hasSend ? 'var(--accent)' : '#7ec87a';
-  }
+  // Arc
+  renderRouteArc(sessList);
 
+  // Attempts list
+  renderRouteAttemptsList(sessList);
 
-  var projActions = document.getElementById('proj-actions');
-  if(projActions) projActions.style.display = 'none';
+  showScreen('screen-route-history');
+}
 
+function saveRouteBeta(){
+  var climbId = window._rhClimbId;
+  var betaEl  = document.getElementById('rh-beta-notes');
+  if(!climbId || !betaEl) return;
+  clearTimeout(window._rhBetaTimer);
+  window._rhBetaTimer = setTimeout(function(){
+    sbU('climbs','id=eq.'+climbId,{beta_notes: betaEl.value.trim()||null});
+  }, 800);
+}
 
-  // Attempt list
-  var listEl = document.getElementById('proj-sessions-list');
-  if(listEl){
-    if(sessList.length === 0){
-      listEl.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--muted);">No attempts logged yet.</div>';
-    } else {
-      var html = '';
-      sessList.slice().reverse().forEach(function(s){
-        var c = zoneColor(s.zone||'learning');
-        var rLabels = {sent:'Sent',fell:'Fell',dna:'Backed off'};
-        var dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
-          + '<div style="width:3px;border-radius:99px;background:'+c+';align-self:stretch;min-height:32px;flex-shrink:0;"></div>'
-          + '<div style="flex:1;">'
-          + '<div style="font-size:13px;font-weight:600;color:var(--text);">'+(rLabels[s.baseline_zone]||s.baseline_zone||'—')+'</div>'
-          + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+dateStr+'</div>'
-          + '</div>'
-          + '<span style="font-size:11px;color:'+c+';background:'+c+'1a;padding:2px 8px;border-radius:99px;border:1px solid '+c+'55;font-weight:600;">'+(s.zone||'—')+'</span>'
-          + '</div>';
+function renderRouteInsights(sessList, terrain){
+  var insightsCard = document.getElementById('rh-insights-card');
+  var patternRow   = document.getElementById('rh-pattern-row');
+  var terrainRow   = document.getElementById('rh-terrain-row');
+  var divider      = document.getElementById('rh-divider');
+  if(!insightsCard) return;
+
+  var confirmedSessions = sessList.filter(function(s){ return s.zone_confidence==='confirmed'; });
+  var showPattern  = false;
+  var showTerrain  = false;
+
+  // Row A: Pattern noticed (2+ confirmed sessions, same value in 2+ sessions for a field)
+  if(confirmedSessions.length >= 2){
+    var fields = ['breathing_post','gut_post','crux_response','body_state'];
+    var fieldLabels = {breathing_post:'breathing',gut_post:'gut sensation',crux_response:'crux',body_state:'body state'};
+    var patternMap = {
+      breathing_post: {
+        'Easy and steady':'Often breathes easy and steady',
+        'Slightly faster':'Often breathes slightly faster',
+        'Shallow or tight':'Often breathes shallow or tight',
+        'I held my breath':'Often holds breath on this route',
+        "Didn't notice":"Often doesn't notice breathing"
+      },
+      gut_post: {
+        'Settled, neutral':'Gut usually stays settled',
+        'Mild flutter':'Often notices mild flutter in the gut',
+        'Noticeable tension':'Often has noticeable gut tension',
+        "Didn't notice":"Often doesn't notice gut sensation"
+      },
+      crux_response: {
+        'Yes — I paused':'Often pauses at the crux',
+        'Yes — I hesitated then committed':'Often hesitates then commits at the crux',
+        'Yes — I backed off':'Often backs off at the crux',
+        'Yes — I pushed through':'Often pushes through at the crux',
+        'Yes — I panicked but recovered':'Often panics then recovers at the crux',
+        'No standout moment':'Rarely has a standout crux moment'
+      },
+      body_state: {
+        'Settled and in control':'Usually feels settled and in control',
+        'Activated but manageable':'Usually feels activated but manageable',
+        'Tight and reactive':'Usually feels tight and reactive',
+        'Hard to read':'Often hard to read body state'
+      }
+    };
+
+    var bestField=null, bestCount=0, bestValue=null;
+    fields.forEach(function(f){
+      var counts={};
+      confirmedSessions.forEach(function(s){
+        var v=s[f];
+        if(v){counts[v]=(counts[v]||0)+1;}
       });
-      listEl.innerHTML = html;
+      Object.keys(counts).forEach(function(v){
+        if(counts[v]>=2 && counts[v]>bestCount){
+          bestCount=counts[v]; bestField=f; bestValue=v;
+        }
+      });
+    });
+
+    if(bestField && bestValue){
+      var phrase = (patternMap[bestField] && patternMap[bestField][bestValue]) || bestValue;
+      patternRow.innerHTML = '\uD83D\uDD0D <strong>Pattern noticed</strong><br><span style="color:var(--muted);">'+phrase+'</span>';
+      patternRow.style.display='block';
+      showPattern=true;
     }
   }
 
+  // Row B: Vs terrain average (3+ terrain-wide, 2+ route-specific, modes differ)
+  if(sessList.length >= 2 && terrain){
+    var allSessions = window._cachedClimbs || [];
+    var terrainSessions = allSessions.filter(function(s){
+      return s.climbing_type===terrain && !s.is_baseline && !s.is_checkin && s.zone && s.climb_id !== climbId;
+    });
+    if(terrainSessions.length >= 3){
+      var terrainMode = (function(arr){
+        var c={}; arr.forEach(function(s){var v=s.zone;if(v)c[v]=(c[v]||0)+1;});
+        return Object.keys(c).sort(function(a,b){return c[b]-c[a];})[0];
+      })(terrainSessions);
+      var routeMode = (function(arr){
+        var c={}; arr.forEach(function(s){var v=s.zone;if(v)c[v]=(c[v]||0)+1;});
+        return Object.keys(c).sort(function(a,b){return c[b]-c[a];})[0];
+      })(sessList);
+      var zOrder={comfort:0,learning:1,panic:2};
+      if(terrainMode && routeMode && terrainMode!==routeMode){
+        var hotter=(zOrder[routeMode]||0)>(zOrder[terrainMode]||0);
+        var terrainLabel=terrain.toLowerCase();
+        var tMode=terrainMode.charAt(0).toUpperCase()+terrainMode.slice(1);
+        var rMode=routeMode.charAt(0).toUpperCase()+routeMode.slice(1);
+        terrainRow.innerHTML='\uD83D\uDCCA <strong>Vs. your '+terrainLabel+' average</strong><br><span style="color:var(--muted);">This route runs '+(hotter?'hotter':'cooler')+' — you\'re usually '+tMode+' on '+terrainLabel+', mostly '+rMode+' here</span>';
+        terrainRow.style.display='block';
+        showTerrain=true;
+      }
+    }
+  }
+
+  // Show divider only if both rows present
+  if(divider) divider.style.display=(showPattern&&showTerrain)?'block':'none';
+  insightsCard.style.display=(showPattern||showTerrain)?'block':'none';
 }
+
+function renderRouteArc(sessList){
+  var svg = document.getElementById('rh-arc-svg');
+  if(!svg) return;
+  svg.innerHTML='';
+  if(!sessList.length){svg.style.display='none';return;}
+  svg.style.display='block';
+
+  var ordered = sessList.slice(); // already asc from query
+  var zoneY={comfort:60,learning:40,panic:20};
+  var n=ordered.length;
+  var pad=20;
+  var W=320, H=80;
+  var pts=ordered.map(function(s,i){
+    var x = n===1 ? W/2 : pad + i*(W-pad*2)/(n-1);
+    var y = zoneY[s.zone||'learning'] || 40;
+    return {x:x, y:y, zone:s.zone||'learning', conf:s.zone_confidence==='confirmed'};
+  });
+
+  // Axis labels
+  ['P','L','C'].forEach(function(lbl,i){
+    var t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x','4'); t.setAttribute('y',[22,42,62][i]);
+    t.setAttribute('font-size','9'); t.setAttribute('fill','var(--muted)'); t.textContent=lbl;
+    svg.appendChild(t);
+  });
+
+  // Gridlines
+  [20,40,60].forEach(function(y){
+    var line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',pad); line.setAttribute('x2',W-pad);
+    line.setAttribute('y1',y); line.setAttribute('y2',y);
+    line.setAttribute('stroke','rgba(255,255,255,.05)'); line.setAttribute('stroke-width','1');
+    svg.appendChild(line);
+  });
+
+  // Connecting line
+  if(pts.length>1){
+    var d=pts.map(function(p,i){return (i===0?'M':'L')+p.x+' '+p.y;}).join(' ');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d); path.setAttribute('fill','none');
+    path.setAttribute('stroke','rgba(255,255,255,.2)'); path.setAttribute('stroke-width','1.5');
+    svg.appendChild(path);
+  }
+
+  // Dots
+  pts.forEach(function(p){
+    var c=zoneColor(p.zone);
+    var circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',p.x); circle.setAttribute('cy',p.y); circle.setAttribute('r','5');
+    if(p.conf){
+      circle.setAttribute('fill',c);
+    } else {
+      circle.setAttribute('fill','transparent');
+      circle.setAttribute('stroke',c); circle.setAttribute('stroke-width','1.5');
+    }
+    svg.appendChild(circle);
+  });
+}
+
+function renderRouteAttemptsList(sessList){
+  var listEl = document.getElementById('rh-attempts-list');
+  if(!listEl) return;
+  if(!sessList.length){
+    listEl.innerHTML='<div style="font-size:13px;color:var(--muted);text-align:center;padding:12px 0;">No attempts yet.</div>';
+    return;
+  }
+  var rLabels={sent:'Sent',fell:'Fell',dna:'Backed off'};
+  var html='';
+  sessList.slice().reverse().forEach(function(s,rowIdx){
+    var c=zoneColor(s.zone||'learning');
+    var conf=s.zone_confidence==='confirmed';
+    var result=rLabels[s.baseline_zone]||rLabels[s.result]||s.baseline_zone||'—';
+    var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'';
+    var hasRefl=s.went_well||s.still_learning||s.surprised_by;
+    var pillStyle='font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 8px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';';
+    var reflId='rh-refl-'+rowIdx;
+    var noteIcon=hasRefl?('<span style="font-size:12px;cursor:pointer;margin-left:6px;" onclick="toggleRouteRefl(this,\''+reflId+'\')">\uD83D\uDCCB</span>'):'';
+    html+='<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div style="width:3px;border-radius:99px;background:'+c+';align-self:stretch;min-height:32px;flex-shrink:0;"></div>'
+      +'<div style="flex:1;">'
+      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+result+noteIcon+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+d+'</div>'
+      +'</div>'
+      +'<span style="'+pillStyle+'">'+(s.zone||'—')+'</span>'
+      +'</div>';
+    if(hasRefl){
+      html+='<div id="'+reflId+'" style="display:none;padding:8px 0 4px 13px;font-size:12px;color:var(--muted);line-height:1.6;">';
+      if(s.went_well)    html+='<div><strong>What went well:</strong> '+s.went_well+'</div>';
+      if(s.still_learning) html+='<div><strong>What to work on:</strong> '+s.still_learning+'</div>';
+      if(s.surprised_by) html+='<div><strong>Surprised by:</strong> '+s.surprised_by+'</div>';
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  listEl.innerHTML=html;
+}
+
+function toggleRouteRefl(btn, id){
+  var el=document.getElementById(id);
+  if(el) el.style.display=el.style.display==='block'?'none':'block';
+}
+
 
 // ═══════════════════════════════════════════════════════
 // SPIDER/RADAR CHART — zone by terrain
