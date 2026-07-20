@@ -431,6 +431,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <!-- Email/password -->
+    <div id="auth-signin-form">
     <div style="margin-bottom:12px;">
       <input id="auth-email" type="email" placeholder="Email" autocomplete="email"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:13px 14px;outline:none;box-sizing:border-box;margin-bottom:8px;">
@@ -444,6 +445,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:10px;">
       Sign in
     </button>
+    <div style="text-align:right;margin:-6px 0 10px;">
+      <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Forgot password?</button>
+    </div>
     <button onclick="authSignUp()"
       style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:20px;">
       Create account
@@ -460,6 +464,15 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       Continue without account →
     </button>
     <div style="text-align:center;font-size:11px;color:var(--muted2);margin-top:4px;">Your data stays on this device only</div>
+
+    </div><!-- end auth-signin-form -->
+
+    <!-- Forgot password confirmation — shown inline, hidden by default -->
+    <div id="forgot-pw-card" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;text-align:center;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Check your email</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">We sent a password reset link to <span id="forgot-pw-email" style="color:var(--text);font-weight:600;"></span></div>
+      <button onclick="hideForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;">Back to sign in</button>
+    </div>
 
   </div>
 </div>
@@ -769,6 +782,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
   </div>
 
+  <!-- View all data link -->
+  <div style="text-align:center;padding:8px 0 16px;">
+    <button onclick="showClimbTable()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;">View all climb data →</button>
+  </div>
+
   <!-- Floating Log a Climb button -->
   
 </div>
@@ -779,6 +797,42 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
      Fires once — new users on first open,
      existing users after next completed log
 ═══════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════
+     CLIMB DATA TABLE — screen-climb-table
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-climb-table">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
+  </div>
+  <div style="padding:0 16px 80px;">
+    <div style="font-size:22px;font-weight:700;margin-bottom:4px;">All climbs</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="climb-table-count"></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table id="climb-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:700px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);">
+            <th onclick="sortClimbTable('date')" style="text-align:left;padding:8px 10px 8px 0;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;position:sticky;left:0;background:var(--bg);white-space:nowrap;">Date ↕</th>
+            <th onclick="sortClimbTable('grade')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Grade ↕</th>
+            <th onclick="sortClimbTable('terrain')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Terrain ↕</th>
+            <th onclick="sortClimbTable('setting')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Setting ↕</th>
+            <th onclick="sortClimbTable('result')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Result ↕</th>
+            <th onclick="sortClimbTable('zone')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Zone ↕</th>
+            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Conf</th>
+            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Breath</th>
+            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Gut</th>
+            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Crux</th>
+            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Body</th>
+            <th style="text-align:left;padding:8px 4px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Notes</th>
+          </tr>
+        </thead>
+        <tbody id="climb-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
 <div class="screen" id="screen-baseline">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
@@ -954,6 +1008,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 
     <!-- TERRAIN + SETTING — Indoor/Outdoor first, terrain chips below -->
+    <div class="insight-card" style="margin-bottom:10px;">
     <div class="field-group">
       <div class="field-label">Terrain</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;">
@@ -970,8 +1025,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
       </div>
     </div>
+    </div>
 
     <!-- RESULT — 3-column, icon + label -->
+    <div class="insight-card" style="margin-bottom:10px;">
     <div class="field-group">
       <div class="field-label">Result</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
@@ -989,8 +1046,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         </button>
       </div>
     </div>
+    </div>
 
         <!-- CLIMB AUTOCOMPLETE — prominent, shown after result selected -->
+    <div class="insight-card" style="margin-bottom:10px;">
     <div class="field-group" id="log-rname-group">
       <div class="field-label">Climb name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
       <div style="position:relative;">
@@ -1007,8 +1066,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px;">Named climbs link across sessions and build richer patterns over time.</div>
     </div>
+    </div>
 
     <!-- GRADE — appears after result -->
+    <div class="insight-card" style="margin-bottom:10px;">
     <div class="field-group" id="log-grade-group">
       <div class="field-label">Grade</div>
       <div class="grade-toggle">
@@ -1019,8 +1080,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
       <div class="grade-grid" id="grade-grid"></div>
     </div>
+    </div>
 
     <!-- REFLECTION — optional, collapsed by default -->
+    <div class="insight-card" style="margin-bottom:10px;">
     <div class="field-group" id="log-reflection-group">
       <button onclick="toggleReflection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;">
         <span>Add reflection <span style="font-size:12px;opacity:.6;">(optional)</span></span>
@@ -1067,6 +1130,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         </div>
 
       </div>
+    </div>
     </div>
 
     <button class="log-btn" id="log-btn" onclick="logClimb()" style="margin:0 0 4px;width:100%;">Log climb</button>
@@ -1386,6 +1450,46 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;box-sizing:border-box;margin-bottom:10px;"></textarea>
         <button onclick="submitProfileFeedback()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 24px;cursor:pointer;">Send →</button>
       </div>
+    </div>
+
+
+    <!-- E1: Change password (authenticated only) -->
+    <div id="profile-change-pw" style="display:none;margin-top:24px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Change password</div>
+      <input type="password" id="profile-new-pw" placeholder="New password (min 6 chars)"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;box-sizing:border-box;margin-bottom:8px;"/>
+      <button onclick="changePassword()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px 20px;cursor:pointer;">Save new password</button>
+      <div id="profile-pw-msg" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
+    </div>
+
+    <!-- E2: Export my data -->
+    <div style="margin-top:24px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Export my data</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="exportDataCSV()" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Download CSV</button>
+        <button onclick="exportDataJSON()" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Download JSON</button>
+        <button onclick="window.print()" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Print / PDF</button>
+      </div>
+    </div>
+
+    <!-- E4: Retake baseline + history -->
+    <div style="margin-top:24px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Baseline</div>
+      <button onclick="retakeBaseline()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;cursor:pointer;margin-bottom:8px;text-align:left;">Retake baseline questionnaire →</button>
+      <div id="baseline-history-toggle">
+        <button onclick="toggleBaselineHistory(this)" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Show baseline history ›</button>
+        <div id="baseline-history-body" style="display:none;margin-top:10px;font-size:12px;color:var(--muted);">Loading...</div>
+      </div>
+    </div>
+
+    <!-- E3: Links -->
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Terms of service ↗</a>
+        <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Privacy policy ↗</a>
+        <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Support ↗</a>
+      </div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:8px;">Links are placeholders — content pending.</div>
     </div>
 
     <!-- Anonymous view -->
@@ -2491,7 +2595,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index140';
+var app_version = 'staging-index142';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -2778,6 +2882,131 @@ function selectGrade(btn,sys){
 var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null};
 
 
+var _climbTableSort = {col:'date', dir:'desc'};
+
+async function changePassword(){
+  var pw=document.getElementById('profile-new-pw').value;
+  var msg=document.getElementById('profile-pw-msg');
+  if(!pw||pw.length<6){if(msg)msg.textContent='Password must be at least 6 characters';return;}
+  if(!supabaseClient||!window._authUser){if(msg)msg.textContent='Not signed in';return;}
+  var res=await supabaseClient.auth.updateUser({password:pw});
+  if(res.error){if(msg)msg.textContent='Error: '+res.error.message;}
+  else{if(msg){msg.textContent='Password updated ✓';msg.style.color='#7ec87a';}document.getElementById('profile-new-pw').value='';}
+}
+
+function exportDataCSV(){
+  var climbs=window._cachedClimbs||[];
+  if(!climbs.length){showToast('No data to export');return;}
+  var cols=['created_at','grade_value','climbing_type','setting','baseline_zone','zone','zone_confidence','breathing','gut','crux','body','went_well','still_learning','surprised_by'];
+  var rows=[cols.join(',')].concat(climbs.map(function(s){
+    return cols.map(function(c){var v=s[c]||'';return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');
+  }));
+  var blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='see-climbs-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+function exportDataJSON(){
+  var climbs=window._cachedClimbs||[];
+  if(!climbs.length){showToast('No data to export');return;}
+  var blob=new Blob([JSON.stringify(climbs,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='see-climbs-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function retakeBaseline(){
+  localStorage.removeItem('see_baseline_complete');
+  showScreen('screen-baseline');
+}
+
+async function toggleBaselineHistory(btn){
+  var body=document.getElementById('baseline-history-body');
+  if(!body)return;
+  var open=body.style.display==='block';
+  if(open){body.style.display='none';btn.textContent='Show baseline history ›';return;}
+  body.style.display='block';
+  btn.textContent='Hide baseline history ›';
+  // Load baseline records
+  var deviceId=getDeviceId();
+  var uid=window._authUser?window._authUser.id:null;
+  var query='select=created_at,baseline_grade_range,baseline_environment,baseline_pre_climb_state&is_baseline=eq.true&device_id=eq.'+deviceId+'&order=created_at.desc&limit=20';
+  var records=await sbS('sessions',query);
+  if(!Array.isArray(records)||!records.length){body.innerHTML='<div>No baseline history found.</div>';return;}
+  body.innerHTML=records.map(function(r){
+    var d=r.created_at?new Date(r.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'Unknown';
+    return '<div style="padding:6px 0;border-bottom:1px solid var(--border);">'      +'<div style="font-weight:600;color:var(--text);">'+d+'</div>'      +'<div style="color:var(--muted);margin-top:2px;">'+(r.baseline_grade_range||'—')+(r.baseline_environment?' · '+r.baseline_environment:'')+'</div>'      +'</div>';
+  }).join('');
+}
+
+
+function showForgotPassword(){
+  var emailEl=document.getElementById('auth-email');
+  var email=emailEl?emailEl.value.trim():'';
+  if(!email){ showAuthError('Enter your email address first'); return; }
+  if(!supabaseClient){ showAuthError('Auth not available'); return; }
+  supabaseClient.auth.resetPasswordForEmail(email, {redirectTo: window.location.href});
+  var emailDisplay=document.getElementById('forgot-pw-email');
+  if(emailDisplay)emailDisplay.textContent=email;
+  var form=document.getElementById('auth-signin-form');
+  if(form)form.style.display='none';
+  document.getElementById('forgot-pw-card').style.display='block';
+  clearAuthError();
+}
+
+function hideForgotPassword(){
+  document.getElementById('forgot-pw-card').style.display='none';
+  var form=document.getElementById('auth-signin-form');
+  if(form)form.style.display='block';
+}
+
+
+function showClimbTable(){
+  showScreen('screen-climb-table');
+  renderClimbTable();
+}
+
+function sortClimbTable(col){
+  if(_climbTableSort.col===col){
+    _climbTableSort.dir=_climbTableSort.dir==='asc'?'desc':'asc';
+  } else {
+    _climbTableSort.col=col;
+    _climbTableSort.dir='desc';
+  }
+  renderClimbTable();
+}
+
+function renderClimbTable(){
+  var tbody=document.getElementById('climb-table-body');
+  var countEl=document.getElementById('climb-table-count');
+  if(!tbody)return;
+  var climbs=(window._cachedClimbs||[]).filter(function(s){return !s.is_baseline&&!s.is_checkin;});
+  if(countEl)countEl.textContent=climbs.length+' climb'+(climbs.length===1?'':'s');
+  var col=_climbTableSort.col;
+  var dir=_climbTableSort.dir==='asc'?1:-1;
+  var gradeOrder=window.GRADE_ORDER||[];
+  climbs.sort(function(a,b){
+    var av,bv;
+    if(col==='date'){av=new Date(a.created_at);bv=new Date(b.created_at);}
+    else if(col==='grade'){av=gradeOrder.indexOf(a.grade_value);bv=gradeOrder.indexOf(b.grade_value);}
+    else if(col==='zone'){av=(a.zone||'');bv=(b.zone||'');}
+    else {av=(a[{terrain:'climbing_type',setting:'setting',result:'baseline_zone'}[col]||col]||'');bv=(b[{terrain:'climbing_type',setting:'setting',result:'baseline_zone'}[col]||col]||'');}
+    return av<bv?-dir:av>bv?dir:0;
+  });
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off'};
+  var confLabels={'confirmed':'✓','estimated':'~'};
+  tbody.innerHTML=climbs.map(function(s){
+    var hasNotes=s.went_well||s.still_learning||s.surprised_by;
+    var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
+    var c=zoneColor(s.zone||'learning');
+    return '<tr style="border-bottom:1px solid rgba(255,255,255,.05);">'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" onclick="launchLogWithClimb(\''+s.id+'\')">📋</span>':'')+'</td>'      +'</tr>';
+  }).join('');
+}
+
+
 function toggleReflection(btn){
   var body=document.getElementById('refl-body');
   var chevron=document.getElementById('refl-chevron');
@@ -3032,7 +3261,7 @@ async function renderCelebrate(){
     var terrainCount=history.filter(function(s){return s.climbing_type===logState.terrain;}).length;
     if(terrainCount>1){
       terrainCtx.style.display='block';
-      terrainCtx.textContent='Your '+terrainCount+'th '+logState.terrain+' climb logged.';
+      terrainCtx.textContent='Your '+ordinal(terrainCount)+' '+logState.terrain+' climb logged.';
     }
   }
 
@@ -3388,6 +3617,10 @@ function openEditSheet(){
     if(b)b.style.borderColor=v===logState.result?'var(--accent)':'var(--border)';
   });
   var rn=document.getElementById('edit-rname');if(rn)rn.value=logState.routeName||'';
+  // Restore terrain chips in edit sheet (scoped to edit-sheet only)
+  document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){
+    b.classList.toggle('selected', b.textContent.trim()===logState.terrain);
+  });
 }
 function editSelResult(r){
   logState.result=r;
@@ -5565,7 +5798,13 @@ function renderClimbTable(climbs){
       rows.push({type:'climb', name:name, count:g.sessions.length, climbId:g.climbId, grade:g.grade, terrain:g.terrain});
       // Only show attempts if group not collapsed (default expanded)
       if(!_collapsedGroups[safeId]){
-        g.sessions.forEach(function(s){ rows.push({type:'attempt', s:s}); });
+        // Only show attempt rows if there are multiple sessions — single attempt folds into header
+        if(g.sessions.length > 1){
+          g.sessions.forEach(function(s){ rows.push({type:'attempt', s:s}); });
+        } else {
+          // Single attempt: augment the climb row with zone/date data
+          rows[rows.length-1].singleSession = g.sessions[0];
+        }
       }
     });
     if(unnamed.length){
@@ -5613,7 +5852,15 @@ function renderClimbTable(climbs){
         + '<div style="font-size:14px;font-weight:700;color:var(--text);">'+row.name+' '+gradeStr+terrainStr+'</div>'
         + '<div style="display:flex;align-items:center;gap:6px;">'
         + expBtn
-        + '<span style="font-size:11px;color:var(--muted2);">'+row.count+' attempt'+(row.count===1?'':'s')+' <span id="cl-group-arrow-'+safeId+'">↓</span></span>'
+        + (row.singleSession
+            ? (function(ss){
+                var c=zoneColor(ss.zone||'learning');
+                var conf=ss.zone_confidence==='confirmed';
+                var zPill='<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 7px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';">'+zoneName(ss.zone||'learning')+(conf?'':'~')+'</span>';
+                var d=ss.created_at?new Date(ss.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+                return zPill+'<span style="font-size:11px;color:var(--muted2);margin-left:4px;">'+d+'</span>';
+              })(row.singleSession)
+            : '<span style="font-size:11px;color:var(--muted2);">'+row.count+' attempt'+(row.count===1?'':'s')+' <span id="cl-group-arrow-'+safeId+'">↓</span></span>')
         + '</div></div>'
         + '</td></tr>';
       return;
@@ -5711,7 +5958,7 @@ function editClimbFromLog(sessId){
   var sess = climbs.find(function(s){ return s.id === sessId; });
   if(!sess) return;
   logState.sessId = sessId;
-  logState.result = sess.baseline_zone;
+  logState.result = sess.result || sess.baseline_zone; // sess.result is correct field; baseline_zone kept as fallback
   logState.grade = sess.grade_value;
   logState.terrain = sess.climbing_type;
   logState.routeName = sess.route_name;
@@ -5743,7 +5990,7 @@ function checkZoneFromLog(sessId){
   logState.sessId = sessId;
   logState.grade = sess.grade_value;
   logState.terrain = sess.climbing_type;
-  logState.result = sess.baseline_zone;
+  logState.result = sess.result || sess.baseline_zone; // sess.result is correct field; baseline_zone kept as fallback
   logState.zone = sess.zone;
   logState.zoneConf = sess.zone_confidence;
   startDeeper();
@@ -6853,6 +7100,7 @@ async function authSignIn(){
   if(res.error){
     var msg = res.error.message;
     if(msg.includes('Invalid login')) showAuthError('Email or password incorrect');
+    else if(msg.includes('not confirmed')) showAuthError('Please confirm your email first, or check your inbox');
     else if(msg.includes('network')) showAuthError('Could not connect — check your connection');
     else showAuthError('Sign in failed — try again');
   }
@@ -6879,8 +7127,12 @@ async function authSignUp(){
     if(res.data.user.identities && res.data.user.identities.length === 0){
       showAuthError('Account already exists — sign in instead');
     } else {
-      showToast('Account created — check your email to confirm');
-      // onAuthStateChange routes to home if email not required
+      if(res.data.session){
+        showToast('Account created!');
+        // onAuthStateChange handles routing
+      } else {
+        showToast('Account created — check your email to confirm');
+      }
     }
   }
 }
@@ -6924,6 +7176,9 @@ function confirmDeleteAccount(){
 }
 
 function openProfile(){
+  // Show/hide change-pw based on auth state
+  var cpw=document.getElementById('profile-change-pw');
+  if(cpw)cpw.style.display=window._authUser?'block':'none';
   var authedEl = document.getElementById('profile-authed');
   var anonEl = document.getElementById('profile-anon');
   if(window._authUser){
