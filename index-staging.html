@@ -2676,10 +2676,16 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index147';
+var app_version = 'staging-index148';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
-const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+function getSBHeaders(){
+  return {
+    'Content-Type':'application/json',
+    'apikey':SB_KEY,
+    'Authorization':'Bearer '+(window._authToken || SB_KEY)
+  };
+}
 
 // ── Supabase Auth Client ──────────────────────────────
 var supabaseClient = null;
@@ -2725,7 +2731,7 @@ function initAuth(){
 // ── SUPABASE HELPERS ─────────────────────────────────
 async function sbI(table,payload){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...getSBHeaders(),'Prefer':'return=representation'},body:JSON.stringify(payload)});
     if(!r.ok){
       const err=await r.json().catch(function(){return {};});
       console.error('sbI HTTP error:',r.status,table,err.message||err);
@@ -2740,7 +2746,7 @@ async function sbI(table,payload){
 }
 async function sbS(table,params=''){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:SB_HEADERS});
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:getSBHeaders()});
     if(!r.ok){console.error('sbS HTTP error:',r.status,table);return [];}
     return await r.json();
   }catch(e){
@@ -2750,7 +2756,7 @@ async function sbS(table,params=''){
 }
 async function sbU(table,filter,payload){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{...SB_HEADERS,'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{...getSBHeaders(),'Prefer':'return=representation'},body:JSON.stringify(payload)});
     const d=await r.json();
     return Array.isArray(d)?d[0]:d;
   }catch(e){console.error('sbU',e);return null;}
@@ -7796,7 +7802,7 @@ async function executeDeleteData(){
   if(btn){btn.textContent='Deleting...';btn.style.pointerEvents='none';}
   var device=getDeviceId();
   try{
-    await fetch(SB_URL+'/rest/v1/sessions?device_id=eq.'+device,{method:'DELETE',headers:SB_HEADERS});
+    await fetch(SB_URL+'/rest/v1/sessions?device_id=eq.'+device,{method:'DELETE',headers:getSBHeaders()});
     // Clear local storage
     localStorage.removeItem('see_device_id');
     localStorage.removeItem('see_drill');
