@@ -430,7 +430,19 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div style="flex:1;height:1px;background:var(--border);"></div>
     </div>
 
-    <!-- Email/password -->
+    <!-- Mode toggle tabs -->
+    <div style="display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:3px;margin-bottom:20px;" id="auth-tab-bar">
+      <button id="auth-tab-signin" onclick="setAuthMode('signin')"
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s;">
+        Sign in
+      </button>
+      <button id="auth-tab-signup" onclick="setAuthMode('signup')"
+        style="flex:1;padding:10px;border:none;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;">
+        Create account
+      </button>
+    </div>
+
+    <!-- Shared email/password fields -->
     <div id="auth-signin-form">
     <div style="margin-bottom:12px;">
       <input id="auth-email" type="email" placeholder="Email" autocomplete="email"
@@ -441,18 +453,24 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <div id="auth-error" style="display:none;font-size:13px;color:#e84444;margin-bottom:10px;text-align:center;"></div>
 
-    <button onclick="authSignIn()"
-      style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:10px;">
-      Sign in
-    </button>
-    <div style="text-align:right;margin:-6px 0 10px;">
-      <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Forgot password?</button>
+    <!-- Sign in mode -->
+    <div id="auth-mode-signin">
+      <button onclick="authSignIn()"
+        style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:10px;">
+        Sign in
+      </button>
+      <div style="text-align:right;margin:-6px 0 10px;">
+        <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Forgot password?</button>
+      </div>
     </div>
-    <div style="text-align:center;font-size:11px;color:var(--muted2);margin-bottom:4px;">New here? Use Create account ↓</div>
-    <button onclick="authSignUp()"
-      style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:20px;">
-      Create account
-    </button>
+
+    <!-- Create account mode (hidden by default) -->
+    <div id="auth-mode-signup" style="display:none;">
+      <button onclick="authSignUp()"
+        style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:20px;">
+        Create account
+      </button>
+    </div>
 
     <!-- Divider -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
@@ -2658,7 +2676,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index146';
+var app_version = 'staging-index147';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -3971,10 +3989,10 @@ async function loadClimbLog(){
   var exCollapsible=document.getElementById('sessions-example-collapsible');
 
   if(total===0){
-    // 0 climbs: example data expanded by default
-    buildSessionsArc(EXAMPLE_ARC, true);
-    buildSpiderChart(EXAMPLE_ARC);
-    var sc=document.getElementById('spider-chart-card'); if(sc)sc.style.display='block';
+    // 0 climbs: example data in preview section only
+    // Arc and radar show empty state — not demo data (they sit inside "YOUR DATA" boundary)
+    buildSessionsArc([], false); // empty arc
+    var sc=document.getElementById('spider-chart-card'); if(sc)sc.style.display='none'; // hide radar
     renderClimbList(EXAMPLE_ARC, true);
     var emptyEl2=document.getElementById('sessions-empty-state');
     if(emptyEl2)emptyEl2.style.display='none';
@@ -5886,15 +5904,19 @@ function renderClimbTable(climbs){
       // Sort attempts date desc within climb
       g.sessions.sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); });
       rows.push({type:'climb', name:name, count:g.sessions.length, climbId:g.climbId, grade:g.grade, terrain:g.terrain});
-      // Only show attempts if group not collapsed (default expanded)
+      // For single-attempt groups: always attach singleSession to header (outside collapse gate)
+      // so zone+date badge persists across expand/re-collapse cycles
+      if(g.sessions.length === 1){
+        rows[rows.length-1].singleSession = g.sessions[0];
+        // Default to collapsed on first render
+        if(_collapsedGroups[safeId] === undefined){ _collapsedGroups[safeId] = true; }
+      }
+      // Show attempt rows only when not collapsed
       if(!_collapsedGroups[safeId]){
-        // Single-attempt: keep zone+date in header display AND restore attempt row underneath
         if(g.sessions.length > 1){
           g.sessions.forEach(function(s){ rows.push({type:'attempt', s:s}); });
         } else {
-          // Augment header with zone/date display
-          rows[rows.length-1].singleSession = g.sessions[0];
-          // Restore attempt row so Edit/+Attempt/Check Zone/Drill remain accessible
+          // Single attempt expanded: push attempt row so Edit/+Attempt/Check Zone/Drill work
           rows.push({type:'attempt', s:g.sessions[0]});
         }
       }
@@ -5946,6 +5968,10 @@ function renderClimbTable(climbs){
         + expBtn
         + (row.singleSession
             ? (function(ss){
+                // Show count/arrow ONLY when explicitly expanded (false), badge in all other states
+                if(_collapsedGroups[safeId] === false){
+                  return '<span style="font-size:11px;color:var(--muted2);">'+row.count+' attempt'+(row.count===1?'':'s')+' <span id="cl-group-arrow-'+safeId+'">↑</span></span>';
+                }
                 var c=zoneColor(ss.zone||'learning');
                 var conf=ss.zone_confidence==='confirmed';
                 var zPill='<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 7px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';">'+zoneName(ss.zone||'learning')+(conf?'':'~')+'</span>';
@@ -6387,7 +6413,11 @@ async function openClimbExposure(climbId){
 
   // Load climb record and sessions
   var climbRec = _climbCache ? _climbCache.find(function(c){ return c.id===climbId; }) : null;
-  var sessions = await sbS('sessions', 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&device_id=eq.'+getDeviceId()+'&is_baseline=eq.false&is_checkin=eq.false&order=created_at.asc');
+  var uid = window._authUser ? window._authUser.id : null;
+  var sessQuery = uid
+    ? 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&user_id=eq.'+uid+'&is_baseline=eq.false&is_checkin=eq.false&order=created_at.asc'
+    : 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&device_id=eq.'+getDeviceId()+'&is_baseline=eq.false&is_checkin=eq.false&order=created_at.asc';
+  var sessions = await sbS('sessions', sessQuery);
   var sessList = Array.isArray(sessions) ? sessions : [];
   window._rhSessions = sessList;
 
@@ -6614,16 +6644,12 @@ function renderRouteAttemptsList(sessList){
     var hasRefl=(s.went_well&&s.went_well.trim())||(s.still_learning&&s.still_learning.trim())||(s.surprised_by&&s.surprised_by.trim());
     var pillStyle='font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 8px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';';
     var reflId='rh-refl-'+rowIdx;
-    var noteIcon=hasRefl?('<span style="font-size:12px;cursor:pointer;margin-left:6px;" onclick="toggleRouteRefl(this,\''+reflId+'\')">\uD83D\uDCCB</span>'):'';
-    html+='<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
-      +'<div style="display:flex;align-items:center;gap:10px;">'
-      +'<div style="width:3px;border-radius:99px;background:'+c+';align-self:stretch;min-height:32px;flex-shrink:0;"></div>'
-      +'<div style="flex:1;">'
-      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+result+noteIcon+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+d+'</div>'
-      +'</div>'
-      +'<span style="'+pillStyle+'">'+(s.zone||'—')+'</span>'
-      +'</div>';
+    var chevId='rh-chev-'+rowIdx;
+    var lblId='rh-noteslbl-'+rowIdx;
+    var rowAttrs=hasRefl?'onclick="toggleRouteRefl(this,\''+reflId+'\',\''+chevId+'\',\''+lblId+'\');return false;" style="cursor:pointer;-webkit-tap-highlight-color:transparent;"':'';
+    var chevron=hasRefl?'<span id="'+chevId+'" style="font-size:11px;color:var(--muted);margin-left:4px;display:inline-block;transition:transform .2s;">›</span>':'';
+    var notesLabel=hasRefl?'<span id="'+lblId+'" style="font-size:10px;color:var(--muted);margin-left:6px;font-weight:400;">View notes</span>':'';
+    html+='<div '+rowAttrs+' style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'      +'<div style="display:flex;align-items:center;gap:10px;">'      +'<div style="width:3px;border-radius:99px;background:'+c+';align-self:stretch;min-height:32px;flex-shrink:0;"></div>'      +'<div style="flex:1;">'      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+result+notesLabel+chevron+'</div>'      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+d+'</div>'      +'</div>'      +'<span style="'+pillStyle+'">'+(s.zone||'—')+'</span>'      +'</div>';
     if(hasRefl){
       html+='<div id="'+reflId+'" style="display:none;padding:8px 0 4px 13px;font-size:12px;color:var(--muted);line-height:1.6;">';
       if(s.went_well&&s.went_well.trim())    html+='<div><strong>What went well:</strong> '+s.went_well+'</div>';
@@ -6636,9 +6662,15 @@ function renderRouteAttemptsList(sessList){
   listEl.innerHTML=html;
 }
 
-function toggleRouteRefl(btn, id){
+function toggleRouteRefl(btn, id, chevId, lblId){
   var el=document.getElementById(id);
-  if(el) el.style.display=el.style.display==='block'?'none':'block';
+  if(!el) return;
+  var open=el.style.display==='block';
+  el.style.display=open?'none':'block';
+  var chev=chevId?document.getElementById(chevId):null;
+  if(chev) chev.style.transform=open?'':'rotate(90deg)';
+  var lbl=lblId?document.getElementById(lblId):null;
+  if(lbl) lbl.textContent=open?'View notes':'Hide notes';
 }
 
 
@@ -7370,6 +7402,29 @@ function showAuthError(msg){
 function clearAuthError(){
   var el = document.getElementById('auth-error');
   if(el){ el.textContent = ''; el.style.display = 'none'; }
+}
+
+
+function setAuthMode(mode){
+  var tabSignin=document.getElementById('auth-tab-signin');
+  var tabSignup=document.getElementById('auth-tab-signup');
+  var modeSignin=document.getElementById('auth-mode-signin');
+  var modeSignup=document.getElementById('auth-mode-signup');
+  var pwInput=document.getElementById('auth-password');
+  if(mode==='signin'){
+    if(tabSignin){tabSignin.style.background='var(--accent)';tabSignin.style.color='#fff';}
+    if(tabSignup){tabSignup.style.background='transparent';tabSignup.style.color='var(--muted)';}
+    if(modeSignin)modeSignin.style.display='block';
+    if(modeSignup)modeSignup.style.display='none';
+    if(pwInput)pwInput.setAttribute('autocomplete','current-password');
+  } else {
+    if(tabSignup){tabSignup.style.background='var(--accent)';tabSignup.style.color='#fff';}
+    if(tabSignin){tabSignin.style.background='transparent';tabSignin.style.color='var(--muted)';}
+    if(modeSignup)modeSignup.style.display='block';
+    if(modeSignin)modeSignin.style.display='none';
+    if(pwInput)pwInput.setAttribute('autocomplete','new-password');
+  }
+  clearAuthError();
 }
 
 async function authSignIn(){
