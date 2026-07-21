@@ -2676,7 +2676,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index148';
+var app_version = 'staging-index149';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -2695,6 +2695,7 @@ try{
 
 window._authUser = null;
 window._authToken = null;
+var _hasRoutedAfterSignIn = false; // guards against re-routing on background session refreshes
 // JS error logger for runSEETests
 window._seeErrorLog = [];
 window.addEventListener('error', function(e){ window._seeErrorLog.push(e.message + ' (' + e.filename?.split('/').pop() + ':' + e.lineno + ')'); });
@@ -2710,6 +2711,8 @@ function initAuth(){
     window._authUser = session ? session.user : null;
     window._authToken = session ? session.access_token : null;
     if(event === 'SIGNED_IN'){
+      if(_hasRoutedAfterSignIn) return; // background session refresh — don't hijack navigation
+      _hasRoutedAfterSignIn = true;
       // Check Supabase for existing baseline tied to this user_id
       (async function(){
         var uid = session && session.user ? session.user.id : null;
@@ -2724,7 +2727,7 @@ function initAuth(){
         showScreen('screen-sessions'); loadClimbLog();
       })();
     }
-    if(event === 'SIGNED_OUT'){ showScreen('screen-auth'); }
+    if(event === 'SIGNED_OUT'){ _hasRoutedAfterSignIn = false; showScreen('screen-auth'); }
   });
 }
 
