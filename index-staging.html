@@ -448,6 +448,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div style="text-align:right;margin:-6px 0 10px;">
       <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Forgot password?</button>
     </div>
+    <div style="text-align:center;font-size:11px;color:var(--muted2);margin-bottom:4px;">New here? Use Create account ↓</div>
     <button onclick="authSignUp()"
       style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:20px;">
       Create account
@@ -2657,7 +2658,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index145';
+var app_version = 'staging-index146';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 const SB_HEADERS = {'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
@@ -2684,7 +2685,21 @@ function initAuth(){
   supabaseClient.auth.onAuthStateChange(function(event, session){
     window._authUser = session ? session.user : null;
     window._authToken = session ? session.access_token : null;
-    if(event === 'SIGNED_IN'){ showScreen('screen-sessions'); loadClimbLog(); }
+    if(event === 'SIGNED_IN'){
+      // Check Supabase for existing baseline tied to this user_id
+      (async function(){
+        var uid = session && session.user ? session.user.id : null;
+        if(uid){
+          var existing = await sbS('sessions','select=id&is_baseline=eq.true&user_id=eq.'+uid+'&limit=1');
+          if(!Array.isArray(existing) || existing.length === 0){
+            // No baseline for this user — route to baseline setup
+            showScreen('screen-baseline');
+            return;
+          }
+        }
+        showScreen('screen-sessions'); loadClimbLog();
+      })();
+    }
     if(event === 'SIGNED_OUT'){ showScreen('screen-auth'); }
   });
 }
@@ -5830,8 +5845,21 @@ function renderClimbTable(climbs){
   if(climbLogState.view === 'grouped'){
     var groups = {}; var groupOrder = []; var unnamed = [];
     // Group by climb_id first — route_name alone can cause false grouping
+    // Build a name→climbId index for resolving null-climb_id sessions (case-insensitive)
+    var nameToClimbId = {};
+    sorted.forEach(function(s){
+      if(s.climb_id && s.route_name){
+        var normName = s.route_name.toLowerCase().trim();
+        if(!nameToClimbId[normName]) nameToClimbId[normName] = s.climb_id;
+      }
+    });
     sorted.forEach(function(s){
       var key = s.climb_id || null;
+      // Root cause B+C fix: resolve null climb_id to existing group by name (case-insensitive)
+      if(!key && s.route_name){
+        var normName = s.route_name.toLowerCase().trim();
+        key = nameToClimbId[normName] || null;
+      }
       if(key){
         if(!groups[key]){
           groups[key]={sessions:[], climbId:key, name:s.route_name||'Unnamed climb', grade:s.grade_value, terrain:s.climbing_type};
@@ -5839,8 +5867,8 @@ function renderClimbTable(climbs){
         }
         groups[key].sessions.push(s);
       } else if(s.route_name){
-        // No climb_id but has a name — group by name as fallback
-        var nameKey = 'name:'+s.route_name;
+        // No climb_id and no matching named group — fallback by normalized name
+        var nameKey = 'name:'+s.route_name.toLowerCase().trim();
         if(!groups[nameKey]){
           groups[nameKey]={sessions:[], climbId:null, name:s.route_name, grade:s.grade_value, terrain:s.climbing_type};
           groupOrder.push(nameKey);
@@ -6300,6 +6328,7 @@ async function saveBaseline(){
   // Save to Supabase sessions table with is_baseline=true
   var payload = {
     device_id: getDeviceId(),
+    user_id: window._authUser ? window._authUser.id : null,
     is_baseline: true,
     is_checkin: true,
     baseline_grade_range: baselineState.answers.baseline_grade_range || null,
@@ -6582,7 +6611,7 @@ function renderRouteAttemptsList(sessList){
     var conf=s.zone_confidence==='confirmed';
     var result=rLabels[s.baseline_zone]||rLabels[s.result]||s.baseline_zone||'—';
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'';
-    var hasRefl=s.went_well||s.still_learning||s.surprised_by;
+    var hasRefl=(s.went_well&&s.went_well.trim())||(s.still_learning&&s.still_learning.trim())||(s.surprised_by&&s.surprised_by.trim());
     var pillStyle='font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 8px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';';
     var reflId='rh-refl-'+rowIdx;
     var noteIcon=hasRefl?('<span style="font-size:12px;cursor:pointer;margin-left:6px;" onclick="toggleRouteRefl(this,\''+reflId+'\')">\uD83D\uDCCB</span>'):'';
@@ -6597,9 +6626,9 @@ function renderRouteAttemptsList(sessList){
       +'</div>';
     if(hasRefl){
       html+='<div id="'+reflId+'" style="display:none;padding:8px 0 4px 13px;font-size:12px;color:var(--muted);line-height:1.6;">';
-      if(s.went_well)    html+='<div><strong>What went well:</strong> '+s.went_well+'</div>';
-      if(s.still_learning) html+='<div><strong>What to work on:</strong> '+s.still_learning+'</div>';
-      if(s.surprised_by) html+='<div><strong>Surprised by:</strong> '+s.surprised_by+'</div>';
+      if(s.went_well&&s.went_well.trim())    html+='<div><strong>What went well:</strong> '+s.went_well+'</div>';
+      if(s.still_learning&&s.still_learning.trim()) html+='<div><strong>What to work on:</strong> '+s.still_learning+'</div>';
+      if(s.surprised_by&&s.surprised_by.trim()) html+='<div><strong>Surprised by:</strong> '+s.surprised_by+'</div>';
       html+='</div>';
     }
     html+='</div>';
@@ -6712,12 +6741,16 @@ function buildSpiderChart(sessions){
     var margin = 8;
     var clampedX = Math.max(margin + 30, Math.min(260 - margin - 20, p.x));
     var d = data[t];
-    var dom = d.panic > d.learning && d.panic > d.comfort ? 'P' : d.learning >= d.comfort ? 'L' : 'C';
-    var domColor = d.panic > d.learning && d.panic > d.comfort ? '#e84444' : d.learning >= d.comfort ? '#f5a623' : '#7ec87a';
+    // Full zone distribution per node
+    var distParts = [];
+    if(d.comfort > 0) distParts.push(d.comfort+'C');
+    if(d.learning > 0) distParts.push(d.learning+'L');
+    if(d.panic > 0) distParts.push(d.panic+'P');
+    var distLabel = distParts.join('\xB7');
+    var distColor = d.panic > 0 ? '#e84444' : d.learning > 0 ? '#f5a623' : '#7ec87a';
     // Shorten long terrain names for SVG labels
     var shortLabel = t === 'Overhang' ? 'O-hang' : t === 'Dihedral' ? 'Dihdr' : t === 'Vertical' ? 'Vert' : t;
-    return '<text x="'+clampedX.toFixed(1)+'" y="'+(p.y-6).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">'+shortLabel+'</text>'
-      + '<text x="'+clampedX.toFixed(1)+'" y="'+(p.y+7).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="9" fill="'+domColor+'">'+d.total+' · '+dom+'</text>';
+    return '<text x="'+clampedX.toFixed(1)+'" y="'+(p.y-6).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">'+shortLabel+'</text>'      + '<text x="'+clampedX.toFixed(1)+'" y="'+(p.y+7).toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="9" fill="'+distColor+'">'+distLabel+'</text>';
   }).join('');
 
   // Zone legend
