@@ -881,12 +881,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <!-- ROW 3: ZONE — estimated pill + confirm CTA together -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;margin-bottom:12px;">
-      <div style="padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div>
-          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Activation zone</div>
-          <div id="cel-zone-pill"></div>
-        </div>
-        <button id="cel-deeper-btn" onclick="startDeeper()" style="background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;flex-shrink:0;">Go Deeper →</button>
+      <div style="padding:14px 16px 10px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;text-align:center;">Activation zone</div>
+        <div id="cel-gauge" style="width:100%;max-width:220px;margin:0 auto;"></div>
+        <button id="cel-deeper-btn" onclick="startDeeper()" style="width:100%;margin-top:10px;background:var(--accent);border:none;border-radius:10px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Go Deeper →</button>
       </div>
       <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;">Confirm your zone · 4 questions · ~1 minute</div>
   
@@ -1138,30 +1136,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <span id="zc-result"></span>
     </div>
 
-    <!-- Zone pill — large, prominent -->
-    <div id="zc-zone-pill" style="margin-bottom:20px;font-size:18px;"></div>
-
     <!-- Concentric rings visualization -->
     <div style="margin-bottom:20px;display:flex;justify-content:center;">
-      <svg width="180" height="120" viewBox="0 0 180 120" fill="none">
-        <!-- rings: outer=panic, mid=learning, inner=comfort -->
-        <ellipse cx="90" cy="60" rx="85" ry="55" stroke="rgba(232,68,68,.15)" stroke-width="1"/>
-        <ellipse cx="90" cy="60" rx="60" ry="38" stroke="rgba(245,166,35,.15)" stroke-width="1"/>
-        <ellipse cx="90" cy="60" rx="35" ry="22" stroke="rgba(126,200,122,.15)" stroke-width="1"/>
-        <!-- zone labels -->
-        <text x="90" y="14" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(232,68,68,.5)">Panic</text>
-        <text x="90" y="35" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(245,166,35,.5)">Learning</text>
-        <text x="90" y="64" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="8" fill="rgba(126,200,122,.5)">Comfort</text>
-        <!-- animated dot -->
-        <circle id="zc-dot" cx="90" cy="55" r="5" fill="var(--accent)" opacity="0">
-          <animate id="zc-dot-anim" attributeName="opacity" from="0" to="1" dur=".4s" begin="indefinite" fill="freeze"/>
-        </circle>
-        <!-- animated ring for zone shift -->
-        <circle id="zc-dot-ring" cx="90" cy="55" r="10" stroke="var(--accent)" stroke-width="1.5" fill="none" opacity="0">
-          <animate id="zc-ring-anim" attributeName="opacity" from="0" to=".5" dur=".6s" begin="indefinite" fill="freeze"/>
-          <animate attributeName="r" from="8" to="14" dur=".6s" begin="zc-ring-anim.begin" fill="freeze"/>
-        </circle>
-      </svg>
+      <div id="zc-gauge" style="width:100%;max-width:260px;margin:0 auto;"></div>
     </div>
 
     <!-- Message -->
@@ -2575,7 +2552,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index153';
+var app_version = 'staging-index155';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -2716,20 +2693,96 @@ function resolveZone(data){
     var bodyMap={0:0,1:1,2:2,3:3,4:1};
     score+=(bMap[data.breathScore]||0)+(gMap[data.gutScore]||0)+(cMap[data.cruxScore]||0)+(bodyMap[data.bodyScore]||0);
     var zone=score<=4?'comfort':score<=9?'learning':'panic';
-    return{zone:zone,confidence:'confirmed'};
+    return{zone:zone,confidence:'confirmed',score:score};
   }
   // Result path — estimated from climb outcome
   var r=data.result||'';
-  if(r==='sent')return{zone:'comfort',confidence:'estimated'};
-  
-  if(r==='fell')return{zone:'learning',confidence:'estimated'};
-  if(r==='dna')return{zone:'panic',confidence:'estimated'};
-  return{zone:'learning',confidence:'estimated'};
+  // Rough midpoint score per zone, used only for gauge needle placement (no real score exists pre-Go-Deeper)
+  var estMidpoints={comfort:2,learning:6.5,panic:11};
+  if(r==='sent')return{zone:'comfort',confidence:'estimated',score:estMidpoints.comfort};
+  if(r==='fell')return{zone:'learning',confidence:'estimated',score:estMidpoints.learning};
+  if(r==='dna')return{zone:'panic',confidence:'estimated',score:estMidpoints.panic};
+  return{zone:'learning',confidence:'estimated',score:estMidpoints.learning};
 }
 
 // ── ZONE HELPERS ─────────────────────────────────────
 function zoneColor(z){return z==='comfort'?'#7ec87a':z==='panic'?'#e84444':'#f5a623';}
 function zoneName(z){return z==='comfort'?'Comfort zone':z==='panic'?'Panic zone':'Learning zone';}
+// ── ACTIVATION GAUGE — continuous semi-circle, replaces concentric rings ──
+function buildActivationGauge(containerId, score, confidence){
+  var container=document.getElementById(containerId);
+  if(!container) return;
+  score=Math.max(0,Math.min(12,score||0));
+  var isEstimated=confidence==='estimated';
+
+  var W=220,H=130,cx=110,cy=115,r=95;
+  // Semi-circle spans 180deg: angle -180 (left, score 0) to 0 (right, score 12)
+  var angleForScore=function(s){ return -180+(s/12)*180; };
+  var toXY=function(angle,radius){
+    var rad=angle*Math.PI/180;
+    return {x:cx+radius*Math.cos(rad), y:cy+radius*Math.sin(rad)};
+  };
+
+  // Build gradient arc path (green -> amber -> red) as multiple thin segments
+  var segments=[];
+  var segCount=48;
+  for(var i=0;i<segCount;i++){
+    var a0=angleForScore(i/segCount*12);
+    var a1=angleForScore((i+1)/segCount*12);
+    var p0=toXY(a0,r), p1=toXY(a1,r);
+    var t=i/segCount; // 0..1 across full gauge
+    var segColor;
+    if(t<0.42){ segColor='#7ec87a'; } // comfort green (0-4 -> 0-0.333, extended slightly for visual blend)
+    else if(t<0.75){ segColor='#f5a623'; } // learning amber
+    else { segColor='#e84444'; } // panic red
+    segments.push('<path d="M'+p0.x.toFixed(1)+' '+p0.y.toFixed(1)+' A'+r+' '+r+' 0 0 1 '+p1.x.toFixed(1)+' '+p1.y.toFixed(1)+'" stroke="'+segColor+'" stroke-width="14" fill="none" stroke-linecap="butt" opacity="0.85"/>');
+  }
+
+  // Sweet-spot band marker (score 5-7, roughly the learning/growth zone)
+  var sweetStart=toXY(angleForScore(5), r);
+  var sweetEnd=toXY(angleForScore(7), r);
+  var sweetBand='<path d="M'+sweetStart.x.toFixed(1)+' '+sweetStart.y.toFixed(1)+' A'+r+' '+r+' 0 0 1 '+sweetEnd.x.toFixed(1)+' '+sweetEnd.y.toFixed(1)+'" stroke="rgba(255,255,255,.55)" stroke-width="3" fill="none" stroke-linecap="round"/>';
+
+  // Needle
+  var needleAngle=angleForScore(score);
+  var needleLen=r-18;
+  var needleTip=toXY(needleAngle, needleLen);
+  var needleColor=zoneColorFromScore(score);
+  var needleDash=isEstimated?'stroke-dasharray="4 3"':'';
+  var needleOpacity=isEstimated?'0.6':'1';
+  var needle='<line x1="'+cx+'" y1="'+cy+'" x2="'+needleTip.x.toFixed(1)+'" y2="'+needleTip.y.toFixed(1)+'" stroke="'+needleColor+'" stroke-width="3" stroke-linecap="round" '+needleDash+' opacity="'+needleOpacity+'"/>';
+  var needleHub='<circle cx="'+cx+'" cy="'+cy+'" r="6" fill="'+needleColor+'" opacity="'+needleOpacity+'"/>';
+
+  // Score readout + label
+  var zoneName_=score<=4?'Comfort':score<=9?'Learning':'Panic';
+  var subLabel='';
+  if(score<=4) subLabel='settled, low activation';
+  else if(score<=7) subLabel='sweet spot range';
+  else if(score<=9) subLabel='approaching your edge — smaller steps from here';
+  else subLabel='high activation';
+  var estimatedSuffix=isEstimated?' <span style="opacity:.6;font-weight:400;">~ estimated</span>':'';
+
+  container.innerHTML=
+    '<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;display:block;">'
+    +segments.join('')
+    +sweetBand
+    +needle
+    +needleHub
+    +'</svg>'
+    +'<div style="text-align:center;margin-top:4px;">'
+    +'<div style="font-size:30px;font-weight:700;color:'+needleColor+';line-height:1;">'+score.toFixed(1)+'</div>'
+    +'<div style="font-size:14px;font-weight:700;color:'+needleColor+';margin-top:4px;">'+zoneName_+estimatedSuffix+'</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+subLabel+'</div>'
+    +'</div>';
+}
+
+function zoneColorFromScore(score){
+  if(score<=4) return '#7ec87a';
+  if(score<=9) return '#f5a623';
+  return '#e84444';
+}
+
+
 function zonePill(z,estimated){
   var c=zoneColor(z),n=zoneName(z);
   var border=estimated?'border:1.5px dashed '+c+';':'border:1.5px solid '+c+';';
@@ -3391,7 +3444,6 @@ async function renderCelebrate(){
   var gradEl=document.getElementById('card-grade-big');
   var terrEl=document.getElementById('card-terrain-big');
   var badgeEl=document.getElementById('card-badge-big');
-  var pillEl=document.getElementById('cel-zone-pill');
   var insightEl=document.getElementById('cel-insight-text');
   var climbNumEl=document.getElementById('cel-climb-num');
 
@@ -3405,8 +3457,9 @@ async function renderCelebrate(){
     badgeEl.style.color=resultColors[logState.result]||'var(--muted)';
   }
 
-  // Zone pill — estimated until Go Deeper done
-  if(pillEl)pillEl.innerHTML=zonePill(logState.zone,true);
+  // Activation gauge — estimated until Go Deeper done
+  var estScore=logState.result==='sent'?2:logState.result==='dna'?11:6.5;
+  buildActivationGauge('cel-gauge', estScore, 'estimated');
 
   // Confirm button — always visible, always clickable (sessId now guaranteed set)
   var deeperBtn=document.getElementById('cel-deeper-btn');
@@ -3886,6 +3939,7 @@ async function afterQ4(){
   var prevZone=logState.zone;
   logState.zone=zr.zone;
   logState.zoneConf='confirmed';
+  window._zcScore=zr.score; // real 0-12 score, used by activation gauge
 
   // Save to Supabase
   if(logState.sessId){
@@ -3931,9 +3985,8 @@ async function afterQ4(){
     }
   }
 
-  // Update celebrate screen pill
-  var pillEl=document.getElementById('cel-zone-pill');
-  if(pillEl)pillEl.innerHTML=zonePill(logState.zone,false);
+  // Update celebrate screen gauge with real confirmed score
+  buildActivationGauge('cel-gauge', window._zcScore, 'confirmed');
   // Hide Go Deeper button
   var db2=document.getElementById('cel-deeper-btn');
   if(db2)db2.style.display='none';
@@ -5333,20 +5386,10 @@ function showZoneConfirmed(prevZone, confirmedZone){
   var header=document.getElementById('zc-header');
   if(header)header.textContent=matched?'Zone confirmed':'Zone updated';
 
-  // Zone pill
-  var pillEl=document.getElementById('zc-zone-pill');
-  if(pillEl)pillEl.innerHTML=zonePill(confirmedZone,false);
+  // Zone pill removed — gauge is now the sole zone display on this screen
 
-  // Dot position in concentric rings
-  // Panic=outer ring (cy~20), Learning=middle (cy~55), Comfort=inner (cy~90)
-  var dotPos={comfort:{cx:90,cy:90},learning:{cx:90,cy:55},panic:{cx:90,cy:18}};
-  var pos=dotPos[confirmedZone]||{cx:90,cy:55};
-  var dot=document.getElementById('zc-dot');
-  var ring=document.getElementById('zc-dot-ring');
-  var dotAnim=document.getElementById('zc-dot-anim');
-  var ringAnim=document.getElementById('zc-ring-anim');
-  if(dot){dot.setAttribute('cx',pos.cx);dot.setAttribute('cy',pos.cy);dot.setAttribute('fill',c);dot.setAttribute('opacity','0');}
-  if(ring){ring.setAttribute('cx',pos.cx);ring.setAttribute('cy',pos.cy);ring.setAttribute('stroke',c);ring.setAttribute('opacity','0');}
+  // Activation gauge — replaces concentric-ring dot positioning
+  buildActivationGauge('zc-gauge', window._zcScore!==undefined?window._zcScore:(confirmedZone==='comfort'?2:confirmedZone==='panic'?11:6.5), 'confirmed');
 
   // Message — two registers
   var msgEl=document.getElementById('zc-message');
@@ -7283,11 +7326,11 @@ async function runSEETests(){
     var zcEl = document.getElementById('screen-zone-confirmed');
     if(!zcEl){ fail('screen-zone-confirmed exists', 'Element not found'); }
     else {
-      var hasZonePill = !!document.getElementById('zc-zone-pill');
+      var hasGauge = !!document.getElementById('zc-gauge');
       var hasOverride = !!document.querySelector('[onclick*="overrideZone"]');
       var hasSomatic = !!document.getElementById('zc-somatic-rows');
-      if(hasZonePill && hasOverride && hasSomatic){ pass('screen-zone-confirmed has full content'); }
-      else { fail('screen-zone-confirmed has full content', 'Missing: ' + [!hasZonePill&&'zone-pill', !hasOverride&&'override-btns', !hasSomatic&&'somatic-rows'].filter(Boolean).join(', ')); }
+      if(hasGauge && hasOverride && hasSomatic){ pass('screen-zone-confirmed has full content'); }
+      else { fail('screen-zone-confirmed has full content', 'Missing: ' + [!hasGauge&&'zone-pill', !hasOverride&&'override-btns', !hasSomatic&&'somatic-rows'].filter(Boolean).join(', ')); }
     }
   }catch(e){ fail('screen-zone-confirmed exists', e.message); }
 
@@ -7378,6 +7421,8 @@ async function runSEETests(){
 function overrideZone(zone){
   logState.zone = zone;
   logState.zoneConf = 'confirmed';
+  // Manual override has no real score — use zone midpoint for gauge display
+  window._zcScore = zone==='comfort'?2:zone==='panic'?11:6.5;
   // Save override to Supabase
   if(logState.sessId){
     sbU('sessions','id=eq.'+logState.sessId,{
@@ -7390,11 +7435,12 @@ function overrideZone(zone){
   // Update zone confirmed screen display
   var titleEl = document.getElementById('zc-zone-title');
   if(titleEl){ titleEl.textContent = zone.charAt(0).toUpperCase()+zone.slice(1)+' zone'; titleEl.style.color = zoneColor(zone); }
+  // Update gauge to reflect the override
+  buildActivationGauge('zc-gauge', window._zcScore, 'confirmed');
   var overrideEl = document.getElementById('zc-override');
   if(overrideEl){ overrideEl.innerHTML = '<div style="text-align:center;font-size:13px;color:var(--muted);padding:8px;">Override applied — saved as '+zone+'</div>'; }
-  // Update celebrate screen pill
-  var pillEl = document.getElementById('cel-zone-pill');
-  if(pillEl) pillEl.innerHTML = zonePill(zone, false);
+  // Update celebrate screen gauge
+  buildActivationGauge('cel-gauge', window._zcScore, 'confirmed');
 }
 
 function acceptCalculatedZone(){
