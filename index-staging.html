@@ -2575,7 +2575,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index152';
+var app_version = 'staging-index153';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -2711,7 +2711,7 @@ function resolveZone(data){
     // gutScore: 0=settled,1=flutter,2=tension,3=didntnotice
     var gMap={0:0,1:1,2:2,3:1};
     // cruxScore: 0=paused,1=hesitated,2=backedoff,3=pushedthrough,4=panicked,5=none
-    var cMap={0:1,1:1,2:2,3:1,4:3,5:0};
+    var cMap={0:1,1:1,2:2,3:2,4:3,5:0}; // fixed: index 3 (pushed through) no longer scores below index 2 (backed off)
     // bodyScore: 0=loose,1=activated,2=tight,3=shutdown,4=didntnotice
     var bodyMap={0:0,1:1,2:2,3:3,4:1};
     score+=(bMap[data.breathScore]||0)+(gMap[data.gutScore]||0)+(cMap[data.cruxScore]||0)+(bodyMap[data.bodyScore]||0);
@@ -3852,8 +3852,8 @@ function startDeeper(){
 // Total max: 13 | Comfort 0-4 | Learning 5-9 | Panic 10-13
 var breathScoreMap={'Easy and steady':0,'Slightly faster':1,'Shallow or tight':2,'I held my breath':4,'Didn\'t notice':1};
 var gutScoreMap={'Settled, neutral':0,'Mild flutter':1,'Noticeable tension':2,'Didn\'t notice':1};
-var cruxScoreMap={'Yes — I paused':1,'Yes — I hesitated then committed':1,'Yes — I backed off':2,'Yes — I pushed through':2,'Yes — I panicked but recovered':4,'No standout moment':0};
-var bodyScoreMap={'Loose and fluid':0,'Activated, switched on':1,'Tight or gripped':2,'Shut down or frozen':3,'Didn\'t notice':1};
+var cruxScoreMap={'Yes — I paused':1,'Yes — I hesitated then committed':1,'Yes — I backed off':2,'Yes — I pushed through':3,'Yes — I panicked but recovered':4,'No standout moment':0};
+var bodyScoreMap={'Settled and in control':0,'Activated but manageable':1,'Tight and reactive':2,'Hard to read':3};
 
 function selectDeepChip(btn,q){
   var parent=btn.closest('.response-chips,.question-card');
