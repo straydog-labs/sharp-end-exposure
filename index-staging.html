@@ -2575,7 +2575,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index151';
+var app_version = 'staging-index152';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3378,7 +3378,7 @@ async function logClimb(){
   // Background refresh home arc and climb log
   loadHomeInsight();
   // Pre-cache climb log data so it's instant when tapped
-  sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=100').then(function(s){
+  (window._authUser&&window._authUser.id?sbS('sessions','select=*&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=100'):sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=100')).then(function(s){
     window._cachedSessions=Array.isArray(s)?s.filter(function(x){return !x.is_checkin;}):[];
   });
 }
@@ -3413,7 +3413,7 @@ async function renderCelebrate(){
   if(deeperBtn) deeperBtn.style.display='flex';
 
   // Fetch history
-  var history=await sbS('sessions','select=zone,zone_confidence,climbing_type,grade_value,baseline_zone,created_at&device_id=eq.'+getDeviceId()+'&is_checkin=eq.false&order=created_at.desc&limit=100');
+  var history=await sbS('sessions','select=zone,zone_confidence,climbing_type,grade_value,baseline_zone,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&is_checkin=eq.false&order=created_at.desc&limit=100');
   if(!Array.isArray(history))history=[];
   var total=history.length;
   window._userClimbCount=total;
@@ -3609,7 +3609,7 @@ var _selectedClimbId=null;
 
 async function loadClimbCache(){
   if(_climbCache)return _climbCache;
-  var climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200');
+  var climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&order=created_at.desc&limit=200');
   _climbCache=Array.isArray(climbs)?climbs:[];
   return _climbCache;
 }
@@ -3986,7 +3986,7 @@ function renderReflection(){
 }
 
 async function buildReflectArc(){
-  var history=await sbS('sessions','select=zone,zone_confidence,created_at&device_id=eq.'+getDeviceId()+'&order=created_at.asc&limit=20');
+  var history=await sbS('sessions','select=zone,zone_confidence,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&order=created_at.asc&limit=20');
   var svg=document.getElementById('river-svg');
   if(!svg||!Array.isArray(history)||history.length===0)return;
   var zoneY={comfort:82,learning:50,panic:16};
@@ -4011,7 +4011,8 @@ async function loadClimbLog(){
   var titleEl=document.getElementById('climb-log-title');
   if(titleEl)titleEl.textContent='Climb Log';
   var countEl=document.getElementById('sess-total-count');
-  var sessions=await sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200');
+  var sessQuery=(window._authUser&&window._authUser.id)?'select=*&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=200':'select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200';
+  var sessions=await sbS('sessions',sessQuery);
   // Cache baseline record for signed-in users (used by buildGradeGrid)
   if(window._authUser && window._authUser.id){
     var baselineRows=await sbS('sessions','select=baseline_grade_range&is_baseline=eq.true&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=1');
@@ -4297,7 +4298,7 @@ async function buildInsight(sessions){
 // HOME INSIGHT
 // ═══════════════════════════════════════════════════════
 async function loadHomeInsight(){
-  var sessions=await sbS('sessions','select=zone,zone_confidence,climbing_type,created_at&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=50');
+  var sessions=await sbS('sessions','select=zone,zone_confidence,climbing_type,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&order=created_at.desc&limit=50');
   if(!Array.isArray(sessions))sessions=[];
   var climbs=sessions.filter(function(s){return !s.is_checkin&&s.zone;});
   var total=climbs.length;
@@ -5206,7 +5207,7 @@ async function loadDrillRouteOptions(){
   if(!sel)return;
 
   // Get distinct route names from sessions
-  var sessions=await sbS('sessions','select=route_name,grade_value,climbing_type&device_id=eq.'+getDeviceId()+'&is_checkin=eq.false&route_name=not.is.null&order=created_at.desc&limit=100');
+  var sessions=await sbS('sessions','select=route_name,grade_value,climbing_type&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&is_checkin=eq.false&route_name=not.is.null&order=created_at.desc&limit=100');
   sel.innerHTML='<option value="">Select a route...</option>';
 
   // Named routes (deduplicated)
