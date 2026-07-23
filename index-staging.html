@@ -2612,7 +2612,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index158';
+var app_version = 'staging-index159';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -2870,7 +2870,7 @@ function initGaugeDrag(container, initialScore, onScoreChange, gaugePrefix){
   function positionHandle(score){
     var rect=wrap.getBoundingClientRect();
     var pivotX=rect.width/2;
-    var r=rect.width*0.43; // matches SVG gauge proportions (r=95 of W=220 -> 0.43)
+    var r=rect.width*(77/220); // matches needle's actual length (needleLen=95-18=77 of W=220), not the arc radius (95)
     var angle=180-(score/12*180);
     var rad=angle*Math.PI/180;
     var hx=pivotX+r*Math.cos(rad)-handleSize/2;
@@ -4191,10 +4191,10 @@ function toggleReflChip(btn,group){
 async function afterQ4(){
   // Calculate confirmed zone
   var zr=resolveZone({
-    breathScore:deepScores.breath||1,
-    gutScore:deepScores.gut||1,
-    cruxScore:deepScores.crux||0,
-    bodyScore:deepScores.body||1
+    breathScore: deepScores.breath!==null ? deepScores.breath : 1,
+    gutScore: deepScores.gut!==null ? deepScores.gut : 1,
+    cruxScore: deepScores.crux!==null ? deepScores.crux : 0,
+    bodyScore: deepScores.body!==null ? deepScores.body : 1
   });
   var prevZone=logState.zone;
   logState.zone=zr.zone;
@@ -7578,7 +7578,7 @@ async function runSEETests(){
 
   // A2: Core functions exist
   try{
-    var required = ['showScreen','loadClimbLog','logClimb','startDeeper','showZoneConfirmed','overrideZone','getDeviceId','sbI','sbS','sbU','resolveZone','buildSessionsArc','buildSpiderChart','routeOnLoad'];
+    var required = ['showScreen','loadClimbLog','logClimb','startDeeper','showZoneConfirmed','manualOverrideZone','getDeviceId','sbI','sbS','sbU','resolveZone','buildSessionsArc','buildSpiderChart','routeOnLoad'];
     var missing = required.filter(function(f){ return typeof window[f] !== 'function'; });
     if(missing.length === 0){ pass('Core functions defined (' + required.length + ')'); }
     else { fail('Core functions defined', 'Missing: ' + missing.join(', ')); }
