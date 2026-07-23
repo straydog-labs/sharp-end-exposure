@@ -1848,6 +1848,51 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
     <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
+
+    <!-- Reflection editing — same pattern as Log screen, collapsed by default -->
+    <button onclick="toggleEditReflection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;margin-bottom:16px;">
+      <span>Edit reflection <span style="font-size:12px;opacity:.6;">(optional)</span></span>
+      <span id="edit-refl-chevron" style="font-size:18px;transition:transform .2s;">›</span>
+    </button>
+    <div id="edit-refl-body" style="display:none;margin-bottom:16px;">
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What went well</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'went-well')">footwork</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'went-well')">stayed present</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'went-well')">committed at crux</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'went-well')">trusted my feet</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'went-well')">controlled breathing</button>
+        </div>
+        <textarea id="edit-went-well-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What to work on</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'still-learning')">footwork precision</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'still-learning')">clipping position</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'still-learning')">breathing at crux</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'still-learning')">committing to moves</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'still-learning')">body tension</button>
+        </div>
+        <textarea id="edit-still-learning-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+      </div>
+
+      <div style="margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything surprise you</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'surprised')">my body responded differently than expected</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'surprised')">I made a decision I didn't anticipate</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'surprised')">the fear was different than I thought</button>
+          <button class="chip edit-refl-chip" onclick="toggleReflChip(this,'surprised')">nothing surprised me</button>
+        </div>
+        <textarea id="edit-surprised-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+      </div>
+
+    </div>
+
     <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
   </div>
 
@@ -2552,7 +2597,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index155';
+var app_version = 'staging-index156';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -2709,7 +2754,7 @@ function resolveZone(data){
 function zoneColor(z){return z==='comfort'?'#7ec87a':z==='panic'?'#e84444':'#f5a623';}
 function zoneName(z){return z==='comfort'?'Comfort zone':z==='panic'?'Panic zone':'Learning zone';}
 // ── ACTIVATION GAUGE — continuous semi-circle, replaces concentric rings ──
-function buildActivationGauge(containerId, score, confidence){
+function buildActivationGauge(containerId, score, confidence, draggable, onScoreChange){
   var container=document.getElementById(containerId);
   if(!container) return;
   score=Math.max(0,Math.min(12,score||0));
@@ -2750,8 +2795,8 @@ function buildActivationGauge(containerId, score, confidence){
   var needleColor=zoneColorFromScore(score);
   var needleDash=isEstimated?'stroke-dasharray="4 3"':'';
   var needleOpacity=isEstimated?'0.6':'1';
-  var needle='<line x1="'+cx+'" y1="'+cy+'" x2="'+needleTip.x.toFixed(1)+'" y2="'+needleTip.y.toFixed(1)+'" stroke="'+needleColor+'" stroke-width="3" stroke-linecap="round" '+needleDash+' opacity="'+needleOpacity+'"/>';
-  var needleHub='<circle cx="'+cx+'" cy="'+cy+'" r="6" fill="'+needleColor+'" opacity="'+needleOpacity+'"/>';
+  var needle='<line class="gauge-needle-line" x1="'+cx+'" y1="'+cy+'" x2="'+needleTip.x.toFixed(1)+'" y2="'+needleTip.y.toFixed(1)+'" stroke="'+needleColor+'" stroke-width="3" stroke-linecap="round" '+needleDash+' opacity="'+needleOpacity+'"/>';
+  var needleHub='<circle class="gauge-needle-hub" cx="'+cx+'" cy="'+cy+'" r="6" fill="'+needleColor+'" opacity="'+needleOpacity+'"/>';
 
   // Score readout + label
   var zoneName_=score<=4?'Comfort':score<=9?'Learning':'Panic';
@@ -2763,17 +2808,112 @@ function buildActivationGauge(containerId, score, confidence){
   var estimatedSuffix=isEstimated?' <span style="opacity:.6;font-weight:400;">~ estimated</span>':'';
 
   container.innerHTML=
-    '<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;display:block;">'
+    '<div style="position:relative;">'
+    +'<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;display:block;">'
     +segments.join('')
     +sweetBand
     +needle
     +needleHub
     +'</svg>'
+    +'</div>'
     +'<div style="text-align:center;margin-top:4px;">'
     +'<div style="font-size:30px;font-weight:700;color:'+needleColor+';line-height:1;">'+score.toFixed(1)+'</div>'
     +'<div style="font-size:14px;font-weight:700;color:'+needleColor+';margin-top:4px;">'+zoneName_+estimatedSuffix+'</div>'
     +'<div style="font-size:12px;color:var(--muted);margin-top:2px;">'+subLabel+'</div>'
     +'</div>';
+
+  if(draggable){
+    initGaugeDrag(container, score, onScoreChange);
+  }
+}
+
+// ── DRAGGABLE GAUGE OVERLAY — pointer events, works for mouse + touch ──
+function initGaugeDrag(container, initialScore, onScoreChange){
+  var wrap=container.querySelector('div[style*="position:relative"]');
+  if(!wrap) return;
+  // Remove any existing handle (re-render safety)
+  var existingHandle=wrap.querySelector('.gauge-drag-handle');
+  if(existingHandle) existingHandle.remove();
+  var existingNeedleEl=wrap.querySelector('.gauge-drag-needle');
+  if(existingNeedleEl) existingNeedleEl.remove();
+
+  var handleSize=22;
+  var handle=document.createElement('div');
+  handle.className='gauge-drag-handle';
+  handle.style.cssText='position:absolute;width:'+handleSize+'px;height:'+handleSize+'px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:grab;touch-action:none;z-index:5;';
+  wrap.appendChild(handle);
+
+  var currentScore=initialScore;
+
+  function positionHandle(score){
+    var rect=wrap.getBoundingClientRect();
+    var pivotX=rect.width/2;
+    var r=rect.width*0.43; // matches SVG gauge proportions (r=95 of W=220 -> 0.43)
+    var angle=180-(score/12*180);
+    var rad=angle*Math.PI/180;
+    var hx=pivotX+r*Math.cos(rad)-handleSize/2;
+    var hy=r*Math.sin(rad);
+    handle.style.left=hx+'px';
+    handle.style.bottom=hy+'px';
+  }
+
+  function positionNeedle(score){
+    // SVG viewBox is fixed (220x130) regardless of rendered pixel size — use the
+    // same geometry constants as the static render (cx=110, cy=115, r=95)
+    var cx=110, cy=115, needleLen=95-18;
+    var angleForScore=-180+(score/12)*180;
+    var rad=angleForScore*Math.PI/180;
+    var tipX=cx+needleLen*Math.cos(rad);
+    var tipY=cy+needleLen*Math.sin(rad);
+    var color=zoneColorFromScore(score);
+    var needleLine=wrap.querySelector('.gauge-needle-line');
+    var needleHub=wrap.querySelector('.gauge-needle-hub');
+    if(needleLine){ needleLine.setAttribute('x2',tipX.toFixed(1)); needleLine.setAttribute('y2',tipY.toFixed(1)); needleLine.setAttribute('stroke',color); }
+    if(needleHub){ needleHub.setAttribute('fill',color); }
+  }
+  positionHandle(currentScore);
+
+  function scoreFromPointer(clientX, clientY){
+    var rect=wrap.getBoundingClientRect();
+    var pivotX=rect.width/2;
+    var pivotBottomOffset=rect.height;
+    var dx=clientX-rect.left-pivotX;
+    var dyp=pivotBottomOffset-(clientY-rect.top);
+    var ang=Math.atan2(dyp,dx)*180/Math.PI;
+    ang=Math.max(0,Math.min(180,ang));
+    return 12*(1-ang/180);
+  }
+
+  var dragging=false;
+  handle.addEventListener('pointerdown', function(e){
+    dragging=true;
+    handle.setPointerCapture(e.pointerId);
+    handle.style.cursor='grabbing';
+    e.preventDefault();
+  });
+  handle.addEventListener('pointermove', function(e){
+    if(!dragging) return;
+    currentScore=scoreFromPointer(e.clientX, e.clientY);
+    positionHandle(currentScore);
+    positionNeedle(currentScore);
+    // Live update the readout while dragging (visual feedback only, no save)
+    var readout=container.querySelector('div[style*="text-align:center"]');
+    if(readout){
+      var liveColor=zoneColorFromScore(currentScore);
+      var liveZone=currentScore<=4?'Comfort':currentScore<=9?'Learning':'Panic';
+      var scoreEl=readout.children[0], zoneEl=readout.children[1];
+      if(scoreEl) {scoreEl.textContent=currentScore.toFixed(1); scoreEl.style.color=liveColor;}
+      if(zoneEl) {zoneEl.textContent=liveZone; zoneEl.style.color=liveColor;}
+    }
+  });
+  handle.addEventListener('pointerup', function(e){
+    if(!dragging) return;
+    dragging=false;
+    handle.style.cursor='grab';
+    handle.releasePointerCapture(e.pointerId);
+    if(onScoreChange) onScoreChange(currentScore);
+  });
+  handle.addEventListener('pointercancel', function(){ dragging=false; handle.style.cursor='grab'; });
 }
 
 function zoneColorFromScore(score){
@@ -3459,7 +3599,7 @@ async function renderCelebrate(){
 
   // Activation gauge — estimated until Go Deeper done
   var estScore=logState.result==='sent'?2:logState.result==='dna'?11:6.5;
-  buildActivationGauge('cel-gauge', estScore, 'estimated');
+  buildActivationGauge('cel-gauge', estScore, 'estimated', true, manualOverrideZone);
 
   // Confirm button — always visible, always clickable (sessId now guaranteed set)
   var deeperBtn=document.getElementById('cel-deeper-btn');
@@ -3811,6 +3951,15 @@ function logAnother(){
 
 
 // Edit sheet
+function toggleEditReflection(btn){
+  var body=document.getElementById('edit-refl-body');
+  var chevron=document.getElementById('edit-refl-chevron');
+  if(!body)return;
+  var open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  if(chevron)chevron.style.transform=open?'':'rotate(90deg)';
+}
+
 function openEditSheet(){
   var sheet=document.getElementById('edit-sheet');
   if(!sheet)return;
@@ -3837,6 +3986,11 @@ function openEditSheet(){
   document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){
     b.classList.toggle('selected', b.textContent.trim()===logState.terrain);
   });
+  // Pre-populate reflection textareas with existing raw text (not re-matched to chips)
+  var ewb=document.getElementById('edit-went-well-text'); if(ewb) ewb.value=logState._editWentWell||'';
+  var esl=document.getElementById('edit-still-learning-text'); if(esl) esl.value=logState._editStillLearning||'';
+  var esb=document.getElementById('edit-surprised-text'); if(esb) esb.value=logState._editSurprisedBy||'';
+  document.querySelectorAll('#edit-sheet .edit-refl-chip.selected').forEach(function(b){b.classList.remove('selected');});
 }
 function editSelResult(r){
   logState.result=r;
@@ -3853,9 +4007,14 @@ async function saveEditedClimb(){
   if(!logState.sessId){showToast('No session to edit');return;}
   var zr=resolveZone({result:logState.result});
   logState.zone=zr.zone;logState.zoneConf=zr.confidence;
+  // Reflection fields — same textarea-or-chips fallback pattern as logClimb()
+  var wentWell=(function(){var t=document.getElementById('edit-went-well-text');var chips=Array.from(document.querySelectorAll('#edit-sheet .edit-refl-chip.selected[onclick*="went-well"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})();
+  var stillLearning=(function(){var t=document.getElementById('edit-still-learning-text');var chips=Array.from(document.querySelectorAll('#edit-sheet .edit-refl-chip.selected[onclick*="still-learning"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})();
+  var surprisedBy=(function(){var t=document.getElementById('edit-surprised-text');var chips=Array.from(document.querySelectorAll('#edit-sheet .edit-refl-chip.selected[onclick*="surprised"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})();
   await sbU('sessions','id=eq.'+logState.sessId,{
     baseline_zone:logState.result,grade_value:logState.grade,climbing_type:logState.terrain,
-    route_name:logState.routeName||null,zone:logState.zone,zone_confidence:logState.zoneConf
+    route_name:logState.routeName||null,zone:logState.zone,zone_confidence:logState.zoneConf,
+    went_well:wentWell,still_learning:stillLearning,surprised_by:surprisedBy
   });
   document.getElementById('edit-sheet').style.display='none';
   renderCelebrate();
@@ -3879,6 +4038,13 @@ function startDeeper(){
   if(!logState.sessId){showToast('Saving... try in a moment');return;}
   deepAnswers={q1:null,q2:null,q3:null,q4:null,q5:null,q6:null,q7:null};
   deepScores={breath:null,gut:null,crux:null,body:null};
+  // Clear chip selections and "ready" state left over from a previous climb's Go Deeper
+  ['q1','q2','q3','q4'].forEach(function(q){
+    var screenEl=document.getElementById('screen-'+q);
+    if(screenEl) screenEl.querySelectorAll('.chip.selected').forEach(function(b){b.classList.remove('selected');});
+    var nextBtn=document.getElementById('next-'+q);
+    if(nextBtn) nextBtn.classList.remove('ready');
+  });
   // Track deeper start time (silent)
   window._deeperStartedAt = new Date().toISOString();
   if(logState.sessId) sbU('sessions','id=eq.'+logState.sessId,{deeper_started_at:window._deeperStartedAt});
@@ -3986,7 +4152,7 @@ async function afterQ4(){
   }
 
   // Update celebrate screen gauge with real confirmed score
-  buildActivationGauge('cel-gauge', window._zcScore, 'confirmed');
+  buildActivationGauge('cel-gauge', window._zcScore, 'confirmed', true, manualOverrideZone);
   // Hide Go Deeper button
   var db2=document.getElementById('cel-deeper-btn');
   if(db2)db2.style.display='none';
@@ -4081,11 +4247,11 @@ async function loadClimbLog(){
   // Dashboard state based on session count
   var dashNew = document.getElementById('dash-new-user');
   var dashBuilding = document.getElementById('dash-building');
-  var dashEstablished = document.getElementById('dash-established');
+  // dash-established intentionally has no markup — at 10+ climbs the banner
+  // is hidden entirely (confirmed design decision), real data below speaks for itself
 
   if(dashNew) dashNew.style.display = total === 0 ? 'block' : 'none';
   if(dashBuilding) dashBuilding.style.display = (total > 0 && total < 10) ? 'block' : 'none';
-  if(dashEstablished) dashEstablished.style.display = total >= 10 ? 'block' : 'none';
 
   // Progress bar for building state
   if(total > 0 && total < 10){
@@ -4139,7 +4305,7 @@ async function loadClimbLog(){
   });
   window._cachedClimbs=validClimbs;
   renderClimbTable(validClimbs);
-  buildInsight(climbs);
+  // buildInsight(climbs); // Pattern Insight card removed (deliberate scope-back) — commented out, not deleted, for easy re-enable later
   buildSpiderChart(climbs);
   renderQuickStrip(climbs); // Item 9: populate quick-access strip
   // Show spider card only when data exists
@@ -4239,7 +4405,7 @@ function renderClimbList(climbs, isExample){
 
 function climbRow(s,resultLabels){
   var c=zoneColor(s.zone||'learning');
-  var conf=s.zone_confidence==='confirmed';
+  var conf=(s.zone_confidence==='confirmed'||s.zone_confidence==='manual');
   var pillStyle=conf?'border:1.5px solid '+c+';':'border:1.5px dashed '+c+';';
   var timeAgo=timeAgoStr(s.created_at);
   var routeLabel=s.route_name?'<span style="font-size:11px;color:var(--muted2);">'+s.route_name+'</span>':'';
@@ -5388,8 +5554,8 @@ function showZoneConfirmed(prevZone, confirmedZone){
 
   // Zone pill removed — gauge is now the sole zone display on this screen
 
-  // Activation gauge — replaces concentric-ring dot positioning
-  buildActivationGauge('zc-gauge', window._zcScore!==undefined?window._zcScore:(confirmedZone==='comfort'?2:confirmedZone==='panic'?11:6.5), 'confirmed');
+  // Activation gauge — replaces concentric-ring dot positioning, now draggable
+  buildActivationGauge('zc-gauge', window._zcScore!==undefined?window._zcScore:(confirmedZone==='comfort'?2:confirmedZone==='panic'?11:6.5), 'confirmed', true, manualOverrideZone);
 
   // Message — two registers
   var msgEl=document.getElementById('zc-message');
@@ -5879,7 +6045,7 @@ var climbLogState = {
 // ═══════════════════════════════════════════════════════
 // CLIMB LOG TABLE
 // Sort, flat/grouped toggle, tap-to-expand rows
-// Per-row actions: Edit / Add attempt / Check zone / Drill
+// Per-row actions: Edit / Add attempt / Check zone
 // ═══════════════════════════════════════════════════════
 
 window.GRADE_ORDER = window.GRADE_ORDER || [];
@@ -6022,7 +6188,7 @@ function renderClimbTable(climbs){
         if(g.sessions.length > 1){
           g.sessions.forEach(function(s){ rows.push({type:'attempt', s:s}); });
         } else {
-          // Single attempt expanded: push attempt row so Edit/+Attempt/Check Zone/Drill work
+          // Single attempt expanded: push attempt row so Edit/+Attempt/Check Zone work
           rows.push({type:'attempt', s:g.sessions[0]});
         }
       }
@@ -6062,34 +6228,49 @@ function renderClimbTable(climbs){
     if(row.type === 'climb'){
       var gradeStr = row.grade ? '<span style="font-family:Space Mono,monospace;color:var(--accent);font-weight:700;">'+row.grade+'</span>' : '';
       var terrainStr = row.terrain ? '<span style="color:var(--muted);margin-left:6px;">'+row.terrain+'</span>' : '';
-      var expBtn = row.climbId
-        ? '<button data-cid="'+row.climbId+'" onclick="event.stopPropagation();openClimbExposure(this.dataset.cid)" style="background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-size:10px;font-weight:700;padding:3px 8px;cursor:pointer;margin-left:8px;white-space:nowrap;">Exposure \u2192</button>'
-        : '';
       var safeId = row.safeId || row.name.replace(/[^a-z0-9]/gi,'_');
-      bodyHtml += '<tr data-gname="'+safeId+'" onclick="toggleClimbGroup(this.dataset.gname)" style="cursor:pointer;-webkit-tap-highlight-color:transparent;">'
-        + '<td colspan="4" style="padding:10px 10px 6px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;">'
-        + '<div style="font-size:14px;font-weight:700;color:var(--text);">'+row.name+' '+gradeStr+terrainStr+'</div>'
-        + '<div style="display:flex;align-items:center;gap:6px;">'
-        + expBtn
-        + (row.singleSession
+      // Route name zone — tap navigates directly to Route History, works regardless of attempt count
+      var nameZoneHtml = row.climbId
+        ? '<div data-cid="'+row.climbId+'" onclick="event.stopPropagation();openClimbExposure(this.dataset.cid)" style="flex:1;min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:4px;">'
+          + '<span style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+row.name+' '+gradeStr+terrainStr+'</span>'
+          + '<span style="color:var(--muted2);font-size:13px;flex-shrink:0;">›</span>'
+          + '</div>'
+        : '<div style="flex:1;min-width:0;display:flex;align-items:center;">'
+          + '<span style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+row.name+' '+gradeStr+terrainStr+'</span>'
+          + '</div>';
+      // Count + chevron zone — tap expands/collapses the row
+      var countZoneHtml = (row.singleSession
             ? (function(ss){
-                // Show count/arrow ONLY when explicitly expanded (false), badge in all other states
                 if(_collapsedGroups[safeId] === false){
                   return '<span style="font-size:11px;color:var(--muted2);">'+row.count+' attempt'+(row.count===1?'':'s')+' <span id="cl-group-arrow-'+safeId+'">↑</span></span>';
                 }
                 var c=zoneColor(ss.zone||'learning');
-                var conf=ss.zone_confidence==='confirmed';
+                var conf=(ss.zone_confidence==='confirmed'||ss.zone_confidence==='manual');
                 var zPill='<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 7px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';">'+zoneName(ss.zone||'learning')+(conf?'':'~')+'</span>';
                 var d=ss.created_at?new Date(ss.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
                 return zPill+'<span style="font-size:11px;color:var(--muted2);margin-left:4px;">'+d+'</span>';
               })(row.singleSession)
-            : '<span style="font-size:11px;color:var(--muted2);">'+row.count+' attempt'+(row.count===1?'':'s')+' <span id="cl-group-arrow-'+safeId+'">↓</span></span>')
-        + '</div></div>'
-        + '</td></tr>';
+            : '<span style="font-size:11px;color:var(--muted2);">'+row.count+' attempt'+(row.count===1?'':'s')+' <span id="cl-group-arrow-'+safeId+'">'+(_collapsedGroups[safeId]===false?'↑':'↓')+'</span></span>');
+      bodyHtml += '<tr data-gname="'+safeId+'" style="cursor:default;">'
+        + '<td colspan="4" style="padding:10px 10px 6px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+        + nameZoneHtml
+        + '<div data-gname="'+safeId+'" onclick="event.stopPropagation();toggleClimbGroup(this.dataset.gname)" style="cursor:pointer;-webkit-tap-highlight-color:transparent;flex-shrink:0;padding:4px 0 4px 8px;">'+countZoneHtml+'</div>'
+        + '</div>';
+
+      // Single-attempt: expand directly to action panel, no intermediate row
+      if(row.singleSession && _collapsedGroups[safeId] === false){
+        bodyHtml += buildAttemptActionPanel(row.singleSession);
+      }
+
+      bodyHtml += '</td></tr>';
       return;
     }
-    var s = row.type === 'attempt' ? row.s : row.s;
+    if(row.type === 'attempt'){
+      bodyHtml += buildCompactAttemptRow(row.s);
+      return;
+    }
+    var s = row.s;
     bodyHtml += buildTableRow(s);
   });
   bodyHtml += '</tbody>';
@@ -6097,9 +6278,43 @@ function renderClimbTable(climbs){
   el.innerHTML = '<table class="cl-table">' + headerHtml + bodyHtml + '</table>';
 }
 
+function buildCompactAttemptRow(s){
+  var c = zoneColor(s.zone||'learning');
+  var conf = (s.zone_confidence==='confirmed'||s.zone_confidence==='manual');
+  var isExpanded = climbLogState.expandedId === s.id;
+  var dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
+  var zonePillHtml = '<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 7px;border-radius:99px;border:1px '+(conf?'solid':'dashed')+' '+c+';">'+zoneName(s.zone||'learning')+(conf?'':'~')+'</span>';
+  var html = '<div data-sid="'+s.id+'" onclick="event.stopPropagation();toggleClimbRow(this.dataset.sid)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;-webkit-tap-highlight-color:transparent;">'
+    + '<span style="font-size:12px;color:var(--muted2);">'+dateStr+'</span>'
+    + zonePillHtml
+    + '<span style="font-size:12px;color:var(--muted);">'+(isExpanded?'↑':'↓')+'</span>'
+    + '</div>';
+  if(isExpanded){
+    html += buildAttemptActionPanel(s);
+  }
+  return html;
+}
+
+function buildAttemptActionPanel(s){
+  var sid = s.id;
+  var conf = (s.zone_confidence==='confirmed'||s.zone_confidence==='manual');
+  var isEstimated = !conf;
+  var rn = (s.route_name||'').replace(/['"]/g,'');
+  var gv = (s.grade_value||'').replace(/['"]/g,'');
+  var ct = (s.climbing_type||'').replace(/['"]/g,'');
+  var btnStyle = 'font-size:11px;font-weight:600;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:var(--r-sm);';
+  var editBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();editClimbFromLog(this.dataset.sid)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">✏ Edit</button>';
+  var addBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" data-cid="'+(s.climb_id||'')+'" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct,this.dataset.cid||null)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">+ Attempt</button>';
+  var checkBtn = isEstimated ? '<button data-sid="'+sid+'" onclick="event.stopPropagation();checkZoneFromLog(this.dataset.sid)" style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:#f5a623;'+btnStyle+'">Check zone</button>' : '';
+  var gridCols = isEstimated ? '1fr 1fr 1fr' : '1fr 1fr';
+  return '<div style="display:grid;grid-template-columns:'+gridCols+';gap:6px;margin-top:8px;padding-top:8px;">'
+    + editBtn + addBtn + checkBtn
+    + '</div>';
+}
+
 function buildTableRow(s){
   var c = zoneColor(s.zone||'learning');
-  var conf = s.zone_confidence === 'confirmed';
+  var conf = (s.zone_confidence === 'confirmed' || s.zone_confidence === 'manual');
   var isExpanded = climbLogState.expandedId === s.id;
   var sid = s.id;
 
@@ -6131,8 +6346,7 @@ function buildTableRow(s){
   var btnStyle = 'font-size:11px;font-weight:600;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:var(--r-sm);';
   var editBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();editClimbFromLog(this.dataset.sid)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">✏ Edit</button>';
   var addBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" data-cid="'+(s.climb_id||'')+'" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct,this.dataset.cid||null)" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);'+btnStyle+'">+ Attempt</button>';
-  var checkBtn = isEstimated ? '<button data-sid="'+sid+'" onclick="event.stopPropagation();checkZoneFromLog(this.dataset.sid)" style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:#f5a623;'+btnStyle+'">Check zone</button>' : '<div></div>';
-  var drillBtn = '<button data-rn="'+rn+'" data-gv="'+gv+'" data-ct="'+ct+'" onclick="event.stopPropagation();drillFromLog(this.dataset.rn,this.dataset.gv,this.dataset.ct)" style="background:rgba(232,118,58,.1);border:1px solid rgba(232,118,58,.3);color:var(--accent);'+btnStyle+'">Drill</button>';
+  var checkBtn = isEstimated ? '<button data-sid="'+sid+'" onclick="event.stopPropagation();checkZoneFromLog(this.dataset.sid)" style="background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);color:#f5a623;'+btnStyle+'">Check zone</button>' : '';
 
   var valYesBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();rowZoneValidation(this.dataset.sid,\'yes\',this)" style="flex:1;background:rgba(126,200,122,.12);border:1px solid rgba(126,200,122,.35);color:#7ec87a;font-size:12px;font-weight:700;padding:7px;cursor:pointer;border-radius:var(--r-sm);">Yes</button>';
   var valNoBtn = '<button data-sid="'+sid+'" onclick="event.stopPropagation();rowZoneValidation(this.dataset.sid,\'no\',this)" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;padding:7px;cursor:pointer;border-radius:var(--r-sm);">No</button>';
@@ -6145,8 +6359,8 @@ function buildTableRow(s){
     + '<span style="font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;">Result</span>'
     + '<span style="font-size:13px;font-weight:700;color:'+(rColors[s.baseline_zone]||'var(--muted)')+'">'+(rLabels[s.baseline_zone]||s.baseline_zone||'—')+'</span>'
     + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:'+(isEstimated?'10':'0')+'px;">'
-    + editBtn + addBtn + checkBtn + drillBtn
+    + '<div style="display:grid;grid-template-columns:'+(isEstimated?'1fr 1fr 1fr':'1fr 1fr')+';gap:6px;margin-bottom:'+(isEstimated?'10':'0')+'px;">'
+    + editBtn + addBtn + checkBtn
     + '</div>'
     + (isEstimated ?
       '<div style="padding:8px 0 2px;">'
@@ -6186,6 +6400,10 @@ function editClimbFromLog(sessId){
   logState.grade = sess.grade_value;
   logState.terrain = sess.climbing_type;
   logState.routeName = sess.route_name;
+  // Carry existing reflection text into the edit sheet (restored as raw text, not re-matched to chips)
+  logState._editWentWell = sess.went_well || '';
+  logState._editStillLearning = sess.still_learning || '';
+  logState._editSurprisedBy = sess.surprised_by || '';
   climbLogState.returnFrom = 'screen-sessions';
   openEditSheet();
 }
@@ -6689,7 +6907,7 @@ function renderRouteArc(sessList){
   var pts=ordered.map(function(s,i){
     var x = n===1 ? W/2 : pad + i*(W-pad*2)/(n-1);
     var y = zoneY[s.zone||'learning'] || 40;
-    return {x:x, y:y, zone:s.zone||'learning', conf:s.zone_confidence==='confirmed'};
+    return {x:x, y:y, zone:s.zone||'learning', conf:(s.zone_confidence==='confirmed'||s.zone_confidence==='manual')};
   });
 
   // Axis labels
@@ -6744,7 +6962,7 @@ function renderRouteAttemptsList(sessList){
   var html='';
   sessList.slice().reverse().forEach(function(s,rowIdx){
     var c=zoneColor(s.zone||'learning');
-    var conf=s.zone_confidence==='confirmed';
+    var conf=(s.zone_confidence==='confirmed'||s.zone_confidence==='manual');
     var result=rLabels[s.baseline_zone]||rLabels[s.result]||s.baseline_zone||'—';
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'';
     var hasRefl=(s.went_well&&s.went_well.trim())||(s.still_learning&&s.still_learning.trim())||(s.surprised_by&&s.surprised_by.trim());
@@ -6788,7 +7006,7 @@ function buildSpiderChart(sessions, targetEl){
   var el = targetEl || document.getElementById('spider-chart-wrap');
   if(!el) return;
 
-  var terrains = ['Slab','Vertical','Overhang','Roof','Crack'];
+  var terrains = ['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack'];
   var data = {};
   terrains.forEach(function(t){ data[t] = {comfort:0,learning:0,panic:0,total:0}; });
 
@@ -7418,16 +7636,39 @@ async function runSEETests(){
   return {passed, failed, skipped, results};
 }
 
+function manualOverrideZone(score){
+  score=Math.max(0,Math.min(12,score));
+  var zone = score<=4?'comfort':score<=9?'learning':'panic';
+  logState.zone = zone;
+  logState.zoneConf = 'manual';
+  window._zcScore = score;
+  if(logState.sessId){
+    sbU('sessions','id=eq.'+logState.sessId,{
+      zone: zone,
+      zone_confidence: 'manual',
+      zone_override: true,
+      zone_override_value: zone
+    });
+  }
+  // Update both gauge instances so whichever screen is visible reflects the change
+  var zcEl=document.getElementById('zc-gauge');
+  if(zcEl) buildActivationGauge('zc-gauge', score, 'manual', true, manualOverrideZone);
+  var celEl=document.getElementById('cel-gauge');
+  if(celEl) buildActivationGauge('cel-gauge', score, 'manual', true, manualOverrideZone);
+  var overrideEl = document.getElementById('zc-override');
+  if(overrideEl){ overrideEl.innerHTML = '<div style="text-align:center;font-size:13px;color:var(--muted);padding:8px;">Manually set — saved as '+zone+'</div>'; }
+}
+
 function overrideZone(zone){
   logState.zone = zone;
-  logState.zoneConf = 'confirmed';
-  // Manual override has no real score — use zone midpoint for gauge display
+  logState.zoneConf = 'manual';
+  // Quick-tap override has no drag precision — use zone midpoint for gauge display
   window._zcScore = zone==='comfort'?2:zone==='panic'?11:6.5;
   // Save override to Supabase
   if(logState.sessId){
     sbU('sessions','id=eq.'+logState.sessId,{
       zone: zone,
-      zone_confidence: 'confirmed',
+      zone_confidence: 'manual',
       zone_override: true,
       zone_override_value: zone
     });
@@ -7435,12 +7676,12 @@ function overrideZone(zone){
   // Update zone confirmed screen display
   var titleEl = document.getElementById('zc-zone-title');
   if(titleEl){ titleEl.textContent = zone.charAt(0).toUpperCase()+zone.slice(1)+' zone'; titleEl.style.color = zoneColor(zone); }
-  // Update gauge to reflect the override
-  buildActivationGauge('zc-gauge', window._zcScore, 'confirmed');
+  // Update gauge to reflect the override — remains draggable
+  buildActivationGauge('zc-gauge', window._zcScore, 'manual', true, manualOverrideZone);
   var overrideEl = document.getElementById('zc-override');
   if(overrideEl){ overrideEl.innerHTML = '<div style="text-align:center;font-size:13px;color:var(--muted);padding:8px;">Override applied — saved as '+zone+'</div>'; }
   // Update celebrate screen gauge
-  buildActivationGauge('cel-gauge', window._zcScore, 'confirmed');
+  buildActivationGauge('cel-gauge', window._zcScore, 'manual', true, manualOverrideZone);
 }
 
 function acceptCalculatedZone(){
