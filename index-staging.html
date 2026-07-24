@@ -563,22 +563,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
     <div id="sessions-real-section" style="display:none;">
 
-    <!-- SORT + TOGGLE CONTROLS -->
-    <div id="climb-log-controls" style="display:none;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-  <div></div><!-- flat/grouped toggle removed — grouped is default and only view -->
-        <div style="font-size:11px;color:var(--muted);" id="cl-count-label"></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;padding:2px 0 4px;">
-        <span>Sort by</span>
-        <select onchange="setGroupSort(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;-webkit-appearance:none;appearance:none;cursor:pointer;">
-          <option value="recent">Most recent</option>
-          <option value="attempts">Most attempts</option>
-          <option value="grade">Hardest grade</option>
-          <option value="zone">Zone</option>
-        </select>
-      </div>
-    </div>
     <div style="display:flex;align-items:center;gap:10px;margin:24px 0 20px;">
       <div style="flex:1;height:1px;background:var(--border);"></div>
       <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);white-space:nowrap;padding:0 4px;">Your data</div>
@@ -590,6 +574,24 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <!-- Climb table — collapsible -->
       <div style="margin-bottom:16px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Climb history</div>
+
+        <!-- SORT CONTROLS — sits directly above the toggle it controls (Fix 2: was misplaced at top of section) -->
+        <div id="climb-log-controls" style="display:none;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div></div><!-- flat/grouped toggle removed — grouped is default and only view -->
+            <div style="font-size:11px;color:var(--muted);" id="cl-count-label"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+            <span>Sort by</span>
+            <select onchange="setGroupSort(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;-webkit-appearance:none;appearance:none;cursor:pointer;">
+              <option value="recent">Most recent</option>
+              <option value="attempts">Most attempts</option>
+              <option value="grade">Hardest grade</option>
+              <option value="zone">Zone</option>
+            </select>
+          </div>
+        </div>
+
         <button id="climb-table-toggle" onclick="toggleClimbTable()"
           style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent;">
           <span id="climb-table-toggle-label">Show all climbs</span>
@@ -792,6 +794,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="insight-card" id="rh-attempts-card">
       <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Attempts</div>
       <div id="rh-attempts-list"></div>
+    </div>
+
+    <!-- Delete route — visually separate destructive action, not grouped with Edit/+Attempt -->
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+      <button onclick="deleteRoute()" style="width:100%;background:none;border:1px solid rgba(232,68,68,.3);border-radius:var(--r-md);color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">Delete this route</button>
     </div>
 
   </div>
@@ -1928,6 +1935,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
+
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <button onclick="deleteAttempt()" style="width:100%;background:none;border:1px solid rgba(232,68,68,.3);border-radius:12px;color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">Delete this attempt</button>
+    </div>
   </div>
 
 
@@ -2631,7 +2642,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index162';
+var app_version = 'staging-index163';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3479,8 +3490,32 @@ function renderClimbDataTable(){
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
     var c=zoneColor(s.zone||'learning');
     var rowAttrs=s.climb_id?'data-cid="'+s.climb_id+'" onclick="openClimbExposure(this.dataset.cid)" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);"':'style="border-bottom:1px solid rgba(255,255,255,.05);"';
-    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.route_name||'—')+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" onclick="event.stopPropagation();launchLogWithClimb(\''+s.id+'\')">📋</span>':'')+'</td>'      +'</tr>';
+    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.route_name||'—')+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'      +'</tr>';
   }).join('');
+}
+
+function previewSessionNotes(sessionId){
+  var climbs = window._cachedClimbs || [];
+  var s = climbs.find(function(c){ return c.id === sessionId; });
+  if(!s) return;
+  var existing = document.getElementById('notes-preview-overlay');
+  if(existing) existing.remove();
+  var rows = '';
+  if(s.went_well) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What went well</div><div style="font-size:13px;color:var(--text);">'+s.went_well+'</div></div>';
+  if(s.still_learning) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What to work on</div><div style="font-size:13px;color:var(--text);">'+s.still_learning+'</div></div>';
+  if(s.surprised_by) rows += '<div><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Surprised by</div><div style="font-size:13px;color:var(--text);">'+s.surprised_by+'</div></div>';
+  var overlay = document.createElement('div');
+  overlay.id = 'notes-preview-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;box-sizing:border-box;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+    + '<div style="font-size:13px;font-weight:700;color:var(--muted);">Notes preview</div>'
+    + '<button onclick="document.getElementById(\'notes-preview-overlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>'
+    + '</div>'
+    + rows
+    + '</div>';
+  document.body.appendChild(overlay);
 }
 
 
@@ -3688,7 +3723,7 @@ async function logClimb(){
   // Background refresh home arc and climb log
   loadHomeInsight();
   // Pre-cache climb log data so it's instant when tapped
-  (window._authUser&&window._authUser.id?sbS('sessions','select=*&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=100'):sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=100')).then(function(s){
+  (window._authUser&&window._authUser.id?sbS('sessions','select=*&user_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=created_at.desc&limit=100'):sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&deleted_at=is.null&order=created_at.desc&limit=100')).then(function(s){
     window._cachedSessions=Array.isArray(s)?s.filter(function(x){return !x.is_checkin;}):[];
   });
 }
@@ -3723,7 +3758,7 @@ async function renderCelebrate(){
   if(deeperBtn) deeperBtn.style.display='flex';
 
   // Fetch history
-  var history=await sbS('sessions','select=zone,zone_confidence,climbing_type,grade_value,baseline_zone,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&is_checkin=eq.false&order=created_at.desc&limit=100');
+  var history=await sbS('sessions','select=zone,zone_confidence,climbing_type,grade_value,baseline_zone,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&is_checkin=eq.false&deleted_at=is.null&order=created_at.desc&limit=100');
   if(!Array.isArray(history))history=[];
   var total=history.length;
   window._userClimbCount=total;
@@ -3919,7 +3954,7 @@ var _selectedClimbId=null;
 
 async function loadClimbCache(){
   if(_climbCache)return _climbCache;
-  var climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&order=created_at.desc&limit=200');
+  var climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&deleted_at=is.null&order=created_at.desc&limit=200');
   _climbCache=Array.isArray(climbs)?climbs:[];
   return _climbCache;
 }
@@ -4184,6 +4219,21 @@ function editSelTerrain(btn,t){
   document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){b.classList.remove('selected');});
   btn.classList.add('selected');logState.terrain=t;
 }
+async function deleteAttempt(){
+  if(!logState.sessId){showToast('No session to delete');return;}
+  if(!confirm("Delete this attempt? This can't be undone from the app.")) return;
+  await sbU('sessions','id=eq.'+logState.sessId,{deleted_at:new Date().toISOString()});
+  document.getElementById('edit-sheet').style.display='none';
+  showToast('Attempt deleted');
+  // Refresh whichever screen is visible
+  var activeScreen = document.querySelector('.screen.active');
+  if(activeScreen && activeScreen.id === 'screen-route-history' && window._rhClimbId){
+    openClimbExposure(window._rhClimbId);
+  } else {
+    loadClimbLog();
+  }
+}
+
 async function saveEditedClimb(){
   if(!logState.sessId){showToast('No session to edit');return;}
   // Don't overwrite a manual gauge override just applied in this edit session —
@@ -4395,7 +4445,7 @@ function renderReflection(){
 }
 
 async function buildReflectArc(){
-  var history=await sbS('sessions','select=zone,zone_confidence,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&order=created_at.asc&limit=20');
+  var history=await sbS('sessions','select=zone,zone_confidence,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&deleted_at=is.null&order=created_at.asc&limit=20');
   var svg=document.getElementById('river-svg');
   if(!svg||!Array.isArray(history)||history.length===0)return;
   var zoneY={comfort:82,learning:50,panic:16};
@@ -4420,7 +4470,7 @@ async function loadClimbLog(){
   var titleEl=document.getElementById('climb-log-title');
   if(titleEl)titleEl.textContent='Climb Log';
   var countEl=document.getElementById('sess-total-count');
-  var sessQuery=(window._authUser&&window._authUser.id)?'select=*&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=200':'select=*&device_id=eq.'+getDeviceId()+'&order=created_at.desc&limit=200';
+  var sessQuery=(window._authUser&&window._authUser.id)?'select=*&user_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=created_at.desc&limit=200':'select=*&device_id=eq.'+getDeviceId()+'&deleted_at=is.null&order=created_at.desc&limit=200';
   var sessions=await sbS('sessions',sessQuery);
   // Cache baseline record for signed-in users (used by buildGradeGrid)
   if(window._authUser && window._authUser.id){
@@ -4715,7 +4765,7 @@ async function buildInsight(sessions){
 // HOME INSIGHT
 // ═══════════════════════════════════════════════════════
 async function loadHomeInsight(){
-  var sessions=await sbS('sessions','select=zone,zone_confidence,climbing_type,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&order=created_at.desc&limit=50');
+  var sessions=await sbS('sessions','select=zone,zone_confidence,climbing_type,created_at&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&deleted_at=is.null&order=created_at.desc&limit=50');
   if(!Array.isArray(sessions))sessions=[];
   var climbs=sessions.filter(function(s){return !s.is_checkin&&s.zone;});
   var total=climbs.length;
@@ -5624,7 +5674,7 @@ async function loadDrillRouteOptions(){
   if(!sel)return;
 
   // Get distinct route names from sessions
-  var sessions=await sbS('sessions','select=route_name,grade_value,climbing_type&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&is_checkin=eq.false&route_name=not.is.null&order=created_at.desc&limit=100');
+  var sessions=await sbS('sessions','select=route_name,grade_value,climbing_type&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&is_checkin=eq.false&route_name=not.is.null&deleted_at=is.null&order=created_at.desc&limit=100');
   sel.innerHTML='<option value="">Select a route...</option>';
 
   // Named routes (deduplicated)
@@ -6863,8 +6913,8 @@ async function openClimbExposure(climbId){
   var climbRec = _climbCache ? _climbCache.find(function(c){ return c.id===climbId; }) : null;
   var uid = window._authUser ? window._authUser.id : null;
   var sessQuery = uid
-    ? 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&user_id=eq.'+uid+'&is_baseline=eq.false&is_checkin=eq.false&order=created_at.asc'
-    : 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&device_id=eq.'+getDeviceId()+'&is_baseline=eq.false&is_checkin=eq.false&order=created_at.asc';
+    ? 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&user_id=eq.'+uid+'&is_baseline=eq.false&is_checkin=eq.false&deleted_at=is.null&order=created_at.asc'
+    : 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&device_id=eq.'+getDeviceId()+'&is_baseline=eq.false&is_checkin=eq.false&deleted_at=is.null&order=created_at.asc';
   var sessions = await sbS('sessions', sessQuery);
   var sessList = Array.isArray(sessions) ? sessions : [];
   window._rhSessions = sessList;
@@ -6918,6 +6968,19 @@ async function openClimbExposure(climbId){
   renderRouteAttemptsList(sessList);
 
   showScreen('screen-route-history');
+}
+
+async function deleteRoute(){
+  var climbId = window._rhClimbId;
+  if(!climbId){showToast('No route to delete');return;}
+  var count = (window._rhSessions||[]).length;
+  if(!confirm("Delete this entire route and all "+count+" attempt"+(count===1?'':'s')+"? This can't be undone from the app.")) return;
+  var now = new Date().toISOString();
+  await sbU('climbs','id=eq.'+climbId,{deleted_at:now});
+  await sbU('sessions','climb_id=eq.'+climbId,{deleted_at:now});
+  showToast('Route deleted');
+  showScreen('screen-sessions');
+  loadClimbLog();
 }
 
 function rhEditSingleAttempt(){
