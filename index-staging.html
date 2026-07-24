@@ -1409,78 +1409,89 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
   <div class="content">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">Account</div>
 
     <!-- Authenticated view -->
     <div id="profile-authed" style="display:none;">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:16px;">
-        <div id="profile-email" style="font-size:14px;color:var(--muted);margin-bottom:12px;"></div>
+
+      <!-- Identity header -->
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+        <div id="profile-avatar" style="width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;">—</div>
+        <div style="min-width:0;">
+          <div id="profile-display-name" style="font-size:17px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+          <div id="profile-email" style="font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+        </div>
+      </div>
+
+      <!-- Account section: Display name + Change password combined -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Account</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:24px;">
         <div style="margin-bottom:4px;">
           <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Display name</div>
           <input id="profile-name-input" type="text" placeholder="Your name (optional)"
             style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:11px 14px;outline:none;box-sizing:border-box;">
         </div>
         <button onclick="saveProfileName()" style="margin-top:10px;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:9px 18px;cursor:pointer;">Save</button>
+
+        <div style="margin:20px 0;border-top:1px solid var(--border);"></div>
+
+        <div id="profile-change-pw" style="display:none;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Change password</div>
+          <input type="password" id="profile-new-pw" placeholder="New password (min 6 chars)"
+            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;box-sizing:border-box;margin-bottom:8px;"/>
+          <button onclick="changePassword()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px 20px;cursor:pointer;">Save new password</button>
+          <div id="profile-pw-msg" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
+        </div>
       </div>
 
-      <button onclick="authSignOut()"
-        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;margin-bottom:10px;">
-        Sign out
-      </button>
-      <button onclick="confirmDeleteAccount()"
-        style="width:100%;background:none;border:1px solid rgba(232,68,68,.3);border-radius:var(--r-lg);color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:14px;padding:13px;cursor:pointer;">
-        Delete my account
-      </button>
-    </div>
+      <!-- Your data section: Baseline + Export combined -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Your data</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:24px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Baseline</div>
+        <button onclick="retakeBaseline()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;cursor:pointer;margin-bottom:8px;text-align:left;">Retake baseline questionnaire →</button>
+        <div id="baseline-history-toggle">
+          <button onclick="toggleBaselineHistory(this)" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Show baseline history ›</button>
+          <div id="baseline-history-body" style="display:none;margin-top:10px;font-size:12px;color:var(--muted);">Loading...</div>
+        </div>
 
-    <!-- Feedback section -->
-    <div style="margin-top:24px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Share feedback</div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
+        <div style="margin:20px 0;border-top:1px solid var(--border);"></div>
+
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Export my data</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="exportDataCSV()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Download CSV</button>
+          <button onclick="exportDataJSON()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Download JSON</button>
+          <button onclick="window.print()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Print / PDF</button>
+        </div>
+      </div>
+
+      <!-- Feedback section -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Feedback</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:24px;">
         <textarea id="profile-feedback-text" placeholder="What's on your mind? Bugs, ideas, anything about the app."
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;box-sizing:border-box;margin-bottom:10px;"></textarea>
         <button onclick="submitProfileFeedback()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 24px;cursor:pointer;">Send →</button>
       </div>
-    </div>
 
-
-    <!-- E1: Change password (authenticated only) -->
-    <div id="profile-change-pw" style="display:none;margin-top:24px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Change password</div>
-      <input type="password" id="profile-new-pw" placeholder="New password (min 6 chars)"
-        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;box-sizing:border-box;margin-bottom:8px;"/>
-      <button onclick="changePassword()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px 20px;cursor:pointer;">Save new password</button>
-      <div id="profile-pw-msg" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
-    </div>
-
-    <!-- E2: Export my data -->
-    <div style="margin-top:24px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Export my data</div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="exportDataCSV()" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Download CSV</button>
-        <button onclick="exportDataJSON()" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Download JSON</button>
-        <button onclick="window.print()" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px;cursor:pointer;">Print / PDF</button>
+      <!-- Legal links -->
+      <div style="margin-bottom:24px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Terms of service ↗</a>
+          <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Privacy policy ↗</a>
+          <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Support ↗</a>
+        </div>
+        <div style="font-size:10px;color:var(--muted2);margin-top:8px;">Links are placeholders — content pending.</div>
       </div>
-    </div>
 
-    <!-- E4: Retake baseline + history -->
-    <div style="margin-top:24px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Baseline</div>
-      <button onclick="retakeBaseline()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;cursor:pointer;margin-bottom:8px;text-align:left;">Retake baseline questionnaire →</button>
-      <div id="baseline-history-toggle">
-        <button onclick="toggleBaselineHistory(this)" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Show baseline history ›</button>
-        <div id="baseline-history-body" style="display:none;margin-top:10px;font-size:12px;color:var(--muted);">Loading...</div>
+      <!-- Sign out / Delete account — bottom, separated -->
+      <button onclick="authSignOut()"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;margin-bottom:16px;">
+        Sign out
+      </button>
+      <div style="border-top:1px solid var(--border);padding-top:16px;text-align:center;">
+        <button onclick="confirmDeleteAccount()"
+          style="background:none;border:none;color:rgba(232,68,68,.6);font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px;cursor:pointer;">
+          Delete my account
+        </button>
       </div>
-    </div>
-
-    <!-- E3: Links -->
-    <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Terms of service ↗</a>
-        <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Privacy policy ↗</a>
-        <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none;">Support ↗</a>
-      </div>
-      <div style="font-size:10px;color:var(--muted2);margin-top:8px;">Links are placeholders — content pending.</div>
     </div>
 
     <!-- Anonymous view -->
@@ -1803,6 +1814,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 16px;margin-bottom:12px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;text-align:center;">Predicted vs. confirmed</div>
       <div id="drill-reveal-gauge" style="width:100%;max-width:220px;margin:0 auto;"></div>
+    </div>
+
+    <!-- WORTH A SECOND LOOK — Feature 2, shown only for large swings/extreme scores -->
+    <div id="drill-second-look-prompt" style="display:none;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:var(--r-lg);padding:16px;margin-bottom:12px;">
+      <div style="font-size:13px;color:var(--text);line-height:1.7;">That's a big shift from your prediction — worth a second look. Does this feel accurate? Anticipatory fear often outweighs actual in-the-moment experience — the gap you just saw is what deliberate exposure is designed to reveal (Foa &amp; Kozak, 1986). Large or extreme shifts are plausible, and also worth double-checking against how the climb genuinely felt.</div>
     </div>
 
     <!-- ANALYTICAL COPY — four registers -->
@@ -2630,7 +2646,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index165';
+var app_version = 'staging-index166';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -6001,6 +6017,17 @@ function showDrillReveal(predicted, pre, post, predictedScore){
     buildActivationGauge('drill-reveal-gauge', post.score, 'confirmed', false, null, predictedScore);
   }
 
+  // "Worth a second look" prompt (Feature 2) — purely additive, does not modify
+  // post.score, predictedScore, zone calculation, or anything already being saved
+  var secondLookEl = document.getElementById('drill-second-look-prompt');
+  if(secondLookEl){
+    var predictedZoneForPrompt = predicted ? predicted.zone : null;
+    var bigSwing = predictedZoneForPrompt
+      && ((predictedZoneForPrompt==='comfort' && post.zone==='panic') || (predictedZoneForPrompt==='panic' && post.zone==='comfort'));
+    var extremeScore = (post.score===0 || post.score===12);
+    secondLookEl.style.display = (bigSwing || extremeScore) ? 'block' : 'none';
+  }
+
   var zoneNames = {comfort:'Comfort', learning:'Learning', panic:'Panic'};
   var zoneColors = {comfort:'#7ec87a', learning:'#f5a623', panic:'#e84444'};
 
@@ -8121,8 +8148,10 @@ function openProfile(){
     if(anonEl) anonEl.style.display = 'none';
     var emailEl = document.getElementById('profile-email');
     if(emailEl) emailEl.textContent = window._authUser.email || '';
+    var displayName = (window._authUser.user_metadata && window._authUser.user_metadata.display_name) || '';
     var nameEl = document.getElementById('profile-name-input');
-    if(nameEl) nameEl.value = (window._authUser.user_metadata && window._authUser.user_metadata.display_name) || '';
+    if(nameEl) nameEl.value = displayName;
+    updateProfileIdentityHeader(displayName, window._authUser.email);
   } else {
     if(authedEl) authedEl.style.display = 'none';
     if(anonEl) anonEl.style.display = 'block';
@@ -8130,12 +8159,28 @@ function openProfile(){
   showScreen('screen-profile');
 }
 
+function updateProfileIdentityHeader(displayName, email){
+  var nameDisplayEl = document.getElementById('profile-display-name');
+  var avatarEl = document.getElementById('profile-avatar');
+  if(nameDisplayEl) nameDisplayEl.textContent = displayName || (email ? email.split('@')[0] : 'Climber');
+  if(avatarEl){
+    var initials = displayName
+      ? displayName.trim().split(/\s+/).slice(0,2).map(function(w){return w.charAt(0).toUpperCase();}).join('')
+      : (email ? email.charAt(0).toUpperCase() : '—');
+    avatarEl.textContent = initials;
+  }
+}
+
 async function saveProfileName(){
   if(!supabaseClient||!window._authUser){ showToast('Not signed in'); return; }
   var name = document.getElementById('profile-name-input').value.trim();
   var res = await supabaseClient.auth.updateUser({data:{display_name:name}});
   if(res.error){ showToast('Could not save name'); }
-  else { showToast('Name saved'); window._authUser = res.data.user; }
+  else {
+    showToast('Name saved');
+    window._authUser = res.data.user;
+    updateProfileIdentityHeader(name, window._authUser.email);
+  }
 }
 
 // ── First open auth gate ──────────────────────────────
