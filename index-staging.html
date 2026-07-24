@@ -569,7 +569,15 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div></div><!-- flat/grouped toggle removed — grouped is default and only view -->
         <div style="font-size:11px;color:var(--muted);" id="cl-count-label"></div>
       </div>
-      <div style="font-size:11px;color:var(--muted2);padding:2px 0 4px;">Tap a column header to sort</div>
+      <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;padding:2px 0 4px;">
+        <span>Sort by</span>
+        <select onchange="setGroupSort(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;-webkit-appearance:none;appearance:none;cursor:pointer;">
+          <option value="recent">Most recent</option>
+          <option value="attempts">Most attempts</option>
+          <option value="grade">Hardest grade</option>
+          <option value="zone">Zone</option>
+        </select>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin:24px 0 20px;">
       <div style="flex:1;height:1px;background:var(--border);"></div>
@@ -806,6 +814,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <thead>
           <tr style="border-bottom:2px solid var(--border);">
             <th onclick="sortClimbTable('date')" style="text-align:left;padding:8px 10px 8px 0;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;position:sticky;left:0;background:var(--bg);white-space:nowrap;">Date ↕</th>
+            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Route</th>
             <th onclick="sortClimbTable('grade')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Grade ↕</th>
             <th onclick="sortClimbTable('terrain')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Terrain ↕</th>
             <th onclick="sortClimbTable('setting')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Setting ↕</th>
@@ -1143,6 +1152,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <!-- Header -->
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;" id="zc-header">Zone confirmed</div>
+    <div id="zc-name" style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;display:none;"></div>
 
     <!-- Grade / Terrain / Result row -->
     <div style="display:flex;gap:8px;margin-bottom:20px;font-size:13px;color:var(--muted);">
@@ -2621,7 +2631,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index161';
+var app_version = 'staging-index162';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3468,7 +3478,8 @@ function renderClimbDataTable(){
     var hasNotes=s.went_well||s.still_learning||s.surprised_by;
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
     var c=zoneColor(s.zone||'learning');
-    return '<tr style="border-bottom:1px solid rgba(255,255,255,.05);">'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" onclick="launchLogWithClimb(\''+s.id+'\')">📋</span>':'')+'</td>'      +'</tr>';
+    var rowAttrs=s.climb_id?'data-cid="'+s.climb_id+'" onclick="openClimbExposure(this.dataset.cid)" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);"':'style="border-bottom:1px solid rgba(255,255,255,.05);"';
+    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.route_name||'—')+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" onclick="event.stopPropagation();launchLogWithClimb(\''+s.id+'\')">📋</span>':'')+'</td>'      +'</tr>';
   }).join('');
 }
 
@@ -5726,6 +5737,11 @@ function showZoneConfirmed(prevZone, confirmedZone){
   var c = zoneColor(confirmedZone);
 
   // Fill grade/terrain/result
+  var nameEl=document.getElementById('zc-name');
+  if(nameEl){
+    if(logState.routeName){ nameEl.textContent=logState.routeName; nameEl.style.display='block'; }
+    else { nameEl.style.display='none'; }
+  }
   var gradeEl=document.getElementById('zc-grade');
   var terrEl=document.getElementById('zc-terrain');
   var resultEl=document.getElementById('zc-result');
@@ -6228,6 +6244,7 @@ var climbLogState = {
   view: 'grouped',     // 'flat' | 'grouped' — grouped is default
   sort: 'date',        // 'date' | 'grade' | 'terrain' | 'result' | 'zone'
   sortDir: 'desc',     // 'asc' | 'desc'
+  groupSort: 'recent', // 'recent' | 'attempts' | 'grade' | 'zone' — grouped-view sort (Fix 2)
   expandedId: null,    // currently expanded row session id
   returnFrom: null     // screen to return to after sub-flow
 };
@@ -6261,6 +6278,14 @@ function _syncViewToggleButtons(){
   var groupedBtn = null; // toggle removed
   if(flatBtn){ flatBtn.style.background = view==='flat' ? 'var(--accent)' : 'none'; flatBtn.style.color = view==='flat' ? '#fff' : 'var(--muted)'; flatBtn.style.fontWeight = view==='flat' ? '700' : '600'; }
   if(groupedBtn){ groupedBtn.style.background = view==='grouped' ? 'var(--accent)' : 'none'; groupedBtn.style.color = view==='grouped' ? '#fff' : 'var(--muted)'; groupedBtn.style.fontWeight = view==='grouped' ? '700' : '600'; }
+  // Sync Sort-by select to current state (Fix 2)
+  var sortSelect = document.querySelector('#climb-log-controls select');
+  if(sortSelect) sortSelect.value = climbLogState.groupSort;
+}
+
+function setGroupSort(value){
+  climbLogState.groupSort = value;
+  renderClimbTable(window._cachedClimbs || []);
 }
 
 function setClimbLogSort(field){
@@ -6359,6 +6384,26 @@ function renderClimbTable(climbs){
       }
     });
     groupOrder = groupOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
+    // Sort groups per climbLogState.groupSort (Fix 2 — Sort by control)
+    groupOrder.sort(function(keyA, keyB){
+      var gA = groups[keyA], gB = groups[keyB];
+      var latestA = gA.sessions.slice().sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);})[0];
+      var latestB = gB.sessions.slice().sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);})[0];
+      switch(climbLogState.groupSort){
+        case 'attempts':
+          return gB.sessions.length - gA.sessions.length;
+        case 'grade':
+          var giA = GRADE_ORDER.indexOf(gA.grade), giB = GRADE_ORDER.indexOf(gB.grade);
+          return giB - giA;
+        case 'zone':
+          var zA = latestA ? (ZONE_ORDER[latestA.zone]||0) : 0, zB = latestB ? (ZONE_ORDER[latestB.zone]||0) : 0;
+          return zB - zA;
+        case 'recent':
+        default:
+          var dA = latestA ? new Date(latestA.created_at) : 0, dB = latestB ? new Date(latestB.created_at) : 0;
+          return dB - dA;
+      }
+    });
     groupOrder.forEach(function(key){
       var g = groups[key];
       var name = g.name;
@@ -6382,15 +6427,17 @@ function renderClimbTable(climbs){
     {f:'date',   label:'Date'}
   ];
   var sortFnStrs = {grade:"setClimbLogSort('grade')",terrain:"setClimbLogSort('terrain')",zone:"setClimbLogSort('zone')",date:"setClimbLogSort('date')"};
-  var headerHtml = '<thead><tr>';
-  sortDefs.forEach(function(def){
-    var isActive = climbLogState.sort === def.f;
-    var arrow = isActive ? (climbLogState.sortDir==='desc'?' ↓':' ↑') : '';
-    headerHtml += '<th onclick="'+sortFnStrs[def.f]+'" class="'+(isActive?'sort-active':'')+'">'
-      + def.label + (arrow?'<span class="sort-arrow">'+arrow+'</span>':'')
-      + '</th>';
-  });
-  headerHtml += '</tr></thead>';
+  var headerHtml = climbLogState.view === 'grouped' ? '' : '<thead><tr>';
+  if(climbLogState.view !== 'grouped'){
+    sortDefs.forEach(function(def){
+      var isActive = climbLogState.sort === def.f;
+      var arrow = isActive ? (climbLogState.sortDir==='desc'?' ↓':' ↑') : '';
+      headerHtml += '<th onclick="'+sortFnStrs[def.f]+'" class="'+(isActive?'sort-active':'')+'">'
+        + def.label + (arrow?'<span class="sort-arrow">'+arrow+'</span>':'')
+        + '</th>';
+    });
+    headerHtml += '</tr></thead>';
+  }
 
   // Table rows
   var bodyHtml = '<tbody>';
@@ -6898,6 +6945,7 @@ function renderRouteInsights(sessList, terrain){
   var divider      = document.getElementById('rh-divider');
   if(!insightsCard) return;
 
+  var climbId = sessList[0] && sessList[0].climb_id;
   var confirmedSessions = sessList.filter(function(s){ return s.zone_confidence==='confirmed'; });
   var showPattern  = false;
   var showTerrain  = false;
