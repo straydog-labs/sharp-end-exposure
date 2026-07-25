@@ -630,6 +630,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <div id="spider-chart-wrap"></div>
       </div>
 
+      <!-- FALLS BY TERRAIN — Feature 3, must match Zone by Terrain's row order exactly -->
+      <div class="insight-card" id="falls-terrain-card" style="margin-bottom:16px;display:none;">
+        <div class="insight-label" style="margin-bottom:10px;">Falls by terrain</div>
+        <div id="falls-terrain-wrap"></div>
+      </div>
+
       <!-- SOMATIC PROFILE — new radar, genuinely 4-dimensional (Breathing/Gut/Crux/Body) -->
       <div class="insight-card" id="somatic-radar-card" style="margin-bottom:16px;display:none;">
         <div class="insight-label" style="margin-bottom:10px;">Somatic profile</div>
@@ -754,7 +760,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <!-- Stats row -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
       <div class="insight-card" style="text-align:center;padding:14px;">
         <div id="rh-attempts" style="font-size:28px;font-weight:700;color:var(--accent);">—</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Attempts</div>
@@ -762,6 +768,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div class="insight-card" style="text-align:center;padding:14px;">
         <div id="rh-sends" style="font-size:28px;font-weight:700;color:#7ec87a;">—</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Sends</div>
+      </div>
+      <div class="insight-card" style="text-align:center;padding:14px;">
+        <div id="rh-falls" style="font-size:28px;font-weight:700;color:#e84444;">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Falls</div>
       </div>
     </div>
 
@@ -1058,6 +1068,69 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         </button>
       </div>
     </div>
+    </div>
+
+    <!-- TELL US ABOUT THE FALL — shown only when Result = Fell -->
+    <div class="insight-card" id="log-fall-group" style="display:none;margin-bottom:10px;">
+      <button onclick="toggleFallSection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;">
+        <span>Tell us about the fall <span style="font-size:12px;opacity:.6;">(optional)</span></span>
+        <span id="fall-chevron" style="font-size:18px;transition:transform .2s;">›</span>
+      </button>
+      <div id="fall-body" style="display:none;margin-top:12px;">
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Did you get back on after the fall?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'got_back_on')">Yes, right away</button>
+            <button class="chip" onclick="selectFallChip(this,'got_back_on')">Yes, after a break</button>
+            <button class="chip" onclick="selectFallChip(this,'got_back_on')">No, ended the session</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Was this fall expected or a surprise?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'vs_expect')">Saw it coming</button>
+            <button class="chip" onclick="selectFallChip(this,'vs_expect')">Somewhat expected</button>
+            <button class="chip" onclick="selectFallChip(this,'vs_expect')">Total surprise</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What was the fall like?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'fall_description')">Clean fall</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_description')">Caught a hold or ledge</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_description')">Hit something</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_description')">Rope or gear issue</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How was the catch?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'catch_quality')">Soft catch</button>
+            <button class="chip" onclick="selectFallChip(this,'catch_quality')">Firm but fine</button>
+            <button class="chip" onclick="selectFallChip(this,'catch_quality')">Hard catch</button>
+            <button class="chip" onclick="selectFallChip(this,'catch_quality')">Not applicable (bouldering / no belay)</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How would you describe the consequence?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'fall_consequence')">Minor — no real consequence</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_consequence')">Moderate — some impact or scare</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_consequence')">Serious — real risk was present</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything else worth noting about this fall</div>
+          <textarea id="fall-notes-text" placeholder="Optional..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+        </div>
+
+      </div>
     </div>
 
         <!-- CLIMB AUTOCOMPLETE — prominent, shown after result selected -->
@@ -1903,6 +1976,69 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <button id="edit-btn-dna" onclick="editSelResult('dna')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">— Backed off</button>
     </div>
 
+    <!-- TELL US ABOUT THE FALL — Edit sheet equivalent (Feature 2), shown only when Result = Fell -->
+    <div id="edit-fall-group" style="display:none;margin-bottom:16px;">
+      <button onclick="toggleEditFallSection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;">
+        <span>Tell us about the fall <span style="font-size:12px;opacity:.6;">(optional)</span></span>
+        <span id="edit-fall-chevron" style="font-size:18px;transition:transform .2s;">›</span>
+      </button>
+      <div id="edit-fall-body" style="display:none;margin-top:12px;">
+
+        <div class="edit-fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Did you get back on after the fall?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectEditFallChip(this,'got_back_on')">Yes, right away</button>
+            <button class="chip" onclick="selectEditFallChip(this,'got_back_on')">Yes, after a break</button>
+            <button class="chip" onclick="selectEditFallChip(this,'got_back_on')">No, ended the session</button>
+          </div>
+        </div>
+
+        <div class="edit-fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Was this fall expected or a surprise?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectEditFallChip(this,'vs_expect')">Saw it coming</button>
+            <button class="chip" onclick="selectEditFallChip(this,'vs_expect')">Somewhat expected</button>
+            <button class="chip" onclick="selectEditFallChip(this,'vs_expect')">Total surprise</button>
+          </div>
+        </div>
+
+        <div class="edit-fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What was the fall like?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectEditFallChip(this,'fall_description')">Clean fall</button>
+            <button class="chip" onclick="selectEditFallChip(this,'fall_description')">Caught a hold or ledge</button>
+            <button class="chip" onclick="selectEditFallChip(this,'fall_description')">Hit something</button>
+            <button class="chip" onclick="selectEditFallChip(this,'fall_description')">Rope or gear issue</button>
+          </div>
+        </div>
+
+        <div class="edit-fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How was the catch?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectEditFallChip(this,'catch_quality')">Soft catch</button>
+            <button class="chip" onclick="selectEditFallChip(this,'catch_quality')">Firm but fine</button>
+            <button class="chip" onclick="selectEditFallChip(this,'catch_quality')">Hard catch</button>
+            <button class="chip" onclick="selectEditFallChip(this,'catch_quality')">Not applicable (bouldering / no belay)</button>
+          </div>
+        </div>
+
+        <div class="edit-fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How would you describe the consequence?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectEditFallChip(this,'fall_consequence')">Minor — no real consequence</button>
+            <button class="chip" onclick="selectEditFallChip(this,'fall_consequence')">Moderate — some impact or scare</button>
+            <button class="chip" onclick="selectEditFallChip(this,'fall_consequence')">Serious — real risk was present</button>
+          </div>
+        </div>
+
+        <div class="edit-fall-q" style="margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything else worth noting about this fall</div>
+          <textarea id="edit-fall-notes-text" placeholder="Optional..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Activation zone override — correct a past climb's zone later, not just right after Go Deeper -->
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Activation zone</div>
     <div id="edit-gauge" style="width:100%;max-width:220px;margin:0 auto 8px;"></div>
@@ -2646,7 +2782,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index166';
+var app_version = 'staging-index167';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3548,6 +3684,70 @@ function toggleReflection(btn){
   if(chevron)chevron.style.transform=open?'':'rotate(90deg)';
 }
 
+// ── FALL CAPTURE — "Tell us about the fall" (single-select per question) ──
+var fallState = {got_back_on:null, vs_expect:null, fall_description:null, catch_quality:null, fall_consequence:null};
+
+function toggleFallSection(btn){
+  var body=document.getElementById('fall-body');
+  var chevron=document.getElementById('fall-chevron');
+  if(!body)return;
+  var open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  if(chevron)chevron.style.transform=open?'':'rotate(90deg)';
+}
+
+function selectFallChip(btn, field){
+  var parent=btn.closest('.fall-q');
+  if(parent) parent.querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  fallState[field]=btn.textContent.trim();
+}
+
+function resetFallSection(){
+  fallState = {got_back_on:null, vs_expect:null, fall_description:null, catch_quality:null, fall_consequence:null};
+  var fallBody=document.getElementById('fall-body');
+  if(fallBody){
+    fallBody.style.display='none';
+    fallBody.querySelectorAll('.chip.selected').forEach(function(b){b.classList.remove('selected');});
+  }
+  var chevron=document.getElementById('fall-chevron');
+  if(chevron) chevron.style.transform='';
+  var notesEl=document.getElementById('fall-notes-text');
+  if(notesEl) notesEl.value='';
+}
+
+// ── FALL CAPTURE — Edit sheet equivalent (Feature 2) ──
+var editFallState = {got_back_on:null, vs_expect:null, fall_description:null, catch_quality:null, fall_consequence:null};
+
+function toggleEditFallSection(btn){
+  var body=document.getElementById('edit-fall-body');
+  var chevron=document.getElementById('edit-fall-chevron');
+  if(!body)return;
+  var open=body.style.display==='block';
+  body.style.display=open?'none':'block';
+  if(chevron)chevron.style.transform=open?'':'rotate(90deg)';
+}
+
+function selectEditFallChip(btn, field){
+  var parent=btn.closest('.edit-fall-q');
+  if(parent) parent.querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  editFallState[field]=btn.textContent.trim();
+}
+
+function resetEditFallSection(){
+  editFallState = {got_back_on:null, vs_expect:null, fall_description:null, catch_quality:null, fall_consequence:null};
+  var editFallBody=document.getElementById('edit-fall-body');
+  if(editFallBody){
+    editFallBody.style.display='none';
+    editFallBody.querySelectorAll('.chip.selected').forEach(function(b){b.classList.remove('selected');});
+  }
+  var editChevron=document.getElementById('edit-fall-chevron');
+  if(editChevron) editChevron.style.transform='';
+  var editNotesEl=document.getElementById('edit-fall-notes-text');
+  if(editNotesEl) editNotesEl.value='';
+}
+
 function selectSetting(val, btn){
   logState.setting = val;
   ['btn-indoor','btn-outdoor'].forEach(function(id){
@@ -3574,6 +3774,12 @@ function selectResult(r){
   var rnameGroup=document.getElementById('log-rname-group');
   if(gradeGroup){gradeGroup.style.display='flex';}
   if(rnameGroup){rnameGroup.style.display='flex';}
+  // Show/hide "Tell us about the fall" — only when Result is Fell
+  var fallGroup=document.getElementById('log-fall-group');
+  if(fallGroup){
+    if(r==='fell'){ fallGroup.style.display='block'; }
+    else { fallGroup.style.display='none'; resetFallSection(); }
+  }
   checkLogReady();
 }
 
@@ -3711,6 +3917,27 @@ async function logClimb(){
     showToast('Logged ✓');
     window._prepareSessionId = null; // clear after use
     window._sessionStartTime = null;
+    // Save fall-capture data (Feature 1) — only if at least one answer was given.
+    // Guarded to signed-in users: falls RLS requires a real user_id match, so an
+    // anonymous insert (user_id:null) would fail regardless — avoid a guaranteed
+    // silent failure for guests rather than attempting and losing the data.
+    if(logState.result==='fell' && window._authUser){
+      var fallNotesEl=document.getElementById('fall-notes-text');
+      var fallNotes=fallNotesEl?fallNotesEl.value.trim():'';
+      var hasFallData=fallState.got_back_on||fallState.vs_expect||fallState.fall_description||fallState.catch_quality||fallState.fall_consequence||fallNotes;
+      if(hasFallData){
+        sbI('falls',{
+          session_id:saved.id,
+          user_id:window._authUser.id,
+          got_back_on:fallState.got_back_on,
+          vs_expect:fallState.vs_expect,
+          fall_description:fallState.fall_description,
+          catch_quality:fallState.catch_quality,
+          fall_consequence:fallState.fall_consequence,
+          learning_reflection:fallNotes||null
+        });
+      }
+    }
   } else {
     console.error('Session save failed:',raw);
     // Preserve form state — show error, let user retry without re-entering
@@ -4143,6 +4370,9 @@ function resetLogScreen(){
   
   document.querySelectorAll('.terrain-chips .chip').forEach(function(b){b.classList.remove('selected');});
   ['btn-indoor','btn-outdoor'].forEach(function(id){var b=document.getElementById(id);if(b)b.classList.remove('selected');});
+  resetFallSection();
+  var fallGroup=document.getElementById('log-fall-group');
+  if(fallGroup) fallGroup.style.display='none';
   document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
   // Unlock route-identity fields (Fix 0b) — never carry a lock over from a previous climb
   unlockRouteIdentityFields();
@@ -4222,6 +4452,37 @@ function openEditSheet(){
     var b=document.getElementById('edit-btn-'+v);
     if(b)b.style.borderColor=v===logState.result?'var(--accent)':'var(--border)';
   });
+  // Show/hide "Tell us about the fall" (Feature 2) — initial state on open
+  var editFallGroup=document.getElementById('edit-fall-group');
+  resetEditFallSection();
+  if(editFallGroup){
+    if(logState.result==='fell'){
+      editFallGroup.style.display='block';
+      // Fetch existing falls data for this session, if any — non-blocking,
+      // populates once resolved (avoids restructuring openEditSheet to async)
+      if(logState.sessId){
+        sbS('falls','select=*&session_id=eq.'+logState.sessId+'&limit=1').then(function(rows){
+          var fallRow=(Array.isArray(rows)&&rows.length)?rows[0]:null;
+          if(!fallRow) return;
+          var fieldMap={got_back_on:fallRow.got_back_on, vs_expect:fallRow.vs_expect, fall_description:fallRow.fall_description, catch_quality:fallRow.catch_quality, fall_consequence:fallRow.fall_consequence};
+          Object.keys(fieldMap).forEach(function(field){
+            var val=fieldMap[field];
+            if(!val) return;
+            editFallState[field]=val;
+            document.querySelectorAll('#edit-fall-body .edit-fall-q button.chip').forEach(function(b){
+              if(b.getAttribute('onclick').indexOf("'"+field+"'")>-1 && b.textContent.trim()===val){
+                b.classList.add('selected');
+              }
+            });
+          });
+          var notesEl=document.getElementById('edit-fall-notes-text');
+          if(notesEl && fallRow.learning_reflection) notesEl.value=fallRow.learning_reflection;
+        });
+      }
+    } else {
+      editFallGroup.style.display='none';
+    }
+  }
   var rn=document.getElementById('edit-rname');if(rn)rn.value=logState.routeName||'';
   // Restore terrain chips in edit sheet (scoped to edit-sheet only)
   document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){
@@ -4265,6 +4526,12 @@ function editSelResult(r){
     var b=document.getElementById('edit-btn-'+v);
     if(b)b.style.borderColor=v===r?'var(--accent)':'var(--border)';
   });
+  // Show/hide "Tell us about the fall" (Feature 2) — dynamically, on Result change during editing
+  var editFallGroup=document.getElementById('edit-fall-group');
+  if(editFallGroup){
+    if(r==='fell'){ editFallGroup.style.display='block'; }
+    else { editFallGroup.style.display='none'; resetEditFallSection(); }
+  }
 }
 function editSelTerrain(btn,t){
   document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){b.classList.remove('selected');});
@@ -4302,6 +4569,32 @@ async function saveEditedClimb(){
     route_name:logState.routeName||null,zone:logState.zone,zone_confidence:logState.zoneConf,
     went_well:wentWell,still_learning:stillLearning,surprised_by:surprisedBy
   });
+  // Fall-capture data (Feature 2) — upsert: update if a falls row already exists
+  // for this session, insert if not. Guarded to signed-in users (falls RLS
+  // requires a real user_id match, same reasoning as logClimb()'s save).
+  if(logState.result==='fell' && window._authUser){
+    var editFallNotesEl=document.getElementById('edit-fall-notes-text');
+    var editFallNotes=editFallNotesEl?editFallNotesEl.value.trim():'';
+    var hasEditFallData=editFallState.got_back_on||editFallState.vs_expect||editFallState.fall_description||editFallState.catch_quality||editFallState.fall_consequence||editFallNotes;
+    if(hasEditFallData){
+      var fallPayload={
+        got_back_on:editFallState.got_back_on,
+        vs_expect:editFallState.vs_expect,
+        fall_description:editFallState.fall_description,
+        catch_quality:editFallState.catch_quality,
+        fall_consequence:editFallState.fall_consequence,
+        learning_reflection:editFallNotes||null
+      };
+      var existingFallRows=await sbS('falls','select=id&session_id=eq.'+logState.sessId+'&limit=1');
+      if(Array.isArray(existingFallRows) && existingFallRows.length){
+        await sbU('falls','id=eq.'+existingFallRows[0].id, fallPayload);
+      } else {
+        fallPayload.session_id=logState.sessId;
+        fallPayload.user_id=window._authUser.id;
+        await sbI('falls', fallPayload);
+      }
+    }
+  }
   document.getElementById('edit-sheet').style.display='none';
   renderCelebrate();
   // If editing happened from Route History, refresh its data in place (no navigation needed)
@@ -4586,6 +4879,7 @@ async function loadClimbLog(){
   if(total===0){
     buildSessionsArc([], false);
     var sc=document.getElementById('spider-chart-card'); if(sc)sc.style.display='none';
+    var sfc=document.getElementById('falls-terrain-card'); if(sfc)sfc.style.display='none';
     var emptyEl2=document.getElementById('sessions-empty-state');
     if(emptyEl2)emptyEl2.style.display='none';
     if(realEl)realEl.style.display='block';
@@ -4615,6 +4909,12 @@ async function loadClimbLog(){
   // Show spider card only when data exists
   var spiderCard = document.getElementById('spider-chart-card');
   if(spiderCard) spiderCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
+
+  // Falls by terrain (Feature 3) — same visibility gate, called after buildSpiderChart
+  // so window._terrainSortOrder is already computed and available to reuse
+  var fallsTerrainCard = document.getElementById('falls-terrain-card');
+  if(fallsTerrainCard) fallsTerrainCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
+  buildFallsByTerrain(climbs);
 
   // 5-climb milestone — check on Climb Log home visit so it never interrupts Go Deeper
   if(total===5){
@@ -6995,10 +7295,13 @@ async function openClimbExposure(climbId){
   // Stats
   var attempts = sessList.length;
   var sends    = sessList.filter(function(s){ return s.baseline_zone==='sent'||s.result==='sent'; }).length;
+  var falls    = sessList.filter(function(s){ return s.baseline_zone==='fell'||s.result==='fell'; }).length;
   var attEl = document.getElementById('rh-attempts');
   var senEl = document.getElementById('rh-sends');
+  var falEl = document.getElementById('rh-falls');
   if(attEl) attEl.textContent = attempts;
   if(senEl) senEl.textContent = sends;
+  if(falEl) falEl.textContent = falls;
 
   // Actions — +Attempt always shown (Fix 4: no longer gated on attempt count)
   var actionsEl = document.getElementById('rh-actions');
@@ -7378,6 +7681,9 @@ function buildSpiderChart(sessions, targetEl){
 
   // Sort by climb count descending — one row per terrain, always all 7
   var sortedTerrains = terrains.slice().sort(function(a,b){ return data[b].total - data[a].total; });
+  // Expose this exact order for Falls by terrain (Feature 3) to reuse —
+  // that card must never sort independently by its own fall count
+  window._terrainSortOrder = sortedTerrains;
 
   var rowsHtml = sortedTerrains.map(function(t){
     var d = data[t];
@@ -7411,6 +7717,35 @@ function buildSpiderChart(sessions, targetEl){
     + '</div>';
 
   el.innerHTML = '<div style="padding:4px 0;">' + rowsHtml + '</div>' + legendHtml;
+}
+
+function buildFallsByTerrain(sessions){
+  var el = document.getElementById('falls-terrain-wrap');
+  if(!el) return;
+
+  var terrains = ['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack'];
+  var fallCounts = {};
+  terrains.forEach(function(t){ fallCounts[t] = 0; });
+
+  sessions.forEach(function(s){
+    if(s.climbing_type && fallCounts[s.climbing_type] !== undefined && s.baseline_zone==='fell'){
+      fallCounts[s.climbing_type]++;
+    }
+  });
+
+  // Critical: reuse the EXACT same row order as Zone by Terrain (climb-count
+  // based, computed there) — never sort independently by fall count here
+  var orderedTerrains = (window._terrainSortOrder && window._terrainSortOrder.length===7) ? window._terrainSortOrder : terrains;
+
+  var rowsHtml = orderedTerrains.map(function(t){
+    var count = fallCounts[t] || 0;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
+      + '<span style="font-size:12px;font-weight:600;color:var(--text);">'+t+'</span>'
+      + '<span style="font-size:12px;color:'+(count>0?'#e84444':'var(--muted2)')+';font-weight:'+(count>0?'700':'400')+';">'+count+' fall'+(count===1?'':'s')+'</span>'
+      + '</div>';
+  }).join('');
+
+  el.innerHTML = rowsHtml;
 }
 
 function toggleClimbTable(){
