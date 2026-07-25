@@ -1025,7 +1025,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
     <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
-    <div class="screen-title">Log a climb<span class="sub">What just happened out there?</span></div>
+    <div class="screen-title"><span id="log-screen-title-text">Log a climb</span><span class="sub">What just happened out there?</span></div>
 
 
 
@@ -2782,7 +2782,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index167';
+var app_version = 'staging-index168';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -2816,7 +2816,12 @@ function initAuth(){
   supabaseClient.auth.onAuthStateChange(function(event, session){
     window._authUser = session ? session.user : null;
     window._authToken = session ? session.access_token : null;
-    if(event === 'SIGNED_IN'){
+    // INITIAL_SESSION fires when Supabase restores an already-persisted session
+    // on load (e.g. reopening a fresh tab) — SIGNED_IN never fires in that case,
+    // so this needs the exact same baseline-check + flag-sync routing (Fix 3,
+    // closing the gap Beta's audit found: the original fix only covered
+    // SIGNED_IN, leaving INITIAL_SESSION-restored sessions still vulnerable)
+    if(event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)){
       if(_hasRoutedAfterSignIn) return; // background session refresh — don't hijack navigation
       _hasRoutedAfterSignIn = true;
       // Check Supabase for existing baseline tied to this user_id
@@ -2829,6 +2834,9 @@ function initAuth(){
             showScreen('screen-baseline');
             return;
           }
+          // Baseline confirmed via database — keep the local flag in sync with
+          // verified server truth, not just local completion history (Fix 3)
+          try{ localStorage.setItem('see_baseline_complete','1'); }catch(e){}
         }
         showScreen('screen-sessions'); loadClimbLog();
       })();
@@ -3929,6 +3937,7 @@ async function logClimb(){
         sbI('falls',{
           session_id:saved.id,
           user_id:window._authUser.id,
+          device_id:getDeviceId(),
           got_back_on:fallState.got_back_on,
           vs_expect:fallState.vs_expect,
           fall_description:fallState.fall_description,
@@ -4376,6 +4385,9 @@ function resetLogScreen(){
   document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){b.classList.remove('selected');});
   // Unlock route-identity fields (Fix 0b) — never carry a lock over from a previous climb
   unlockRouteIdentityFields();
+  // Reset header text back to generic (Fix 5) — only route-locked entries get the named version
+  var titleTextEl=document.getElementById('log-screen-title-text');
+  if(titleTextEl) titleTextEl.textContent='Log a climb';
   // grade and route-name fields stay visible — no re-hiding on reset
   
   var rname=document.getElementById('log-rname-input');if(rname)rname.value='';
@@ -4591,6 +4603,7 @@ async function saveEditedClimb(){
       } else {
         fallPayload.session_id=logState.sessId;
         fallPayload.user_id=window._authUser.id;
+        fallPayload.device_id=getDeviceId();
         await sbI('falls', fallPayload);
       }
     }
@@ -5694,7 +5707,7 @@ function completeDrill(){
     var climbs = window._cachedClimbs || [];
     var match = climbs.find(function(s){ return s.route_name && s.route_name.toLowerCase().trim() === drillState.routeName.toLowerCase().trim() && s.climb_id; });
     if(match && match.climb_id){
-      launchLogWithClimb(match.climb_id, drillState.routeName, match.grade_value, match.climbing_type);
+      launchLogWithClimb(match.climb_id, drillState.routeName, match.grade_value, match.climbing_type, match.setting);
       return;
     }
     // No match — pre-fill name field only
@@ -6945,7 +6958,7 @@ function editClimbFromLog(sessId, origin){
   openEditSheet();
 }
 
-function addAttemptFromLog(routeName, grade, terrain, climbId, origin){
+function addAttemptFromLog(routeName, grade, terrain, climbId, origin, setting){
   // Only set the Climb-Log return path when actually launched from there —
   // matches editClimbFromLog()'s origin-aware pattern
   if(origin !== 'route-history'){
@@ -6954,7 +6967,7 @@ function addAttemptFromLog(routeName, grade, terrain, climbId, origin){
   window._rhAttemptOrigin = (origin === 'route-history') ? window._rhClimbId : null;
   logState = {result:null, grade:grade||null, gradeSys:'YDS', terrain:terrain||null, routeName:routeName||null, sessId:null, zone:null, zoneConf:null};
   if(climbId){
-    launchLogWithClimb(climbId, routeName, grade, terrain);
+    launchLogWithClimb(climbId, routeName, grade, terrain, setting);
   } else {
     showScreen('screen-log');
     setTimeout(function(){
@@ -7025,12 +7038,13 @@ function returnToClimbLogOrHome(){
 // launchLogWithClimb — shared entry point for any flow
 // that already knows which climb it's logging against
 // ═══════════════════════════════════════════════════════
-function launchLogWithClimb(climbId, climbName, grade, terrain){
+function launchLogWithClimb(climbId, climbName, grade, terrain, setting){
   _selectedClimbId = climbId || null;
   logState.routeName = climbName || null;
   logState.grade = grade || logState.grade;
   logState.terrain = terrain || logState.terrain;
   logState.gradeSys = logState.gradeSys || 'YDS';
+  logState.setting = setting || logState.setting;
 
   showScreen('screen-log');
 
@@ -7055,6 +7069,19 @@ function launchLogWithClimb(climbId, climbName, grade, terrain){
         b.classList.toggle('selected', b.textContent.trim() === terrain);
       });
     }
+
+    // Pre-fill Indoor/Outdoor — same wall-angle pre-fill was already correct,
+    // this half was previously missing entirely (Fix 4)
+    if(setting){
+      ['btn-indoor','btn-outdoor'].forEach(function(id){
+        var b = document.getElementById(id);
+        if(b) b.classList.toggle('selected', id === 'btn-'+setting);
+      });
+    }
+
+    // Header — indicate which route this attempt is locked to (Fix 5)
+    var titleTextEl = document.getElementById('log-screen-title-text');
+    if(titleTextEl) titleTextEl.textContent = climbName ? ('Log an attempt on '+climbName) : 'Log a climb';
 
     // Route identity is fully known here (climbId set) — lock name/grade/terrain (Fix 0b)
     lockRouteIdentityFields();
@@ -7276,6 +7303,7 @@ async function openClimbExposure(climbId){
   var name    = climbRec ? climbRec.name        : (sessList[0] ? sessList[0].route_name    : '—');
   var grade   = climbRec ? climbRec.grade_value : (sessList[0] ? sessList[0].grade_value   : '—');
   var terrain = climbRec ? climbRec.climbing_type : (sessList[0] ? sessList[0].climbing_type : '');
+  var setting = sessList[0] ? sessList[0].setting : null;
 
   // Route header
   var nameEl = document.getElementById('rh-name');
@@ -7290,6 +7318,7 @@ async function openClimbExposure(climbId){
     window._rhClimbName = name;
     window._rhGrade = grade;
     window._rhTerrain = terrain;
+    window._rhSetting = setting;
   }
 
   // Stats
@@ -7336,7 +7365,7 @@ async function deleteRoute(){
 // per-row editing via the attempts list is the only edit path now
 
 function rhAddAttempt(){
-  addAttemptFromLog(window._rhClimbName||'', window._rhGrade||null, window._rhTerrain||null, window._rhClimbId||null, 'route-history');
+  addAttemptFromLog(window._rhClimbName||'', window._rhGrade||null, window._rhTerrain||null, window._rhClimbId||null, 'route-history', window._rhSetting||null);
 }
 
 function saveRouteBeta(){
@@ -7638,7 +7667,7 @@ function buildSomaticRadar(sessions){
     else if(p.x > cx+15) anchor='start';
     else anchor='middle';
     var margin=8;
-    var clampedX = Math.max(margin+30, Math.min(260-margin-20, p.x));
+    var clampedX = Math.max(margin+65, Math.min(260-margin-20, p.x));
     return '<text x="'+clampedX.toFixed(1)+'" y="'+p.y.toFixed(1)+'" text-anchor="'+anchor+'" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">'+axisLabels[a]+'</text>';
   }).join('');
 
