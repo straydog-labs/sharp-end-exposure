@@ -385,6 +385,15 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div id="toast-el" class="toast"></div>
 <div id="error-toast-el" class="error-toast"></div>
 
+<!-- LOADING STATE — shown only while routeOnLoad() awaits the real auth/baseline
+     check (Fix 6), instead of a blank screen or a premature baseline-screen flash -->
+<div id="route-loading-skeleton" style="position:fixed;inset:0;z-index:500;background:var(--bg);padding:20px;display:none;">
+  <div class="skeleton" style="width:60%;height:20px;margin-bottom:16px;"></div>
+  <div class="skeleton" style="width:100%;height:80px;margin-bottom:12px;"></div>
+  <div class="skeleton" style="width:100%;height:80px;margin-bottom:12px;"></div>
+  <div class="skeleton" style="width:100%;height:80px;"></div>
+</div>
+
 <!-- ═══════════════════════════════════════
      TOP NAV
 ═══════════════════════════════════════ -->
@@ -2782,7 +2791,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index168';
+var app_version = 'staging-index169';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -2808,6 +2817,12 @@ window.addEventListener('error', function(e){ window._seeErrorLog.push(e.message
 
 function initAuth(){
   if(!supabaseClient) return;
+  // Fix 6: expose a promise routeOnLoad() can await instead of racing a blind
+  // timer — resolves once the real baseline check has run, or immediately if
+  // there's no session to check at all (anonymous/guest load, or signed out)
+  var _authRoutingResolve;
+  window._authRoutingReady = new Promise(function(resolve){ _authRoutingResolve = resolve; });
+
   supabaseClient.auth.getSession().then(function(res){
     var session = res.data && res.data.session ? res.data.session : null;
     window._authUser = session ? session.user : null;
@@ -2822,7 +2837,7 @@ function initAuth(){
     // closing the gap Beta's audit found: the original fix only covered
     // SIGNED_IN, leaving INITIAL_SESSION-restored sessions still vulnerable)
     if(event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)){
-      if(_hasRoutedAfterSignIn) return; // background session refresh — don't hijack navigation
+      if(_hasRoutedAfterSignIn){ _authRoutingResolve(); return; } // background session refresh — don't hijack navigation
       _hasRoutedAfterSignIn = true;
       // Check Supabase for existing baseline tied to this user_id
       (async function(){
@@ -2832,6 +2847,7 @@ function initAuth(){
           if(!Array.isArray(existing) || existing.length === 0){
             // No baseline for this user — route to baseline setup
             showScreen('screen-baseline');
+            _authRoutingResolve();
             return;
           }
           // Baseline confirmed via database — keep the local flag in sync with
@@ -2839,7 +2855,12 @@ function initAuth(){
           try{ localStorage.setItem('see_baseline_complete','1'); }catch(e){}
         }
         showScreen('screen-sessions'); loadClimbLog();
+        _authRoutingResolve();
       })();
+    } else {
+      // No session to check (INITIAL_SESSION with session=null, or SIGNED_OUT) —
+      // nothing for routeOnLoad() to wait on, resolve immediately
+      _authRoutingResolve();
     }
     if(event === 'SIGNED_OUT'){ _hasRoutedAfterSignIn = false; showScreen('screen-auth'); }
   });
@@ -8864,7 +8885,21 @@ setTimeout(flushOfflineQueue, 1000);
 // Init auth first — then route appropriately
 initAuth();
 // Route on load — check localStorage first (instant), then check auth session
-function routeOnLoad(){
+async function routeOnLoad(){
+  // Fix 6: show a loading skeleton instead of blank content while we wait for
+  // the real auth/baseline check, rather than racing a blind fixed timer
+  var skeleton = document.getElementById('route-loading-skeleton');
+  if(skeleton) skeleton.style.display = 'block';
+
+  if(window._authRoutingReady){
+    await Promise.race([
+      window._authRoutingReady,
+      new Promise(function(resolve){ setTimeout(resolve, 1500); }) // hard fallback — never hang indefinitely
+    ]);
+  }
+
+  if(skeleton) skeleton.style.display = 'none';
+
   var dismissed = localStorage.getItem('see_auth_dismissed');
   var hasSeenBaseline = localStorage.getItem('see_baseline_complete');
   // Check auth session async — but always show SOMETHING immediately
@@ -8913,7 +8948,7 @@ function routeOnLoad(){
     }
   }
 }
-setTimeout(routeOnLoad, 100);
+routeOnLoad();
 
 </script>
 </body>
