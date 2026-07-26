@@ -2791,7 +2791,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index169';
+var app_version = 'staging-index170';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3574,7 +3574,14 @@ function renderQuickStrip(climbs){
     var lastResult=s.baseline_zone||s.result||'sent';
     var name=s.route_name||'';
     var cid=s.climb_id||'';
-    return '<div style="flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:12px 14px;min-width:140px;max-width:180px;">'      +'<div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;">'+name+'</div>'      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+(grade?grade:'—')+(terrain?' · '+terrain:'')+'</div>'      +'<button onclick="quickLogAgain('+JSON.stringify(name)+','+JSON.stringify(grade)+','+JSON.stringify(terrain)+','+JSON.stringify(cid)+','+JSON.stringify(lastResult)+')"        style="width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:inherit;font-size:12px;font-weight:700;padding:7px;cursor:pointer;">'      +'+ Attempt</button>'      +'</div>';
+    // Fix 7: outer onclick uses single quotes (JSON.stringify's own delimiters are
+    // double quotes, so they no longer conflict). Any raw apostrophe WITHIN a
+    // value (e.g. "Joe's Problem") must be HTML-entity-encoded — not backslash-
+    // escaped — since HTML attribute-delimiter matching doesn't recognize
+    // backslash-escaping at all, only HTML entities get decoded before the
+    // extracted attribute text is handed to the JS parser.
+    function escForAttr(v){ return JSON.stringify(v).replace(/'/g, '&#39;'); }
+    return '<div style="flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:12px 14px;min-width:140px;max-width:180px;">'      +'<div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;">'+name+'</div>'      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+(grade?grade:'—')+(terrain?' · '+terrain:'')+'</div>'      +'<button onclick=\'quickLogAgain('+escForAttr(name)+','+escForAttr(grade)+','+escForAttr(terrain)+','+escForAttr(cid)+','+escForAttr(lastResult)+')\'        style="width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:inherit;font-size:12px;font-weight:700;padding:7px;cursor:pointer;">'      +'+ Attempt</button>'      +'</div>';
   }).join('');
 }
 
@@ -3669,7 +3676,7 @@ function renderClimbDataTable(){
     return av<bv?-dir:av>bv?dir:0;
   });
   var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off'};
-  var confLabels={'confirmed':'✓','estimated':'~'};
+  var confLabels={'confirmed':'✓','estimated':'~','manual':'✓'};
   tbody.innerHTML=climbs.map(function(s){
     var hasNotes=s.went_well||s.still_learning||s.surprised_by;
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
