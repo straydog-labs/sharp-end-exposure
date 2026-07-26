@@ -679,7 +679,52 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
 
   <!-- Floating Log a Climb button -->
-  
+
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     CONSENT / DISCLAIMER — screen-consent
+     Gated by routeOnLoad() (see_consent_v1 in localStorage) before
+     screen-auth/screen-baseline/screen-sessions are ever reached. Button tap
+     (acknowledgeConsent()) is the only exit — no skip, no auto-dismiss.
+     Deliberately light/neutral treatment, distinct from the app's dark
+     theme, for a formal/legal read — see DESIGN spec.
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-consent" style="background:#f5f2ed;color:#1a1a18;">
+  <div style="max-width:480px;margin:0 auto;padding:40px 20px 60px;box-sizing:border-box;">
+
+    <div class="page-header" style="justify-content:center;padding:0 0 32px;">
+      <div class="wordmark" style="color:#6b6358;"><span style="color:#c8622a;">Sharp End</span> Exposure <span class="beta-badge" style="background:rgba(200,98,42,.12);color:#c8622a;border-color:rgba(200,98,42,.3);">Beta</span></div>
+    </div>
+
+    <div style="font-size:22px;font-weight:700;line-height:1.3;margin-bottom:16px;">Welcome to Sharp End Exposure</div>
+
+    <div style="font-size:15px;line-height:1.55;margin-bottom:14px;">Before you climb with SEE, one thing to be clear about:</div>
+
+    <div style="font-size:16px;font-weight:700;line-height:1.4;margin-bottom:14px;">SEE is a noticing tool, not a safety system.</div>
+
+    <div style="font-size:14px;line-height:1.6;color:#3a352f;margin-bottom:14px;">It helps you track your somatic response to climbing — your breathing, gut sensation, body state, and activation level — so you can build self-awareness over time. It does not assess whether a route is safe to climb, generate risk verdicts, or replace your own judgment, experience, or on-site evaluation.</div>
+
+    <div style="font-size:14px;line-height:1.6;color:#3a352f;margin-bottom:14px;">Climbing involves inherent and serious risks, including injury and death. No app can capture or predict all the factors involved in a climbing decision. You are solely responsible for every decision you make before, during, and after any climb.</div>
+
+    <div style="font-size:14px;line-height:1.6;color:#3a352f;margin-bottom:22px;">About your data: If you create an account, your data is stored securely and privately. If you use SEE without an account, your data stays on this device only. Either way, your data is never sold. During this beta period, anonymized aggregate patterns may be used to improve the app. You can export or delete your data at any time from your Profile.</div>
+
+    <div style="border-top:1px solid rgba(26,26,24,.12);border-bottom:1px solid rgba(26,26,24,.12);padding:16px 0;margin-bottom:24px;">
+      <div style="display:flex;gap:10px;margin-bottom:12px;"><span style="color:#c8622a;font-weight:700;">·</span><span style="font-size:13.5px;line-height:1.5;">You understand SEE is a self-awareness tool, not a safety or risk assessment system</span></div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;"><span style="color:#c8622a;font-weight:700;">·</span><span style="font-size:13.5px;line-height:1.5;">You accept full responsibility for your own climbing decisions</span></div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;"><span style="color:#c8622a;font-weight:700;">·</span><span style="font-size:13.5px;line-height:1.5;">You are 18 years of age or older</span></div>
+      <div style="display:flex;gap:10px;"><span style="color:#c8622a;font-weight:700;">·</span><span style="font-size:13.5px;line-height:1.5;">You agree to SEE's <a href="/sharp-end-exposure/terms.html" target="_blank" style="color:#c8622a;">Terms of Service</a> and <a href="/sharp-end-exposure/privacy.html" target="_blank" style="color:#c8622a;">Privacy Policy</a></span></div>
+    </div>
+
+    <button onclick="acknowledgeConsent()" id="consent-accept-btn"
+      style="width:100%;background:#c8622a;border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+      I understand — let's climb
+    </button>
+
+    <div style="text-align:center;font-size:11px;color:#8a8278;margin-top:12px;">SEE beta · Terms last updated July 2026</div>
+
+  </div>
 </div>
 
 
@@ -2839,6 +2884,16 @@ function initAuth(){
     if(event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)){
       if(_hasRoutedAfterSignIn){ _authRoutingResolve(); return; } // background session refresh — don't hijack navigation
       _hasRoutedAfterSignIn = true;
+      // Consent gate: a restored session (INITIAL_SESSION) fires here on every
+      // load for already-signed-in users, independent of routeOnLoad(). Without
+      // this check, a signed-in user with no see_consent_v1 flag yet would get
+      // routed straight past the consent screen the moment their session
+      // restores. Skip navigation (but keep window._authUser/_authToken synced
+      // above) and let routeOnLoad() — which already shows screen-consent and
+      // re-runs this same check after the user taps through — own routing.
+      var _hasConsent = null;
+      try{ _hasConsent = localStorage.getItem('see_consent_v1'); }catch(e){}
+      if(!_hasConsent){ _authRoutingResolve(); return; }
       // Check Supabase for existing baseline tied to this user_id
       (async function(){
         var uid = session && session.user ? session.user.id : null;
@@ -3252,6 +3307,11 @@ function showScreen(id){
   if(prev){_prevScreen=prev.id;prev.classList.remove('active');}
   var el=document.getElementById(id);
   if(el){el.classList.add('active');window.scrollTo(0,0);}
+  // Consent screen must have no way out except its own button — the footer
+  // nav's buttons call showScreen() directly (bypassing routeOnLoad()'s
+  // consent gate entirely), so hide it while consent is unacknowledged.
+  var navBar=document.querySelector('.footer-nav');
+  if(navBar) navBar.style.display = id==='screen-consent' ? 'none' : 'flex';
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
@@ -8893,6 +8953,18 @@ setTimeout(flushOfflineQueue, 1000);
 initAuth();
 // Route on load — check localStorage first (instant), then check auth session
 async function routeOnLoad(){
+  // Consent gate — must run before anything else in this function. screen-auth,
+  // screen-baseline, and screen-sessions are all reachable as "first screen"
+  // outcomes below, so the check has to sit above all of them, not inside any
+  // one branch. Missing or outdated key (version bumps to see_consent_v2 etc.
+  // when re-consent is needed) both fail this the same way: absent key.
+  var _consentAck = null;
+  try{ _consentAck = localStorage.getItem('see_consent_v1'); }catch(e){}
+  if(!_consentAck){
+    showScreen('screen-consent');
+    return;
+  }
+
   // Fix 6: show a loading skeleton instead of blank content while we wait for
   // the real auth/baseline check, rather than racing a blind fixed timer
   var skeleton = document.getElementById('route-loading-skeleton');
@@ -8955,6 +9027,28 @@ async function routeOnLoad(){
     }
   }
 }
+
+// Consent screen's only exit. Writes the local flag first (so a page refresh
+// mid-flow doesn't re-show consent), records a server-side acknowledgment for
+// signed-in users, then re-runs routeOnLoad() to resume normal boot — that
+// function already owns the auth/baseline branching, so this just re-enters
+// it rather than duplicating the branch logic here.
+function acknowledgeConsent(){
+  var record = {acknowledged:true, version:'1.0', timestamp:new Date().toISOString()};
+  try{ localStorage.setItem('see_consent_v1', JSON.stringify(record)); }catch(e){}
+  // Anonymous/guest users are skipped here — consent_acknowledgments RLS
+  // requires a real user_id match, so an anonymous insert would just fail
+  // (same reasoning as the falls-table guard elsewhere in this file).
+  if(window._authUser && window._authUser.id){
+    sbI('consent_acknowledgments', {
+      user_id: window._authUser.id,
+      version: record.version,
+      acknowledged_at: record.timestamp
+    });
+  }
+  routeOnLoad();
+}
+
 routeOnLoad();
 
 </script>
