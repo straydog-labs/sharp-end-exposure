@@ -1685,17 +1685,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <textarea id="journal-entry-text" placeholder="What's on your mind after today's climbing?"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;box-sizing:border-box;margin-bottom:10px;"></textarea>
 
-        <div style="position:relative;margin-bottom:10px;">
-          <input id="journal-climb-input" type="text" placeholder="Attach to a climb (optional)" autocomplete="off"
-            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:10px 12px;outline:none;box-sizing:border-box;"
-            oninput="onJournalClimbInput(this.value)"/>
-          <div id="journal-climb-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-md) var(--r-md);z-index:50;max-height:180px;overflow-y:auto;"></div>
-        </div>
-        <div id="journal-climb-selected" style="display:none;margin:-4px 0 10px;padding:6px 10px;background:rgba(232,118,58,.08);border:1px solid rgba(232,118,58,.2);border-radius:6px;font-size:11px;color:var(--accent);">
-          <span id="journal-climb-selected-text"></span>
-          <button onclick="clearJournalClimbSelection()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 4px;float:right;">×</button>
-        </div>
-
         <button onclick="saveJournalEntry()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 24px;cursor:pointer;">Save entry →</button>
 
         <div style="margin:20px 0;border-top:1px solid var(--border);"></div>
@@ -1722,6 +1711,41 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;margin-top:24px;">Journal</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
         <div style="font-size:14px;color:var(--muted);line-height:1.6;">Sign in to keep a journal.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     JOURNAL ENTRY DETAIL — screen-journal-entry
+     Fix, build 175: reached by tapping a date row in Profile's Journal list.
+     Same pattern as Route History — its own screen, reached via showScreen().
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-journal-entry">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-profile')">← Profile</button>
+  </div>
+  <div style="padding:0 16px 80px;">
+
+    <div id="je-date" style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:20px;">—</div>
+
+    <div id="je-view-wrap">
+      <div class="insight-card" style="margin-bottom:16px;">
+        <div id="je-text" style="font-size:15px;color:var(--text);line-height:1.6;white-space:pre-wrap;"></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="startEditJournalEntry()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">Edit</button>
+        <button onclick="deleteJournalEntry()" style="flex:1;background:none;border:1px solid rgba(232,68,68,.4);border-radius:var(--r-md);color:rgba(232,68,68,.8);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">Delete</button>
+      </div>
+    </div>
+
+    <div id="je-edit-wrap" style="display:none;">
+      <textarea id="je-edit-text" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:160px;line-height:1.6;box-sizing:border-box;margin-bottom:12px;"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveEditJournalEntry()" style="flex:1;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;">Save</button>
+        <button onclick="cancelEditJournalEntry()" style="flex:1;background:none;border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">Cancel</button>
       </div>
     </div>
 
@@ -2821,7 +2845,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index174';
+var app_version = 'staging-index175';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4360,7 +4384,7 @@ function unlockRouteIdentityFields(){
   if(lockedHeader) lockedHeader.style.display = 'none';
 }
 
-function selectClimb(id, name){
+async function selectClimb(id, name){
   // Find full climb record from cache
   var climb = _climbCache ? _climbCache.find(function(c){return c.id===id;}) : null;
 
@@ -4411,7 +4435,16 @@ function selectClimb(id, name){
   // the attempt. Locked case gets the header treatment (Fix 2) instead of the badge
   // below — the badge lived inside log-rname-card, which is now hidden entirely.
   if(climb){
-    lockRouteIdentityFields(name, climb.grade_value, climb.climbing_type, null);
+    // climbs table has no indoor/outdoor column — derive setting from this
+    // climb's own session history, same query pattern openClimbExposure()
+    // already uses for its route header (build 175 fix)
+    var uid = window._authUser ? window._authUser.id : null;
+    var sessQuery = uid
+      ? 'select=setting&climb_id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+uid+'&is_baseline=eq.false&is_checkin=eq.false&deleted_at=is.null&order=created_at.asc'
+      : 'select=setting&climb_id=eq.'+encodeURIComponent(id)+'&device_id=eq.'+getDeviceId()+'&is_baseline=eq.false&is_checkin=eq.false&deleted_at=is.null&order=created_at.asc';
+    var sessions = await sbS('sessions', sessQuery);
+    var setting = (Array.isArray(sessions) && sessions[0]) ? sessions[0].setting : null;
+    lockRouteIdentityFields(name, climb.grade_value, climb.climbing_type, setting);
   } else {
     showBadge('Linked: ' + name);
   }
@@ -4446,58 +4479,11 @@ document.addEventListener('click',function(e){
 });
 
 // ═══════════════════════════════════════════════════════
-// JOURNAL — freeform entries, optionally attached to a climb (Fix 6, build 173)
-// Climb attach reuses the same read-only-selection autocomplete pattern as
-// selectClimb() above, in its own id/state namespace so it can't collide with
-// the Log-a-climb screen's own autocomplete.
+// JOURNAL — freeform entries (Fix 6, build 173; sign-in-required + climb-attach
+// removed as of build 174/175). List shows date only; tap opens
+// screen-journal-entry for the full text, edit, and delete (Fix, build 175).
 // ═══════════════════════════════════════════════════════
-var _journalSelectedClimbId = null;
-
-function escJournalHtml(s){
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-async function onJournalClimbInput(val){
-  _journalSelectedClimbId = null;
-  var selEl = document.getElementById('journal-climb-selected');
-  if(selEl) selEl.style.display = 'none';
-  var sugg = document.getElementById('journal-climb-suggestions');
-  if(!sugg) return;
-  if(!val || val.length < 2){ sugg.style.display = 'none'; return; }
-  var climbs = await loadClimbCache();
-  var q = normalizeClimbName(val);
-  var matches = climbs.filter(function(c){ return normalizeClimbName(c.name).indexOf(q) > -1; }).slice(0, 6);
-  if(!matches.length){ sugg.style.display = 'none'; return; }
-  sugg.style.display = 'block';
-  sugg.innerHTML = matches.map(function(c){
-    var sub = [c.grade_value, c.climbing_type].filter(Boolean).join(' · ');
-    return '<div onclick="selectJournalClimb(\''+c.id+'\',\''+c.name.replace(/\'/g,'&#39;')+'\')" '
-      +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);-webkit-tap-highlight-color:transparent;">'
-      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+escJournalHtml(c.name)+'</div>'
-      +(sub?'<div style="font-size:11px;color:var(--muted);">'+escJournalHtml(sub)+'</div>':'')
-      +'</div>';
-  }).join('');
-}
-
-function selectJournalClimb(id, name){
-  _journalSelectedClimbId = id;
-  var input = document.getElementById('journal-climb-input');
-  if(input) input.value = name;
-  var sugg = document.getElementById('journal-climb-suggestions');
-  if(sugg) sugg.style.display = 'none';
-  var selEl = document.getElementById('journal-climb-selected');
-  var txtEl = document.getElementById('journal-climb-selected-text');
-  if(txtEl) txtEl.textContent = 'Attached: ' + name;
-  if(selEl) selEl.style.display = 'block';
-}
-
-function clearJournalClimbSelection(){
-  _journalSelectedClimbId = null;
-  var input = document.getElementById('journal-climb-input');
-  if(input) input.value = '';
-  var selEl = document.getElementById('journal-climb-selected');
-  if(selEl) selEl.style.display = 'none';
-}
+var _journalEntriesCache = [];
 
 async function saveJournalEntry(){
   // Sign-in required (build 174) — no anonymous journaling, same as backoffs/falls
@@ -4508,13 +4494,11 @@ async function saveJournalEntry(){
   var payload = {
     user_id: window._authUser.id,
     device_id: getDeviceId(),
-    entry_text: text,
-    climb_id: _journalSelectedClimbId || null
+    entry_text: text
   };
   var saved = await sbI('journal_entries', payload);
   if(saved === null){ showToast('Could not save — try again', true); return; }
   if(textEl) textEl.value = '';
-  clearJournalClimbSelection();
   showToast('Entry saved ✓');
   loadJournalEntries();
 }
@@ -4524,29 +4508,77 @@ async function loadJournalEntries(){
   if(!window._authUser) return;
   var listEl = document.getElementById('journal-entries-list');
   if(!listEl) return;
-  var query = 'select=*&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=100';
+  var query = 'select=*&user_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=created_at.desc&limit=100';
   var entries = await sbS('journal_entries', query);
-  if(!Array.isArray(entries) || !entries.length){
+  _journalEntriesCache = Array.isArray(entries) ? entries : [];
+  if(!_journalEntriesCache.length){
     listEl.innerHTML = '<div style="text-align:center;padding:16px 0;font-size:13px;color:var(--muted);">No journal entries yet.</div>';
     return;
   }
-  var climbNameById = {};
-  var needsClimbNames = entries.some(function(e){ return e.climb_id; });
-  if(needsClimbNames){
-    var climbs = await loadClimbCache();
-    climbs.forEach(function(c){ climbNameById[c.id] = c.name; });
-  }
-  listEl.innerHTML = entries.map(function(e){
+  listEl.innerHTML = _journalEntriesCache.map(function(e){
     var d = e.created_at ? new Date(e.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
-    var climbName = e.climb_id ? (climbNameById[e.climb_id] || null) : null;
-    return '<div style="padding:12px 0;border-bottom:1px solid var(--border);">'
-      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">'
-      +'<span style="font-size:11px;color:var(--muted);">'+d+'</span>'
-      +(climbName ? '<span style="font-size:11px;color:var(--accent);">'+escJournalHtml(climbName)+'</span>' : '')
-      +'</div>'
-      +'<div style="font-size:14px;color:var(--text);line-height:1.5;white-space:pre-wrap;">'+escJournalHtml(e.entry_text)+'</div>'
+    return '<div onclick="openJournalEntry(\''+e.id+'\')" style="padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:space-between;">'
+      +'<span style="font-size:14px;color:var(--text);">'+d+'</span>'
+      +'<span style="font-size:16px;color:var(--muted);">›</span>'
       +'</div>';
   }).join('');
+}
+
+// ── JOURNAL ENTRY DETAIL — screen-journal-entry (view/edit/delete) ──
+var _journalOpenEntryId = null;
+
+function openJournalEntry(id){
+  var entry = _journalEntriesCache.find(function(e){ return e.id === id; });
+  if(!entry) return;
+  _journalOpenEntryId = id;
+  var d = entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '';
+  var dateEl = document.getElementById('je-date');
+  var textEl = document.getElementById('je-text');
+  var editEl = document.getElementById('je-edit-text');
+  if(dateEl) dateEl.textContent = d;
+  if(textEl) textEl.textContent = entry.entry_text;
+  if(editEl) editEl.value = entry.entry_text;
+  // Reset to view mode every time this screen opens
+  var viewWrap = document.getElementById('je-view-wrap');
+  var editWrap = document.getElementById('je-edit-wrap');
+  if(viewWrap) viewWrap.style.display = 'block';
+  if(editWrap) editWrap.style.display = 'none';
+  showScreen('screen-journal-entry');
+}
+
+function startEditJournalEntry(){
+  var viewWrap = document.getElementById('je-view-wrap');
+  var editWrap = document.getElementById('je-edit-wrap');
+  if(viewWrap) viewWrap.style.display = 'none';
+  if(editWrap) editWrap.style.display = 'block';
+}
+
+function cancelEditJournalEntry(){
+  var viewWrap = document.getElementById('je-view-wrap');
+  var editWrap = document.getElementById('je-edit-wrap');
+  if(viewWrap) viewWrap.style.display = 'block';
+  if(editWrap) editWrap.style.display = 'none';
+}
+
+async function saveEditJournalEntry(){
+  if(!_journalOpenEntryId) return;
+  var editEl = document.getElementById('je-edit-text');
+  var text = editEl ? editEl.value.trim() : '';
+  if(!text){ showToast('Write something first'); return; }
+  await sbU('journal_entries', 'id=eq.'+_journalOpenEntryId, {entry_text: text});
+  showToast('Entry updated ✓');
+  await loadJournalEntries();
+  openJournalEntry(_journalOpenEntryId);
+}
+
+async function deleteJournalEntry(){
+  if(!_journalOpenEntryId) return;
+  if(!confirm('Delete this journal entry? This cannot be undone.')) return;
+  await sbU('journal_entries', 'id=eq.'+_journalOpenEntryId, {deleted_at: new Date().toISOString()});
+  showToast('Entry deleted');
+  _journalOpenEntryId = null;
+  showScreen('screen-profile');
+  loadJournalEntries();
 }
 
 function resetLogScreen(){
