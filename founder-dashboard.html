@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Straydog Labs — Founder Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23c8622a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23c8622a' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
+<style>
+  :root{
+    --bg:#0d0d0d;
+    --surface:#1a1a1a;
+    --border:#2a2a2a;
+    --text:#f0f0f0;
+    --text-secondary:#888888;
+    --accent:#c8622a;
+    --success:#3B6D11;
+    --warning:#BA7517;
+    --danger:#a83828;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .mono{font-family:'Space Mono',monospace;}
+
+  /* ---------- Password gate ---------- */
+  #gate{
+    position:fixed;inset:0;
+    background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    z-index:1000;
+  }
+  #gate.hidden{display:none;}
+  .gate-box{
+    text-align:center;
+    width:320px;
+  }
+  .gate-word{
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .gate-word span{color:var(--accent);}
+  .gate-sub{
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--text-secondary);
+    margin-top:6px;
+    margin-bottom:32px;
+  }
+  #gate-input{
+    width:100%;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    color:var(--text);
+    font-family:'Space Mono',monospace;
+    font-size:14px;
+    text-align:center;
+    letter-spacing:.08em;
+    outline:none;
+  }
+  #gate-input:focus{border-color:var(--accent);}
+  #gate-input.shake{animation:shake .35s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px);}
+    20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-8px);}
+    40%,60%{transform:translateX(8px);}
+  }
+  #gate-btn{
+    width:100%;
+    margin-top:12px;
+    background:var(--accent);
+    border:none;
+    border-radius:8px;
+    padding:12px 14px;
+    color:#0d0d0d;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+  }
+  #gate-btn:hover{opacity:.9;}
+  #gate-error{
+    margin-top:14px;
+    font-size:12px;
+    color:var(--danger);
+    min-height:16px;
+  }
+
+  /* ---------- Shell ---------- */
+  #app{display:none;height:100vh;}
+  #app.visible{display:flex;}
+
+  #sidebar{
+    width:220px;
+    flex-shrink:0;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:20px 0;
+  }
+  .sidebar-word{
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:0 20px 16px;
+  }
+  .sidebar-word span{color:var(--accent);}
+  .nav-divider{border-top:1px solid var(--border);margin:0 20px 8px;}
+  nav{flex:1;}
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:11px 20px;
+    color:var(--text-secondary);
+    cursor:pointer;
+    border-left:3px solid transparent;
+    font-size:13.5px;
+    font-weight:500;
+    user-select:none;
+  }
+  .nav-item:hover{color:var(--text);background:rgba(255,255,255,.02);}
+  .nav-item.active{
+    color:var(--text);
+    border-left-color:var(--accent);
+    background:rgba(200,98,42,.08);
+  }
+  .nav-icon{width:18px;text-align:center;font-size:14px;}
+  .sidebar-footer{
+    padding:12px 20px 0;
+    border-top:1px solid var(--border);
+    font-size:11px;
+    color:var(--text-secondary);
+    line-height:1.8;
+  }
+  .sidebar-footer .mono{color:var(--text-secondary);}
+
+  #main{
+    flex:1;
+    overflow-y:auto;
+    padding:32px 40px 60px;
+  }
+  .section-view{display:none;}
+  .section-view.active{display:block;}
+
+  .page-title{
+    font-size:20px;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .page-sub{
+    font-size:13px;
+    color:var(--text-secondary);
+    margin-bottom:28px;
+  }
+
+  /* ---------- Cards / metrics ---------- */
+  .metric-grid{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:14px;
+    margin-bottom:28px;
+  }
+  .metric-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px 20px;
+  }
+  .metric-num{
+    font-family:'Space Mono',monospace;
+    font-size:28px;
+    font-weight:700;
+    line-height:1;
+    margin-bottom:8px;
+  }
+  .metric-label{
+    font-size:11.5px;
+    color:var(--text-secondary);
+    line-height:1.4;
+  }
+
+  .col-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:20px;
+  }
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px 24px;
+  }
+  .panel-title{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--text-secondary);
+    margin-bottom:14px;
+  }
+  .status-row{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:9px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .status-row:last-child{border-bottom:none;}
+  .status-dot{
+    width:8px;height:8px;
+    border-radius:50%;
+    margin-top:5px;
+    flex-shrink:0;
+  }
+  .dot-green{background:var(--success);}
+  .dot-amber{background:var(--warning);}
+  .dot-red{background:var(--danger);}
+  .dot-gray{background:var(--text-secondary);}
+  .status-name{
+    font-size:13px;
+    font-weight:600;
+    color:var(--text);
+  }
+  .status-detail{
+    font-size:12px;
+    color:var(--text-secondary);
+    margin-top:1px;
+  }
+
+  .stub{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:60px 24px;
+    text-align:center;
+    color:var(--text-secondary);
+    font-size:13px;
+  }
+  .stub b{color:var(--text);}
+
+  /* ---------- SEE Live ---------- */
+  .quick-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:20px;
+    margin-bottom:24px;
+  }
+  .quick-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .quick-card-title{
+    font-size:13px;
+    font-weight:700;
+  }
+  .quick-meta{
+    font-size:12px;
+    color:var(--text-secondary);
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .quick-meta .mono{color:var(--text);}
+  .badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 9px;
+    border-radius:99px;
+    width:fit-content;
+  }
+  .badge-green{background:rgba(59,109,17,.18);color:#7fbf3f;}
+  .badge-red{background:rgba(168,56,40,.18);color:#e3705f;}
+  .quick-btn{
+    margin-top:auto;
+    background:transparent;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:9px 14px;
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    text-align:center;
+    text-decoration:none;
+    display:block;
+  }
+  .quick-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .health-panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px 24px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .health-status{font-size:13.5px;font-weight:600;}
+  .health-ok{color:#7fbf3f;}
+  .health-fail{color:#e3705f;}
+  .health-ms{color:var(--text-secondary);font-size:12px;}
+
+  /* ---------- Demo Center ---------- */
+  .demo-badge{
+    display:inline-block;
+    font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    padding:3px 10px;border-radius:99px;
+    background:rgba(200,98,42,.15);color:var(--accent);
+    flex-shrink:0;
+  }
+  .dc-tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border);}
+  .dc-tab-btn{
+    background:transparent;border:none;color:var(--text-secondary);
+    padding:10px 18px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;
+    cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  }
+  .dc-tab-btn:hover{color:var(--text);}
+  .dc-tab-btn.active{color:var(--text);border-bottom-color:var(--accent);}
+  .dc-panel{display:none;}
+  .dc-panel.active{display:block;}
+  .dc-header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:12px;}
+  .dc-persona{font-size:13px;color:var(--text-secondary);}
+  .dc-persona b{color:var(--text);}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+  .log-table{width:100%;border-collapse:collapse;}
+  .log-table th{text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:8px 10px;border-bottom:1px solid var(--border);}
+  .log-table td{padding:9px 10px;font-size:12.5px;border-bottom:1px solid var(--border);}
+  .log-table tr:last-child td{border-bottom:none;}
+  .log-table tr.clickable{cursor:pointer;}
+  .log-table tr.clickable:hover{background:rgba(255,255,255,.02);}
+
+  .zone-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+
+  .terrain-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .terrain-bar-label{width:80px;font-size:12.5px;flex-shrink:0;}
+  .terrain-bar-track{flex:1;height:16px;border-radius:4px;overflow:hidden;display:flex;background:#0d0d0d;}
+  .terrain-bar-seg{height:100%;}
+
+  .journal-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;}
+  .journal-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
+  .journal-line{font-size:13px;line-height:1.7;margin-bottom:6px;}
+  .journal-line b{color:var(--text-secondary);font-weight:600;}
+
+  .stat-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .stat-row:last-child{border-bottom:none;}
+  .stat-row span:first-child{color:var(--text-secondary);}
+
+  .athlete-roster-row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .athlete-roster-row:hover{background:rgba(255,255,255,.02);}
+  .athlete-roster-row:last-child{border-bottom:none;}
+  .athlete-name{font-size:13px;font-weight:600;flex:1;}
+  .athlete-tag{font-size:10.5px;color:var(--text-secondary);border:1px solid var(--border);border-radius:99px;padding:2px 8px;flex-shrink:0;}
+  .athlete-flag{font-size:11.5px;font-weight:600;flex-shrink:0;}
+  .flag-red{color:#e3705f;}
+  .flag-amber{color:#e0a23a;}
+
+  .drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;}
+  .drawer-backdrop.open{display:block;}
+  .drawer{position:fixed;top:0;right:-440px;width:420px;height:100%;background:var(--surface);border-left:1px solid var(--border);z-index:501;padding:28px 24px;overflow-y:auto;transition:right .2s ease;}
+  .drawer.open{right:0;}
+  .drawer-close{position:absolute;top:20px;right:20px;background:none;border:none;color:var(--text-secondary);font-size:16px;cursor:pointer;}
+  .drawer h3{font-size:16px;margin-bottom:4px;}
+  .drawer .drawer-sub{font-size:12px;color:var(--text-secondary);margin-bottom:20px;}
+  .drawer-section-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin:18px 0 8px;}
+
+  .insight-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--warning);border-radius:10px;padding:16px 20px;}
+  .insight-card.danger{border-left-color:var(--danger);}
+  .insight-card p{font-size:13px;line-height:1.6;}
+  .insight-card .insight-note{font-size:11.5px;font-style:italic;color:var(--text-secondary);margin-top:8px;}
+
+  .gym-table{width:100%;border-collapse:collapse;}
+  .gym-table th{text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:8px 10px;border-bottom:1px solid var(--border);}
+  .gym-table td{padding:10px;font-size:12.5px;border-bottom:1px solid var(--border);}
+  .gym-table tr:last-child td{border-bottom:none;}
+  .gym-table tr.flagged td{background:rgba(168,56,40,.08);}
+
+  .heatmap-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+  .heatmap-label{width:70px;font-size:12.5px;flex-shrink:0;}
+  .heatmap-track{flex:1;height:14px;background:#0d0d0d;border-radius:3px;overflow:hidden;}
+  .heatmap-bar{height:100%;border-radius:3px;}
+  .heatmap-val{width:36px;text-align:right;font-size:12px;flex-shrink:0;}
+
+  /* ---------- Roadmap ---------- */
+  .timeline{display:flex;gap:16px;margin-bottom:28px;align-items:stretch;}
+  .timeline-stage{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+  .timeline-stage-title{font-size:13px;font-weight:700;margin-bottom:10px;}
+  .timeline-badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 10px;border-radius:99px;margin-bottom:12px;}
+  .badge-progress{background:rgba(186,117,23,.18);color:#e0a23a;}
+  .badge-pending{background:rgba(136,136,136,.18);color:#aaaaaa;}
+  .badge-notstarted{background:rgba(136,136,136,.12);color:#888;}
+  .timeline-items{font-size:12.5px;color:var(--text-secondary);line-height:1.8;padding-left:16px;margin:0 0 10px;}
+  .timeline-contact{font-size:11.5px;color:var(--accent);}
+
+  .section-label{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin:28px 0 14px;}
+  .section-label:first-child{margin-top:0;}
+
+  .pillar-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  .pillar-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+  .pillar-title{font-size:13px;font-weight:700;margin-bottom:8px;}
+  .pillar-status{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:99px;display:inline-block;margin-bottom:10px;}
+  .status-built{background:rgba(59,109,17,.18);color:#7fbf3f;}
+  .status-next{background:rgba(200,98,42,.18);color:var(--accent);}
+  .status-planned{background:rgba(136,136,136,.15);color:#aaa;}
+  .status-longterm{background:rgba(136,136,136,.1);color:#888;}
+  .status-inprogress{background:rgba(186,117,23,.18);color:#e0a23a;}
+  .pillar-features{font-size:12px;color:var(--text-secondary);line-height:1.7;}
+  .pillar-note{font-size:11.5px;font-style:italic;color:var(--text-secondary);margin-top:8px;}
+
+  .relationship-table{width:100%;border-collapse:collapse;}
+  .relationship-table th{text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:8px 10px;border-bottom:1px solid var(--border);}
+  .relationship-table td{padding:10px;font-size:12.5px;border-bottom:1px solid var(--border);vertical-align:top;}
+  .relationship-table tr:last-child td{border-bottom:none;}
+
+  /* ---------- Build Queue ---------- */
+  .kanban-board{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:start;}
+  .kanban-col{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;min-height:200px;transition:border-color .1s;}
+  .kanban-col.drag-over{border-color:var(--accent);}
+  .kanban-col-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);}
+  .kanban-count{background:rgba(255,255,255,.06);border-radius:99px;padding:1px 8px;font-size:10.5px;}
+  .kanban-add-btn{width:100%;background:transparent;border:1px dashed var(--border);border-radius:8px;padding:8px;color:var(--text-secondary);font-size:12px;cursor:pointer;margin-bottom:10px;}
+  .kanban-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .kanban-add-form{display:none;margin-bottom:10px;background:#141414;border:1px solid var(--border);border-radius:8px;padding:10px;}
+  .kanban-add-form.open{display:block;}
+  .kanban-add-form input{width:100%;background:#0d0d0d;border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--text);font-size:12px;margin-bottom:6px;font-family:'Space Grotesk',sans-serif;}
+  .kanban-add-form-actions{display:flex;gap:6px;}
+  .kanban-add-form-actions button{flex:1;font-size:11px;padding:6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;}
+  .kanban-add-form-actions button.primary{background:var(--accent);color:#0d0d0d;border-color:var(--accent);font-weight:600;}
+  .kanban-card{background:#141414;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;cursor:grab;}
+  .kanban-card.dragging{opacity:.4;}
+  .kanban-card-title{font-size:12.5px;font-weight:600;margin-bottom:4px;}
+  .kanban-card-desc{font-size:11.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px;}
+  .kanban-card-meta{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-secondary);}
+  .priority-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+
+  /* ---------- Investor View ---------- */
+  .iv-title{font-size:22px;font-weight:700;}
+  .iv-tagline{font-size:14px;color:var(--text-secondary);font-style:italic;margin-top:4px;}
+  .iv-meta{font-size:12px;color:var(--text-secondary);margin-top:8px;}
+  .iv-section{margin-bottom:26px;}
+  .iv-problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .iv-problem-col{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;}
+  .iv-problem-col.missing{border-color:rgba(200,98,42,.4);}
+  .iv-problem-col-title{font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;}
+  .iv-problem-col ul{padding-left:18px;font-size:13px;line-height:1.8;}
+  .iv-signal-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;text-align:center;}
+  .iv-signal-num{font-family:'Space Mono',monospace;font-size:56px;font-weight:700;color:var(--accent);line-height:1;}
+  .iv-signal-label{font-size:13px;margin-top:8px;}
+  .iv-signal-caveat{font-size:11.5px;font-style:italic;color:var(--text-secondary);margin-top:8px;}
+  .iv-pricing-row{display:flex;gap:16px;}
+  .iv-pricing-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;text-align:center;}
+  .iv-pricing-price{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;}
+  .iv-pricing-name{font-size:12px;color:var(--text-secondary);margin-top:4px;}
+  .iv-gtm-row{display:flex;gap:16px;}
+  .iv-gtm-stage{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:12.5px;}
+  .iv-gtm-stage b{display:block;margin-bottom:4px;}
+  .iv-contact{font-size:13px;line-height:1.8;}
+  .iv-contact a{color:var(--accent);text-decoration:none;}
+
+  /* ---------- Analytics ---------- */
+  .skeleton-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .skeleton-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;height:220px;animation:skeleton-pulse 1.4s ease-in-out infinite;}
+  @keyframes skeleton-pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+  .metric-card.wide{padding:24px;}
+  .metric-card .metric-sub{font-size:11.5px;color:var(--text-secondary);margin-top:6px;line-height:1.5;}
+  .legend-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:4px 0;}
+  .legend-row .zone-dot{margin-right:8px;}
+  .log-table tr.expandable{cursor:pointer;}
+  .log-table tr.expandable:hover{background:rgba(255,255,255,.02);}
+  .detail-row td{background:#141414;padding:14px 16px;}
+  .detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-size:12px;}
+  .detail-grid div span{display:block;color:var(--text-secondary);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+</style>
+</head>
+<body>
+
+  <!-- ================= PASSWORD GATE ================= -->
+  <div id="gate">
+    <div class="gate-box">
+      <div class="gate-word">STRAY<span>DOG</span> LABS</div>
+      <div class="gate-sub">Founder Dashboard</div>
+      <input id="gate-input" type="password" placeholder="Password" autocomplete="off" autofocus>
+      <button id="gate-btn">Enter</button>
+      <div id="gate-error"></div>
+    </div>
+  </div>
+
+  <!-- ================= APP SHELL ================= -->
+  <div id="app">
+    <div id="sidebar">
+      <div class="sidebar-word">STRAY<span>DOG</span> LABS</div>
+      <div class="nav-divider"></div>
+      <nav id="nav"></nav>
+      <div class="sidebar-footer">
+        <div class="mono">v0.1.0</div>
+        <div>Last updated 2026-07-26</div>
+      </div>
+    </div>
+
+    <div id="main">
+
+      <!-- ---------- OVERVIEW ---------- -->
+      <section id="section-overview" class="section-view active">
+        <div class="page-title">Overview</div>
+        <div class="page-sub">At-a-glance status — everything that matters without clicking further.</div>
+
+        <div class="metric-grid" id="overview-metrics">
+          <div class="metric-card">
+            <div class="metric-num mono" id="metric-sessions">···</div>
+            <div class="metric-label">Total sessions logged</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-num mono" id="metric-climbs">···</div>
+            <div class="metric-label">Total climbs tracked</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-num mono" id="metric-users">···</div>
+            <div class="metric-label">Active users</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-num mono" id="metric-falls">···</div>
+            <div class="metric-label">Falls logged</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-num mono" id="metric-journal">···</div>
+            <div class="metric-label">Journal entries</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-num mono" id="metric-days">···</div>
+            <div class="metric-label">Days since first session</div>
+          </div>
+        </div>
+
+        <div class="col-grid">
+          <div class="panel">
+            <div class="panel-title">Relationships</div>
+            <div id="panel-relationships"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Business status</div>
+            <div id="panel-business"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Build status</div>
+            <div id="panel-build"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- STUB SECTIONS (built in later sessions) ---------- -->
+      <section id="section-analytics" class="section-view">
+        <div class="page-title">Analytics</div>
+        <div class="page-sub">Live Supabase data — sessions, zones, users, fall capture, Go Deeper completion.</div>
+
+        <div id="analytics-skeleton" class="skeleton-grid">
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block"></div>
+          <div class="skeleton-block" style="grid-column:1 / -1;height:120px;"></div>
+          <div class="skeleton-block" style="height:120px;"></div>
+          <div class="skeleton-block" style="height:120px;"></div>
+        </div>
+
+        <div id="analytics-error" class="insight-card danger" style="display:none;margin-bottom:20px;">
+          <p id="analytics-error-text">Unable to load live data.</p>
+        </div>
+
+        <div id="analytics-content" style="display:none;">
+          <div class="two-col" style="margin-bottom:20px;">
+            <div class="panel">
+              <div class="panel-title">Sessions over time — last 12 weeks</div>
+              <canvas id="chart-sessions" height="220"></canvas>
+            </div>
+            <div class="panel">
+              <div class="panel-title">Zone distribution</div>
+              <div style="position:relative;max-width:200px;margin:0 auto;">
+                <canvas id="chart-zone-donut" height="200"></canvas>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+                  <div class="mono" id="zone-donut-total" style="font-size:24px;font-weight:700;">—</div>
+                  <div style="font-size:9.5px;color:var(--text-secondary);letter-spacing:.06em;text-transform:uppercase;">sessions</div>
+                </div>
+              </div>
+              <div id="zone-donut-legend" style="margin-top:16px;"></div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Active users over time — last 12 weeks</div>
+            <canvas id="chart-users" height="180"></canvas>
+          </div>
+
+          <div class="two-col" style="margin-bottom:20px;">
+            <div class="metric-card wide">
+              <div class="metric-num mono" id="fall-capture-rate">···</div>
+              <div class="metric-sub">of fell-result sessions have fall detail captured</div>
+            </div>
+            <div class="metric-card wide">
+              <div class="metric-num mono" id="go-deeper-rate">···</div>
+              <div class="metric-sub">of sessions include a Go Deeper check-in</div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Zone breakdown by terrain</div>
+            <div id="terrain-zone-bars"></div>
+          </div>
+
+          <div class="panel" style="margin-bottom:0;">
+            <div class="panel-title">Last 10 sessions</div>
+            <table class="log-table">
+              <thead><tr><th>Date</th><th>Route</th><th>Grade</th><th>Zone</th><th>Result</th><th>Go Deeper</th><th>Fall captured</th></tr></thead>
+              <tbody id="analytics-sessions-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-see-live" class="section-view">
+        <div class="page-title">SEE Live</div>
+        <div class="page-sub">Quick access to the live app, repo, and Supabase project.</div>
+
+        <div class="quick-grid">
+          <div class="quick-card">
+            <div class="quick-card-title">Live app</div>
+            <span class="badge badge-green">staging-index176</span>
+            <div class="quick-meta"><span>Status</span><span class="mono health-ok">Live ✓</span></div>
+            <a class="quick-btn" href="https://straydog-labs.github.io/sharp-end-exposure" target="_blank" rel="noopener">Open live app</a>
+          </div>
+
+          <div class="quick-card">
+            <div class="quick-card-title">GitHub repo</div>
+            <div class="quick-meta"><span>Branch</span><span class="mono">main</span></div>
+            <div class="quick-meta"><span>Last commit</span><span class="mono" id="see-live-commit">···</span></div>
+            <a class="quick-btn" href="https://github.com/straydog-labs/sharp-end-exposure" target="_blank" rel="noopener">Open repo</a>
+          </div>
+
+          <div class="quick-card">
+            <div class="quick-card-title">Supabase</div>
+            <div class="quick-meta"><span>Project</span><span class="mono">kwtbqgoqtewrlsjgepwq</span></div>
+            <div class="quick-meta">&nbsp;</div>
+            <a class="quick-btn" href="https://app.supabase.com" target="_blank" rel="noopener">Open Supabase</a>
+          </div>
+        </div>
+
+        <div class="health-panel">
+          <div id="see-live-health" class="health-status">Checking Supabase···</div>
+          <div id="see-live-health-ms" class="health-ms mono"></div>
+        </div>
+      </section>
+
+      <section id="section-demo-center" class="section-view">
+        <div class="page-title">Demo Center</div>
+        <div class="page-sub">Member / Coach / Gym / Industry — the Wes / Garnett / Glenn / Amanda presentation view.</div>
+
+        <div class="dc-tabs" id="dc-tabs">
+          <button class="dc-tab-btn active" data-tab="member">Member</button>
+          <button class="dc-tab-btn" data-tab="coach">Coach</button>
+          <button class="dc-tab-btn" data-tab="gym">Gym</button>
+          <button class="dc-tab-btn" data-tab="industry">Industry</button>
+        </div>
+
+        <!-- ===== MEMBER ===== -->
+        <div class="dc-panel active" id="dc-member">
+          <div class="dc-header-row">
+            <div class="dc-persona">Simulated user: <b>Alex R.</b> — Sender One DTLA · climbing 2 years</div>
+            <span class="demo-badge">Demo data</span>
+          </div>
+
+          <div class="two-col" style="margin-bottom:20px;grid-template-columns:1.3fr 1fr;">
+            <div class="panel">
+              <div class="panel-title">Activation arc — last 10 sessions</div>
+              <svg viewBox="0 0 600 180" style="width:100%;height:auto;">
+                <rect x="0" y="0" width="600" height="60" fill="rgba(168,56,40,.12)"/>
+                <rect x="0" y="60" width="600" height="60" fill="rgba(186,117,23,.12)"/>
+                <rect x="0" y="120" width="600" height="60" fill="rgba(59,109,17,.12)"/>
+                <text x="8" y="15" fill="#c9938a" font-size="9" font-family="Space Mono">PANIC</text>
+                <text x="8" y="75" fill="#d9b988" font-size="9" font-family="Space Mono">LEARNING</text>
+                <text x="8" y="135" fill="#9bbf82" font-size="9" font-family="Space Mono">COMFORT</text>
+                <polyline points="30,150 93,90 156,90 219,150 282,90 345,30 408,90 471,90 534,90 597,90" fill="none" stroke="#c8622a" stroke-width="2.5"/>
+                <circle cx="30" cy="150" r="4" fill="#3B6D11"/>
+                <circle cx="93" cy="90" r="4" fill="#BA7517"/>
+                <circle cx="156" cy="90" r="4" fill="#BA7517"/>
+                <circle cx="219" cy="150" r="4" fill="#3B6D11"/>
+                <circle cx="282" cy="90" r="4" fill="#BA7517"/>
+                <circle cx="345" cy="30" r="4" fill="#a83828"/>
+                <circle cx="408" cy="90" r="4" fill="#BA7517"/>
+                <circle cx="471" cy="90" r="4" fill="#BA7517"/>
+                <circle cx="534" cy="90" r="4" fill="#BA7517"/>
+                <circle cx="597" cy="90" r="4" fill="#BA7517"/>
+              </svg>
+            </div>
+            <div class="panel">
+              <div class="panel-title">Zone by terrain</div>
+              <div class="terrain-bar-row"><div class="terrain-bar-label">Slab</div><div class="terrain-bar-track"><div class="terrain-bar-seg" style="width:70%;background:#3B6D11;"></div><div class="terrain-bar-seg" style="width:30%;background:#BA7517;"></div></div></div>
+              <div class="terrain-bar-row"><div class="terrain-bar-label">Vertical</div><div class="terrain-bar-track"><div class="terrain-bar-seg" style="width:40%;background:#3B6D11;"></div><div class="terrain-bar-seg" style="width:55%;background:#BA7517;"></div><div class="terrain-bar-seg" style="width:5%;background:#a83828;"></div></div></div>
+              <div class="terrain-bar-row"><div class="terrain-bar-label">Overhang</div><div class="terrain-bar-track"><div class="terrain-bar-seg" style="width:10%;background:#3B6D11;"></div><div class="terrain-bar-seg" style="width:55%;background:#BA7517;"></div><div class="terrain-bar-seg" style="width:35%;background:#a83828;"></div></div></div>
+              <div class="terrain-bar-row"><div class="terrain-bar-label">Dihedral</div><div class="terrain-bar-track"><div class="terrain-bar-seg" style="width:30%;background:#3B6D11;"></div><div class="terrain-bar-seg" style="width:60%;background:#BA7517;"></div><div class="terrain-bar-seg" style="width:10%;background:#a83828;"></div></div></div>
+              <div class="terrain-bar-row"><div class="terrain-bar-label">Crack</div><div class="terrain-bar-track"><div class="terrain-bar-seg" style="width:20%;background:#3B6D11;"></div><div class="terrain-bar-seg" style="width:70%;background:#BA7517;"></div><div class="terrain-bar-seg" style="width:10%;background:#a83828;"></div></div></div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Climb log — last 10 sessions</div>
+            <table class="log-table">
+              <thead><tr><th>Date</th><th>Route</th><th>Grade</th><th>Terrain</th><th>Result</th><th>Zone</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">2026-07-20</td><td>Second Wind</td><td class="mono">5.10c</td><td>Overhang</td><td>Sent</td><td><span class="zone-dot dot-amber"></span>Learning</td></tr>
+                <tr><td class="mono">2026-07-15</td><td>Roof Rat</td><td class="mono">5.10d</td><td>Roof</td><td>Backed off</td><td><span class="zone-dot dot-amber"></span>Learning</td></tr>
+                <tr><td class="mono">2026-07-08</td><td>Crackhouse</td><td class="mono">5.10b</td><td>Crack</td><td>Sent</td><td><span class="zone-dot dot-amber"></span>Learning</td></tr>
+                <tr><td class="mono">2026-07-01</td><td>Corner Pocket</td><td class="mono">5.10a</td><td>Dihedral</td><td>Sent</td><td><span class="zone-dot dot-amber"></span>Learning</td></tr>
+                <tr style="background:rgba(168,56,40,.06);"><td class="mono">2026-06-24</td><td>Night Train</td><td class="mono">5.10c</td><td>Overhang</td><td>Fell</td><td><span class="zone-dot dot-red"></span>Panic</td></tr>
+                <tr><td class="mono">2026-06-17</td><td>Crimpocalypse</td><td class="mono">5.10c</td><td>Overhang</td><td>Backed off</td><td><span class="zone-dot dot-amber"></span>Learning</td></tr>
+                <tr><td class="mono">2026-06-10</td><td>Easy Skankin'</td><td class="mono">5.9</td><td>Slab</td><td>Sent</td><td><span class="zone-dot dot-green"></span>Comfort</td></tr>
+                <tr><td class="mono">2026-06-03</td><td>The Prow</td><td class="mono">5.10b</td><td>Arête</td><td>Sent</td><td><span class="zone-dot dot-amber"></span>Learning</td></tr>
+                <tr><td class="mono">2026-05-27</td><td>Blue Steel</td><td class="mono">5.10a</td><td>Vertical</td><td>Sent</td><td><span class="zone-dot dot-amber"></span>Learning</td></tr>
+                <tr><td class="mono">2026-05-20</td><td>Sunny Corner</td><td class="mono">5.9</td><td>Slab</td><td>Sent</td><td><span class="zone-dot dot-green"></span>Comfort</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Fall detail — Night Train, 2026-06-24</div>
+            <div class="stat-row"><span>Got back on</span><span>Immediately</span></div>
+            <div class="stat-row"><span>Expectation</span><span>Expected to fall</span></div>
+            <div class="stat-row"><span>What happened</span><span>Feet cut on crux</span></div>
+            <div class="stat-row"><span>Catch quality</span><span>Soft catch</span></div>
+            <div class="stat-row"><span>Consequence</span><span>Minor swing, no contact</span></div>
+            <div class="stat-row"><span>Notes</span><span style="font-style:italic;text-align:right;max-width:260px;">"felt panic set in before crux, held breath"</span></div>
+          </div>
+
+          <div class="two-col">
+            <div class="panel">
+              <div class="panel-title">Go Deeper summary</div>
+              <div class="stat-row"><span>Breathing — most common</span><span>Shallow or tight · 60%</span></div>
+              <div class="stat-row"><span>Gut sensation — most common</span><span>Butterflies/dropping · 55%</span></div>
+            </div>
+            <div class="journal-card">
+              <div class="journal-label">Reflection</div>
+              <div class="journal-line"><b>Went well:</b> Committed to the sequence</div>
+              <div class="journal-line"><b>Still learning:</b> Breathing before crux</div>
+              <div class="journal-line"><b>Surprised by:</b> How catch quality affected next attempt</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== COACH ===== -->
+        <div class="dc-panel" id="dc-coach">
+          <div class="dc-header-row">
+            <div class="dc-persona">Coach view — <b>John Campbell</b>, first coach</div>
+            <span class="demo-badge">Demo data</span>
+          </div>
+
+          <div class="metric-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px;">
+            <div class="metric-card"><div class="metric-num mono">12</div><div class="metric-label">Athletes</div></div>
+            <div class="metric-card"><div class="metric-num mono">203</div><div class="metric-label">Sessions</div></div>
+            <div class="metric-card"><div class="metric-num mono">59%</div><div class="metric-label">Learning avg</div></div>
+            <div class="metric-card"><div class="metric-num mono">68%</div><div class="metric-label">Send rate</div></div>
+            <div class="metric-card"><div class="metric-num mono" style="color:#e3705f;">2</div><div class="metric-label">Flagged</div></div>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Weekly focus</div>
+            <div style="font-size:13px;">Current cycle: <b>Fall practice and fear management</b> — 5 athletes assigned.</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">Athlete roster</div>
+            <div id="athlete-roster"></div>
+          </div>
+        </div>
+
+        <!-- ===== GYM ===== -->
+        <div class="dc-panel" id="dc-gym">
+          <div class="dc-header-row">
+            <div class="dc-persona">Location: <b>Sender One DTLA</b></div>
+            <span class="demo-badge">Demo data</span>
+          </div>
+
+          <div class="metric-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px;">
+            <div class="metric-card"><div class="metric-num mono">847</div><div class="metric-label">Active members</div></div>
+            <div class="metric-card"><div class="metric-num mono">312</div><div class="metric-label">Using SEE</div></div>
+            <div class="metric-card"><div class="metric-num mono">1,847</div><div class="metric-label">Sessions this month</div></div>
+            <div class="metric-card"><div class="metric-num mono">61%</div><div class="metric-label">Learning zone</div></div>
+            <div class="metric-card"><div class="metric-num mono" style="color:#e0a23a;">18%</div><div class="metric-label">Panic rate</div></div>
+            <div class="metric-card"><div class="metric-num mono">8</div><div class="metric-label">Falls this week</div></div>
+          </div>
+
+          <div class="two-col" style="margin-bottom:20px;">
+            <div class="panel">
+              <div class="panel-title">Zone distribution</div>
+              <div class="terrain-bar-row">
+                <div class="terrain-bar-track" style="height:22px;">
+                  <div class="terrain-bar-seg" style="width:28%;background:#3B6D11;" title="Comfort 28%"></div>
+                  <div class="terrain-bar-seg" style="width:61%;background:#BA7517;" title="Learning 61%"></div>
+                  <div class="terrain-bar-seg" style="width:18%;background:#a83828;" title="Panic 18%"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:16px;font-size:12px;color:var(--text-secondary);margin-top:10px;">
+                <span><span class="zone-dot dot-green"></span>Comfort 28%</span>
+                <span><span class="zone-dot dot-amber"></span>Learning 61%</span>
+                <span><span class="zone-dot dot-red"></span>Panic 18%</span>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">Panic rate trend — 8 weeks</div>
+              <svg viewBox="0 0 300 100" style="width:100%;height:auto;">
+                <polyline points="10,70 51,66 92,66 133,62 174,58 215,54 256,50 297,46" fill="none" stroke="#e0a23a" stroke-width="2.5"/>
+                <text x="0" y="96" font-size="9" fill="#888" font-family="Space Mono">8 wks ago</text>
+                <text x="262" y="96" font-size="9" fill="#888" font-family="Space Mono">now</text>
+              </svg>
+              <div style="font-size:12px;color:var(--text-secondary);">Ending at 18% — 1 incident this month.</div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Top terrain by Panic</div>
+            <div class="heatmap-row"><div class="heatmap-label">Overhang</div><div class="heatmap-track"><div class="heatmap-bar" style="width:31%;background:#a83828;"></div></div><span class="heatmap-val mono">31%</span></div>
+            <div class="heatmap-row"><div class="heatmap-label">Slab</div><div class="heatmap-track"><div class="heatmap-bar" style="width:24%;background:#a83828;"></div></div><span class="heatmap-val mono">24%</span></div>
+          </div>
+
+          <div class="insight-card">
+            <p>Overhang sessions trending higher Panic this month. Consider a fall practice clinic.</p>
+            <div class="insight-note">SEE surfaces patterns — your team draws the conclusions.</div>
+          </div>
+        </div>
+
+        <!-- ===== INDUSTRY ===== -->
+        <div class="dc-panel" id="dc-industry">
+          <div class="dc-header-row">
+            <div class="dc-persona">Network across 7 gyms</div>
+            <span class="demo-badge">Demo data</span>
+          </div>
+
+          <div class="metric-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px;">
+            <div class="metric-card"><div class="metric-num mono">12,847</div><div class="metric-label">Total sessions</div></div>
+            <div class="metric-card"><div class="metric-num mono">58%</div><div class="metric-label">Learning avg</div></div>
+            <div class="metric-card"><div class="metric-num mono" style="color:#e0a23a;">16%</div><div class="metric-label">Panic rate</div></div>
+            <div class="metric-card"><div class="metric-num mono">3,240</div><div class="metric-label">Active users</div></div>
+            <div class="metric-card"><div class="metric-num mono">847</div><div class="metric-label">Falls logged</div></div>
+            <div class="metric-card"><div class="metric-num mono" style="color:#e3705f;">11</div><div class="metric-label">Incidents</div></div>
+          </div>
+
+          <div class="insight-card danger" style="margin-bottom:20px;">
+            <p><b>11</b> incidents logged across the network. <b>78%</b> occurred in Panic-zone sessions. Network Panic rate of 16% sits above the 13% baseline.</p>
+            <div class="insight-note">Early signal — not yet statistically conclusive. SEE surfaces patterns; gyms and coaches draw the conclusions.</div>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Gym comparison</div>
+            <table class="gym-table">
+              <thead><tr><th>Gym</th><th>Active users</th><th>Sessions this month</th><th>Panic rate</th></tr></thead>
+              <tbody>
+                <tr><td>Sender One</td><td class="mono">1,120</td><td class="mono">5,450</td><td class="mono">17%</td></tr>
+                <tr><td>Earth Treks</td><td class="mono">540</td><td class="mono">1,780</td><td class="mono">14%</td></tr>
+                <tr><td>Movement</td><td class="mono">610</td><td class="mono">2,010</td><td class="mono">15%</td></tr>
+                <tr><td>Brooklyn Boulders</td><td class="mono">380</td><td class="mono">1,290</td><td class="mono">19%</td></tr>
+                <tr><td>Planet Granite</td><td class="mono">290</td><td class="mono">980</td><td class="mono">12%</td></tr>
+                <tr><td>Momentum</td><td class="mono">210</td><td class="mono">740</td><td class="mono">13%</td></tr>
+                <tr class="flagged"><td>Mesa Rim</td><td class="mono">90</td><td class="mono">597</td><td class="mono" style="color:#e3705f;font-weight:700;">23%</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Terrain heatmap — Panic correlation</div>
+            <div class="heatmap-row"><div class="heatmap-label">Overhang</div><div class="heatmap-track"><div class="heatmap-bar" style="width:29%;background:#a83828;"></div></div><span class="heatmap-val mono">29%</span></div>
+            <div class="heatmap-row"><div class="heatmap-label">Roof</div><div class="heatmap-track"><div class="heatmap-bar" style="width:22%;background:#a83828;"></div></div><span class="heatmap-val mono">22%</span></div>
+            <div class="heatmap-row"><div class="heatmap-label">Arête</div><div class="heatmap-track"><div class="heatmap-bar" style="width:18%;background:#BA7517;"></div></div><span class="heatmap-val mono">18%</span></div>
+            <div class="heatmap-row"><div class="heatmap-label">Vertical</div><div class="heatmap-track"><div class="heatmap-bar" style="width:14%;background:#BA7517;"></div></div><span class="heatmap-val mono">14%</span></div>
+            <div class="heatmap-row"><div class="heatmap-label">Dihedral</div><div class="heatmap-track"><div class="heatmap-bar" style="width:12%;background:#BA7517;"></div></div><span class="heatmap-val mono">12%</span></div>
+            <div class="heatmap-row"><div class="heatmap-label">Crack</div><div class="heatmap-track"><div class="heatmap-bar" style="width:10%;background:#3B6D11;"></div></div><span class="heatmap-val mono">10%</span></div>
+            <div class="heatmap-row"><div class="heatmap-label">Slab</div><div class="heatmap-track"><div class="heatmap-bar" style="width:8%;background:#3B6D11;"></div></div><span class="heatmap-val mono">8%</span></div>
+          </div>
+
+          <div class="panel" style="margin-bottom:0;">
+            <div class="panel-title">What this means</div>
+            <p style="font-size:13px;line-height:1.7;">Climbers in the Panic zone are attempting routes beyond their current psychological readiness. SEE makes this visible before it becomes an incident — not by telling climbers what to do, but by helping them notice what they're experiencing.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Athlete drawer (shared, used by Demo Center → Coach tab) -->
+      <div class="drawer-backdrop" id="athlete-drawer-backdrop"></div>
+      <div class="drawer" id="athlete-drawer">
+        <button class="drawer-close" id="athlete-drawer-close">✕</button>
+        <div id="athlete-drawer-content"></div>
+      </div>
+
+      <section id="section-roadmap" class="section-view">
+        <div class="page-title">Roadmap</div>
+        <div class="page-sub">GTM timeline and product pillar status.</div>
+
+        <div class="section-label">GTM Timeline</div>
+        <div class="timeline">
+          <div class="timeline-stage">
+            <div class="timeline-badge badge-progress">In progress</div>
+            <div class="timeline-stage-title">Stage 1 — Public Release</div>
+            <ul class="timeline-items">
+              <li>Core app stable</li>
+              <li>Consent screen live</li>
+              <li>Beta athletes onboarding</li>
+            </ul>
+          </div>
+          <div class="timeline-stage">
+            <div class="timeline-badge badge-pending">Pending — Wes outreach Mon Jul 28</div>
+            <div class="timeline-stage-title">Stage 2 — Sender One Pilot</div>
+            <ul class="timeline-items">
+              <li>Informal pilot</li>
+              <li>Handful of instructors</li>
+              <li>One training cycle</li>
+              <li>Structured feedback</li>
+            </ul>
+            <div class="timeline-contact">Contact: Wes Shih</div>
+          </div>
+          <div class="timeline-stage">
+            <div class="timeline-badge badge-notstarted">Not started — follows Sender One pilot</div>
+            <div class="timeline-stage-title">Stage 3 — CWA Conversation</div>
+            <ul class="timeline-items">
+              <li>Garnett conversation</li>
+              <li>Instructor development resources</li>
+              <li>Institutional adoption</li>
+            </ul>
+            <div class="timeline-contact">Contact: Garnett</div>
+          </div>
+        </div>
+
+        <div class="section-label">Product Pillars</div>
+        <div class="pillar-grid">
+          <div class="pillar-card">
+            <div class="pillar-status status-built">Built ✓</div>
+            <div class="pillar-title">Pillar 1 — Log</div>
+            <div class="pillar-features">Climb log, Go Deeper, activation gauge, Route History, fall capture, Drill, Journal</div>
+          </div>
+          <div class="pillar-card">
+            <div class="pillar-status status-next">Next</div>
+            <div class="pillar-title">Pillar 2 — Train</div>
+            <div class="pillar-features">Apple Health first, Mountain Project, CSV import, Crimpd/TrainingPeaks later</div>
+            <div class="pillar-note">Apple Health requires no partnership — build first.</div>
+          </div>
+          <div class="pillar-card">
+            <div class="pillar-status status-planned">Planned</div>
+            <div class="pillar-title">Pillar 3 — Reflect</div>
+            <div class="pillar-features">Pattern recognition, longitudinal self-knowledge, AI-generated insights</div>
+            <div class="pillar-note">Data structure design conversation needed before build.</div>
+          </div>
+        </div>
+        <div class="pillar-grid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="pillar-card">
+            <div class="pillar-status status-longterm">Long-term</div>
+            <div class="pillar-title">Community Layer</div>
+            <div class="pillar-note" style="margin-top:0;">Shared routes table, gym-scoped data, CWA gym partnerships seed this.</div>
+          </div>
+          <div class="pillar-card">
+            <div class="pillar-status status-inprogress">In progress (design phase)</div>
+            <div class="pillar-title">Coaching Platform</div>
+            <div class="pillar-features">coach_athlete_links, assignments, John as first coach, 2 athletes ready now</div>
+          </div>
+        </div>
+
+        <div class="section-label">Key Relationships</div>
+        <div class="panel" style="margin-bottom:0;">
+          <table class="relationship-table">
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Last contact</th><th>Next action</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><b>Wes Shih</b></td><td>Sender One</td>
+                <td><span class="zone-dot dot-amber"></span>In progress</td>
+                <td>—</td><td>Email Monday Jul 28</td>
+                <td>Pilot outreach — Stage 2 depends on this</td>
+              </tr>
+              <tr>
+                <td><b>Garnett</b></td><td>CWA</td>
+                <td><span class="zone-dot dot-gray"></span>Not started</td>
+                <td>—</td><td>Follows Sender One pilot</td>
+                <td>Stage 3 conversation, institutional adoption</td>
+              </tr>
+              <tr>
+                <td><b>Arno Ilgner</b></td><td>RWW</td>
+                <td><span class="zone-dot dot-red"></span>Urgent / blocked</td>
+                <td>—</td><td>IP agreement needed</td>
+                <td>Highest priority legal item</td>
+              </tr>
+              <tr>
+                <td><b>Glenn Ritter</b></td><td>Advisor (Black Diamond)</td>
+                <td><span class="zone-dot dot-gray"></span>Not started</td>
+                <td>—</td><td>Not yet contacted</td>
+                <td>Listed as advisor only after agreements exist</td>
+              </tr>
+              <tr>
+                <td><b>Amanda</b></td><td>Advisor (POC)</td>
+                <td><span class="zone-dot dot-gray"></span>Not started</td>
+                <td>—</td><td>Not yet contacted</td>
+                <td>Listed as advisor only after agreements exist</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="section-build-queue" class="section-view">
+        <div class="page-title">Build Queue</div>
+        <div class="page-sub">Kanban: Idea / Scoped / In Progress / Shipped. Drag cards between columns.</div>
+        <div class="kanban-board" id="kanban-board"></div>
+      </section>
+
+      <section id="section-investor-view" class="section-view">
+        <div class="page-title">Investor View</div>
+        <div class="page-sub">One-page business overview — what you'd show Glenn, Amanda, or any future investor in the first 5 minutes.</div>
+
+        <div class="iv-section">
+          <div class="iv-title">Sharp End Exposure <span style="color:var(--text-secondary);font-weight:400;">by Straydog Labs</span></div>
+          <div class="iv-tagline">"A climb log that tracks your body, not just your grades."</div>
+          <div class="iv-meta">Straydog Labs LLC — Nashville, TN — Founded 2026</div>
+        </div>
+
+        <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">The Problem</div>
+          <div class="iv-problem-grid">
+            <div class="iv-problem-col">
+              <div class="iv-problem-col-title">What exists</div>
+              <ul><li>Grades</li><li>Volume</li><li>Sends</li><li>Training load</li></ul>
+            </div>
+            <div class="iv-problem-col missing">
+              <div class="iv-problem-col-title">What's missing</div>
+              <ul><li>Activation state</li><li>Fear response</li><li>Somatic signals</li><li>Fall experience</li></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">The Product</div>
+          <div class="panel">
+            <p style="font-size:14px;line-height:1.8;">SEE tracks somatic response to climbing across sessions over time. It builds self-awareness until the pre-climb check-in becomes automatic. It is a noticing tool, not a decision-maker — the climber interprets the data.</p>
+          </div>
+        </div>
+
+        <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">The Signal</div>
+          <div class="iv-signal-card">
+            <div class="iv-signal-num mono">78%</div>
+            <div class="iv-signal-label">of logged incidents occurred in Panic-zone sessions</div>
+            <div class="iv-signal-caveat">Early signal — not yet statistically conclusive. We're building the dataset.</div>
+          </div>
+        </div>
+
+        <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">Traction — live from Supabase</div>
+          <div class="metric-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0;">
+            <div class="metric-card"><div class="metric-num mono" id="iv-sessions">···</div><div class="metric-label">Sessions logged</div></div>
+            <div class="metric-card"><div class="metric-num mono" id="iv-users">···</div><div class="metric-label">Active users</div></div>
+            <div class="metric-card"><div class="metric-num mono" id="iv-falls">···</div><div class="metric-label">Falls tracked</div></div>
+          </div>
+        </div>
+
+        <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">Three Pillars</div>
+          <div class="iv-gtm-row">
+            <div class="iv-gtm-stage"><b style="color:#7fbf3f;">Log</b>Built</div>
+            <div class="iv-gtm-stage"><b style="color:var(--accent);">Train</b>Next</div>
+            <div class="iv-gtm-stage"><b style="color:#aaa;">Reflect</b>After Train</div>
+          </div>
+        </div>
+
+        <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">GTM</div>
+          <div class="iv-gtm-row">
+            <div class="iv-gtm-stage"><b>Stage 1: Public</b>Organic dataset</div>
+            <div class="iv-gtm-stage"><b>Stage 2: Sender One pilot</b>Proof of model</div>
+            <div class="iv-gtm-stage"><b>Stage 3: CWA</b>Institutional adoption</div>
+          </div>
+        </div>
+
+        <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">Business Model</div>
+          <div class="panel" style="margin-bottom:12px;">Free during beta.</div>
+          <div class="iv-pricing-row">
+            <div class="iv-pricing-card"><div class="iv-pricing-price mono">$7.99/mo</div><div class="iv-pricing-name">SEE Pro</div></div>
+            <div class="iv-pricing-card"><div class="iv-pricing-price mono">$29.99/mo</div><div class="iv-pricing-name">SEE Coach</div></div>
+            <div class="iv-pricing-card"><div class="iv-pricing-price mono">$149–399/mo</div><div class="iv-pricing-name">Gym</div></div>
+          </div>
+        </div>
+
+        <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">Team</div>
+          <div class="panel">
+            <div style="font-size:13px;margin-bottom:6px;"><b>John Campbell</b> — founder, Warriors Way practitioner, climbing professional</div>
+            <div style="font-size:12px;color:var(--text-secondary);font-style:italic;">Advisors: pending — listed only after agreements are in place.</div>
+          </div>
+        </div>
+
+        <div class="iv-section" style="margin-bottom:0;">
+          <div class="section-label" style="margin-top:0;">Contact</div>
+          <div class="iv-contact">
+            <div><a href="mailto:beta@straydoglabs.com">beta@straydoglabs.com</a></div>
+            <div><a href="https://straydog-labs.github.io/sharp-end-exposure" target="_blank" rel="noopener">straydog-labs.github.io/sharp-end-exposure</a></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ===================== PASSWORD GATE ===================== */
+  var SL_PASS_B64 = 'c3RyYXlkb2cyMDI2'; // obfuscated: straydog2026
+  var gate = document.getElementById('gate');
+  var app = document.getElementById('app');
+  var input = document.getElementById('gate-input');
+  var btn = document.getElementById('gate-btn');
+  var errEl = document.getElementById('gate-error');
+
+  function unlock(){
+    gate.classList.add('hidden');
+    app.classList.add('visible');
+    loadOverview();
+  }
+
+  function tryPassword(){
+    var val = input.value;
+    if(val === atob(SL_PASS_B64)){
+      sessionStorage.setItem('sl_auth', 'true');
+      unlock();
+    } else {
+      errEl.textContent = 'Incorrect password';
+      input.classList.remove('shake');
+      void input.offsetWidth; // restart animation
+      input.classList.add('shake');
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  btn.addEventListener('click', tryPassword);
+  input.addEventListener('keydown', function(e){
+    if(e.key === 'Enter') tryPassword();
+  });
+
+  /* ===================== NAV / ROUTING ===================== */
+  var SECTIONS = [
+    {id:'overview', icon:'⌂', label:'Overview'},
+    {id:'analytics', icon:'📊', label:'Analytics'},
+    {id:'see-live', icon:'🧗', label:'SEE Live'},
+    {id:'demo-center', icon:'🎯', label:'Demo Center'},
+    {id:'roadmap', icon:'🗺', label:'Roadmap'},
+    {id:'build-queue', icon:'🔧', label:'Build Queue'},
+    {id:'investor-view', icon:'💼', label:'Investor View'}
+  ];
+
+  var navEl = document.getElementById('nav');
+  SECTIONS.forEach(function(s){
+    var item = document.createElement('div');
+    item.className = 'nav-item' + (s.id === 'overview' ? ' active' : '');
+    item.dataset.section = s.id;
+    item.innerHTML = '<span class="nav-icon">' + s.icon + '</span><span>' + s.label + '</span>';
+    item.addEventListener('click', function(){ showSection(s.id); });
+    navEl.appendChild(item);
+  });
+
+  function showSection(id){
+    document.querySelectorAll('.nav-item').forEach(function(el){
+      el.classList.toggle('active', el.dataset.section === id);
+    });
+    document.querySelectorAll('.section-view').forEach(function(el){
+      el.classList.toggle('active', el.id === 'section-' + id);
+    });
+    if(id === 'overview') loadOverview();
+    if(id === 'see-live') loadSeeLive();
+    if(id === 'investor-view') loadInvestorView();
+    if(id === 'analytics') loadAnalytics();
+  }
+
+  /* ===================== SUPABASE ===================== */
+  var SUPABASE_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
+
+  function sbHeaders(extra){
+    var h = {
+      apikey: SUPABASE_KEY,
+      Authorization: 'Bearer ' + SUPABASE_KEY
+    };
+    if(extra){ for(var k in extra){ h[k] = extra[k]; } }
+    return h;
+  }
+
+  function sbCount(table, filter){
+    // Deliberately not using HEAD + Prefer:count=exact + Content-Range: browsers only
+    // expose a safelisted set of response headers to JS on cross-origin fetches, and
+    // Content-Range isn't in it unless the server sends Access-Control-Expose-Headers.
+    // This page is cross-origin to Supabase, so that header would silently read as null.
+    // Fetching rows and counting client-side sidesteps CORS header exposure entirely.
+    var url = SUPABASE_URL + '/rest/v1/' + table + '?select=id' + (filter || '');
+    return fetch(url, {
+      headers: sbHeaders({ 'Range': '0-49999' })
+    }).then(function(res){
+      if(!res.ok) throw new Error('fetch failed: ' + table);
+      return res.json();
+    }).then(function(rows){
+      return rows.length;
+    });
+  }
+
+  function sbActiveUsers(){
+    var url = SUPABASE_URL + '/rest/v1/sessions?select=user_id&user_id=not.is.null';
+    return fetch(url, {
+      headers: sbHeaders({ 'Range': '0-49999' })
+    }).then(function(res){
+      if(!res.ok) throw new Error('fetch failed');
+      return res.json();
+    }).then(function(rows){
+      var set = new Set(rows.map(function(r){ return r.user_id; }));
+      return set.size;
+    });
+  }
+
+  function sbDaysSinceFirst(){
+    var url = SUPABASE_URL + '/rest/v1/sessions?select=created_at&order=created_at.asc&limit=1';
+    return fetch(url, { headers: sbHeaders() }).then(function(res){
+      if(!res.ok) throw new Error('fetch failed');
+      return res.json();
+    }).then(function(rows){
+      if(!rows.length) return null;
+      var first = new Date(rows[0].created_at);
+      return Math.floor((Date.now() - first.getTime()) / 86400000);
+    });
+  }
+
+  var OVERVIEW_METRICS = [
+    { id: 'metric-sessions', fetcher: function(){ return sbCount('sessions', '&deleted_at=is.null'); } },
+    { id: 'metric-climbs', fetcher: function(){ return sbCount('climbs', '&deleted_at=is.null'); } },
+    { id: 'metric-users', fetcher: sbActiveUsers },
+    { id: 'metric-falls', fetcher: function(){ return sbCount('falls'); } },
+    { id: 'metric-journal', fetcher: function(){ return sbCount('journal_entries', '&deleted_at=is.null'); } },
+    { id: 'metric-days', fetcher: sbDaysSinceFirst }
+  ];
+
+  var overviewLoaded = false;
+  function loadOverview(){
+    if(overviewLoaded) return;
+    overviewLoaded = true;
+    OVERVIEW_METRICS.forEach(function(m){
+      var el = document.getElementById(m.id);
+      el.textContent = '···';
+      m.fetcher().then(function(val){
+        el.textContent = (val === null || val === undefined) ? '—' : val.toLocaleString();
+      }).catch(function(){
+        el.textContent = '—';
+      });
+    });
+  }
+
+  /* ===================== SEE LIVE ===================== */
+  var seeLiveLoaded = false;
+  function loadSeeLive(){
+    if(seeLiveLoaded) return;
+    seeLiveLoaded = true;
+
+    // Last commit on main (public GitHub API, unauthenticated)
+    var commitEl = document.getElementById('see-live-commit');
+    fetch('https://api.github.com/repos/straydog-labs/sharp-end-exposure/commits/main')
+      .then(function(res){
+        if(!res.ok) throw new Error('bad response');
+        return res.json();
+      })
+      .then(function(data){
+        var sha = (data.sha || '').slice(0, 7);
+        commitEl.textContent = sha || '—';
+        commitEl.title = (data.commit && data.commit.message) ? data.commit.message.split('\n')[0] : '';
+      })
+      .catch(function(){
+        commitEl.textContent = '—';
+      });
+
+    // Supabase health check
+    var healthEl = document.getElementById('see-live-health');
+    var healthMsEl = document.getElementById('see-live-health-ms');
+    var t0 = performance.now();
+    fetch(SUPABASE_URL + '/rest/v1/sessions?select=id&limit=1', { headers: sbHeaders() })
+      .then(function(res){
+        var dt = Math.round(performance.now() - t0);
+        if(!res.ok) throw new Error('bad response');
+        healthEl.textContent = 'Supabase ✓ responding';
+        healthEl.className = 'health-status health-ok';
+        healthMsEl.textContent = dt + 'ms';
+      })
+      .catch(function(){
+        var dt = Math.round(performance.now() - t0);
+        healthEl.textContent = 'Supabase ✗ unreachable';
+        healthEl.className = 'health-status health-fail';
+        healthMsEl.textContent = dt + 'ms';
+      });
+  }
+
+  /* ===================== ANALYTICS ===================== */
+  var TERRAIN_TYPES = ['Slab', 'Vertical', 'Overhang', 'Roof', 'Arête', 'Dihedral', 'Crack'];
+  var ZONE_KEYS = ['comfort', 'learning', 'panic'];
+  var ZONE_HEX = { comfort: '#3B6D11', learning: '#BA7517', panic: '#a83828' };
+  var ZONE_CAP = { comfort: 'Comfort', learning: 'Learning', panic: 'Panic' };
+
+  function sbSelect(table, query){
+    var url = SUPABASE_URL + '/rest/v1/' + table + '?' + query;
+    return fetch(url, { headers: sbHeaders({ 'Range': '0-49999' }) }).then(function(res){
+      if(!res.ok) throw new Error('fetch failed: ' + table);
+      return res.json();
+    });
+  }
+
+  function weekBuckets(weeksBack){
+    var now = new Date();
+    var buckets = [];
+    for(var i = weeksBack - 1; i >= 0; i--){
+      var end = new Date(now.getTime() - i * 7 * 86400000);
+      var start = new Date(end.getTime() - 7 * 86400000);
+      buckets.push({ start: start, end: end, label: (start.getMonth() + 1) + '/' + start.getDate() });
+    }
+    return buckets;
+  }
+
+  function weeksAgoIso(weeksBack){
+    return new Date(Date.now() - weeksBack * 7 * 86400000).toISOString();
+  }
+
+  function normalizeZone(z){
+    if(!z) return null;
+    var s = String(z).toLowerCase();
+    if(ZONE_KEYS.indexOf(s) !== -1) return s;
+    return null;
+  }
+
+  function normalizeTerrain(t){
+    if(!t) return null;
+    var s = String(t).toLowerCase();
+    for(var i = 0; i < TERRAIN_TYPES.length; i++){
+      if(TERRAIN_TYPES[i].toLowerCase() === s) return TERRAIN_TYPES[i];
+    }
+    return null;
+  }
+
+  function renderChartOrFallback(canvasId, renderFn){
+    var canvas = document.getElementById(canvasId);
+    if(typeof Chart === 'undefined'){
+      var msg = document.createElement('div');
+      msg.className = 'stub';
+      msg.textContent = 'Chart.js unavailable (offline?) — chart cannot render.';
+      canvas.replaceWith(msg);
+      return;
+    }
+    renderFn(canvas);
+  }
+
+  var analyticsLoaded = false;
+  function loadAnalytics(){
+    if(analyticsLoaded) return;
+    analyticsLoaded = true;
+
+    var skeleton = document.getElementById('analytics-skeleton');
+    var errorBox = document.getElementById('analytics-error');
+    var content = document.getElementById('analytics-content');
+    var twelveWeeksAgo = weeksAgoIso(12);
+
+    Promise.all([
+      sbSelect('sessions', 'select=created_at&deleted_at=is.null&created_at=gte.' + encodeURIComponent(twelveWeeksAgo)),
+      sbSelect('sessions', 'select=zone&deleted_at=is.null'),
+      sbSelect('sessions', 'select=created_at,user_id&deleted_at=is.null&created_at=gte.' + encodeURIComponent(twelveWeeksAgo)),
+      sbCount('falls'),
+      sbCount('sessions', '&baseline_zone=eq.fell&deleted_at=is.null'),
+      sbCount('sessions', '&breathing_post=not.is.null&deleted_at=is.null'),
+      sbCount('sessions', '&deleted_at=is.null'),
+      sbSelect('sessions', 'select=climbing_type,zone&deleted_at=is.null'),
+      sbSelect('sessions', 'select=id,created_at,route_name,grade_value,zone,baseline_zone,breathing_post&deleted_at=is.null&order=created_at.desc&limit=10')
+    ]).then(function(results){
+      var sessionDatesRaw = results[0];
+      var zoneRowsRaw = results[1];
+      var userRowsRaw = results[2];
+      var fallsCount = results[3];
+      var fellSessionsCount = results[4];
+      var breathingCount = results[5];
+      var totalSessionsCount = results[6];
+      var terrainZoneRowsRaw = results[7];
+      var recentSessions = results[8];
+
+      var fallLookup = recentSessions.length
+        ? sbSelect('falls', 'select=session_id&session_id=in.(' + recentSessions.map(function(s){ return s.id; }).join(',') + ')').catch(function(){ return []; })
+        : Promise.resolve([]);
+
+      return Promise.all([fallLookup]).then(function(extra){
+        renderAnalytics({
+          sessionDates: sessionDatesRaw.map(function(r){ return r.created_at; }),
+          zoneRows: zoneRowsRaw,
+          userRows: userRowsRaw,
+          fallsCount: fallsCount,
+          fellSessionsCount: fellSessionsCount,
+          breathingCount: breathingCount,
+          totalSessionsCount: totalSessionsCount,
+          terrainZoneRows: terrainZoneRowsRaw,
+          recentSessions: recentSessions,
+          fallSessionIds: extra[0].map(function(r){ return r.session_id; })
+        });
+        skeleton.style.display = 'none';
+        content.style.display = 'block';
+      });
+    }).catch(function(){
+      skeleton.style.display = 'none';
+      errorBox.style.display = 'block';
+    });
+  }
+
+  function renderAnalytics(data){
+    // --- Chart 1: sessions over time ---
+    var buckets = weekBuckets(12);
+    var sessionCounts = buckets.map(function(){ return 0; });
+    data.sessionDates.forEach(function(dstr){
+      var d = new Date(dstr);
+      for(var i = 0; i < buckets.length; i++){
+        if(d >= buckets[i].start && d < buckets[i].end){ sessionCounts[i]++; break; }
+      }
+    });
+    renderChartOrFallback('chart-sessions', function(canvas){
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: buckets.map(function(b){ return b.label; }),
+          datasets: [{ data: sessionCounts, borderColor: '#c8622a', backgroundColor: 'rgba(200,98,42,.15)', fill: true, tension: 0.3, pointRadius: 3 }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#2a2a2a' }, ticks: { color: '#888888', font: { family: 'Space Mono', size: 10 } } },
+            y: { grid: { color: '#2a2a2a' }, ticks: { color: '#888888', font: { family: 'Space Mono', size: 10 }, precision: 0 }, beginAtZero: true }
+          }
+        }
+      });
+    });
+
+    // --- Chart 2: zone distribution donut ---
+    var zoneCounts = { comfort: 0, learning: 0, panic: 0 };
+    data.zoneRows.forEach(function(r){
+      var z = normalizeZone(r.zone);
+      if(z) zoneCounts[z]++;
+    });
+    var zoneTotal = zoneCounts.comfort + zoneCounts.learning + zoneCounts.panic;
+    document.getElementById('zone-donut-total').textContent = zoneTotal.toLocaleString();
+    renderChartOrFallback('chart-zone-donut', function(canvas){
+      new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          labels: ['Comfort', 'Learning', 'Panic'],
+          datasets: [{ data: [zoneCounts.comfort, zoneCounts.learning, zoneCounts.panic], backgroundColor: [ZONE_HEX.comfort, ZONE_HEX.learning, ZONE_HEX.panic], borderColor: '#1a1a1a', borderWidth: 2 }]
+        },
+        options: { plugins: { legend: { display: false } }, cutout: '70%' }
+      });
+    });
+    document.getElementById('zone-donut-legend').innerHTML = ZONE_KEYS.map(function(z){
+      var pct = zoneTotal ? Math.round((zoneCounts[z] / zoneTotal) * 100) : 0;
+      return '<div class="legend-row"><span><span class="zone-dot dot-' + (z === 'comfort' ? 'green' : z === 'learning' ? 'amber' : 'red') + '"></span>' + ZONE_CAP[z] + '</span><span class="mono">' + pct + '%</span></div>';
+    }).join('');
+
+    // --- Chart 3: active users over time (stacked) ---
+    var userBuckets = weekBuckets(12).map(function(b){ return { label: b.label, start: b.start, end: b.end, authSet: new Set(), deviceCount: 0 }; });
+    data.userRows.forEach(function(r){
+      var d = new Date(r.created_at);
+      for(var i = 0; i < userBuckets.length; i++){
+        if(d >= userBuckets[i].start && d < userBuckets[i].end){
+          if(r.user_id) userBuckets[i].authSet.add(r.user_id);
+          else userBuckets[i].deviceCount++;
+          break;
+        }
+      }
+    });
+    renderChartOrFallback('chart-users', function(canvas){
+      new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: userBuckets.map(function(b){ return b.label; }),
+          datasets: [
+            { label: 'Authenticated', data: userBuckets.map(function(b){ return b.authSet.size; }), backgroundColor: '#c8622a', stack: 's' },
+            { label: 'Device-only', data: userBuckets.map(function(b){ return b.deviceCount; }), backgroundColor: '#888888', stack: 's' }
+          ]
+        },
+        options: {
+          plugins: { legend: { display: true, labels: { color: '#888888', font: { family: 'Space Grotesk', size: 11 } } } },
+          scales: {
+            x: { stacked: true, grid: { color: '#2a2a2a' }, ticks: { color: '#888888', font: { family: 'Space Mono', size: 10 } } },
+            y: { stacked: true, grid: { color: '#2a2a2a' }, ticks: { color: '#888888', font: { family: 'Space Mono', size: 10 }, precision: 0 }, beginAtZero: true }
+          }
+        }
+      });
+    });
+
+    // --- Fall capture rate ---
+    var fallRateEl = document.getElementById('fall-capture-rate');
+    if(data.fellSessionsCount > 0){
+      var fallRate = Math.round((data.fallsCount / data.fellSessionsCount) * 100);
+      fallRateEl.textContent = fallRate + '%';
+      fallRateEl.style.color = fallRate >= 80 ? '#7fbf3f' : '#e0a23a';
+    } else {
+      fallRateEl.textContent = '—';
+    }
+
+    // --- Go Deeper completion rate ---
+    var goDeeperEl = document.getElementById('go-deeper-rate');
+    if(data.totalSessionsCount > 0){
+      var gdRate = Math.round((data.breathingCount / data.totalSessionsCount) * 100);
+      goDeeperEl.textContent = gdRate + '%';
+    } else {
+      goDeeperEl.textContent = '—';
+    }
+
+    // --- Zone breakdown by terrain ---
+    var terrainData = {};
+    TERRAIN_TYPES.forEach(function(t){ terrainData[t] = { comfort: 0, learning: 0, panic: 0 }; });
+    data.terrainZoneRows.forEach(function(r){
+      var terrain = normalizeTerrain(r.climbing_type);
+      var zone = normalizeZone(r.zone);
+      if(terrain && zone) terrainData[terrain][zone]++;
+    });
+    document.getElementById('terrain-zone-bars').innerHTML = TERRAIN_TYPES.map(function(t){
+      var counts = terrainData[t];
+      var total = counts.comfort + counts.learning + counts.panic;
+      if(total === 0){
+        return '<div class="terrain-bar-row"><div class="terrain-bar-label">' + t + '</div>' +
+          '<div style="font-size:11.5px;color:var(--text-secondary);">No sessions logged</div></div>';
+      }
+      var cPct = (counts.comfort / total) * 100;
+      var lPct = (counts.learning / total) * 100;
+      var pPct = (counts.panic / total) * 100;
+      return '<div class="terrain-bar-row"><div class="terrain-bar-label">' + t + '</div>' +
+        '<div class="terrain-bar-track">' +
+        '<div class="terrain-bar-seg" style="width:' + cPct + '%;background:' + ZONE_HEX.comfort + ';" title="Comfort ' + counts.comfort + '"></div>' +
+        '<div class="terrain-bar-seg" style="width:' + lPct + '%;background:' + ZONE_HEX.learning + ';" title="Learning ' + counts.learning + '"></div>' +
+        '<div class="terrain-bar-seg" style="width:' + pPct + '%;background:' + ZONE_HEX.panic + ';" title="Panic ' + counts.panic + '"></div>' +
+        '</div></div>';
+    }).join('');
+
+    // --- Raw data table ---
+    var tbody = document.getElementById('analytics-sessions-tbody');
+    if(!data.recentSessions.length){
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--text-secondary);">No sessions logged yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.recentSessions.map(function(s, i){
+      var zone = normalizeZone(s.zone);
+      var zoneDot = zone ? '<span class="zone-dot dot-' + (zone === 'comfort' ? 'green' : zone === 'learning' ? 'amber' : 'red') + '"></span>' + ZONE_CAP[zone] : '—';
+      var goDeeper = s.breathing_post !== null && s.breathing_post !== undefined ? 'Y' : 'N';
+      var fallCaptured = data.fallSessionIds.indexOf(s.id) !== -1 ? 'Y' : 'N';
+      var dateStr = s.created_at ? new Date(s.created_at).toISOString().slice(0, 10) : '—';
+      var rowHtml = '<tr class="expandable" data-idx="' + i + '">' +
+        '<td class="mono">' + dateStr + '</td>' +
+        '<td>' + (s.route_name || '—') + '</td>' +
+        '<td class="mono">' + (s.grade_value || '—') + '</td>' +
+        '<td>' + zoneDot + '</td>' +
+        '<td>' + (s.baseline_zone || '—') + '</td>' +
+        '<td>' + goDeeper + '</td>' +
+        '<td>' + fallCaptured + '</td>' +
+        '</tr>';
+      var detailHtml = '<tr class="detail-row" id="detail-' + i + '" style="display:none;"><td colspan="7">' +
+        '<div class="detail-grid">' +
+        '<div><span>Session ID</span>' + (s.id || '—') + '</div>' +
+        '<div><span>Date</span>' + dateStr + '</div>' +
+        '<div><span>Zone</span>' + (zone ? ZONE_CAP[zone] : '—') + '</div>' +
+        '<div><span>Result</span>' + (s.baseline_zone || '—') + '</div>' +
+        '<div><span>Go Deeper</span>' + goDeeper + '</div>' +
+        '<div><span>Fall captured</span>' + fallCaptured + '</div>' +
+        '</div></td></tr>';
+      return rowHtml + detailHtml;
+    }).join('');
+
+    tbody.querySelectorAll('tr.expandable').forEach(function(row){
+      row.addEventListener('click', function(){
+        var detail = document.getElementById('detail-' + row.dataset.idx);
+        detail.style.display = detail.style.display === 'none' ? 'table-row' : 'none';
+      });
+    });
+  }
+
+  /* ===================== INVESTOR VIEW ===================== */
+  var investorLoaded = false;
+  function loadInvestorView(){
+    if(investorLoaded) return;
+    investorLoaded = true;
+    var fields = [
+      { id: 'iv-sessions', fetcher: function(){ return sbCount('sessions', '&deleted_at=is.null'); } },
+      { id: 'iv-users', fetcher: sbActiveUsers },
+      { id: 'iv-falls', fetcher: function(){ return sbCount('falls'); } }
+    ];
+    fields.forEach(function(f){
+      var el = document.getElementById(f.id);
+      f.fetcher().then(function(val){
+        el.textContent = (val === null || val === undefined) ? '—' : val.toLocaleString();
+      }).catch(function(){
+        el.textContent = '—';
+      });
+    });
+  }
+
+  /* ===================== DEMO CENTER ===================== */
+  document.querySelectorAll('#dc-tabs .dc-tab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var tab = btn.dataset.tab;
+      document.querySelectorAll('#dc-tabs .dc-tab-btn').forEach(function(b){
+        b.classList.toggle('active', b === btn);
+      });
+      document.querySelectorAll('.dc-panel').forEach(function(p){
+        p.classList.toggle('active', p.id === 'dc-' + tab);
+      });
+    });
+  });
+
+  var ZONE_COLOR = { 1: '#3B6D11', 2: '#BA7517', 3: '#a83828' };
+  var ZONE_LABEL = { 1: 'Comfort', 2: 'Learning', 3: 'Panic' };
+
+  var ATHLETES = [
+    { name:'Maya T.', sessions:22, sendRate:61, flag:{text:'3 Panic sessions this week', cls:'flag-red'}, tag:null,
+      zoneArc:[2,2,3,2,3,2,3,2],
+      breathing:{ 'Shallow or tight':55, 'Steady':30, 'Held':15 },
+      reflection:'Still shaking out the fear on steep terrain — but I stayed on the wall longer than last week.' },
+    { name:'Carlos R.', sessions:31, sendRate:52, flag:{text:'Stuck on project 6 sessions', cls:'flag-amber'}, tag:null,
+      zoneArc:[2,2,2,2,2,2,2,2],
+      breathing:{ 'Steady':50, 'Shallow or tight':40, 'Held':10 },
+      reflection:'Same crux, same result. I know the beta — my body just isn’t committing yet.' },
+    { name:'Jordan K.', sessions:14, sendRate:71, flag:null, tag:null,
+      zoneArc:[1,2,1,2,1,2,1,1],
+      breathing:{ 'Steady':65, 'Shallow or tight':35 },
+      reflection:'Felt in control the whole session, even on the overhang.' },
+    { name:'Priya S.', sessions:19, sendRate:68, flag:null, tag:'Sender One Santa Ana',
+      zoneArc:[2,1,2,2,1,2,2,1],
+      breathing:{ 'Steady':55, 'Shallow or tight':45 },
+      reflection:'Cross-training at the Santa Ana location is paying off on slab.' },
+    { name:'Devon M.', sessions:16, sendRate:74, flag:null, tag:'Sender One Santa Ana',
+      zoneArc:[1,1,2,1,2,1,1,2],
+      breathing:{ 'Steady':70, 'Shallow or tight':30 },
+      reflection:'Comfort zone is expanding — ready to project something harder.' },
+    { name:'Ben H.', sessions:12, sendRate:80, flag:null, tag:null,
+      zoneArc:[1,1,1,2,1,1,2,1],
+      breathing:{ 'Steady':75, 'Shallow or tight':25 },
+      reflection:'Sending consistently. Might be time to bump the grade.' },
+    { name:'Sofia L.', sessions:21, sendRate:65, flag:null, tag:null,
+      zoneArc:[2,2,1,2,2,1,2,2],
+      breathing:{ 'Shallow or tight':48, 'Steady':40, 'Held':12 },
+      reflection:'Roof sessions are still a mental battle before I even touch the wall.' },
+    { name:'Tyler B.', sessions:9, sendRate:56, flag:null, tag:null,
+      zoneArc:[2,3,2,2,2,3,2,2],
+      breathing:{ 'Shallow or tight':60, 'Steady':40 },
+      reflection:'Two falls this cycle. Need to talk through the catch quality piece.' },
+    { name:'Nina P.', sessions:17, sendRate:70, flag:null, tag:'Sender One Santa Ana',
+      zoneArc:[1,2,2,1,2,1,2,1],
+      breathing:{ 'Steady':60, 'Shallow or tight':40 },
+      reflection:'Good balance of pushing and backing off when it mattered.' },
+    { name:'Marcus D.', sessions:13, sendRate:62, flag:null, tag:'Sender One Santa Ana',
+      zoneArc:[2,2,2,1,2,2,1,2],
+      breathing:{ 'Shallow or tight':52, 'Steady':48 },
+      reflection:'Dihedral technique is clicking — confidence is following.' },
+    { name:'Elena V.', sessions:15, sendRate:77, flag:null, tag:null,
+      zoneArc:[1,1,2,1,1,2,1,1],
+      breathing:{ 'Steady':68, 'Shallow or tight':32 },
+      reflection:'Best send rate of the cycle. Ready for the next project.' },
+    { name:'Jake W.', sessions:14, sendRate:69, flag:null, tag:null,
+      zoneArc:[2,1,2,2,1,2,2,1],
+      breathing:{ 'Steady':58, 'Shallow or tight':42 },
+      reflection:'Learning zone is where the growth is happening right now.' }
+  ];
+
+  function zoneArcSvg(arc){
+    var w = 240, h = 60, step = w / (arc.length - 1);
+    var yFor = function(z){ return z === 1 ? h - 8 : z === 2 ? h / 2 : 8; };
+    var pts = arc.map(function(z, i){ return (i * step) + ',' + yFor(z); }).join(' ');
+    var circles = arc.map(function(z, i){
+      return '<circle cx="' + (i * step) + '" cy="' + yFor(z) + '" r="3" fill="' + ZONE_COLOR[z] + '"/>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto;">' +
+      '<polyline points="' + pts + '" fill="none" stroke="#c8622a" stroke-width="2"/>' + circles + '</svg>';
+  }
+
+  function renderAthleteRoster(){
+    var container = document.getElementById('athlete-roster');
+    if(!container) return;
+    container.innerHTML = ATHLETES.map(function(a, i){
+      var flag = a.flag ? '<span class="athlete-flag ' + a.flag.cls + '">' + a.flag.text + '</span>' : '';
+      var tag = a.tag ? '<span class="athlete-tag">' + a.tag + '</span>' : '';
+      return '<div class="athlete-roster-row" data-athlete="' + i + '">' +
+        '<span class="athlete-name">' + a.name + '</span>' +
+        tag + flag +
+        '</div>';
+    }).join('');
+    container.querySelectorAll('.athlete-roster-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        openAthleteDrawer(ATHLETES[parseInt(row.dataset.athlete, 10)]);
+      });
+    });
+  }
+
+  function openAthleteDrawer(a){
+    var content = document.getElementById('athlete-drawer-content');
+    var breathingRows = Object.keys(a.breathing).map(function(k){
+      return '<div class="stat-row"><span>' + k + '</span><span>' + a.breathing[k] + '%</span></div>';
+    }).join('');
+    content.innerHTML =
+      '<h3>' + a.name + '</h3>' +
+      '<div class="drawer-sub">' + (a.tag ? a.tag : 'Sender One DTLA') + '</div>' +
+      '<div class="stat-row"><span>Sessions</span><span>' + a.sessions + '</span></div>' +
+      '<div class="stat-row"><span>Send rate</span><span>' + a.sendRate + '%</span></div>' +
+      '<div class="drawer-section-title">Zone arc — last 8 sessions</div>' +
+      zoneArcSvg(a.zoneArc) +
+      '<div class="drawer-section-title">Breathing breakdown</div>' +
+      breathingRows +
+      '<div class="drawer-section-title">Reflection</div>' +
+      '<div class="journal-line" style="font-style:italic;">' + a.reflection + '</div>';
+    document.getElementById('athlete-drawer').classList.add('open');
+    document.getElementById('athlete-drawer-backdrop').classList.add('open');
+  }
+
+  function closeAthleteDrawer(){
+    document.getElementById('athlete-drawer').classList.remove('open');
+    document.getElementById('athlete-drawer-backdrop').classList.remove('open');
+  }
+
+  document.getElementById('athlete-drawer-close').addEventListener('click', closeAthleteDrawer);
+  document.getElementById('athlete-drawer-backdrop').addEventListener('click', closeAthleteDrawer);
+
+  renderAthleteRoster();
+
+  /* ===================== BUILD QUEUE (KANBAN) ===================== */
+  var KANBAN_COLUMNS = ['idea', 'scoped', 'in-progress', 'shipped'];
+  var KANBAN_LABELS = { 'idea': 'Idea', 'scoped': 'Scoped', 'in-progress': 'In Progress', 'shipped': 'Shipped' };
+  var PRIORITY_COLOR = { red: '#e3705f', amber: '#e0a23a', green: '#7fbf3f' };
+
+  var kanbanIdCounter = 0;
+  var KANBAN_CARDS = [
+    { title: 'staging-index174 smoke test', desc: 'Full regression pass before wider rollout.', assignee: 'Beta', priority: 'red', col: 'in-progress' },
+    { title: 'terms.html + privacy.html', desc: 'Legal pages needed before public launch.', assignee: 'Cam', priority: 'amber', col: 'in-progress' },
+
+    { title: 'Demo package', desc: 'See-demo-dashboard embed — Member/Coach/Gym/Industry views.', assignee: 'Scout', priority: 'amber', col: 'scoped' },
+    { title: 'Coaching platform data model', desc: 'coach_athlete_links + assignments tables.', assignee: 'Cam', priority: 'amber', col: 'scoped' },
+    { title: 'Apple Health integration', desc: 'Pillar 2 start — no partnership required.', assignee: 'Cam', priority: 'green', col: 'scoped' },
+
+    { title: 'Training log integration', desc: 'Trainerize/TrainingPeaks sync, later phase.', assignee: 'John', priority: 'green', col: 'idea' },
+    { title: 'Anonymous user local data export', desc: 'Let device-only users export their data.', assignee: 'John', priority: 'green', col: 'idea' },
+    { title: 'Reflect tab (Pillar 3)', desc: 'Pattern recognition, longitudinal insights.', assignee: 'John', priority: 'green', col: 'idea' },
+    { title: 'Community / shared routes table', desc: 'Gym-scoped shared routes — seeds CWA partnerships.', assignee: 'John', priority: 'green', col: 'idea' },
+    { title: 'Supabase Pro upgrade', desc: 'Trigger: at public launch.', assignee: 'John', priority: 'green', col: 'idea' },
+    { title: 'Vercel migration', desc: 'Trigger: at Train pillar.', assignee: 'John', priority: 'green', col: 'idea' },
+    { title: 'Body state radar label visual confirmation', desc: 'Confirm labels render correctly on the radar chart.', assignee: 'Cam', priority: 'green', col: 'idea' },
+    { title: 'Autocomplete Setting field gap', desc: 'climbs table missing indoor/outdoor field.', assignee: 'Cam', priority: 'amber', col: 'idea' },
+    { title: 'assessments table removal', desc: 'Dead table — safe to drop.', assignee: 'Cam', priority: 'green', col: 'idea' },
+    { title: 'Schema cleanup', desc: 'Consolidate duplicate columns in falls table.', assignee: 'Cam', priority: 'green', col: 'idea' },
+
+    { title: 'Consent screen', desc: 'staging-index171', assignee: 'Cam', priority: 'green', col: 'shipped' },
+    { title: 'RLS fix across all tables', desc: 'July 24', assignee: 'Cam', priority: 'green', col: 'shipped' },
+    { title: 'Fall detail capture', desc: 'staging-index167', assignee: 'Cam', priority: 'green', col: 'shipped' },
+    { title: 'Activation gauge redesign', desc: '', assignee: 'Cam', priority: 'green', col: 'shipped' },
+    { title: 'Route History Edit/+Attempt', desc: '', assignee: 'Cam', priority: 'green', col: 'shipped' },
+    { title: 'Go Deeper Q1-4 flow', desc: '', assignee: 'Cam', priority: 'green', col: 'shipped' },
+    { title: 'Backoff flow', desc: 'staging-index174', assignee: 'Cam', priority: 'green', col: 'shipped' },
+    { title: 'Journal feature', desc: 'staging-index174', assignee: 'Cam', priority: 'green', col: 'shipped' }
+  ].map(function(c){ c.id = 'kc' + (kanbanIdCounter++); return c; });
+
+  function renderKanban(){
+    var board = document.getElementById('kanban-board');
+    if(!board) return;
+    board.innerHTML = KANBAN_COLUMNS.map(function(col){
+      var cardsInCol = KANBAN_CARDS.filter(function(c){ return c.col === col; });
+      var cardsHtml = cardsInCol.map(function(c){
+        return '<div class="kanban-card" draggable="true" data-id="' + c.id + '">' +
+          '<div class="kanban-card-title">' + c.title + '</div>' +
+          (c.desc ? '<div class="kanban-card-desc">' + c.desc + '</div>' : '') +
+          '<div class="kanban-card-meta"><span>' + c.assignee + '</span>' +
+          '<span class="priority-dot" style="background:' + PRIORITY_COLOR[c.priority] + '"></span></div>' +
+          '</div>';
+      }).join('');
+      var addBtn = col === 'idea'
+        ? '<button class="kanban-add-btn" id="kanban-add-btn">+ Add card</button>' +
+          '<div class="kanban-add-form" id="kanban-add-form">' +
+            '<input type="text" id="kanban-add-title" placeholder="Card title">' +
+            '<input type="text" id="kanban-add-desc" placeholder="One-line description (optional)">' +
+            '<div class="kanban-add-form-actions">' +
+              '<button class="primary" id="kanban-add-confirm">Add</button>' +
+              '<button id="kanban-add-cancel">Cancel</button>' +
+            '</div>' +
+          '</div>'
+        : '';
+      return '<div class="kanban-col" data-col="' + col + '">' +
+        '<div class="kanban-col-header"><span>' + KANBAN_LABELS[col] + '</span><span class="kanban-count">' + cardsInCol.length + '</span></div>' +
+        addBtn + cardsHtml +
+        '</div>';
+    }).join('');
+
+    // drag/drop
+    board.querySelectorAll('.kanban-card').forEach(function(cardEl){
+      cardEl.addEventListener('dragstart', function(){
+        cardEl.classList.add('dragging');
+        cardEl.dataset.dragId = cardEl.dataset.id;
+      });
+      cardEl.addEventListener('dragend', function(){
+        cardEl.classList.remove('dragging');
+      });
+    });
+    board.querySelectorAll('.kanban-col').forEach(function(colEl){
+      colEl.addEventListener('dragover', function(e){
+        e.preventDefault();
+        colEl.classList.add('drag-over');
+      });
+      colEl.addEventListener('dragleave', function(){
+        colEl.classList.remove('drag-over');
+      });
+      colEl.addEventListener('drop', function(e){
+        e.preventDefault();
+        colEl.classList.remove('drag-over');
+        var dragging = board.querySelector('.kanban-card.dragging');
+        if(!dragging) return;
+        var cardId = dragging.dataset.id;
+        var card = KANBAN_CARDS.find(function(c){ return c.id === cardId; });
+        if(card){
+          card.col = colEl.dataset.col;
+          renderKanban();
+        }
+      });
+    });
+
+    // add-card form
+    var addBtnEl = document.getElementById('kanban-add-btn');
+    var formEl = document.getElementById('kanban-add-form');
+    if(addBtnEl && formEl){
+      addBtnEl.addEventListener('click', function(){
+        formEl.classList.add('open');
+        addBtnEl.style.display = 'none';
+        document.getElementById('kanban-add-title').focus();
+      });
+      document.getElementById('kanban-add-cancel').addEventListener('click', function(){
+        formEl.classList.remove('open');
+        addBtnEl.style.display = 'block';
+      });
+      document.getElementById('kanban-add-confirm').addEventListener('click', function(){
+        var title = document.getElementById('kanban-add-title').value.trim();
+        if(!title) return;
+        var desc = document.getElementById('kanban-add-desc').value.trim();
+        KANBAN_CARDS.push({ id: 'kc' + (kanbanIdCounter++), title: title, desc: desc, assignee: 'John', priority: 'green', col: 'idea' });
+        renderKanban();
+      });
+    }
+  }
+
+  renderKanban();
+
+  /* ===================== OVERVIEW: HARDCODED STATUS PANELS ===================== */
+  function renderStatusRows(containerId, rows){
+    var container = document.getElementById(containerId);
+    container.innerHTML = rows.map(function(r){
+      return '<div class="status-row">' +
+        '<div class="status-dot dot-' + r.dot + '"></div>' +
+        '<div><div class="status-name">' + r.name + '</div>' +
+        '<div class="status-detail">' + r.detail + '</div></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  renderStatusRows('panel-relationships', [
+    { name: 'Wes Shih (Sender One)', detail: 'Email pending Monday', dot: 'amber' },
+    { name: 'Garnett (CWA)', detail: 'Not yet contacted', dot: 'gray' },
+    { name: 'Arno Ilgner (RWW)', detail: 'IP agreement needed', dot: 'red' },
+    { name: 'Glenn Ritter (advisor)', detail: 'Not yet contacted', dot: 'gray' },
+    { name: 'Amanda (advisor)', detail: 'Not yet contacted', dot: 'gray' }
+  ]);
+
+  renderStatusRows('panel-business', [
+    { name: 'LLC filing', detail: 'Not yet filed — file Tuesday', dot: 'red' },
+    { name: 'DBA registrations', detail: 'Pending LLC', dot: 'red' },
+    { name: 'Insurance', detail: 'Pending LLC', dot: 'red' },
+    { name: 'Arno IP agreement', detail: 'Highest priority legal item', dot: 'red' },
+    { name: 'Supabase Pro', detail: 'At public launch', dot: 'gray' },
+    { name: 'Vercel migration', detail: 'At Train pillar', dot: 'gray' }
+  ]);
+
+  renderStatusRows('panel-build', [
+    { name: 'Current build', detail: 'staging-index174 — deployed', dot: 'green' },
+    { name: 'Smoke test', detail: 'Not yet run on 174', dot: 'amber' },
+    { name: 'Next build', detail: 'terms.html + privacy.html', dot: 'gray' },
+    { name: 'Demo package', detail: 'Brief pending', dot: 'gray' },
+    { name: 'Consent screen', detail: 'Live', dot: 'green' }
+  ]);
+
+  /* ===================== INITIAL AUTH CHECK (must run last — depends on everything above) ===================== */
+  if(sessionStorage.getItem('sl_auth') === 'true'){
+    unlock();
+  }
+
+})();
+</script>
+
+</body>
+</html>
