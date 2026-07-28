@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Straydog Labs — Coaching</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23c8622a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23c8622a' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0d0d0d;
+    --surface:#1a1a1a;
+    --border:#2a2a2a;
+    --text:#f0f0f0;
+    --text-secondary:#888888;
+    --accent:#c8622a;
+    --success:#3B6D11;
+    --warning:#BA7517;
+    --danger:#a83828;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'Space Mono',monospace;}
+  a{color:var(--accent);}
+
+  /* ---------- Login screen ---------- */
+  #login{
+    position:fixed;inset:0;
+    background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    z-index:1000;
+  }
+  #login.hidden{display:none;}
+  .login-box{width:340px;}
+  .login-word{
+    font-size:20px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    text-align:center;margin-bottom:4px;
+  }
+  .login-word span{color:var(--accent);}
+  .login-sub{
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-secondary);text-align:center;margin-bottom:32px;
+  }
+  .login-field{margin-bottom:12px;}
+  .login-field label{display:block;font-size:11px;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.04em;}
+  .login-field input{
+    width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    padding:12px 14px;color:var(--text);font-family:'Space Mono',monospace;font-size:14px;outline:none;
+  }
+  .login-field input:focus{border-color:var(--accent);}
+  .login-field input.shake{animation:shake .35s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px);}
+    20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-8px);}
+    40%,60%{transform:translateX(8px);}
+  }
+  #login-btn{
+    width:100%;margin-top:8px;background:var(--accent);border:none;border-radius:8px;
+    padding:12px 14px;color:#0d0d0d;font-family:'Space Grotesk',sans-serif;font-weight:600;
+    font-size:14px;cursor:pointer;
+  }
+  #login-btn:hover{opacity:.9;}
+  #login-btn:disabled{opacity:.5;cursor:default;}
+  #login-error{margin-top:14px;font-size:12px;color:var(--danger);min-height:16px;text-align:center;}
+
+  /* ---------- Shell ---------- */
+  #app{display:none;min-height:100vh;}
+  #app.visible{display:block;}
+  #topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 32px;border-bottom:1px solid var(--border);background:var(--surface);
+  }
+  .topbar-word{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+  .topbar-word span{color:var(--accent);}
+  .topbar-right{display:flex;align-items:center;gap:16px;font-size:12.5px;color:var(--text-secondary);}
+  #signout-btn{
+    background:transparent;border:1px solid var(--border);border-radius:8px;padding:7px 14px;
+    color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12.5px;cursor:pointer;
+  }
+  #signout-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  #main{max-width:1100px;margin:0 auto;padding:32px 24px 60px;}
+  .page-title{font-size:20px;font-weight:700;margin-bottom:4px;}
+  .page-sub{font-size:13px;color:var(--text-secondary);margin-bottom:28px;}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;}
+  .panel-title{
+    font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--text-secondary);margin-bottom:14px;
+  }
+  .stub{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:40px 24px;text-align:center;color:var(--text-secondary);font-size:13px;line-height:1.6;
+  }
+  .stub b{color:var(--text);}
+  .stub code{
+    background:#141414;border:1px solid var(--border);border-radius:5px;padding:1px 6px;
+    font-family:'Space Mono',monospace;font-size:11.5px;color:var(--accent);
+  }
+
+  /* ---------- Coach: roster + detail ---------- */
+  .coach-layout{display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start;}
+  .roster-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 4px;border-bottom:1px solid var(--border);cursor:pointer;
+  }
+  .roster-row:last-child{border-bottom:none;}
+  .roster-row:hover{background:rgba(255,255,255,.02);}
+  .roster-row.active{background:rgba(200,98,42,.08);border-left:3px solid var(--accent);padding-left:12px;}
+  .roster-name{font-size:13px;font-weight:600;}
+  .roster-meta{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+  .roster-empty{font-size:13px;color:var(--text-secondary);padding:12px 4px;}
+
+  .detail-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
+  .detail-title{font-size:16px;font-weight:700;}
+  .detail-sub{font-size:12px;color:var(--text-secondary);}
+  .detail-section{margin-bottom:20px;}
+  .detail-section:last-child{margin-bottom:0;}
+
+  .assign-card{
+    background:#141414;border:1px solid var(--border);border-radius:8px;
+    padding:14px 16px;margin-bottom:10px;
+  }
+  .assign-card:last-child{margin-bottom:0;}
+  .assign-card.done{opacity:.55;}
+  .assign-title{font-size:13.5px;font-weight:600;margin-bottom:4px;}
+  .assign-desc{font-size:12.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px;}
+  .assign-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--text-secondary);}
+  .assign-due{font-family:'Space Mono',monospace;}
+  .assign-due.overdue{color:var(--danger);}
+  .assign-complete-btn{
+    background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 12px;
+    color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;
+  }
+  .assign-complete-btn:hover{border-color:var(--success);color:#7fbf3f;}
+  .assign-complete-btn:disabled{opacity:.5;cursor:default;}
+  .assign-done-tag{font-size:11px;font-weight:700;color:#7fbf3f;}
+
+  .form-row{margin-bottom:12px;}
+  .form-row label{display:block;font-size:11.5px;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.03em;}
+  .form-row input, .form-row textarea, .form-row select{
+    width:100%;background:#141414;border:1px solid var(--border);border-radius:6px;
+    padding:9px 11px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none;
+  }
+  .form-row input:focus, .form-row textarea:focus, .form-row select:focus{border-color:var(--accent);}
+  .form-row textarea{resize:vertical;min-height:60px;font-family:'Space Grotesk',sans-serif;}
+  .form-actions{display:flex;gap:8px;align-items:center;}
+  .btn-primary{
+    background:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:9px 18px;
+    color:#0d0d0d;font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;
+  }
+  .btn-primary:hover{opacity:.9;}
+  .btn-primary:disabled{opacity:.5;cursor:default;}
+  .form-note{font-size:11.5px;color:var(--text-secondary);margin-top:8px;}
+  .form-error{font-size:11.5px;color:var(--danger);margin-top:8px;}
+  .form-success{font-size:11.5px;color:#7fbf3f;margin-top:8px;}
+
+  .note-card{
+    background:#141414;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;
+  }
+  .note-card:last-child{margin-bottom:0;}
+  .note-meta{font-size:11px;color:var(--text-secondary);margin-bottom:5px;}
+  .note-text{font-size:13px;line-height:1.5;}
+
+  .assign-resource{margin-bottom:8px;}
+  .assign-resource a{font-size:12px;color:var(--accent);text-decoration:none;}
+  .assign-resource a:hover{text-decoration:underline;}
+  .assign-resource span{font-size:12px;color:var(--text-secondary);}
+
+  .completed-group{margin-top:14px;}
+  .completed-group summary{
+    cursor:pointer;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--text-secondary);padding:6px 0;list-style:none;
+  }
+  .completed-group summary::-webkit-details-marker{display:none;}
+  .completed-group summary::before{content:'▸ ';}
+  .completed-group[open] summary::before{content:'▾ ';}
+  .completed-group summary:hover{color:var(--text);}
+  .completed-group .assign-card{margin-top:10px;}
+  .open-empty{font-size:12.5px;color:var(--text-secondary);padding:4px 0 4px;}
+
+  .link-athlete-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);}
+
+  /* ---------- Athlete training view ---------- */
+  .training-header{margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+  <!-- ================= LOGIN ================= -->
+  <div id="login">
+    <div class="login-box">
+      <div class="login-word">STRAY<span>DOG</span> LABS</div>
+      <div class="login-sub">Coaching</div>
+      <div class="login-field">
+        <label for="login-email">Email</label>
+        <input id="login-email" type="email" autocomplete="username" autofocus>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password">
+      </div>
+      <button id="login-btn">Sign in</button>
+      <div id="login-error"></div>
+    </div>
+  </div>
+
+  <!-- ================= APP SHELL ================= -->
+  <div id="app">
+    <div id="topbar">
+      <div class="topbar-word">STRAY<span>DOG</span> LABS <span style="color:var(--text-secondary);font-weight:400;text-transform:none;letter-spacing:0;">— Coaching</span></div>
+      <div class="topbar-right">
+        <span id="whoami"></span>
+        <button id="signout-btn">Sign out</button>
+      </div>
+    </div>
+    <div id="main"></div>
+  </div>
+
+<script>
+(function(){
+  'use strict';
+
+  var SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
+  var SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
+  var supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+
+  var loginEl = document.getElementById('login');
+  var appEl = document.getElementById('app');
+  var mainEl = document.getElementById('main');
+  var whoamiEl = document.getElementById('whoami');
+  var emailInput = document.getElementById('login-email');
+  var passwordInput = document.getElementById('login-password');
+  var loginBtn = document.getElementById('login-btn');
+  var loginError = document.getElementById('login-error');
+
+  function sbHeaders(token){
+    return {
+      'Content-Type': 'application/json',
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + (token || SB_KEY)
+    };
+  }
+
+  function sbSelect(token, table, query){
+    return fetch(SB_URL + '/rest/v1/' + table + '?' + query, { headers: sbHeaders(token) })
+      .then(function(res){
+        if(!res.ok) return res.json().then(function(err){ throw err; });
+        return res.json();
+      });
+  }
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function fmtDate(d){
+    if(!d) return '—';
+    // Date-only strings (due_date, "YYYY-MM-DD") must NOT go through `new
+    // Date(str)` — that parses as UTC midnight, which then renders as the
+    // previous day in any timezone behind UTC. Build the Date from local
+    // parts instead. Full timestamps (created_at/completed_at) are fine as-is.
+    var dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(d);
+    var dt = dateOnly ? new Date(d + 'T00:00:00') : new Date(d);
+    if(isNaN(dt.getTime())) return d;
+    return dt.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  }
+
+  function shortId(id){
+    return id ? id.slice(0, 8) : '—';
+  }
+
+  // Only render resource_link as a clickable href if it's actually http(s) —
+  // defends against a javascript:-scheme (or similar) value ending up in an
+  // anchor href, however it got into the field.
+  function safeUrl(u){
+    if(!u) return null;
+    return /^https?:\/\//i.test(u.trim()) ? u.trim() : null;
+  }
+
+  function assignResourceHtml(a){
+    if(!a.resource_link) return '';
+    var url = safeUrl(a.resource_link);
+    return '<div class="assign-resource">' +
+      (url
+        ? '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">Resource link →</a>'
+        : '<span>' + escapeHtml(a.resource_link) + '</span>') +
+      '</div>';
+  }
+
+  // Shared card markup for both the coach-side assignment list and the
+  // athlete Train tab — `withCompleteButton` is the only real difference.
+  function assignCardHtml(a, withCompleteButton){
+    var done = !!a.completed_at;
+    return '<div class="assign-card' + (done ? ' done' : '') + '"' + (withCompleteButton ? ' data-id="' + a.id + '"' : '') + '>' +
+      '<div class="assign-title">' + escapeHtml(a.title) + '</div>' +
+      (a.description ? '<div class="assign-desc">' + escapeHtml(a.description) + '</div>' : '') +
+      assignResourceHtml(a) +
+      '<div class="assign-meta">' +
+        '<span class="assign-due">Due ' + fmtDate(a.due_date) + '</span>' +
+        (done
+          ? '<span class="assign-done-tag">✓ Completed ' + fmtDate(a.completed_at) + '</span>'
+          : (withCompleteButton ? '<button class="assign-complete-btn" data-id="' + a.id + '">Mark complete</button>' : '<span>Open</span>')) +
+      '</div>' +
+    '</div>';
+  }
+
+  // Locked scope: completed assignments must visually separate from open ones
+  // (not just dim in place) — open ones render normally, completed ones drop
+  // into a collapsed <details> group below, most-recently-completed first.
+  function renderAssignmentGroups(rows, withCompleteButton){
+    var open = rows.filter(function(a){ return !a.completed_at; });
+    var done = rows.filter(function(a){ return !!a.completed_at; }).sort(function(a, b){
+      return new Date(b.completed_at) - new Date(a.completed_at);
+    });
+    var html = open.length
+      ? open.map(function(a){ return assignCardHtml(a, withCompleteButton); }).join('')
+      : '<div class="open-empty">No open assignments.</div>';
+    if(done.length){
+      html += '<details class="completed-group"><summary>Completed (' + done.length + ')</summary>' +
+        done.map(function(a){ return assignCardHtml(a, withCompleteButton); }).join('') +
+        '</details>';
+    }
+    return html;
+  }
+
+  /* ===================== AUTH ===================== */
+
+  function shakeLogin(msg){
+    loginError.textContent = msg;
+    [emailInput, passwordInput].forEach(function(el){
+      el.classList.remove('shake');
+      void el.offsetWidth;
+      el.classList.add('shake');
+    });
+  }
+
+  function attemptLogin(){
+    var email = emailInput.value.trim();
+    var password = passwordInput.value;
+    if(!email || !password){ shakeLogin('Email and password required'); return; }
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing in...';
+    loginError.textContent = '';
+    supabaseClient.auth.signInWithPassword({ email: email, password: password }).then(function(res){
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Sign in';
+      if(res.error){
+        shakeLogin(res.error.message || 'Sign in failed');
+        return;
+      }
+      enterApp(res.data.session);
+    }).catch(function(e){
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Sign in';
+      shakeLogin('Sign in failed — ' + (e && e.message ? e.message : 'unknown error'));
+    });
+  }
+
+  loginBtn.addEventListener('click', attemptLogin);
+  [emailInput, passwordInput].forEach(function(el){
+    el.addEventListener('keydown', function(e){ if(e.key === 'Enter') attemptLogin(); });
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', function(){
+    supabaseClient.auth.signOut().then(function(){
+      appEl.classList.remove('visible');
+      loginEl.classList.remove('hidden');
+      emailInput.value = '';
+      passwordInput.value = '';
+      mainEl.innerHTML = '';
+    });
+  });
+
+  function enterApp(session){
+    if(!session){ return; }
+    var user = session.user;
+    var token = session.access_token;
+    loginEl.classList.add('hidden');
+    appEl.classList.add('visible');
+    whoamiEl.textContent = user.email;
+
+    sbSelect(token, 'coach_flags', 'select=is_coach&user_id=eq.' + user.id)
+      .then(function(rows){
+        var isCoach = rows.length > 0 && rows[0].is_coach === true;
+        if(isCoach){
+          renderCoachView(token, user);
+        } else {
+          renderAthleteView(token, user);
+        }
+      })
+      .catch(function(){
+        // coach_flags unreadable/unreachable — fail safe to athlete view,
+        // never assume coach access on an error.
+        renderAthleteView(token, user);
+      });
+  }
+
+  // Restore an already-active session on page reload (e.g. tab refresh),
+  // same pattern the SEE app itself uses via onAuthStateChange.
+  supabaseClient.auth.getSession().then(function(res){
+    var session = res.data && res.data.session ? res.data.session : null;
+    if(session) enterApp(session);
+  });
+
+  /* ===================== COACH VIEW ===================== */
+
+  function renderCoachView(token, user){
+    mainEl.innerHTML =
+      '<div class="page-title">Roster</div>' +
+      '<div class="page-sub">Athletes linked to you via <span class="mono">coach_athlete_links</span>. Tap an athlete for assignments, session data, and notes.</div>' +
+      '<div class="coach-layout">' +
+        '<div class="panel" id="roster-panel">' +
+          '<div class="panel-title">Athletes</div><div id="roster-list"><div class="roster-empty">Loading···</div></div>' +
+          '<div class="link-athlete-box">' +
+            '<div class="panel-title" style="margin-bottom:10px;">Link athlete</div>' +
+            '<div class="form-row"><label for="link-athlete-email">Athlete email</label><input id="link-athlete-email" type="email" placeholder="athlete@example.com"></div>' +
+            '<div class="form-actions"><button class="btn-primary" id="link-athlete-submit">Link athlete</button></div>' +
+            '<div id="link-athlete-msg"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="panel" id="detail-panel"><div class="stub">Select an athlete from the roster to get started.</div></div>' +
+      '</div>';
+
+    loadRoster(token, user);
+
+    document.getElementById('link-athlete-submit').addEventListener('click', function(){
+      var input = document.getElementById('link-athlete-email');
+      var msgEl = document.getElementById('link-athlete-msg');
+      var btn = document.getElementById('link-athlete-submit');
+      var email = input.value.trim();
+      if(!email){
+        msgEl.innerHTML = '<div class="form-error">Email is required.</div>';
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Linking...';
+      fetch(SB_URL + '/rest/v1/rpc/link_athlete_by_email', {
+        method: 'POST',
+        headers: sbHeaders(token),
+        body: JSON.stringify({ p_email: email })
+      }).then(function(res){
+        return res.json().then(function(body){
+          if(!res.ok) throw body;
+          return body;
+        });
+      }).then(function(result){
+        btn.disabled = false;
+        btn.textContent = 'Link athlete';
+        if(result && result.ok){
+          input.value = '';
+          msgEl.innerHTML = '<div class="form-success">Athlete linked.</div>';
+          loadRoster(token, user);
+          return;
+        }
+        var errCode = result && result.error;
+        var msg = errCode === 'no_account'
+          ? 'No account with that email yet — they need to sign up in the SEE app first.'
+          : (errCode === 'not_a_coach' ? 'Your account isn\'t flagged as a coach.' : 'Could not link that athlete.');
+        msgEl.innerHTML = '<div class="form-error">' + escapeHtml(msg) + '</div>';
+      }).catch(function(err){
+        btn.disabled = false;
+        btn.textContent = 'Link athlete';
+        var isMissingFn = err && (err.code === 'PGRST202' || err.code === '42883');
+        msgEl.innerHTML = '<div class="form-error">' +
+          (isMissingFn
+            ? 'The <code>link_athlete_by_email</code> function doesn\'t exist yet — run coach-layer-additions.sql (section 4) first.'
+            : 'Failed — ' + escapeHtml((err && err.message) || 'unknown error')) +
+          '</div>';
+      });
+    });
+  }
+
+  function loadRoster(token, user){
+    var listEl = document.getElementById('roster-list');
+    listEl.innerHTML = '<div class="roster-empty">Loading···</div>';
+    sbSelect(token, 'coach_athlete_links', 'select=*&coach_id=eq.' + user.id + '&status=eq.active&order=created_at.asc')
+      .then(function(links){
+        renderRoster(token, user, links);
+      })
+      .catch(function(err){
+        listEl.innerHTML =
+          '<div class="roster-empty" style="color:var(--danger);">Failed to load roster — ' + escapeHtml(err.message || 'unknown error') + '</div>';
+      });
+  }
+
+  function renderRoster(token, user, links){
+    var listEl = document.getElementById('roster-list');
+    if(!links.length){
+      listEl.innerHTML = '<div class="roster-empty">No athletes linked yet.</div>';
+      return;
+    }
+    listEl.innerHTML = links.map(function(link, i){
+      return '<div class="roster-row" data-idx="' + i + '" data-athlete-id="' + link.athlete_id + '">' +
+        '<div>' +
+          '<div class="roster-name">Athlete ' + shortId(link.athlete_id) + '</div>' +
+          '<div class="roster-meta mono">Linked ' + fmtDate(link.created_at) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    Array.prototype.forEach.call(listEl.querySelectorAll('.roster-row'), function(row){
+      row.addEventListener('click', function(){
+        Array.prototype.forEach.call(listEl.querySelectorAll('.roster-row'), function(r){ r.classList.remove('active'); });
+        row.classList.add('active');
+        renderAthleteDetail(token, user, row.dataset.athleteId);
+      });
+    });
+  }
+
+  function renderAthleteDetail(token, coachUser, athleteId){
+    var detailEl = document.getElementById('detail-panel');
+    detailEl.innerHTML =
+      '<div class="detail-header">' +
+        '<div>' +
+          '<div class="detail-title">Athlete ' + shortId(athleteId) + '</div>' +
+          '<div class="detail-sub mono">' + athleteId + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detail-section" id="detail-assignments"><div class="panel-title">Assignments</div><div>Loading···</div></div>' +
+      '<div class="detail-section" id="detail-new-assignment"></div>' +
+      '<div class="detail-section" id="detail-sessions"><div class="panel-title">Session &amp; climb data</div><div>Loading···</div></div>' +
+      '<div class="detail-section" id="detail-notes"></div>';
+
+    loadAssignments(token, coachUser, athleteId);
+    renderNewAssignmentForm(token, coachUser, athleteId);
+    loadAthleteSessions(token, athleteId);
+    renderNotesSection(token, coachUser, athleteId);
+  }
+
+  function loadAssignments(token, coachUser, athleteId){
+    var el = document.getElementById('detail-assignments');
+    sbSelect(token, 'assignments', 'select=*&athlete_id=eq.' + athleteId + '&coach_id=eq.' + coachUser.id + '&deleted_at=is.null&order=due_date.asc.nullslast')
+      .then(function(rows){
+        if(!rows.length){
+          el.innerHTML = '<div class="panel-title">Assignments</div><div class="form-note">No assignments yet.</div>';
+          return;
+        }
+        el.innerHTML = '<div class="panel-title">Assignments</div>' + renderAssignmentGroups(rows, false);
+      })
+      .catch(function(err){
+        el.innerHTML = '<div class="panel-title">Assignments</div><div class="form-error">Failed to load — ' + escapeHtml(err.message || 'unknown error') + '</div>';
+      });
+  }
+
+  function renderNewAssignmentForm(token, coachUser, athleteId){
+    var el = document.getElementById('detail-new-assignment');
+    el.innerHTML =
+      '<div class="panel-title">New assignment</div>' +
+      '<div class="form-row"><label for="new-a-title">Title *</label><input id="new-a-title" type="text" placeholder="e.g. Log 2 sessions this week"></div>' +
+      '<div class="form-row"><label for="new-a-desc">Description</label><textarea id="new-a-desc" placeholder="Optional"></textarea></div>' +
+      '<div class="form-row"><label for="new-a-due">Due date</label><input id="new-a-due" type="date"></div>' +
+      '<div class="form-row"><label for="new-a-link">Resource link</label><input id="new-a-link" type="url" placeholder="Optional — YouTube, Google Drive, etc."></div>' +
+      '<div class="form-actions"><button class="btn-primary" id="new-a-submit">Create assignment</button></div>' +
+      '<div id="new-a-msg"></div>';
+
+    document.getElementById('new-a-submit').addEventListener('click', function(){
+      var titleInput = document.getElementById('new-a-title');
+      var descInput = document.getElementById('new-a-desc');
+      var dueInput = document.getElementById('new-a-due');
+      var linkInput = document.getElementById('new-a-link');
+      var msgEl = document.getElementById('new-a-msg');
+      var btn = document.getElementById('new-a-submit');
+
+      var title = titleInput.value.trim();
+      if(!title){
+        msgEl.innerHTML = '<div class="form-error">Title is required.</div>';
+        return;
+      }
+      var link = linkInput.value.trim();
+      if(link && !/^https?:\/\//i.test(link)){
+        msgEl.innerHTML = '<div class="form-error">Resource link must start with http:// or https://</div>';
+        return;
+      }
+
+      var payload = {
+        coach_id: coachUser.id,
+        athlete_id: athleteId,
+        title: title,
+        description: descInput.value.trim() || null,
+        due_date: dueInput.value || null
+      };
+      // Only include resource_link when there's an actual value. If the
+      // resource_link column hasn't been added yet (coach-layer-additions.sql
+      // section 3 not run), PostgREST rejects the WHOLE insert the moment the
+      // key is present in the body — even as null — so omitting the key
+      // entirely when the field is blank keeps assignment creation working
+      // exactly as before on a database that hasn't been migrated yet.
+      if(link) payload.resource_link = link;
+
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+      fetch(SB_URL + '/rest/v1/assignments', {
+        method: 'POST',
+        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+        body: JSON.stringify(payload)
+      }).then(function(res){
+        btn.disabled = false;
+        btn.textContent = 'Create assignment';
+        if(!res.ok){
+          return res.json().then(function(err){ throw err; });
+        }
+        titleInput.value = '';
+        descInput.value = '';
+        dueInput.value = '';
+        linkInput.value = '';
+        msgEl.innerHTML = '<div class="form-success">Assignment created.</div>';
+        loadAssignments(token, coachUser, athleteId);
+      }).catch(function(err){
+        btn.disabled = false;
+        btn.textContent = 'Create assignment';
+        var isMissingColumn = err && (err.code === 'PGRST204' || err.code === '42703');
+        msgEl.innerHTML = '<div class="form-error">' +
+          (isMissingColumn
+            ? 'The <code>resource_link</code> column doesn\'t exist yet — run coach-layer-additions.sql (section 3) first.'
+            : 'Failed — ' + escapeHtml((err && err.message) || 'unknown error')) +
+          '</div>';
+      });
+    });
+  }
+
+  function loadAthleteSessions(token, athleteId){
+    var el = document.getElementById('detail-sessions');
+    sbSelect(token, 'sessions', 'select=id,created_at,route_name,zone&user_id=eq.' + athleteId + '&deleted_at=is.null&order=created_at.desc&limit=20')
+      .then(function(rows){
+        _lastSessionRows = rows;
+        if(!rows.length){
+          el.innerHTML = '<div class="panel-title">Session &amp; climb data</div>' +
+            '<div class="stub">No sessions visible for this athlete yet.<br>If this athlete has logged sessions in the SEE app, this is most likely ' +
+            'because coach read-access hasn\'t been granted at the database level — see <code>coach-layer-additions.sql</code> ' +
+            '(section 1, <code>sessions_select_coach</code> etc.) delivered alongside this file.</div>';
+          return;
+        }
+        el.innerHTML = '<div class="panel-title">Session &amp; climb data — last ' + rows.length + '</div>' +
+          rows.map(function(s){
+            return '<div class="assign-card">' +
+              '<div class="assign-meta">' +
+                '<span class="assign-due">' + fmtDate(s.created_at) + '</span>' +
+                '<span>' + escapeHtml(s.route_name || '—') + ' · ' + escapeHtml(s.zone || '—') + '</span>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+      })
+      .catch(function(err){
+        _lastSessionRows = [];
+        el.innerHTML = '<div class="panel-title">Session &amp; climb data</div>' +
+          '<div class="stub">Unable to load — ' + escapeHtml(err.message || 'unknown error') +
+          '<br>This table likely needs the coach-read policy in <code>coach-layer-additions.sql</code> before this will work.</div>';
+      });
+  }
+
+  var _lastSessionRows = [];
+
+  function renderNotesSection(token, coachUser, athleteId){
+    var el = document.getElementById('detail-notes');
+    el.innerHTML =
+      '<div class="panel-title">Coach notes</div>' +
+      '<div id="notes-list"><div class="form-note">Loading···</div></div>' +
+      '<div class="form-row" style="margin-top:14px;"><label for="new-note-session">Session</label>' +
+        '<select id="new-note-session"><option value="">Select a session···</option></select></div>' +
+      '<div class="form-row"><label for="new-note-text">Note</label><textarea id="new-note-text" placeholder="Free-text note attached to the session above"></textarea></div>' +
+      '<div class="form-actions"><button class="btn-primary" id="new-note-submit">Save note</button></div>' +
+      '<div id="new-note-msg"></div>';
+
+    var sessionSelect = document.getElementById('new-note-session');
+    if(_lastSessionRows.length){
+      sessionSelect.innerHTML = '<option value="">Select a session···</option>' + _lastSessionRows.map(function(s){
+        return '<option value="' + s.id + '">' + fmtDate(s.created_at) + ' — ' + escapeHtml(s.route_name || 'unnamed') + '</option>';
+      }).join('');
+    } else {
+      sessionSelect.innerHTML = '<option value="">No sessions available — see coach-layer-additions.sql</option>';
+      sessionSelect.disabled = true;
+    }
+
+    loadNotes(token, coachUser, athleteId);
+
+    document.getElementById('new-note-submit').addEventListener('click', function(){
+      var msgEl = document.getElementById('new-note-msg');
+      var noteText = document.getElementById('new-note-text').value.trim();
+      var sessionId = sessionSelect.value;
+      if(!sessionId){
+        msgEl.innerHTML = '<div class="form-error">Pick a session first.</div>';
+        return;
+      }
+      if(!noteText){
+        msgEl.innerHTML = '<div class="form-error">Note text is required.</div>';
+        return;
+      }
+      var payload = {
+        coach_id: coachUser.id,
+        athlete_id: athleteId,
+        session_id: sessionId,
+        note: noteText
+      };
+      var btn = document.getElementById('new-note-submit');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      fetch(SB_URL + '/rest/v1/coach_notes', {
+        method: 'POST',
+        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+        body: JSON.stringify(payload)
+      }).then(function(res){
+        btn.disabled = false;
+        btn.textContent = 'Save note';
+        if(!res.ok){
+          return res.json().then(function(err){ throw err; });
+        }
+        document.getElementById('new-note-text').value = '';
+        msgEl.innerHTML = '<div class="form-success">Note saved.</div>';
+        loadNotes(token, coachUser, athleteId);
+      }).catch(function(err){
+        btn.disabled = false;
+        btn.textContent = 'Save note';
+        var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
+        msgEl.innerHTML = '<div class="form-error">' +
+          (isMissingTable
+            ? 'The <code>coach_notes</code> table doesn\'t exist yet — run coach-layer-additions.sql (section 2) first.'
+            : 'Failed — ' + escapeHtml(err.message || 'unknown error')) +
+          '</div>';
+      });
+    });
+  }
+
+  function loadNotes(token, coachUser, athleteId){
+    var listEl = document.getElementById('notes-list');
+    sbSelect(token, 'coach_notes', 'select=*&athlete_id=eq.' + athleteId + '&coach_id=eq.' + coachUser.id + '&order=created_at.desc')
+      .then(function(rows){
+        if(!rows.length){
+          listEl.innerHTML = '<div class="form-note">No notes yet.</div>';
+          return;
+        }
+        listEl.innerHTML = rows.map(function(n){
+          return '<div class="note-card">' +
+            '<div class="note-meta mono">' + fmtDate(n.created_at) + ' — session ' + shortId(n.session_id) + '</div>' +
+            '<div class="note-text">' + escapeHtml(n.note) + '</div>' +
+          '</div>';
+        }).join('');
+      })
+      .catch(function(err){
+        var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
+        listEl.innerHTML = '<div class="form-note">' +
+          (isMissingTable
+            ? 'The <code>coach_notes</code> table doesn\'t exist yet — see coach-layer-additions.sql.'
+            : 'Failed to load notes — ' + escapeHtml(err.message || 'unknown error')) +
+          '</div>';
+      });
+  }
+
+  /* ===================== ATHLETE VIEW ===================== */
+
+  function renderAthleteView(token, user){
+    mainEl.innerHTML =
+      '<div class="training-header">' +
+        '<div class="page-title">Training</div>' +
+        '<div class="page-sub">Assignments from your coach, soonest due date first.</div>' +
+      '</div>' +
+      '<div class="panel" id="athlete-assignments"><div>Loading···</div></div>';
+
+    loadAthleteAssignments(token, user);
+  }
+
+  function loadAthleteAssignments(token, user){
+    var el = document.getElementById('athlete-assignments');
+    sbSelect(token, 'assignments', 'select=*&athlete_id=eq.' + user.id + '&deleted_at=is.null&order=due_date.asc.nullslast')
+      .then(function(rows){
+        if(!rows.length){
+          el.innerHTML = '<div class="stub">No assignments yet — check back after your coach assigns something.</div>';
+          return;
+        }
+        el.innerHTML = renderAssignmentGroups(rows, true);
+
+        Array.prototype.forEach.call(el.querySelectorAll('.assign-complete-btn'), function(btn){
+          btn.addEventListener('click', function(){
+            markComplete(token, user, btn.dataset.id, btn);
+          });
+        });
+      })
+      .catch(function(err){
+        el.innerHTML = '<div class="stub" style="color:var(--danger);">Failed to load assignments — ' + escapeHtml(err.message || 'unknown error') + '</div>';
+      });
+  }
+
+  function markComplete(token, user, assignmentId, btn){
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    // Deliberately sends ONLY completed_at — assignments' athlete-side RLS
+    // currently allows updating any column, not just this one, so the app
+    // itself is the only thing enforcing that an athlete can't touch title/
+    // description/due_date/coach_id via this action.
+    fetch(SB_URL + '/rest/v1/assignments?id=eq.' + assignmentId + '&athlete_id=eq.' + user.id, {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ completed_at: new Date().toISOString() })
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      loadAthleteAssignments(token, user);
+    }).catch(function(err){
+      btn.disabled = false;
+      btn.textContent = 'Mark complete';
+      alert('Failed to mark complete — ' + (err && err.message ? err.message : 'unknown error'));
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
