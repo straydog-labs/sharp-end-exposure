@@ -173,6 +173,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 /* ── CARDS ── */
 .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:15px;}
+.train-completed summary{cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent;}
+.train-completed summary::-webkit-details-marker{display:none;}
 .insight-label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
 .insight-text{font-size:15px;line-height:1.6;}
 
@@ -410,6 +412,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <button class="footer-btn" id="fnav-research" onclick="showScreen('screen-research')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
     Research
+  </button>
+  <button class="footer-btn" id="fnav-train" onclick="showScreen('screen-train')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="18" y2="12"/><rect x="3" y="8" width="3" height="8" rx="1"/><rect x="18" y="8" width="3" height="8" rx="1"/></svg>
+    Train
   </button>
   <button class="footer-btn" id="fnav-profile" onclick="openProfile()">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1963,6 +1969,47 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 </div>
 </div>
 
+<!-- ═══════════════════════════════════════
+     TRAIN — screen-train (build 178)
+     Self-directed training, available to everyone. Reuses the existing
+     assignments table — self-written entries are coach_id IS NULL,
+     athlete_id = self. Signed-in only (assignments RLS requires a real
+     user_id, same reasoning as Journal — see anon prompt below). Rendering
+     pattern (open list + collapsed "Completed" section, sorted by due
+     date nulls-last) ported from coach-dashboard.html's athlete Training
+     view and renderAssignmentGroups(), not reinvented.
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-train">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+    <div class="screen-title">Train<span class="sub">Write your own training plan, or track what your coach assigns.</span></div>
+
+    <!-- Anonymous prompt — assignments_self_insert requires auth.uid() = athlete_id,
+         no anonymous path, same reasoning as Journal (Fix 6, build 173) -->
+    <div id="train-anon-prompt" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-top:16px;">
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;">Sign in to track your training.</div>
+    </div>
+
+    <div id="train-signed-in-content" style="display:none;">
+      <div class="insight-card" style="margin-top:16px;margin-bottom:16px;">
+        <div class="field-group">
+          <div class="field-label">New training entry</div>
+          <input id="train-new-title" type="text" placeholder="e.g. 4x4 boulder circuit"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:12px 14px;outline:none;box-sizing:border-box;margin-bottom:8px;">
+          <textarea id="train-new-desc" placeholder="Description (optional)"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:60px;box-sizing:border-box;margin-bottom:10px;"></textarea>
+          <button onclick="createSelfAssignment()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 24px;cursor:pointer;">Add →</button>
+          <div id="train-new-msg" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <div id="train-list"><div style="text-align:center;padding:16px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
 
 <!-- ═══════════════════════════════════════
      MILESTONE — 5 CLIMBS
@@ -2922,7 +2969,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index177';
+var app_version = 'staging-index178';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3413,10 +3460,11 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile'};
+  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
+  if(id==='screen-train')loadTrainAssignments();
   if(id==='screen-baseline'){baselineState.qi=0;renderBaselineQ();}
   // Show/hide FAB — only visible on sessions screen
   var fab=document.getElementById('climb-log-fab');
@@ -4816,6 +4864,119 @@ async function deleteJournalEntry(){
   _journalOpenEntryId = null;
   showScreen('screen-profile');
   loadJournalEntries();
+}
+
+// ═══════════════════════════════════════════════════════
+// TRAIN — self-directed training (build 178). Reuses the assignments table
+// coach-dashboard.html's athlete Training view already reads from — a
+// self-written entry is just coach_id IS NULL, athlete_id = self, so
+// self-written and coach-assigned entries show up in the same query and
+// same list automatically. Rendering pattern (open list + collapsed
+// "Completed" section, sorted by due date nulls-last) ported directly from
+// coach-dashboard.html's renderAssignmentGroups()/assignCardHtml(), not
+// reinvented — including its date-only-string local-parsing fix (avoids
+// due_date rendering a day early in timezones behind UTC).
+// ═══════════════════════════════════════════════════════
+var _trainAssignmentsCache = [];
+
+function escTrainHtml(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatTrainDate(d){
+  if(!d) return 'No due date';
+  var dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(d);
+  var dt = dateOnly ? new Date(d+'T00:00:00') : new Date(d);
+  if(isNaN(dt.getTime())) return d;
+  return 'Due '+dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+async function loadTrainAssignments(){
+  var anonEl = document.getElementById('train-anon-prompt');
+  var contentEl = document.getElementById('train-signed-in-content');
+  if(!window._authUser){
+    if(anonEl) anonEl.style.display = 'block';
+    if(contentEl) contentEl.style.display = 'none';
+    return;
+  }
+  if(anonEl) anonEl.style.display = 'none';
+  if(contentEl) contentEl.style.display = 'block';
+  var listEl = document.getElementById('train-list');
+  if(!listEl) return;
+  var rows = await sbS('assignments', 'select=*&athlete_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=due_date.asc.nullslast');
+  _trainAssignmentsCache = Array.isArray(rows) ? rows : [];
+  renderTrainList();
+}
+
+function trainCardHtml(a){
+  var done = !!a.completed_at;
+  var fromCoach = a.coach_id ? '<div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">From coach</div>' : '';
+  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:10px;'+(done?'opacity:.6;':'')+'">'
+    +fromCoach
+    +'<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">'+escTrainHtml(a.title)+'</div>'
+    +(a.description ? '<div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:8px;">'+escTrainHtml(a.description)+'</div>' : '')
+    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;">'
+    +'<span style="font-size:11px;color:var(--muted);font-family:\'Space Mono\',monospace;">'+formatTrainDate(a.due_date)+'</span>'
+    +(done
+      ? '<span style="font-size:11px;font-weight:700;color:var(--comfort);">✓ Completed</span>'
+      : '<button onclick="trainMarkComplete(\''+a.id+'\')" style="background:none;border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">Mark complete</button>')
+    +'</div>'
+    +'</div>';
+}
+
+// Open items render normally; completed items drop into a collapsed group,
+// most-recently-completed first — matches coach-dashboard.html exactly.
+function renderTrainList(){
+  var listEl = document.getElementById('train-list');
+  if(!listEl) return;
+  var rows = _trainAssignmentsCache;
+  if(!rows.length){
+    listEl.innerHTML = '<div style="text-align:center;padding:16px 0;font-size:13px;color:var(--muted);">No training entries yet — add one above.</div>';
+    return;
+  }
+  var open = rows.filter(function(a){ return !a.completed_at; });
+  var done = rows.filter(function(a){ return !!a.completed_at; }).sort(function(a,b){ return new Date(b.completed_at)-new Date(a.completed_at); });
+  var html = open.length
+    ? open.map(trainCardHtml).join('')
+    : '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No open training entries.</div>';
+  if(done.length){
+    html += '<details class="train-completed" style="margin-top:14px;">'
+      +'<summary style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 0;">Completed ('+done.length+')</summary>'
+      +'<div style="margin-top:8px;">'+done.map(trainCardHtml).join('')+'</div>'
+      +'</details>';
+  }
+  listEl.innerHTML = html;
+}
+
+async function createSelfAssignment(){
+  if(!window._authUser){ showToast('Sign in to add training entries'); return; }
+  var titleEl = document.getElementById('train-new-title');
+  var descEl = document.getElementById('train-new-desc');
+  var msgEl = document.getElementById('train-new-msg');
+  var title = titleEl ? titleEl.value.trim() : '';
+  if(!title){ if(msgEl) msgEl.textContent = 'Title is required'; return; }
+  var payload = {
+    coach_id: null,
+    athlete_id: window._authUser.id,
+    title: title,
+    description: (descEl && descEl.value.trim()) || null
+  };
+  var saved = await sbI('assignments', payload);
+  if(saved === null){ if(msgEl) msgEl.textContent = 'Could not save — try again'; return; }
+  if(titleEl) titleEl.value = '';
+  if(descEl) descEl.value = '';
+  if(msgEl) msgEl.textContent = '';
+  showToast('Added ✓');
+  loadTrainAssignments();
+}
+
+// Deliberately sends only completed_at — same reasoning coach-dashboard.html
+// notes: assignments' athlete-side RLS allows updating any column, not just
+// this one, so the app itself is what limits this action to completed_at.
+async function trainMarkComplete(id){
+  if(!window._authUser) return;
+  await sbU('assignments', 'id=eq.'+id+'&athlete_id=eq.'+window._authUser.id, {completed_at: new Date().toISOString()});
+  loadTrainAssignments();
 }
 
 function resetLogScreen(){
@@ -8635,12 +8796,12 @@ async function runSEETests(){
     }
   }catch(e){ fail('Auth screen content height', e.message); }
 
-  // B3: Nav has 4 tabs
+  // B3: Nav has 5 tabs (Train added, build 178)
   try{
     var navBtns = document.querySelectorAll('.footer-btn');
-    if(navBtns.length === 4){ pass('Nav has 4 tabs'); }
-    else { fail('Nav has 4 tabs', 'Found ' + navBtns.length + ' tabs'); }
-  }catch(e){ fail('Nav has 4 tabs', e.message); }
+    if(navBtns.length === 5){ pass('Nav has 5 tabs'); }
+    else { fail('Nav has 5 tabs', 'Found ' + navBtns.length + ' tabs'); }
+  }catch(e){ fail('Nav has 5 tabs', e.message); }
 
   // B4: No purple stray icon (&#128100; outside nav)
   try{
@@ -8921,13 +9082,17 @@ async function authSignUp(){
 
 async function authGoogle(){
   if(!supabaseClient){ showToast('Auth not available'); return; }
-  // Check if Google OAuth is configured
   var res = await supabaseClient.auth.signInWithOAuth({
     provider:'google',
     options:{ redirectTo: window.location.href }
   });
   if(res.error){
-    showToast('Google sign-in not yet configured — use email below');
+    // Bug fix, build 178: this used to always show a hardcoded "not yet
+    // configured" toast regardless of the real cause — Google OAuth is
+    // actually configured and working (confirmed via a real test account
+    // signing in), so a real failure here was previously undiagnosable.
+    console.error('[authGoogle] sign-in failed:', res.error.message);
+    showToast('Google sign-in failed — ' + res.error.message);
   }
 }
 
