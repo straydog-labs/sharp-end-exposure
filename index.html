@@ -13,6 +13,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Train tab rich-text (build 179): small, proven libraries, not a hand-rolled
+     parser/sanitizer — marked renders Markdown, DOMPurify sanitizes the result
+     before it's ever used as innerHTML (user-generated content, real XSS surface). -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -173,8 +178,13 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 /* ── CARDS ── */
 .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:15px;}
-.train-completed summary{cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent;}
-.train-completed summary::-webkit-details-marker{display:none;}
+.train-desc-md{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:8px;}
+.train-desc-md p{margin-bottom:6px;}
+.train-desc-md p:last-child{margin-bottom:0;}
+.train-desc-md ul,.train-desc-md ol{margin:0 0 6px 20px;}
+.train-desc-md li{margin-bottom:2px;}
+.train-desc-md input[type=checkbox]{margin-right:6px;cursor:pointer;vertical-align:middle;}
+.train-desc-md li:has(>input[type=checkbox]:first-child){list-style:none;}
 .insight-label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
 .insight-text{font-size:15px;line-height:1.6;}
 
@@ -1998,8 +2008,21 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="field-label">New training entry</div>
           <input id="train-new-title" type="text" placeholder="e.g. 4x4 boulder circuit"
             style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:12px 14px;outline:none;box-sizing:border-box;margin-bottom:8px;">
-          <textarea id="train-new-desc" placeholder="Description (optional)"
-            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:60px;box-sizing:border-box;margin-bottom:10px;"></textarea>
+          <textarea id="train-new-desc" placeholder="Description (optional) — supports Markdown"
+            onfocus="document.getElementById('train-new-desc-toolbar').style.display='flex';"
+            onblur="document.getElementById('train-new-desc-toolbar').style.display='none';"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:60px;box-sizing:border-box;margin-bottom:6px;"></textarea>
+          <!-- Markdown toolbar — only shown while the textarea is focused. Each
+               button uses onmousedown+preventDefault so clicking it never steals
+               focus from the textarea, which means the onblur above never fires
+               for a toolbar click — no timeout/hide-delay hack needed. -->
+          <div id="train-new-desc-toolbar" style="display:none;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+            <button type="button" onmousedown="event.preventDefault()" onclick="mdBold('train-new-desc')" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;padding:6px 10px;cursor:pointer;">B</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mdItalic('train-new-desc')" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-style:italic;padding:6px 10px;cursor:pointer;">I</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mdBullet('train-new-desc')" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;">• Bullet</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mdCheckbox('train-new-desc')" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;">☐ Check</button>
+            <button type="button" onmousedown="event.preventDefault()" onclick="mdIndent('train-new-desc')" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;">⇥ Indent</button>
+          </div>
           <button onclick="createSelfAssignment()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 24px;cursor:pointer;">Add →</button>
           <div id="train-new-msg" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
         </div>
@@ -2969,7 +2992,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index178';
+var app_version = 'staging-index179';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3095,6 +3118,19 @@ async function sbS(table,params=''){
 async function sbU(table,filter,payload){
   try{
     const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{...getSBHeaders(),'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    // Bug fix, build 179: this was missing the same r.ok check sbI() already
+    // has — an HTTP error response with a valid JSON error body (e.g. RLS
+    // rejection, bad UUID) was returned as if it were a successful row,
+    // since Array.isArray() is false for an error object too, `d` itself
+    // just got returned either way. No existing caller branched on sbU()'s
+    // return value before this build, so this couldn't have silently broken
+    // anything — found because the new checkbox-toggle rollback (build 179)
+    // is the first caller that actually depends on a reliable null-on-failure.
+    if(!r.ok){
+      const err=await r.json().catch(function(){return {};});
+      console.error('sbU HTTP error:',r.status,table,err.message||err);
+      return null;
+    }
     const d=await r.json();
     return Array.isArray(d)?d[0]:d;
   }catch(e){console.error('sbU',e);return null;}
@@ -4867,6 +4903,47 @@ async function deleteJournalEntry(){
 }
 
 // ═══════════════════════════════════════════════════════
+// MARKDOWN TOOLBAR (build 179) — generic helpers that operate on any
+// textarea by id, so the same five functions work regardless of which
+// textarea currently has the toolbar open. Wrap-selection for inline
+// styles (bold/italic); line-start-prefix for block markers (bullet/
+// checkbox/indent) — indent just prepends 2 spaces, and since it reads
+// from the current cursor line's existing content (not a fixed depth),
+// pressing it repeatedly nests further each time — real multi-level
+// outline nesting, not a single fixed level.
+// ═══════════════════════════════════════════════════════
+function mdWrapSelection(textareaId, before, after){
+  var ta = document.getElementById(textareaId);
+  if(!ta) return;
+  var start = ta.selectionStart, end = ta.selectionEnd;
+  var val = ta.value;
+  var selected = val.slice(start, end);
+  var placeholder = selected || 'text';
+  ta.value = val.slice(0, start) + before + placeholder + after + val.slice(end);
+  var selStart = start + before.length;
+  ta.focus();
+  ta.setSelectionRange(selStart, selStart + placeholder.length);
+}
+
+function mdLineStart(textareaId, prefix){
+  var ta = document.getElementById(textareaId);
+  if(!ta) return;
+  var pos = ta.selectionStart;
+  var val = ta.value;
+  var lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+  ta.value = val.slice(0, lineStart) + prefix + val.slice(lineStart);
+  var newPos = pos + prefix.length;
+  ta.focus();
+  ta.setSelectionRange(newPos, newPos);
+}
+
+function mdBold(textareaId){ mdWrapSelection(textareaId, '**', '**'); }
+function mdItalic(textareaId){ mdWrapSelection(textareaId, '*', '*'); }
+function mdBullet(textareaId){ mdLineStart(textareaId, '- '); }
+function mdCheckbox(textareaId){ mdLineStart(textareaId, '- [ ] '); }
+function mdIndent(textareaId){ mdLineStart(textareaId, '  '); }
+
+// ═══════════════════════════════════════════════════════
 // TRAIN — self-directed training (build 178). Reuses the assignments table
 // coach-dashboard.html's athlete Training view already reads from — a
 // self-written entry is just coach_id IS NULL, athlete_id = self, so
@@ -4908,13 +4985,30 @@ async function loadTrainAssignments(){
   renderTrainList();
 }
 
+// Sanitizes user-generated Markdown before it's ever used as innerHTML (build
+// 179) — applies to BOTH self-written and coach-written descriptions, since
+// both render through this same path. 'disabled' is deliberately absent from
+// ALLOWED_ATTR: marked renders task-list checkboxes disabled by default, and
+// omitting it here means DOMPurify strips that attribute on sanitize, which
+// is what makes the rendered checkboxes genuinely clickable (Fix 2) rather
+// than needing extra code to re-enable them.
+var TRAIN_MD_ALLOWED_TAGS = ['p','br','strong','em','b','i','ul','ol','li','code','pre','blockquote','a','input','span'];
+var TRAIN_MD_ALLOWED_ATTR = ['href','target','rel','type','checked','class'];
+
+function renderTrainDescriptionHtml(a){
+  if(!a.description) return '';
+  var rawHtml = marked.parse(a.description, {gfm:true, breaks:true});
+  var cleanHtml = DOMPurify.sanitize(rawHtml, {ALLOWED_TAGS: TRAIN_MD_ALLOWED_TAGS, ALLOWED_ATTR: TRAIN_MD_ALLOWED_ATTR});
+  return '<div class="train-desc-md" data-assign-id="'+a.id+'">'+cleanHtml+'</div>';
+}
+
 function trainCardHtml(a){
   var done = !!a.completed_at;
   var fromCoach = a.coach_id ? '<div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">From coach</div>' : '';
   return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:10px;'+(done?'opacity:.6;':'')+'">'
     +fromCoach
     +'<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">'+escTrainHtml(a.title)+'</div>'
-    +(a.description ? '<div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:8px;">'+escTrainHtml(a.description)+'</div>' : '')
+    +renderTrainDescriptionHtml(a)
     +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;">'
     +'<span style="font-size:11px;color:var(--muted);font-family:\'Space Mono\',monospace;">'+formatTrainDate(a.due_date)+'</span>'
     +(done
@@ -4940,12 +5034,91 @@ function renderTrainList(){
     ? open.map(trainCardHtml).join('')
     : '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No open training entries.</div>';
   if(done.length){
-    html += '<details class="train-completed" style="margin-top:14px;">'
-      +'<summary style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 0;">Completed ('+done.length+')</summary>'
-      +'<div style="margin-top:8px;">'+done.map(trainCardHtml).join('')+'</div>'
-      +'</details>';
+    // Collapsible history — same toggle-button + rotating-arrow + corner-
+    // flattening mechanism as Climb Log's toggleClimbTable(), not a native
+    // <details> disclosure (Fix 3, build 179). Open/actionable entries stay
+    // always visible; only the completed history — the part that grows
+    // unbounded — collapses behind this.
+    html += '<button id="train-completed-toggle" data-count="'+done.length+'" onclick="toggleTrainCompleted()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:13px;font-weight:700;padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent;margin-top:14px;">'
+      +'<span id="train-completed-toggle-label">Show completed ('+done.length+')</span>'
+      +'<span id="train-completed-toggle-arrow" style="font-size:14px;color:var(--muted);">↓</span>'
+      +'</button>'
+      +'<div id="train-completed-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-md) var(--r-md);padding:10px;">'
+      +done.map(trainCardHtml).join('')
+      +'</div>';
   }
   listEl.innerHTML = html;
+  wireTrainCheckboxes();
+}
+
+function toggleTrainCompleted(){
+  var wrap = document.getElementById('train-completed-wrap');
+  var label = document.getElementById('train-completed-toggle-label');
+  var arrow = document.getElementById('train-completed-toggle-arrow');
+  var toggle = document.getElementById('train-completed-toggle');
+  if(!wrap || !toggle) return;
+  var isOpen = wrap.style.display !== 'none';
+  var count = toggle.dataset.count || '0';
+  wrap.style.display = isOpen ? 'none' : 'block';
+  if(label) label.textContent = (isOpen ? 'Show completed (' : 'Hide completed (') + count + ')';
+  if(arrow) arrow.textContent = isOpen ? '↓' : '↑';
+  toggle.style.borderRadius = isOpen ? 'var(--r-md)' : 'var(--r-md) var(--r-md) 0 0';
+}
+
+// Interactive checkbox toggle (Fix 2, build 179). Each checkbox's index is
+// scoped to its OWN assignment's description (the Nth checkbox in that one
+// card's markdown, not a global count), so toggling one maps back to the
+// correct line in the correct row. This is deliberately load-bearing on
+// assignments' existing athlete-side RLS gap — the policy allows an athlete
+// to update any column on their own row, not just completed_at — which is
+// what makes toggling a checkbox inside a COACH-written description work at
+// all. Not a new gap, but this feature now actively depends on it rather
+// than just tolerating it, per the brief.
+function wireTrainCheckboxes(){
+  document.querySelectorAll('.train-desc-md').forEach(function(container){
+    var assignId = container.dataset.assignId;
+    var checkboxes = container.querySelectorAll('input[type=checkbox]');
+    checkboxes.forEach(function(cb, idx){
+      cb.addEventListener('change', function(){
+        handleTrainCheckboxChange(assignId, idx, cb);
+      });
+    });
+  });
+}
+
+async function handleTrainCheckboxChange(assignmentId, idx, cbEl){
+  var a = _trainAssignmentsCache.find(function(x){ return x.id === assignmentId; });
+  if(!a) return;
+  var newChecked = cbEl.checked; // native toggle already applied by the time 'change' fires
+  var newText = setMarkdownCheckboxAt(a.description || '', idx, newChecked);
+  if(newText === null) return; // index mismatch — never touch text we can't map correctly
+  var prevText = a.description;
+  a.description = newText; // optimistic — keeps cache in sync immediately
+  var res = await sbU('assignments', 'id=eq.'+assignmentId, {description: newText});
+  if(res === null){
+    cbEl.checked = !newChecked; // roll back — save failed, don't leave an unsaved visual state
+    a.description = prevText;
+    showToast('Could not save checkbox — try again', true);
+  }
+}
+
+// Flips (or sets) the Nth (0-based) checkbox occurrence in Markdown text, in
+// document order. Returns null instead of guessing if the index doesn't
+// exist, to never silently corrupt text we can't correctly map.
+function setMarkdownCheckboxAt(text, index, checked){
+  var lines = text.split('\n');
+  var seen = -1;
+  for(var i=0;i<lines.length;i++){
+    var m = lines[i].match(/^(\s*[-*+]\s+)\[( |x|X)\](.*)$/);
+    if(m){
+      seen++;
+      if(seen === index){
+        lines[i] = m[1] + '[' + (checked ? 'x' : ' ') + ']' + m[3];
+        return lines.join('\n');
+      }
+    }
+  }
+  return null;
 }
 
 async function createSelfAssignment(){
