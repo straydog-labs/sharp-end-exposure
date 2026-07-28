@@ -727,6 +727,32 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════
+     PASSWORD RECOVERY — screen-password-recovery
+     Bug fix, build 177: reached only via onAuthStateChange's new
+     PASSWORD_RECOVERY branch — Supabase's reset-password-email link lands
+     here instead of an unrouted, broken state. Reuses the same input/button
+     pattern as Profile's changePassword() field.
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-password-recovery">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div style="max-width:480px;margin:0 auto;padding:40px 16px 60px;box-sizing:border-box;">
+
+    <div class="screen-title">Set a new password<span class="sub">You're resetting your password — pick a new one to continue.</span></div>
+
+    <input type="password" id="recovery-new-pw" placeholder="New password (min 6 chars)"
+      style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;box-sizing:border-box;margin:20px 0 10px;outline:none;"/>
+    <button onclick="saveRecoveryPassword()"
+      style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+      Save new password
+    </button>
+    <div id="recovery-pw-msg" style="font-size:13px;color:var(--muted);margin-top:10px;text-align:center;"></div>
+
+  </div>
+</div>
+
 
 <!-- ═══════════════════════════════════════
      EXAMPLE CLIMB LOG — screen-example-climb-log
@@ -2896,7 +2922,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index176';
+var app_version = 'staging-index177';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -2972,6 +2998,18 @@ function initAuth(){
         showScreen('screen-sessions'); loadClimbLog();
         _authRoutingResolve();
       })();
+    } else if(event === 'PASSWORD_RECOVERY'){
+      // Bug fix, build 177: PASSWORD_RECOVERY was previously totally
+      // unhandled — anyone using "Forgot password" got a working reset
+      // email, clicked the link, Supabase silently established a recovery
+      // session (window._authUser/_authToken already synced from it above,
+      // which is what lets updateUser() below succeed), and the app had no
+      // idea what to do with it. Route straight to the new-password screen,
+      // bypassing consent/baseline routing — this is a password reset, not
+      // a normal first load.
+      _hasRoutedAfterSignIn = true;
+      showScreen('screen-password-recovery');
+      _authRoutingResolve();
     } else {
       // No session to check (INITIAL_SESSION with session=null, or SIGNED_OUT) —
       // nothing for routeOnLoad() to wait on, resolve immediately
@@ -3521,6 +3559,25 @@ async function changePassword(){
   var res=await supabaseClient.auth.updateUser({password:pw});
   if(res.error){if(msg)msg.textContent='Error: '+res.error.message;}
   else{if(msg){msg.textContent='Password updated ✓';msg.style.color='#7ec87a';}document.getElementById('profile-new-pw').value='';}
+}
+
+// Bug fix, build 177 — screen-password-recovery's only action. window._authUser
+// is already populated from the PASSWORD_RECOVERY session (onAuthStateChange
+// syncs it before this screen ever shows), so updateUser() below works the
+// same way it does for a normal signed-in password change.
+async function saveRecoveryPassword(){
+  var pw=document.getElementById('recovery-new-pw').value;
+  var msg=document.getElementById('recovery-pw-msg');
+  if(!pw||pw.length<6){if(msg)msg.textContent='Password must be at least 6 characters';return;}
+  if(!supabaseClient){if(msg)msg.textContent='Not available';return;}
+  var res=await supabaseClient.auth.updateUser({password:pw});
+  if(res.error){if(msg){msg.textContent='Error: '+res.error.message;msg.style.color='';}return;}
+  if(msg){msg.textContent='Password updated ✓ — continuing…';msg.style.color='#7ec87a';}
+  document.getElementById('recovery-new-pw').value='';
+  // Recovery session is now a normal authenticated session — resume routing
+  // the same way acknowledgeConsent() does, so baseline/consent/sessions
+  // routing all still runs correctly rather than duplicating that logic here.
+  setTimeout(routeOnLoad, 900);
 }
 
 // Shared by both export formats (Fix 5, build 176): adds a computed
