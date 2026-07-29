@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sharp End Exposure — Demo Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#161616; --surface:#212121; --border:#333333; --text:#f0f0f0;
+  --text-secondary:#999999; --accent:#c8622a; --success:#3B6D11;
+  --warning:#BA7517; --danger:#a83828;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'Space Grotesk',sans-serif;
+  min-height:100vh;
+}
+.mono{font-family:'Space Mono',monospace;}
+h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;margin:0 0 8px;}
+p{margin:0 0 8px;line-height:1.5;}
+a{color:var(--accent);}
+
+/* ---- Layout ---- */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;
+}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{
+  width:28px;height:28px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),var(--danger));
+  flex-shrink:0;
+}
+.brand-name{font-weight:700;font-size:16px;letter-spacing:0.02em;}
+.brand-sub{font-size:11px;color:var(--text-secondary);font-family:'Space Mono',monospace;}
+
+.tabs{display:flex;gap:4px;}
+.tab-btn{
+  background:none;border:1px solid transparent;color:var(--text-secondary);
+  font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:500;
+  padding:9px 18px;border-radius:8px;cursor:pointer;transition:none;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{background:var(--bg);color:var(--text);border-color:var(--border);}
+
+main{max-width:1180px;margin:0 auto;padding:28px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.panel-title{font-size:22px;font-weight:700;}
+.badge{
+  font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.04em;
+  color:var(--text-secondary);border:1px solid var(--border);
+  padding:3px 9px;border-radius:20px;text-transform:uppercase;
+}
+
+.grid{display:grid;gap:16px;}
+.grid-2{grid-template-columns:1fr 1fr;}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-5{grid-template-columns:repeat(5,1fr);}
+.grid-6{grid-template-columns:repeat(6,1fr);}
+
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:18px 20px;
+}
+.card-danger{border-left:3px solid var(--danger);}
+.card-warning{border-left:3px solid var(--warning);}
+.card-success{border-left:3px solid var(--success);}
+
+.stat-card .stat-value{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;}
+.stat-card .stat-label{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+
+.section{margin-bottom:28px;}
+.section-title{font-size:14px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:12px;font-weight:600;}
+
+/* ---- Tables ---- */
+table{width:100%;border-collapse:collapse;}
+th{
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--text-secondary);font-weight:600;padding:8px 12px;border-bottom:1px solid var(--border);
+}
+td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:14px;}
+tr:last-child td{border-bottom:none;}
+tr.clickable{cursor:pointer;}
+tr.clickable:hover{background:rgba(255,255,255,0.03);}
+
+/* ---- Zone dots/pills ---- */
+.zone-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+.zone-comfort{background:var(--success);}
+.zone-learning{background:var(--warning);}
+.zone-panic{background:var(--danger);}
+.zone-pill{
+  display:inline-flex;align-items:center;font-size:12px;font-family:'Space Mono',monospace;
+  padding:3px 9px;border-radius:20px;background:rgba(255,255,255,0.04);
+}
+
+/* ---- Charts ---- */
+.chart-svg{width:100%;height:auto;display:block;}
+
+/* ---- Stacked terrain bars ---- */
+.terrain-row{margin-bottom:14px;}
+.terrain-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+.terrain-bar{display:flex;height:16px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.04);}
+.terrain-bar > div{height:100%;}
+
+/* ---- Buttons ---- */
+.btn{
+  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;
+  padding:9px 16px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);cursor:pointer;
+}
+.btn:hover{border-color:var(--accent);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#161616;}
+.btn-primary:hover{opacity:0.9;}
+.btn-complete{background:var(--success);border-color:var(--success);color:#f0f0f0;}
+.btn-done{background:transparent;border-color:var(--success);color:var(--success);cursor:default;}
+
+/* ---- Forms ---- */
+label{display:block;font-size:12px;color:var(--text-secondary);margin-bottom:5px;font-weight:600;}
+input[type=text],input[type=date],textarea,select{
+  width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+  font-family:'Space Grotesk',sans-serif;font-size:14px;border-radius:8px;padding:9px 11px;margin-bottom:14px;
+}
+textarea{resize:vertical;min-height:70px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* ---- Flags ---- */
+.flag-text{font-size:12px;font-weight:600;padding:4px 0;}
+.flag-red{color:var(--danger);}
+.flag-amber{color:var(--warning);}
+.tag{
+  display:inline-block;font-size:10px;font-family:'Space Mono',monospace;
+  color:var(--text-secondary);border:1px solid var(--border);padding:2px 7px;border-radius:20px;margin-left:8px;
+}
+
+/* ---- Drawer ---- */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:30;
+  display:none;
+}
+.overlay.open{display:block;}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:420px;max-width:92vw;
+  background:var(--surface);border-left:1px solid var(--border);z-index:31;
+  padding:24px;overflow-y:auto;
+  transform:translateX(100%);
+}
+.overlay.open .drawer{transform:none;}
+.drawer-close{
+  background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer;
+  position:absolute;top:20px;right:20px;
+}
+.drawer h3{font-size:20px;margin-bottom:2px;}
+.drawer .section-title{margin-top:20px;}
+
+/* ---- Insight italic disclaimer ---- */
+.disclaimer{font-size:12px;font-style:italic;color:var(--text-secondary);margin-top:10px;}
+
+.gauge-row{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.gauge-track{flex:1;height:10px;border-radius:6px;background:rgba(255,255,255,0.06);position:relative;overflow:hidden;}
+.gauge-fill{height:100%;border-radius:6px;}
+.gauge-num{font-family:'Space Mono',monospace;font-size:13px;width:40px;text-align:right;}
+
+.small{font-size:12px;color:var(--text-secondary);}
+
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+
+footer{max-width:1180px;margin:0 auto;padding:20px 28px 40px;color:var(--text-secondary);font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div>
+      <div class="brand-name">Sharp End Exposure</div>
+      <div class="brand-sub">demo build</div>
+    </div>
+  </div>
+  <div class="tabs" id="tabButtons">
+    <button class="tab-btn active" data-tab="member">Member</button>
+    <button class="tab-btn" data-tab="coach">Coach</button>
+    <button class="tab-btn" data-tab="gym">Gym</button>
+    <button class="tab-btn" data-tab="industry">Industry</button>
+  </div>
+</div>
+
+<main>
+
+<!-- ============ MEMBER TAB ============ -->
+<section class="tab-panel active" id="tab-member">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title">Alex R.</div>
+      <div class="small">Sender One DTLA · climbing 2 years</div>
+    </div>
+    <span class="badge">Demo data</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Activation arc — last 10 sessions</div>
+    <div class="card" id="memberArcCard"></div>
+  </div>
+
+  <div class="grid grid-2 section">
+    <div class="card">
+      <div class="section-title" style="margin-bottom:14px;">Zone by terrain</div>
+      <div id="terrainBars"></div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:14px;">Go Deeper summary</div>
+      <div class="gauge-row">
+        <div style="width:120px;font-size:13px;">Breathing</div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:60%;background:var(--warning);"></div></div>
+        <div class="gauge-num">60%</div>
+      </div>
+      <div class="small" style="margin-bottom:16px;">Most common: "Shallow or tight"</div>
+      <div class="gauge-row">
+        <div style="width:120px;font-size:13px;">Gut sensation</div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:55%;background:var(--accent);"></div></div>
+        <div class="gauge-num">55%</div>
+      </div>
+      <div class="small">Most common: "Butterflies"</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Climb log</div>
+    <div class="card" style="padding:0;">
+      <table>
+        <thead><tr><th>Date</th><th>Route</th><th>Grade</th><th>Terrain</th><th>Result</th><th>Zone</th></tr></thead>
+        <tbody id="climbLogBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Fall detail — Crimpy McCrimpface, 2026-07-10</div>
+    <div class="card card-danger">
+      <div class="grid grid-2">
+        <div>
+          <div class="small">Got back on</div>
+          <p>Immediately</p>
+          <div class="small">Expectation</div>
+          <p>Expected to fall</p>
+          <div class="small">What happened</div>
+          <p>Feet cut on the crux</p>
+        </div>
+        <div>
+          <div class="small">Catch quality</div>
+          <p>Soft catch</p>
+          <div class="small">Consequence</div>
+          <p>Minor swing</p>
+          <div class="small">Notes</div>
+          <p>Felt panic set in before the crux</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2 section">
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px;">Reflection — Crimpy McCrimpface</div>
+      <div class="small">Went well</div>
+      <p>Committed to the sequence</p>
+      <div class="small">Still learning</div>
+      <p>Breathing before the crux</p>
+      <div class="small">Surprised by</div>
+      <p>How catch quality affected the next attempt</p>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px;">Train</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div>
+          <p style="font-weight:600;margin-bottom:4px;">Overhang breathing drill — 3 sessions this week</p>
+          <div class="small">Assigned by coach · due 2026-08-02</div>
+        </div>
+      </div>
+      <button class="btn btn-complete" id="markCompleteBtn" style="margin-top:14px;">Mark Complete</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COACH TAB ============ -->
+<section class="tab-panel" id="tab-coach">
+  <div class="panel-header">
+    <div class="panel-title">Coach dashboard</div>
+    <span class="badge">Demo data</span>
+  </div>
+
+  <div class="grid grid-5 section">
+    <div class="card stat-card"><div class="stat-value">12</div><div class="stat-label">Athletes</div></div>
+    <div class="card stat-card"><div class="stat-value">203</div><div class="stat-label">Sessions</div></div>
+    <div class="card stat-card"><div class="stat-value">59%</div><div class="stat-label">Learning avg</div></div>
+    <div class="card stat-card"><div class="stat-value">68%</div><div class="stat-label">Send rate</div></div>
+    <div class="card stat-card"><div class="stat-value" style="color:var(--danger);">2</div><div class="stat-label">Flagged</div></div>
+  </div>
+
+  <div class="card card-accent section" style="border-left:3px solid var(--accent);">
+    <div class="section-title" style="margin-bottom:6px;">Weekly focus</div>
+    <p style="margin:0;">Current cycle: Fall practice and fear management — 5 athletes assigned.</p>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1.4fr 1fr;gap:20px;align-items:start;">
+    <div class="section">
+      <div class="section-title">Roster</div>
+      <div class="card" style="padding:0;">
+        <table>
+          <thead><tr><th>Athlete</th><th>Sessions</th><th>Send rate</th><th>Status</th></tr></thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Create assignment</div>
+      <div class="card">
+        <form id="assignForm">
+          <label>Title</label>
+          <input type="text" placeholder="e.g. Overhang breathing drill" required>
+          <label>Description</label>
+          <textarea placeholder="Plain text description of the assignment..."></textarea>
+          <label>Resource link (optional)</label>
+          <input type="text" placeholder="https://...">
+          <div class="form-row">
+            <div>
+              <label>Due date</label>
+              <input type="date">
+            </div>
+            <div>
+              <label>Assign to</label>
+              <select id="athleteSelect"></select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">Create Assignment</button>
+          <div id="assignConfirm" class="small" style="display:none;margin-top:10px;color:var(--success);">Assignment created (demo — not saved).</div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GYM TAB ============ -->
+<section class="tab-panel" id="tab-gym">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title">Sender One DTLA</div>
+      <div class="small">Gym operations view</div>
+    </div>
+    <span class="badge">Demo data</span>
+  </div>
+
+  <div class="grid grid-4 section">
+    <div class="card stat-card"><div class="stat-value">847</div><div class="stat-label">Active members</div></div>
+    <div class="card stat-card"><div class="stat-value">312</div><div class="stat-label">Using SEE</div></div>
+    <div class="card stat-card"><div class="stat-value">1,847</div><div class="stat-label">Sessions this month</div></div>
+    <div class="card stat-card"><div class="stat-value">61%</div><div class="stat-label">Learning</div></div>
+    <div class="card stat-card"><div class="stat-value" style="color:var(--warning);">18%</div><div class="stat-label">Panic rate</div></div>
+    <div class="card stat-card"><div class="stat-value">8</div><div class="stat-label">Falls this week</div></div>
+    <div class="card stat-card"><div class="stat-value">1</div><div class="stat-label">Incident this month</div></div>
+  </div>
+
+  <div class="grid grid-2 section">
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px;">Zone distribution</div>
+      <div class="terrain-bar" style="height:22px;">
+        <div style="width:21%;background:var(--success);"></div>
+        <div style="width:61%;background:var(--warning);"></div>
+        <div style="width:18%;background:var(--danger);"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text-secondary);">
+        <span><span class="zone-dot zone-comfort"></span>Comfort 21%</span>
+        <span><span class="zone-dot zone-learning"></span>Learning 61%</span>
+        <span><span class="zone-dot zone-panic"></span>Panic 18%</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:12px;">Top terrain by Panic</div>
+      <div class="terrain-row">
+        <div class="terrain-label"><span>Overhang</span><span class="mono">31%</span></div>
+        <div class="terrain-bar"><div style="width:31%;background:var(--danger);"></div></div>
+      </div>
+      <div class="terrain-row">
+        <div class="terrain-label"><span>Slab</span><span class="mono">24%</span></div>
+        <div class="terrain-bar"><div style="width:24%;background:var(--danger);"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Panic rate trend — 8 weeks</div>
+    <div class="card" id="panicTrendCard"></div>
+  </div>
+
+  <div class="card card-warning section">
+    <div class="section-title" style="margin-bottom:6px;">Staff insight</div>
+    <p style="margin:0;">Overhang sessions trending higher Panic this month. Consider a fall practice clinic.</p>
+    <div class="disclaimer">SEE surfaces patterns — gyms draw the conclusions.</div>
+  </div>
+</section>
+
+<!-- ============ INDUSTRY TAB ============ -->
+<section class="tab-panel" id="tab-industry">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title">Network overview</div>
+      <div class="small">All 7 partner gyms</div>
+    </div>
+    <span class="badge">Demo data</span>
+  </div>
+
+  <div class="grid grid-6 section">
+    <div class="card stat-card"><div class="stat-value">12,847</div><div class="stat-label">Total sessions</div></div>
+    <div class="card stat-card"><div class="stat-value">58%</div><div class="stat-label">Learning avg</div></div>
+    <div class="card stat-card"><div class="stat-value" style="color:var(--warning);">16%</div><div class="stat-label">Panic rate</div></div>
+    <div class="card stat-card"><div class="stat-value">3,240</div><div class="stat-label">Active users</div></div>
+    <div class="card stat-card"><div class="stat-value">847</div><div class="stat-label">Falls logged</div></div>
+    <div class="card stat-card"><div class="stat-value" style="color:var(--danger);">11</div><div class="stat-label">Incidents</div></div>
+  </div>
+
+  <div class="card card-danger section">
+    <div class="section-title" style="margin-bottom:6px;">Safety signal</div>
+    <p style="margin:0;">11 incidents logged across the network. 78% occurred in Panic-zone sessions. Network Panic rate of 16% sits above the 13% baseline.</p>
+    <div class="disclaimer">Early signal — not yet statistically conclusive. SEE surfaces patterns — gyms draw the conclusions.</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Gym comparison</div>
+    <div class="card" style="padding:0;">
+      <table>
+        <thead><tr><th>Gym</th><th>Active users</th><th>Sessions this month</th><th>Panic rate</th></tr></thead>
+        <tbody id="gymCompareBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card section">
+    <p style="margin:0;">Climbers in the Panic zone are attempting routes beyond their current psychological readiness. SEE makes this visible before it becomes an incident — not by telling climbers what to do, but by helping them notice what they're experiencing.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>Sharp End Exposure — demo build. All data on this page is simulated for demonstration purposes.</footer>
+
+<!-- ============ DRAWER ============ -->
+<div class="overlay" id="drawerOverlay">
+  <div class="drawer">
+    <button class="drawer-close" id="drawerClose">&times;</button>
+    <h3 id="drawerName"></h3>
+    <div class="small" id="drawerMeta"></div>
+    <div class="section-title">Zone arc — last 8 sessions</div>
+    <div id="drawerArc"></div>
+    <div class="section-title">Breathing</div>
+    <p id="drawerBreathing"></p>
+    <div class="section-title">Reflection</div>
+    <div class="small">Went well</div>
+    <p id="drawerWentWell"></p>
+    <div class="small">Still learning</div>
+    <p id="drawerStillLearning"></p>
+    <div class="small">Surprised by</div>
+    <p id="drawerSurprised"></p>
+    <div class="section-title">Assigned workout</div>
+    <p id="drawerWorkout"></p>
+  </div>
+</div>
+
+<script>
+// ---------- Chart helpers ----------
+function buildActivationSVG(values, opts){
+  opts = opts || {};
+  var width = opts.width || 560, height = opts.height || 160;
+  var n = values.length, stepX = width/(n-1);
+  function scaleY(v){ return height - (v/12)*height; }
+  var points = values.map(function(v,i){ return (i*stepX).toFixed(1)+','+scaleY(v).toFixed(1); }).join(' ');
+  var bandH = height/3;
+  var bands = '<rect x="0" y="'+(height-bandH)+'" width="'+width+'" height="'+bandH+'" fill="var(--success)" opacity="0.12"/>' +
+              '<rect x="0" y="'+bandH+'" width="'+width+'" height="'+bandH+'" fill="var(--warning)" opacity="0.12"/>' +
+              '<rect x="0" y="0" width="'+width+'" height="'+bandH+'" fill="var(--danger)" opacity="0.12"/>';
+  var dots = values.map(function(v,i){ return '<circle cx="'+(i*stepX).toFixed(1)+'" cy="'+scaleY(v).toFixed(1)+'" r="4" fill="var(--accent)"/>'; }).join('');
+  return '<svg viewBox="0 0 '+width+' '+height+'" class="chart-svg">'+bands+'<polyline points="'+points+'" fill="none" stroke="var(--accent)" stroke-width="2.5"/>'+dots+'</svg>';
+}
+function buildLineSVG(values, opts){
+  opts = opts || {};
+  var width = opts.width || 560, height = opts.height || 140, max = opts.max || 100;
+  var n = values.length, stepX = width/(n-1);
+  function scaleY(v){ return height - (v/max)*height; }
+  var points = values.map(function(v,i){ return (i*stepX).toFixed(1)+','+scaleY(v).toFixed(1); }).join(' ');
+  var dots = values.map(function(v,i){ return '<circle cx="'+(i*stepX).toFixed(1)+'" cy="'+scaleY(v).toFixed(1)+'" r="3.5" fill="var(--danger)"/>'; }).join('');
+  return '<svg viewBox="0 0 '+width+' '+height+'" class="chart-svg"><polyline points="'+points+'" fill="none" stroke="var(--danger)" stroke-width="2.5"/>'+dots+'</svg>';
+}
+
+// ---------- Member tab ----------
+document.getElementById('memberArcCard').innerHTML = buildActivationSVG([6,3,7,6,11,2,8,6,7,5]);
+
+var terrainData = [
+  {name:'Slab', comfort:15, learning:70, panic:15},
+  {name:'Vertical', comfort:20, learning:55, panic:25},
+  {name:'Overhang', comfort:10, learning:55, panic:35},
+  {name:'Crack', comfort:50, learning:45, panic:5},
+  {name:'Roof', comfort:40, learning:50, panic:10}
+];
+document.getElementById('terrainBars').innerHTML = terrainData.map(function(t){
+  return '<div class="terrain-row">'+
+    '<div class="terrain-label"><span>'+t.name+'</span></div>'+
+    '<div class="terrain-bar">'+
+      '<div style="width:'+t.comfort+'%;background:var(--success);"></div>'+
+      '<div style="width:'+t.learning+'%;background:var(--warning);"></div>'+
+      '<div style="width:'+t.panic+'%;background:var(--danger);"></div>'+
+    '</div></div>';
+}).join('');
+
+var climbLog = [
+  {date:'2026-07-25', route:'Night Moves', grade:'5.10b', terrain:'Overhang', result:'Send', zone:'learning'},
+  {date:'2026-07-22', route:'Glass Slab', grade:'5.10c', terrain:'Slab', result:'Send', zone:'learning'},
+  {date:'2026-07-19', route:'Sunny D', grade:'5.10a', terrain:'Vertical', result:'Send', zone:'learning'},
+  {date:'2026-07-16', route:'The Prow', grade:'5.11a', terrain:'Overhang', result:'Fall', zone:'learning'},
+  {date:'2026-07-13', route:"Easy Skankin'", grade:'5.8', terrain:'Crack', result:'Send', zone:'comfort'},
+  {date:'2026-07-10', route:'Crimpy McCrimpface', grade:'5.10d', terrain:'Vertical', result:'Fall', zone:'panic'},
+  {date:'2026-07-07', route:'The Prow', grade:'5.11a', terrain:'Overhang', result:'Send', zone:'learning'},
+  {date:'2026-07-04', route:'Glass Slab', grade:'5.10c', terrain:'Slab', result:'Fall', zone:'learning'},
+  {date:'2026-07-01', route:'Chossy Roof', grade:'5.9', terrain:'Roof', result:'Send', zone:'comfort'},
+  {date:'2026-06-28', route:'Sunny D', grade:'5.10a', terrain:'Vertical', result:'Send', zone:'learning'}
+];
+document.getElementById('climbLogBody').innerHTML = climbLog.map(function(c){
+  return '<tr><td class="mono">'+c.date+'</td><td>'+c.route+'</td><td class="mono">'+c.grade+'</td><td>'+c.terrain+'</td><td>'+c.result+'</td>'+
+    '<td><span class="zone-dot zone-'+c.zone+'"></span>'+c.zone.charAt(0).toUpperCase()+c.zone.slice(1)+'</td></tr>';
+}).join('');
+
+document.getElementById('markCompleteBtn').addEventListener('click', function(){
+  this.textContent = 'Completed ✓';
+  this.classList.remove('btn-complete');
+  this.classList.add('btn-done');
+  this.disabled = true;
+});
+
+// ---------- Coach tab ----------
+var athletes = [
+  {id:1,name:'Maya T.',sessions:22,sendRate:71,flag:'red',flagText:'3 Panic sessions this week — check in recommended',cross:false,
+    arc:[5,6,9,11,12,8,10,9],breathing:'Shallow or tight — 64%',
+    reflection:{wentWell:'Stayed calm through the first crux',stillLearning:'Recovering composure after a fall',surprised:'How fast my heart rate spiked on lead'},
+    workout:{title:'Fall practice — top rope laps',status:'In progress'}},
+  {id:2,name:'Carlos R.',sessions:19,sendRate:42,flag:'amber',flagText:'Stuck on project 6 sessions',cross:false,
+    arc:[6,7,6,7,8,7,8,7],breathing:'Held breath at crux — 58%',
+    reflection:{wentWell:'Found a new beta sequence',stillLearning:'Committing to the throw',surprised:'How close I was each time'},
+    workout:{title:'Overhang power endurance',status:'Not started'}},
+  {id:3,name:'Jordan K.',sessions:14,sendRate:74,flag:null,cross:true,
+    arc:[4,5,4,6,5,4,5,4],breathing:'Easy and steady — 70%',
+    reflection:{wentWell:'Relaxed grip on slab',stillLearning:'Trusting feet on smears',surprised:'How much footwork mattered'},
+    workout:{title:'Slab technique drill',status:'Complete'}},
+  {id:4,name:'Sam P.',sessions:20,sendRate:82,flag:null,cross:false,
+    arc:[3,4,3,5,4,3,4,3],breathing:'Easy and steady — 66%',
+    reflection:{wentWell:'Sent the project',stillLearning:'Pacing on long routes',surprised:'How good the rest felt'},
+    workout:{title:'Endurance circuit',status:'Complete'}},
+  {id:5,name:'Priya N.',sessions:15,sendRate:68,flag:null,cross:true,
+    arc:[7,8,7,9,8,7,8,7],breathing:'Shallow or tight — 52%',
+    reflection:{wentWell:'Pushed through the crux',stillLearning:'Breathing under load',surprised:'How tired my forearms got'},
+    workout:{title:'Crimp strength block',status:'In progress'}},
+  {id:6,name:'Devon L.',sessions:9,sendRate:46,flag:null,cross:true,
+    arc:[8,9,8,10,9,8,9,8],breathing:'Held breath at crux — 61%',
+    reflection:{wentWell:'Tried a new route type',stillLearning:'Staying calm on run-outs',surprised:'How much the exposure affected me'},
+    workout:{title:'Mental game — visualization',status:'Not started'}},
+  {id:7,name:'Emma S.',sessions:24,sendRate:85,flag:null,cross:false,
+    arc:[2,3,2,4,3,2,3,2],breathing:'Easy and steady — 74%',
+    reflection:{wentWell:'Flashed two routes',stillLearning:'Trying harder grades',surprised:'How comfortable I felt'},
+    workout:{title:'Limit bouldering session',status:'Complete'}},
+  {id:8,name:'Marcus B.',sessions:14,sendRate:62,flag:null,cross:false,
+    arc:[6,6,7,6,7,6,7,6],breathing:'Shallow or tight — 55%',
+    reflection:{wentWell:'Stuck the dyno',stillLearning:'Committing without hesitation',surprised:'How much confidence helped'},
+    workout:{title:'Dynamic movement drill',status:'In progress'}},
+  {id:9,name:'Tyler H.',sessions:18,sendRate:75,flag:null,cross:false,
+    arc:[5,5,6,5,6,5,6,5],breathing:'Easy and steady — 63%',
+    reflection:{wentWell:'Read the route well',stillLearning:'Resting mid-route',surprised:'How much beta helped'},
+    workout:{title:'Route reading practice',status:'Complete'}},
+  {id:10,name:'Nina F.',sessions:11,sendRate:56,flag:null,cross:false,
+    arc:[7,7,8,7,9,8,9,8],breathing:'Shallow or tight — 59%',
+    reflection:{wentWell:'Finished the route eventually',stillLearning:'Fear on lead falls',surprised:'How different lead felt from top rope'},
+    workout:{title:'Lead fall practice',status:'Not started'}},
+  {id:11,name:'Chris W.',sessions:15,sendRate:72,flag:null,cross:true,
+    arc:[4,5,5,6,5,4,5,5],breathing:'Easy and steady — 68%',
+    reflection:{wentWell:'Onsighted a new grade',stillLearning:'Slowing down on crimps',surprised:'How much rest helped'},
+    workout:{title:'Recovery week — light volume',status:'Complete'}},
+  {id:12,name:'Riley O.',sessions:22,sendRate:68,flag:null,cross:false,
+    arc:[6,7,6,8,7,6,7,6],breathing:'Shallow or tight — 57%',
+    reflection:{wentWell:'Tried the crux three ways',stillLearning:'Patience on redpoint burns',surprised:'How much beta changed my read'},
+    workout:{title:'Redpoint burns — project day',status:'In progress'}}
+];
+
+document.getElementById('rosterBody').innerHTML = athletes.map(function(a){
+  var flagHtml = '';
+  if(a.flag === 'red'){ flagHtml = '<div class="flag-text flag-red">'+a.flagText+'</div>'; }
+  else if(a.flag === 'amber'){ flagHtml = '<div class="flag-text flag-amber">'+a.flagText+'</div>'; }
+  else { flagHtml = '<span class="small">On track</span>'; }
+  var crossTag = a.cross ? '<span class="tag">Sender One Santa Ana</span>' : '';
+  return '<tr class="clickable" data-id="'+a.id+'">'+
+    '<td>'+a.name+crossTag+'</td>'+
+    '<td class="mono">'+a.sessions+'</td>'+
+    '<td class="mono">'+a.sendRate+'%</td>'+
+    '<td>'+flagHtml+'</td></tr>';
+}).join('');
+
+document.getElementById('athleteSelect').innerHTML = athletes.map(function(a){
+  return '<option>'+a.name+'</option>';
+}).join('');
+
+function openDrawer(id){
+  var a = athletes.find(function(x){ return x.id === id; });
+  if(!a) return;
+  document.getElementById('drawerName').textContent = a.name;
+  document.getElementById('drawerMeta').textContent = a.sessions+' sessions · '+a.sendRate+'% send rate'+(a.cross ? ' · Sender One Santa Ana' : '');
+  document.getElementById('drawerArc').innerHTML = buildActivationSVG(a.arc, {width:360, height:130});
+  document.getElementById('drawerBreathing').textContent = a.breathing;
+  document.getElementById('drawerWentWell').textContent = a.reflection.wentWell;
+  document.getElementById('drawerStillLearning').textContent = a.reflection.stillLearning;
+  document.getElementById('drawerSurprised').textContent = a.reflection.surprised;
+  document.getElementById('drawerWorkout').textContent = a.workout.title+' — '+a.workout.status;
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+document.getElementById('rosterBody').addEventListener('click', function(e){
+  var row = e.target.closest('tr[data-id]');
+  if(row) openDrawer(parseInt(row.getAttribute('data-id'),10));
+});
+document.getElementById('drawerClose').addEventListener('click', function(){
+  document.getElementById('drawerOverlay').classList.remove('open');
+});
+document.getElementById('drawerOverlay').addEventListener('click', function(e){
+  if(e.target === this) this.classList.remove('open');
+});
+
+document.getElementById('assignForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var confirm = document.getElementById('assignConfirm');
+  confirm.style.display = 'block';
+  setTimeout(function(){ confirm.style.display = 'none'; }, 3000);
+  this.reset();
+});
+
+// ---------- Gym tab ----------
+document.getElementById('panicTrendCard').innerHTML = buildLineSVG([9,10,11,13,12,15,16,18], {height:120});
+
+// ---------- Industry tab ----------
+var gyms = [
+  {name:'Sender One', users:1240, sessions:4690, panic:15},
+  {name:'Earth Treks', users:610, sessions:2310, panic:14},
+  {name:'Movement', users:480, sessions:1940, panic:16},
+  {name:'Brooklyn Boulders', users:340, sessions:1260, panic:12},
+  {name:'Planet Granite', users:250, sessions:980, panic:17},
+  {name:'Momentum', users:200, sessions:810, panic:14},
+  {name:'Mesa Rim', users:120, sessions:857, panic:23}
+];
+function panicColor(p){
+  if(p >= 20) return 'var(--danger)';
+  if(p >= 15) return 'var(--warning)';
+  return 'var(--success)';
+}
+document.getElementById('gymCompareBody').innerHTML = gyms.map(function(g){
+  return '<tr><td>'+g.name+'</td><td class="mono">'+g.users.toLocaleString()+'</td><td class="mono">'+g.sessions.toLocaleString()+'</td>'+
+    '<td class="mono" style="color:'+panicColor(g.panic)+';font-weight:700;">'+g.panic+'%</td></tr>';
+}).join('');
+
+// ---------- Tab switching ----------
+document.getElementById('tabButtons').addEventListener('click', function(e){
+  var btn = e.target.closest('.tab-btn');
+  if(!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('tab-'+btn.getAttribute('data-tab')).classList.add('active');
+});
+</script>
+</body>
+</html>
