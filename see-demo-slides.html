@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sharp End Exposure — Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#161616; --surface:#212121; --border:#333333; --text:#f0f0f0;
+  --text-secondary:#999999; --accent:#c8622a; --success:#3B6D11;
+  --warning:#BA7517; --danger:#a83828;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'Space Grotesk',sans-serif;
+  overflow:hidden;
+}
+.mono{font-family:'Space Mono',monospace;}
+
+.deck{
+  position:relative;width:100vw;height:100vh;cursor:pointer;
+}
+.slide{
+  position:absolute;inset:0;
+  display:none;
+  flex-direction:column;justify-content:center;align-items:center;
+  padding:8vh 10vw;text-align:center;
+}
+.slide.active{display:flex;}
+
+.slide h1{font-size:56px;font-weight:700;margin:0 0 16px;line-height:1.1;}
+.slide h2{font-size:38px;font-weight:700;margin:0 0 28px;max-width:900px;line-height:1.25;}
+.slide p{font-size:19px;color:var(--text-secondary);line-height:1.55;max-width:720px;margin:0 0 10px;}
+.slide .tagline{font-size:20px;color:var(--text);max-width:640px;}
+.brand-mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--danger));margin-bottom:22px;}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:48px;max-width:820px;width:100%;margin-top:10px;text-align:left;}
+.two-col .col-title{font-size:13px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:14px;font-weight:600;}
+.two-col ul{margin:0;padding:0;list-style:none;}
+.two-col li{font-size:17px;padding:9px 0;border-bottom:1px solid var(--border);}
+
+ul.feature-list{list-style:none;margin:12px 0 0;padding:0;max-width:600px;text-align:left;}
+ul.feature-list li{font-size:18px;padding:11px 0 11px 30px;position:relative;border-bottom:1px solid var(--border);}
+ul.feature-list li:before{content:"—";position:absolute;left:0;color:var(--accent);}
+
+.big-stat{font-family:'Space Mono',monospace;font-weight:700;font-size:130px;line-height:1;color:var(--accent);}
+.small-note{font-size:14px;color:var(--text-secondary);margin-top:18px;max-width:520px;}
+
+.footer-tag{
+  position:absolute;bottom:34px;left:0;right:0;text-align:center;
+  font-family:'Space Mono',monospace;font-size:13px;color:var(--text-secondary);
+}
+
+.progress{
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+  display:flex;gap:7px;z-index:5;
+}
+.progress .dot{width:7px;height:7px;border-radius:50%;background:var(--border);}
+.progress .dot.active{background:var(--accent);}
+
+.slide-num{
+  position:fixed;top:24px;right:28px;font-family:'Space Mono',monospace;
+  font-size:12px;color:var(--text-secondary);z-index:5;
+}
+</style>
+</head>
+<body>
+
+<div class="slide-num"><span id="curNum">1</span> / 7</div>
+
+<div class="deck" id="deck">
+
+  <div class="slide active" data-index="0">
+    <div class="brand-mark"></div>
+    <h1>Sharp End Exposure</h1>
+    <p class="tagline">A climb log and training platform that tracks your body, not just your grades.</p>
+    <div class="small-note mono">Straydog Labs · beta@straydoglabs.com</div>
+  </div>
+
+  <div class="slide" data-index="1">
+    <h2>Every other tool tracks what climbers do. Nobody tracks what they feel.</h2>
+    <div class="two-col">
+      <div>
+        <div class="col-title">What exists</div>
+        <ul>
+          <li>Grades</li>
+          <li>Volume</li>
+          <li>Sends</li>
+          <li>Training load</li>
+        </ul>
+      </div>
+      <div>
+        <div class="col-title">What's missing</div>
+        <ul>
+          <li>Activation state</li>
+          <li>Fear response</li>
+          <li>Somatic signals</li>
+          <li>Fall experience</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-index="2">
+    <h2>A personal log that gets smarter the longer you use it.</h2>
+    <ul class="feature-list">
+      <li>Somatic check-in after every climb</li>
+      <li>Activation pattern over time</li>
+      <li>Fall experience and backoff detail</li>
+      <li>Self-directed training in the same app</li>
+    </ul>
+    <div class="footer-tag">For members</div>
+  </div>
+
+  <div class="slide" data-index="3">
+    <h2>See what your athletes are actually experiencing, not just what they're sending.</h2>
+    <ul class="feature-list">
+      <li>Zone arc per athlete</li>
+      <li>Panic flag alerts</li>
+      <li>Assign training directly in the app</li>
+      <li>Fall pattern by terrain</li>
+    </ul>
+    <div class="footer-tag">For coaches</div>
+  </div>
+
+  <div class="slide" data-index="4">
+    <h2>Location-level psychological safety intelligence across all 7 gyms.</h2>
+    <ul class="feature-list">
+      <li>Panic rate by location</li>
+      <li>Terrain correlation</li>
+      <li>Incident pattern visibility</li>
+      <li>One tool for members, coaches, and operators</li>
+    </ul>
+    <div class="footer-tag">For Sender One</div>
+  </div>
+
+  <div class="slide" data-index="5">
+    <div class="big-stat">78%</div>
+    <p style="font-size:20px;color:var(--text);margin-top:14px;">of logged incidents occurred in Panic-zone sessions.</p>
+    <div class="small-note">Early signal — not yet statistically conclusive. We're building the dataset.</div>
+    <div class="small-note" style="margin-top:24px;font-size:16px;color:var(--text);">This is what SEE is here to make visible.</div>
+  </div>
+
+  <div class="slide" data-index="6">
+    <h2>An informal pilot. Real members or instructors. One training cycle. We learn together.</h2>
+    <p>No cost. No obligation. No software to install or manage.</p>
+    <div class="small-note mono" style="margin-top:20px;">beta@straydoglabs.com</div>
+  </div>
+
+</div>
+
+<div class="progress" id="progress"></div>
+
+<script>
+var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+var total = slides.length;
+var current = 0;
+
+var progress = document.getElementById('progress');
+progress.innerHTML = slides.map(function(_, i){
+  return '<div class="dot'+(i===0?' active':'')+'" data-i="'+i+'"></div>';
+}).join('');
+
+function render(){
+  slides.forEach(function(s, i){ s.classList.toggle('active', i === current); });
+  Array.prototype.forEach.call(progress.children, function(d, i){ d.classList.toggle('active', i === current); });
+  document.getElementById('curNum').textContent = current + 1;
+}
+
+function goTo(i){
+  current = Math.max(0, Math.min(total - 1, i));
+  render();
+}
+function next(){ if(current < total - 1) goTo(current + 1); }
+function prev(){ if(current > 0) goTo(current - 1); }
+
+document.getElementById('deck').addEventListener('click', function(e){
+  var rect = this.getBoundingClientRect();
+  var x = e.clientX - rect.left;
+  if(x < rect.width * 0.3){ prev(); } else { next(); }
+});
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' '){ next(); e.preventDefault(); }
+  else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ prev(); e.preventDefault(); }
+});
+
+progress.addEventListener('click', function(e){
+  var dot = e.target.closest('.dot');
+  if(dot){ goTo(parseInt(dot.getAttribute('data-i'),10)); e.stopPropagation(); }
+});
+</script>
+</body>
+</html>
