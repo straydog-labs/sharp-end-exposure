@@ -141,6 +141,18 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .chip:active{transform:scale(.95);}
 .chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
 
+/* ── LOG TERRAIN PICKER (screen-log, build 186) ── */
+#log-terrain-group .log-terrain-picker{display:flex;flex-direction:column;gap:8px;}
+#log-terrain-group .setting-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+#log-terrain-group .terrain-chips{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;flex-wrap:unset;overflow:visible;}
+#log-terrain-group .setting-row .chip,
+#log-terrain-group .terrain-chips .chip{
+  width:100%;max-width:none;margin:0;
+  min-height:44px;padding:12px 8px;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;white-space:normal;font-size:14px;line-height:1.2;
+}
+
 
 /* ── CLIMB TABLE ── */
 .cl-table{width:100%;border-collapse:collapse;font-size:13px;}
@@ -1146,26 +1158,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div id="log-locked-subtitle" style="font-size:14px;color:var(--muted);"></div>
     </div>
 
-    <!-- TERRAIN + SETTING — Indoor/Outdoor first, terrain chips below -->
-    <div class="insight-card" id="log-terrain-card" style="margin-bottom:10px;">
-    <div class="field-group" id="log-terrain-group">
-      <div class="field-label">Terrain</div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <button id="btn-indoor" onclick="selectSetting('indoor',this)" class="chip">Indoor</button>
-        <button id="btn-outdoor" onclick="selectSetting('outdoor',this)" class="chip">Outdoor</button>
-      </div>
-      <div class="terrain-chips">
-        <button class="chip" onclick="selectTerrain(this,'Slab')">Slab</button>
-        <button class="chip" onclick="selectTerrain(this,'Vertical')">Vertical</button>
-        <button class="chip" onclick="selectTerrain(this,'Overhang')">Overhang</button>
-        <button class="chip" onclick="selectTerrain(this,'Roof')">Roof</button>
-        <button class="chip" onclick="selectTerrain(this,'Arête')">Arête</button>
-        <button class="chip" onclick="selectTerrain(this,'Dihedral')">Dihedral</button>
-        <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
-      </div>
-    </div>
-    </div>
-
     <!-- RESULT — 3-column, icon + label -->
     <div class="insight-card" style="margin-bottom:10px;">
     <div class="field-group">
@@ -1344,6 +1336,42 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
     </div>
 
+    <!-- TERRAIN — unified 2-column picker (setting + type feel like one control) -->
+    <div class="insight-card" id="log-terrain-card" style="margin-bottom:10px;">
+    <div class="field-group" id="log-terrain-group">
+      <div class="field-label">Terrain</div>
+      <div class="log-terrain-picker">
+        <div class="setting-row">
+          <button id="btn-indoor" onclick="selectSetting('indoor',this)" class="chip">Indoor</button>
+          <button id="btn-outdoor" onclick="selectSetting('outdoor',this)" class="chip">Outdoor</button>
+        </div>
+        <div class="terrain-chips">
+          <button class="chip" onclick="selectTerrain(this,'Slab')">Slab</button>
+          <button class="chip" onclick="selectTerrain(this,'Vertical')">Vertical</button>
+          <button class="chip" onclick="selectTerrain(this,'Overhang')">Overhang</button>
+          <button class="chip" onclick="selectTerrain(this,'Roof')">Roof</button>
+          <button class="chip" onclick="selectTerrain(this,'Arête')">Arête</button>
+          <button class="chip" onclick="selectTerrain(this,'Dihedral')">Dihedral</button>
+          <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- GRADE — appears after result -->
+    <div class="insight-card" id="log-grade-card" style="margin-bottom:10px;">
+    <div class="field-group" id="log-grade-group">
+      <div class="field-label">Grade</div>
+      <div class="grade-toggle">
+        <button class="toggle-btn" onclick="setGradeSystem('V')" id="btn-V"><span class="sys-name">V</span><span class="sys-label">Hueco</span></button>
+        <button class="toggle-btn active" onclick="setGradeSystem('YDS')" id="btn-YDS"><span class="sys-name">5.x</span><span class="sys-label">Yosemite</span></button>
+        <button class="toggle-btn" onclick="setGradeSystem('FR')" id="btn-FR"><span class="sys-name">6a+</span><span class="sys-label">French</span></button>
+        <button class="toggle-btn" onclick="setGradeSystem('UK')" id="btn-UK"><span class="sys-name">E1</span><span class="sys-label">UK Tech</span></button>
+      </div>
+      <div class="grade-grid" id="grade-grid"></div>
+    </div>
+    </div>
+
         <!-- CLIMB AUTOCOMPLETE — prominent, shown after result selected -->
     <div class="insight-card" id="log-rname-card" style="margin-bottom:10px;">
     <div class="field-group" id="log-rname-group">
@@ -1361,20 +1389,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <button onclick="clearClimbSelection()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 4px;float:right;">×</button>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px;">Named climbs link across sessions and build richer patterns over time.</div>
-    </div>
-    </div>
-
-    <!-- GRADE — appears after result -->
-    <div class="insight-card" id="log-grade-card" style="margin-bottom:10px;">
-    <div class="field-group" id="log-grade-group">
-      <div class="field-label">Grade</div>
-      <div class="grade-toggle">
-        <button class="toggle-btn" onclick="setGradeSystem('V')" id="btn-V"><span class="sys-name">V</span><span class="sys-label">Hueco</span></button>
-        <button class="toggle-btn active" onclick="setGradeSystem('YDS')" id="btn-YDS"><span class="sys-name">5.x</span><span class="sys-label">Yosemite</span></button>
-        <button class="toggle-btn" onclick="setGradeSystem('FR')" id="btn-FR"><span class="sys-name">6a+</span><span class="sys-label">French</span></button>
-        <button class="toggle-btn" onclick="setGradeSystem('UK')" id="btn-UK"><span class="sys-name">E1</span><span class="sys-label">UK Tech</span></button>
-      </div>
-      <div class="grade-grid" id="grade-grid"></div>
     </div>
     </div>
 
@@ -3071,7 +3085,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index185';
+var app_version = 'staging-index186';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
