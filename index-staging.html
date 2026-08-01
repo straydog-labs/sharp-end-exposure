@@ -464,18 +464,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </button>
     -->
 
-    <!-- Use email instead — collapsed by default (Stage 1-3 rebuild, build 183:
-         the sign-in/create-account form previously sat here always-visible,
-         competing with the Google button for attention with no obvious single
-         next action; Rule 2/4). Toggled by toggleEmailAuth(). -->
-    <div style="text-align:center;margin:16px 0;">
-      <button onclick="toggleEmailAuth()" id="auth-email-toggle-btn"
-        style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;">
-        Use email instead →
-      </button>
-    </div>
-
-    <div id="auth-email-section" style="display:none;">
+    <!-- Email sign-in — primary action while Google is hidden (build 185) -->
 
     <!-- Mode toggle tabs -->
     <div style="display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:3px;margin-bottom:20px;" id="auth-tab-bar">
@@ -520,7 +509,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     </div><!-- end auth-signin-form -->
-    </div><!-- end auth-email-section -->
 
     <!-- Skip for now — quiet, tertiary, moved to the very bottom (Stage 1-3
          rebuild, build 183: previously "Continue without account" sat between
@@ -3083,7 +3071,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index184';
+var app_version = 'staging-index185';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -9304,22 +9292,6 @@ function clearAuthError(){
   if(el){ el.textContent = ''; el.style.display = 'none'; }
 }
 
-
-// Stage 1-3 rebuild, build 183: collapses the email sign-in/create-account
-// form behind a quiet link so Google SSO reads as the one obvious first
-// action on screen-auth (Rule 2).
-function toggleEmailAuth(){
-  var section = document.getElementById('auth-email-section');
-  var btn = document.getElementById('auth-email-toggle-btn');
-  if(!section) return;
-  var isOpen = section.style.display !== 'none';
-  section.style.display = isOpen ? 'none' : 'block';
-  if(btn) btn.textContent = isOpen ? 'Use email instead →' : '← Back';
-  if(!isOpen){
-    var emailInput = document.getElementById('auth-email');
-    if(emailInput) emailInput.focus();
-  }
-}
 
 function setAuthMode(mode){
   var tabSignin=document.getElementById('auth-tab-signin');
