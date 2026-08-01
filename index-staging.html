@@ -72,10 +72,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .home-brand{display:flex;flex-direction:column;gap:14px;}
 .home-wordmark{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
 .home-wordmark span{color:var(--accent);}
-#s-deeper .content{padding:16px 20px 24px;}
-#deep-visual svg{display:block;width:100%;max-height:120px;}
-.deep-q-text{font-size:18px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:6px;}
-.deep-q-hint{font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5;}
+/* s-deeper (Route Analysis / Deep Prepare) removed, build 182 — confirmed dead, zero call sites, per Beta 2026-07-31. Also dropped .deep-q-text/.deep-q-hint here, which were already orphaned before this cleanup — their selector never matched the element's actual class (id="deep-q-text" but class="q-text"). */
 .home-tagline-sub{font-size:var(--t-xs);color:rgba(255,255,255,.3);line-height:1.6;margin-top:10px;letter-spacing:.01em;}
 .home-tagline{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1.12;}
 .home-tagline em{font-style:normal;color:var(--accent);}
@@ -463,12 +460,18 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       Continue with Google
     </button>
 
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-      <div style="font-size:12px;color:var(--muted2);">or</div>
-      <div style="flex:1;height:1px;background:var(--border);"></div>
+    <!-- Use email instead — collapsed by default (Stage 1-3 rebuild, build 183:
+         the sign-in/create-account form previously sat here always-visible,
+         competing with the Google button for attention with no obvious single
+         next action; Rule 2/4). Toggled by toggleEmailAuth(). -->
+    <div style="text-align:center;margin:16px 0;">
+      <button onclick="toggleEmailAuth()" id="auth-email-toggle-btn"
+        style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+        Use email instead →
+      </button>
     </div>
+
+    <div id="auth-email-section" style="display:none;">
 
     <!-- Mode toggle tabs -->
     <div style="display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:3px;margin-bottom:20px;" id="auth-tab-bar">
@@ -512,19 +515,19 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </button>
     </div>
 
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-    </div>
-
-    <!-- Anonymous path -->
-    <button onclick="authContinueAnonymous()"
-      style="width:100%;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
-      Continue without account →
-    </button>
-    <div style="text-align:center;font-size:11px;color:var(--muted2);margin-top:4px;">Your data stays on this device only</div>
-
     </div><!-- end auth-signin-form -->
+    </div><!-- end auth-email-section -->
+
+    <!-- Skip for now — quiet, tertiary, moved to the very bottom (Stage 1-3
+         rebuild, build 183: previously "Continue without account" sat between
+         two dividers at equal visual weight to the email form; Rule 2) -->
+    <div style="text-align:center;margin-top:8px;padding-top:16px;border-top:1px solid var(--border);">
+      <button onclick="authContinueAnonymous()"
+        style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+        Just exploring? Skip for now →
+      </button>
+      <div style="text-align:center;font-size:11px;color:var(--muted2);margin-top:4px;">Your data stays on this device only</div>
+    </div>
 
     <!-- Forgot password confirmation — shown inline, hidden by default -->
     <div id="forgot-pw-card" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;text-align:center;">
@@ -558,19 +561,22 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div id="quick-strip" style="display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;"></div>
   </div>
 
-  <!-- New user state (0 sessions) -->
+  <!-- New user state (0 sessions) — Stage 1-3 rebuild, build 183: added a
+       direct line pointing at the button above (Rule 2) -->
   <div id="dash-new-user" style="display:block;padding:24px 16px;text-align:center;">
     <div style="font-size:28px;font-weight:700;line-height:1.2;margin-bottom:8px;">Sharpen your awareness.</div>
-    <div style="font-size:16px;color:var(--muted);margin-bottom:24px;">Expose your edge.</div>
+    <div style="font-size:16px;color:var(--muted);margin-bottom:8px;">Expose your edge.</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:24px;">Log your first climb below to start building your picture.</div>
   </div>
 
-  <!-- Building state (1-9 sessions) -->
+  <!-- Building state (1-4 sessions) — Stage 1-3 rebuild, build 183: retargeted
+       from a 10-session bar to the approved 0 / 1-4 / 5+ tier structure -->
   <div id="dash-building" style="display:none;padding:16px 16px 0;">
     <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Pattern building</div>
     <div style="height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:4px;">
       <div id="dash-progress-fill" style="height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width .4s;"></div>
     </div>
-    <div id="dash-progress-label" style="font-size:11px;color:var(--muted2);margin-bottom:16px;">0 of 10 sessions</div>
+    <div id="dash-progress-label" style="font-size:11px;color:var(--muted2);margin-bottom:16px;">0 of 5 climbs</div>
   </div>
   <div class="content" style="max-width:480px;margin-left:auto;margin-right:auto;">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
@@ -589,13 +595,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div id="ai-more-text" style="display:none;margin-top:10px;font-size:var(--t-xs);color:var(--muted);line-height:1.65;border-top:1px solid var(--border);padding-top:10px;"></div>
     </div>
 
-    <!-- ── EMPTY STATE (< 5 sessions) ── -->
-    <div id="sessions-empty-state" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;margin-bottom:16px;text-align:center;">
-      <div style="font-size:28px;margin-bottom:12px;">📊</div>
-      <div style="font-size:var(--t-md);font-weight:700;color:var(--text);margin-bottom:8px);">Your picture is building.</div>
-      <div style="font-size:var(--t-sm);color:var(--muted);line-height:1.6;" id="sessions-empty-text">Log climbs to build your arc. Each one sharpens the picture.</div>
-      <button onclick="showScreen('screen-log')" style="margin-top:16px;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:var(--t-sm);font-weight:700;padding:12px 24px;cursor:pointer;">Log a climb →</button>
-    </div>
+    <!-- sessions-empty-state removed, Stage 1-3 rebuild build 183: confirmed
+         dead — its own display logic set it to 'block' then immediately back
+         to 'none' in the same loadClimbLog() pass for every session count, so
+         it never actually rendered under any real condition. The 0-session
+         tier is now handled entirely by dash-new-user above. -->
 
     <!-- ── YOUR DATA SECTION ── -->
     <div id="sessions-example-link" style="display:none;text-align:center;padding:8px 0 16px;">
@@ -616,33 +620,14 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
            "Retake baseline questionnaire" style instead of a plain underlined link -->
       <button onclick="showClimbTable()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;cursor:pointer;margin-bottom:16px;text-align:left;">View all climb data →</button>
 
-      <!-- Climb table — collapsible -->
+      <!-- Climb history preview — Stage 1-3 rebuild, build 183: previously a
+           collapsible toggle plus its own "Sort by" dropdown duplicated the
+           already-existing, already-sortable screen-climb-table (Rule 4).
+           Now an always-visible, unsorted preview of the 5 most recent
+           climbs — full sorting lives only behind "View all" above. -->
       <div style="margin-bottom:16px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Climb history</div>
-
-        <!-- SORT CONTROLS — sits directly above the toggle it controls (Fix 2: was misplaced at top of section) -->
-        <div id="climb-log-controls" style="display:none;margin-bottom:10px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div></div><!-- flat/grouped toggle removed — grouped is default and only view -->
-            <div style="font-size:11px;color:var(--muted);" id="cl-count-label"></div>
-          </div>
-          <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">
-            <span>Sort by</span>
-            <select onchange="setGroupSort(this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;-webkit-appearance:none;appearance:none;cursor:pointer;">
-              <option value="recent">Most recent</option>
-              <option value="attempts">Most attempts</option>
-              <option value="grade">Hardest grade</option>
-              <option value="zone">Zone</option>
-            </select>
-          </div>
-        </div>
-
-        <button id="climb-table-toggle" onclick="toggleClimbTable()"
-          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent;">
-          <span id="climb-table-toggle-label">Show all climbs</span>
-          <span id="climb-table-toggle-arrow" style="font-size:16px;color:var(--muted);">↓</span>
-        </button>
-        <div id="climb-table-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-xl) var(--r-xl);overflow:hidden;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;">
           <div id="sessions-climb-list"><div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div></div>
         </div>
       </div>
@@ -684,26 +669,39 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <div id="sessions-arc-insight" style="display:none;"></div>
       </div>
 
-      <!-- SPIDER CHART — most striking visual, leads the page -->
-      <div class="insight-card" id="spider-chart-card" style="margin-bottom:16px;display:none;">
-        <div class="insight-label" style="margin-bottom:10px;">Zone by terrain</div>
-        <div id="spider-chart-wrap"></div>
+      <!-- YOUR PATTERNS — Stage 1-3 rebuild, build 183: Zone-by-Terrain,
+           Falls-by-Terrain, and Somatic Profile were three separate,
+           always-expanded cards; consolidated into one collapsed section,
+           only shown at 5+ logged climbs (Rule 1/5 — a journal, not a
+           stacked dashboard). Individual cards still self-gate inside
+           (e.g. Somatic keeps its own confirmed-session check), this
+           wrapper just controls whether the section appears/expands at all. -->
+      <div id="patterns-section" style="display:none;margin-bottom:16px;">
+        <button id="patterns-toggle" onclick="togglePatternsSection()"
+          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent;">
+          <span id="patterns-toggle-label">Show your patterns</span>
+          <span id="patterns-toggle-arrow" style="font-size:16px;color:var(--muted);">↓</span>
+        </button>
+        <div id="patterns-body" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-xl) var(--r-xl);padding:16px 18px;">
+
+          <div class="insight-card" id="spider-chart-card" style="margin-bottom:16px;display:none;">
+            <div class="insight-label" style="margin-bottom:10px;">Zone by terrain</div>
+            <div id="spider-chart-wrap"></div>
+          </div>
+
+          <div class="insight-card" id="falls-terrain-card" style="margin-bottom:16px;display:none;">
+            <div class="insight-label" style="margin-bottom:10px;">Falls by terrain</div>
+            <div id="falls-terrain-wrap"></div>
+          </div>
+
+          <div class="insight-card" id="somatic-radar-card" style="display:none;">
+            <div class="insight-label" style="margin-bottom:10px;">What your body tends to do</div>
+            <div id="somatic-radar-wrap"></div>
+          </div>
+
+        </div>
       </div>
 
-      <!-- FALLS BY TERRAIN — Feature 3, must match Zone by Terrain's row order exactly -->
-      <div class="insight-card" id="falls-terrain-card" style="margin-bottom:16px;display:none;">
-        <div class="insight-label" style="margin-bottom:10px;">Falls by terrain</div>
-        <div id="falls-terrain-wrap"></div>
-      </div>
-
-      <!-- SOMATIC PROFILE — new radar, genuinely 4-dimensional (Breathing/Gut/Crux/Body) -->
-      <div class="insight-card" id="somatic-radar-card" style="margin-bottom:16px;display:none;">
-        <div class="insight-label" style="margin-bottom:10px;">Somatic profile</div>
-        <div id="somatic-radar-wrap"></div>
-      </div>
-
-      <!-- Real terrain radar -->
-      
 </div><!-- end your-data-section -->
     </div><!-- end sessions-real-section -->
 
@@ -735,9 +733,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <div style="font-size:22px;font-weight:700;line-height:1.3;margin-bottom:16px;color:var(--text);text-align:center;">Welcome to Sharp End Exposure</div>
 
-    <div style="font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:14px;">SEE is a noticing tool, not a safety system. It tracks your somatic response to climbing — breathing, gut sensation, body state, activation level — so you can build self-awareness over time. It does not assess whether a route is safe to climb, generate risk verdicts, or replace your judgment at the sharp end.</div>
+    <!-- Stage 1-3 rebuild, build 183: tone/wording only, per Beta — the 5
+         acknowledgment items below are unchanged, held for Scout. -->
+    <div style="font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:14px;">SEE is a noticing tool — it helps you track how your body reacts when you climb (breathing, gut, tension) so you can build awareness over time. It's not a safety system, and it doesn't make climbing decisions for you.</div>
 
-    <div style="font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:22px;">About your data: If you create an account, your data is stored securely and privately. If you use SEE without an account, your data stays on this device only. Either way, your data is never sold. During beta, anonymized aggregate patterns may be used to improve the app.</div>
+    <div style="font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:22px;">Your data stays private. With an account, it's stored securely; without one, it stays on this device. Never sold. During beta, anonymized aggregate patterns may be used to improve the app.</div>
 
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:24px;">
       <div style="display:flex;gap:10px;margin-bottom:14px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:13.5px;line-height:1.5;color:var(--text);">I understand SEE is a self-awareness tool, not a safety or risk assessment system</span></div>
@@ -816,9 +816,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
     </div>
 
-    <!-- Example Zone Arc -->
+    <!-- Example Zone Arc — title softened, Stage 1-3 rebuild build 183 (Rule 3:
+         a first-timer often sees this before ever logging a real climb) -->
     <div class="insight-card" style="margin-bottom:12px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Zone arc <span style="font-weight:400;color:var(--muted2);font-size:10px;">older → recent</span></div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Your pattern over time <span style="font-weight:400;color:var(--muted2);font-size:10px;">older → recent</span></div>
       <svg id="ex-arc-svg" width="100%" height="60" viewBox="0 0 320 60" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;"></svg>
       <div style="display:flex;gap:12px;margin-top:6px;">
         <span style="font-size:10px;color:var(--muted);"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:3px;"></span>confirmed</span>
@@ -826,16 +827,24 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
     </div>
 
-    <!-- Example Zone by Terrain radar -->
+    <!-- Example Zone by Terrain radar — title softened, build 183 -->
     <div class="insight-card" id="ex-spider-card" style="margin-bottom:12px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Zone by terrain</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Where you feel it most</div>
       <div id="ex-spider-container"></div>
     </div>
 
     <!-- Example climb list -->
-    <div class="insight-card" id="ex-climb-list-card">
+    <div class="insight-card" id="ex-climb-list-card" style="margin-bottom:20px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Recent climbs</div>
       <div id="ex-climb-list"></div>
+    </div>
+
+    <!-- Bottom CTA — Stage 1-3 rebuild, build 183: this screen previously had
+         no action of its own (Rule 2 — a first-timer shown "here's what yours
+         could look like" had nothing to tap toward making that real). -->
+    <div style="text-align:center;padding:4px 0 16px;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Ready to build yours?</div>
+      <button onclick="showScreen('screen-log')" style="background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px 28px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Log your first climb →</button>
     </div>
 
   </div>
@@ -970,7 +979,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="content">
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;" id="baseline-eyebrow">Before your first climb log</div>
     <div style="font-size:26px;font-weight:700;line-height:1.2;margin-bottom:6px;">Set your starting point.</div>
-    <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px;">6 quick questions. Takes about 2 minutes. Helps put everything you log in context.</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px;">A few quick questions — helps make sense of everything you log after this.</div>
 
     <!-- Progress bar -->
     <div style="height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-bottom:24px;overflow:hidden;">
@@ -3057,29 +3066,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
 </div>
 
-<!-- PREPARE — ROUTE ANALYSIS (DEEPER) -->
-<div class="screen" id="s-deeper" style="max-width:480px;margin:0 auto;">
-  <div class="page-header">
-    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="deepBack()">← Back</button>
-  </div>
-  <div class="content">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);" id="deep-phase-lbl"></div>
-      <div style="font-size:var(--t-2xs);color:var(--muted);" id="deep-step-lbl"></div>
-    </div>
-    <!-- Progress dots -->
-    <div style="display:flex;gap:4px;margin-bottom:20px;" id="deep-dots"></div>
-    <div class="q-text" id="deep-q-text" style="font-size:19px;font-weight:700;margin-bottom:6px;"></div>
-    <div class="q-hint" id="deep-q-hint" style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.5;"></div>
-    <!-- Visual illustration area -->
-    <div id="deep-visual" style="margin-bottom:16px;"></div>
-    <!-- Answer options -->
-    <div id="deep-q-wrap"></div>
-    <div style="height:16px;"></div>
-    <button class="btn btn-p" id="deep-next" onclick="deepNext()" disabled style="width:100%;justify-content:center;padding:16px;font-size:15px;border-radius:var(--r-md);">Continue →</button>
-  </div>
-</div>
+<!-- s-deeper (Route Analysis / Deep Prepare) removed, build 182 — confirmed dead, zero call sites (startDeeperPrepare() had no callers anywhere in the file), per Beta 2026-07-31 -->
 
 <!-- s-body-scan removed (Fix 7, build 173) — confirmed zero call sites -->
 
@@ -3092,7 +3079,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index181';
+var app_version = 'staging-index183';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -5773,21 +5760,22 @@ async function loadClimbLog(){
   var confirmed=climbs.filter(function(s){return s.zone_confidence==='confirmed';}).length;
   var total=climbs.length;
 
-  // Dashboard state based on session count
+  // Dashboard state based on session count — Stage 1-3 rebuild, build 183:
+  // retargeted to the approved 0 / 1-4 / 5+ tier structure (was 0 / 1-9 / 10+).
   var dashNew = document.getElementById('dash-new-user');
   var dashBuilding = document.getElementById('dash-building');
-  // dash-established intentionally has no markup — at 10+ climbs the banner
+  // dash-established intentionally has no markup — at 5+ climbs the banner
   // is hidden entirely (confirmed design decision), real data below speaks for itself
 
   if(dashNew) dashNew.style.display = total === 0 ? 'block' : 'none';
-  if(dashBuilding) dashBuilding.style.display = (total > 0 && total < 10) ? 'block' : 'none';
+  if(dashBuilding) dashBuilding.style.display = (total > 0 && total < 5) ? 'block' : 'none';
 
   // Progress bar for building state
-  if(total > 0 && total < 10){
+  if(total > 0 && total < 5){
     var pb = document.getElementById('dash-progress-fill');
     var pl = document.getElementById('dash-progress-label');
-    if(pb) pb.style.width = (total/10*100)+'%';
-    if(pl) pl.textContent = total+' of 10 sessions';
+    if(pb) pb.style.width = (total/5*100)+'%';
+    if(pl) pl.textContent = total+' of 5 climbs';
   }
 
   if(countEl){
@@ -5796,26 +5784,22 @@ async function loadClimbLog(){
     countEl.textContent=txt;
   }
 
-  // Show/hide sections — use climbs (not sessions) for all rendering
-  var emptyEl=document.getElementById('sessions-empty-state');
+  // Show/hide sections — use climbs (not sessions) for all rendering.
+  // Stage 1-3 rebuild, build 183: previously sessions-real-section was shown
+  // even at 0 climbs (populated with empty '0'/'—' placeholder cards) because
+  // an early return re-set its display back to 'block' after already hiding
+  // it — confirmed dead-end behavior, not intentional. Now the 0-climb tier
+  // hides sessions-real-section entirely; dash-new-user above is the whole
+  // experience at that tier (Rule 1).
   var realEl=document.getElementById('sessions-real-section');
-
-  // Preview shows only when 0 climbs; real section shows only when >0 climbs
-  if(emptyEl)emptyEl.style.display=total===0?'block':'none';
   if(realEl)realEl.style.display=total>0?'block':'none';
 
-  // Show/hide "See an example" link (0-4 climbs only, no real data on this screen)
+  // Show/hide "See an example" link (tiers 0 and 1-4, hidden once real
+  // patterns unlock at 5+)
   var exLink=document.getElementById('sessions-example-link');
   if(exLink) exLink.style.display=(total<5)?'block':'none';
 
-  // Empty state: show real empty states, no demo data
   if(total===0){
-    buildSessionsArc([], false);
-    var sc=document.getElementById('spider-chart-card'); if(sc)sc.style.display='none';
-    var sfc=document.getElementById('falls-terrain-card'); if(sfc)sfc.style.display='none';
-    var emptyEl2=document.getElementById('sessions-empty-state');
-    if(emptyEl2)emptyEl2.style.display='none';
-    if(realEl)realEl.style.display='block';
     return;
   }
 
@@ -5834,20 +5818,24 @@ async function loadClimbLog(){
     return s.grade_value || s.zone;
   });
   window._cachedClimbs=validClimbs;
-  renderClimbTable(validClimbs);
-  // buildInsight(climbs); // Pattern Insight card removed (deliberate scope-back) — commented out, not deleted, for easy re-enable later
-  buildSpiderChart(climbs);
-  buildSomaticRadar(climbs);
-  renderQuickStrip(climbs); // Item 9: populate quick-access strip
-  // Show spider card only when data exists
-  var spiderCard = document.getElementById('spider-chart-card');
-  if(spiderCard) spiderCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
+  renderClimbTable(validClimbs, true); // true = home-screen preview (5 most recent, unsorted)
 
-  // Falls by terrain (Feature 3) — same visibility gate, called after buildSpiderChart
-  // so window._terrainSortOrder is already computed and available to reuse
-  var fallsTerrainCard = document.getElementById('falls-terrain-card');
-  if(fallsTerrainCard) fallsTerrainCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
-  buildFallsByTerrain(climbs);
+  // YOUR PATTERNS — Stage 1-3 rebuild, build 183: Zone-by-Terrain, Falls-by-
+  // Terrain, and Somatic Profile only unlock at tier 2 (5+ logged climbs);
+  // the section itself stays collapsed by default even once unlocked (Rule 5).
+  var patternsSection = document.getElementById('patterns-section');
+  if(patternsSection) patternsSection.style.display = total >= 5 ? 'block' : 'none';
+
+  if(total >= 5){
+    buildSpiderChart(climbs);
+    buildSomaticRadar(climbs);
+    buildFallsByTerrain(climbs);
+    var spiderCard = document.getElementById('spider-chart-card');
+    if(spiderCard) spiderCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
+    var fallsTerrainCard = document.getElementById('falls-terrain-card');
+    if(fallsTerrainCard) fallsTerrainCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
+  }
+  renderQuickStrip(climbs); // Item 9: populate quick-access strip
 
   // 5-climb milestone — check on Climb Log home visit so it never interrupts Go Deeper
   if(total===5){
@@ -6475,10 +6463,7 @@ function startLogFromPrepare(){showScreen('screen-log');}
 
 function getZone(score){return score<=4?'comfort':score<=9?'learning':'panic';}
 
-// Route Analysis (deep prepare)
-var deepPrepQs=[];var deepPrepIdx=0;var deepPrepAnswers={};
-function startDeeperPrepare(){deepPrepState={qi:0,answers:{}};showScreen('s-deeper');deepNext();}
-function deepBack(){showScreen('s-result');}
+// Route Analysis (deep prepare) — startDeeperPrepare()/deepBack()/deepPrepQs/deepPrepIdx/deepPrepAnswers removed, build 182 (confirmed dead, see s-deeper removal note above)
 function restart(){prepState={answers:{},scores:{},qi:0,inRouteAnalysis:false};startPrepareFlow();}
 
 // ═══════════════════════════════════════════════════════
@@ -6872,58 +6857,11 @@ function toggleAiMore(){
 }
 
 // ═══════════════════════════════════════════════════════
-// ROUTE ANALYSIS (Deep Prepare) — deepNext
+// ROUTE ANALYSIS (Deep Prepare) removed, build 182 — deepPrepState,
+// RouteAnalysisQs, deepNext(), deepPickOpt() all confirmed dead (see
+// s-deeper removal note above). Per Beta 2026-07-31: already a
+// standing product decision to cut this feature, not a new call.
 // ═══════════════════════════════════════════════════════
-var deepPrepState={qi:0,answers:{}};
-var RouteAnalysisQs=[
-  {label:'Approach',q:'How are you approaching this climb?',opts:['Onsight — first time, no beta','Redpoint — known moves, going for send','Hangdog — working moves','Just exploring']},
-  {label:'Fall zone',q:'Where does a fall from the crux land you?',opts:['Clean air — no obstacles','Near a ledge or feature','Into a roof or overhang','Ground-up — low bolt','I\'m not sure']},
-  {label:'Protection',q:'How visible and reliable is the protection?',opts:['Solid and visible throughout','Good but one blind clip','Sparse — runout sections','Gear — I placed it','Top rope — fully protected']},
-  {label:'Physical state',q:'How is your body today?',opts:['Fresh — well rested','Slightly tired','Pumped or fatigued','Injured or managing something']},
-  {label:'Consequence',q:'What\'s the objective consequence of a fall here?',opts:['Minimal — clean fall','Minor — small swing','Moderate — ledge nearby','High — significant consequence']}
-];
-function deepNext(){
-  var wrap=document.getElementById('deep-visual');
-  var phaseLbl=document.getElementById('deep-phase-lbl');
-  var stepLbl=document.getElementById('deep-step-lbl');
-  var nextBtn=document.getElementById('deep-next');
-  var qi=deepPrepState.qi;
-  if(qi>=RouteAnalysisQs.length){
-    // Done — save and go back to result
-    showScreen('s-result');return;
-  }
-  var q=RouteAnalysisQs[qi];
-  if(phaseLbl)phaseLbl.textContent=q.label;
-  if(stepLbl)stepLbl.textContent=(qi+1)+' of '+RouteAnalysisQs.length;
-  if(nextBtn)nextBtn.disabled=true;
-  // Render dots
-  var dots=document.getElementById('deep-dots');
-  if(dots){
-    dots.innerHTML=RouteAnalysisQs.map(function(_,i){
-      return '<div style="width:8px;height:8px;border-radius:50%;background:'+(i<qi?'var(--accent)':i===qi?'var(--accent)':'var(--border)')+';opacity:'+(i===qi?1:.4)+';"></div>';
-    }).join('');
-  }
-  // Render question
-  var qWrap=document.getElementById('deep-visual');
-  if(qWrap){
-    qWrap.innerHTML='<div class="question-card">'
-      +'<div class="q-number">'+q.label+'</div>'
-      +'<div class="q-text-dark">'+q.q+'</div>'
-      +'<div class="response-chips">'
-      +q.opts.map(function(o){
-        return '<button class="chip" onclick="deepPickOpt(this,\''+o.replace(/'/g,"\\'")+'\')">' +o+'</button>';
-      }).join('')
-      +'</div></div>';
-  }
-  deepPrepState.qi++;
-}
-function deepPickOpt(btn,val){
-  btn.closest('.response-chips').querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
-  btn.classList.add('selected');
-  deepPrepState.answers[deepPrepState.qi]=val;
-  var nextBtn=document.getElementById('deep-next');
-  if(nextBtn)nextBtn.disabled=false;
-}
 
 // ═══════════════════════════════════════════════════════
 // ARC INSIGHT — smarter language at 5+ climbs
@@ -7619,10 +7557,8 @@ function _syncViewToggleButtons(){
   if(sortSelect) sortSelect.value = climbLogState.groupSort;
 }
 
-function setGroupSort(value){
-  climbLogState.groupSort = value;
-  renderClimbTable(window._cachedClimbs || []);
-}
+// setGroupSort() removed, Stage 1-3 rebuild build 183 — its only caller was
+// the home-screen "Sort by" dropdown, removed in the same pass (Rule 4).
 
 function setClimbLogSort(field){
   if(climbLogState.sort === field){
@@ -7662,7 +7598,14 @@ function sortClimbs(climbs){
   return sorted;
 }
 
-function renderClimbTable(climbs){
+function renderClimbTable(climbs, previewOnly){
+  // Stage 1-3 rebuild, build 183: previewOnly renders the home-screen's
+  // always-visible, unsorted 5-most-recent list — full sorting stays behind
+  // "View all climb data" -> screen-climb-table (renderClimbDataTable(), a
+  // separate function). controls/countEl below are legacy lookups for the
+  // now-removed home-screen sort dropdown; kept null-safe rather than ripped
+  // out, since sortClimbs()/climbLogState.sort's non-grouped path predates
+  // this change and is out of scope here.
   var el = document.getElementById('sessions-climb-list');
   var controls = document.getElementById('climb-log-controls');
   var countEl = document.getElementById('cl-count-label');
@@ -7720,7 +7663,9 @@ function renderClimbTable(climbs){
       }
     });
     groupOrder = groupOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
-    // Sort groups per climbLogState.groupSort (Fix 2 — Sort by control)
+    // Sort groups — always 'recent' for the home-screen preview now that its
+    // sort-by dropdown is removed (build 183); climbLogState.groupSort stays
+    // at its 'recent' default and is otherwise unused going forward.
     groupOrder.sort(function(keyA, keyB){
       var gA = groups[keyA], gB = groups[keyB];
       var latestA = gA.sessions.slice().sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);})[0];
@@ -7740,6 +7685,9 @@ function renderClimbTable(climbs){
           return dB - dA;
       }
     });
+    // Home-screen preview shows only the 5 most recent groups (Rule 4) —
+    // the full list is one tap away via "View all climb data"
+    if(previewOnly) groupOrder = groupOrder.slice(0, 5);
     groupOrder.forEach(function(key){
       var g = groups[key];
       var name = g.name;
@@ -8056,7 +8004,7 @@ var BASELINE_Qs = [
     text: 'How would you describe your typical experience before a hard climb?',
     label: 'What you usually notice — not what you think you should notice.',
     multi: false,
-    opts: ['Usually settled — I feel ready','Usually activated — some nerves, manageable','Usually pretty anxious — it takes effort to commit','Varies a lot — depends on the route','I don\'t notice much either way']
+    opts: ['Usually settled — I feel ready','Usually keyed up — some nerves, manageable','Usually pretty anxious — it takes effort to commit','Varies a lot — depends on the route','I don\'t notice much either way']
   },
   {
     key: 'baseline_experience',
@@ -8541,7 +8489,11 @@ function buildSomaticRadar(sessions){
   // Only confirmed sessions (real Go Deeper data) — not estimated or manual
   var confirmed = sessions.filter(function(s){ return s.zone_confidence==='confirmed'; });
 
-  if(!confirmed.length){
+  // Stage 1-3 rebuild, build 183: gated on 5+ confirmed sessions specifically
+  // (was any confirmed session at all) — this card is built from Go Deeper
+  // data, not just logged climbs, so it needs its own real sample size,
+  // not the logged-climb tier threshold used elsewhere on this screen.
+  if(confirmed.length < 5){
     card.style.display='none';
     return;
   }
@@ -8721,19 +8673,25 @@ function buildFallsByTerrain(sessions){
   el.innerHTML = rowsHtml;
 }
 
-function toggleClimbTable(){
-  var wrap = document.getElementById('climb-table-wrap');
-  var label = document.getElementById('climb-table-toggle-label');
-  var arrow = document.getElementById('climb-table-toggle-arrow');
-  var toggle = document.getElementById('climb-table-toggle');
-  var isOpen = wrap && wrap.style.display !== 'none';
-  if(wrap) wrap.style.display = isOpen ? 'none' : 'block';
-  if(label) label.textContent = isOpen ? 'Show all climbs' : 'Hide climbs';
+// toggleClimbTable() removed, Stage 1-3 rebuild build 183 — its target
+// elements (climb-table-wrap/-toggle/-toggle-label/-toggle-arrow) were
+// removed from screen-sessions in the same pass; the climb-history preview
+// is now always visible, no toggle needed (Rule 4).
+
+// Stage 1-3 rebuild, build 183: collapses the consolidated Zone-by-Terrain /
+// Falls-by-Terrain / Somatic-Profile section on screen-sessions — only
+// shown at all once patterns-section is unlocked at 5+ logged climbs.
+function togglePatternsSection(){
+  var body = document.getElementById('patterns-body');
+  var label = document.getElementById('patterns-toggle-label');
+  var arrow = document.getElementById('patterns-toggle-arrow');
+  var toggle = document.getElementById('patterns-toggle');
+  var isOpen = body && body.style.display !== 'none';
+  if(body) body.style.display = isOpen ? 'none' : 'block';
+  if(label) label.textContent = isOpen ? 'Show your patterns' : 'Hide your patterns';
   if(arrow) arrow.textContent = isOpen ? '↓' : '↑';
   if(toggle){
-    toggle.style.borderRadius = isOpen
-      ? 'var(--r-xl)'
-      : 'var(--r-xl) var(--r-xl) 0 0';
+    toggle.style.borderRadius = isOpen ? 'var(--r-xl)' : 'var(--r-xl) var(--r-xl) 0 0';
   }
 }
 
@@ -9342,6 +9300,22 @@ function clearAuthError(){
   if(el){ el.textContent = ''; el.style.display = 'none'; }
 }
 
+
+// Stage 1-3 rebuild, build 183: collapses the email sign-in/create-account
+// form behind a quiet link so Google SSO reads as the one obvious first
+// action on screen-auth (Rule 2).
+function toggleEmailAuth(){
+  var section = document.getElementById('auth-email-section');
+  var btn = document.getElementById('auth-email-toggle-btn');
+  if(!section) return;
+  var isOpen = section.style.display !== 'none';
+  section.style.display = isOpen ? 'none' : 'block';
+  if(btn) btn.textContent = isOpen ? 'Use email instead →' : '← Back';
+  if(!isOpen){
+    var emailInput = document.getElementById('auth-email');
+    if(emailInput) emailInput.focus();
+  }
+}
 
 function setAuthMode(mode){
   var tabSignin=document.getElementById('auth-tab-signin');
