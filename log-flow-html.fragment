@@ -1,0 +1,432 @@
+<!-- ═══════════════════════════════════════
+     LOG FLOW — activation-first wizard (build 186+)
+     Insert BEFORE <div class="screen" id="screen-log">
+═══════════════════════════════════════ -->
+
+<!-- (1) Activation dial -->
+<div class="screen log-flow-screen" id="screen-log-act">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
+  </div>
+  <div class="log-flow-body">
+    <div class="screen-title">How activated did you feel?<span class="sub">Drag the dial — your first read.</span></div>
+    <div id="log-act-gauge" style="width:100%;max-width:280px;margin:24px auto 0;"></div>
+  </div>
+  <div class="log-flow-footer">
+    <button class="log-btn log-flow-cta" id="log-act-continue" onclick="logFlowContinueFromActivation()">Continue</button>
+    <div class="log-flow-progress" id="log-flow-progress-1" data-step="1">
+      <div class="log-flow-progress-track"><div class="log-flow-progress-fill" style="width:20%"></div></div>
+      <div class="log-flow-progress-label">Step 1 of 5</div>
+    </div>
+  </div>
+</div>
+
+<!-- (2) Result -->
+<div class="screen log-flow-screen" id="screen-log-result">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-log-act');setTimeout(initLogActivationGauge,50)">← Back</button>
+  </div>
+  <div class="log-flow-body">
+    <div class="screen-title">Log a climb<span class="sub">What just happened out there?</span></div>
+
+    <div class="insight-card" style="margin-bottom:10px;">
+    <div class="field-group">
+      <div class="field-label">Result</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <button class="result-btn" id="btn-sent" onclick="selectLogResult('sent')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>Sent</span>
+        </button>
+        <button class="result-btn" id="btn-fell" onclick="selectLogResult('fell')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+          <span>Fell</span>
+        </button>
+        <button class="result-btn" id="btn-dna" onclick="selectLogResult('dna')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+          <span>Backed off</span>
+        </button>
+      </div>
+    </div>
+    </div>
+
+    <!-- TELL US ABOUT THE FALL — shown only when Result = Fell -->
+    <div class="insight-card" id="log-fall-group" style="display:none;margin-bottom:10px;">
+      <button onclick="toggleFallSection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;">
+        <span>Tell us about the fall <span style="font-size:12px;opacity:.6;">(optional)</span></span>
+        <span id="fall-chevron" style="font-size:18px;transition:transform .2s;">›</span>
+      </button>
+      <div id="fall-body" style="display:none;margin-top:12px;">
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Did you get back on after the fall?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'got_back_on')">Yes, right away</button>
+            <button class="chip" onclick="selectFallChip(this,'got_back_on')">Yes, after a break</button>
+            <button class="chip" onclick="selectFallChip(this,'got_back_on')">No, ended the session</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Was this fall expected or a surprise?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'vs_expect')">Saw it coming</button>
+            <button class="chip" onclick="selectFallChip(this,'vs_expect')">Somewhat expected</button>
+            <button class="chip" onclick="selectFallChip(this,'vs_expect')">Total surprise</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What was the fall like?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'fall_description')">Clean fall</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_description')">Caught a hold or ledge</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_description')">Hit something</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_description')">Rope or gear issue</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How was the catch?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'catch_quality')">Soft catch</button>
+            <button class="chip" onclick="selectFallChip(this,'catch_quality')">Firm but fine</button>
+            <button class="chip" onclick="selectFallChip(this,'catch_quality')">Hard catch</button>
+            <button class="chip" onclick="selectFallChip(this,'catch_quality')">Not applicable (bouldering / no belay)</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How would you describe the consequence?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectFallChip(this,'fall_consequence')">Minor — no real consequence</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_consequence')">Moderate — some impact or scare</button>
+            <button class="chip" onclick="selectFallChip(this,'fall_consequence')">Serious — real risk was present</button>
+          </div>
+        </div>
+
+        <div class="fall-q" style="margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything else worth noting about this fall</div>
+          <textarea id="fall-notes-text" placeholder="Optional..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TELL US WHY YOU BACKED OFF — shown only when Result = Backed off (Fix 4, build 173) -->
+    <div class="insight-card" id="log-backoff-group" style="display:none;margin-bottom:10px;">
+      <button onclick="toggleBackoffSection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;">
+        <span>Tell us why you backed off <span style="font-size:12px;opacity:.6;">(optional)</span></span>
+        <span id="backoff-chevron" style="font-size:18px;transition:transform .2s;">›</span>
+      </button>
+      <div id="backoff-body" style="display:none;margin-top:12px;">
+
+        <div class="backoff-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Why did you back off?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectBackoffChip(this,'reason')">Fear or nerves</button>
+            <button class="chip" onclick="selectBackoffChip(this,'reason')">Physical — pumped or tired</button>
+            <button class="chip" onclick="selectBackoffChip(this,'reason')">Uncertain about the moves ahead</button>
+            <button class="chip" onclick="selectBackoffChip(this,'reason')">Protection or gear concern</button>
+            <button class="chip" onclick="selectBackoffChip(this,'reason')">Beta or sequence unclear</button>
+            <button class="chip" onclick="selectBackoffChip(this,'reason')">Time, or others waiting</button>
+          </div>
+        </div>
+
+        <div class="backoff-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Was this expected or a surprise?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectBackoffChip(this,'vs_expect')">Saw it coming</button>
+            <button class="chip" onclick="selectBackoffChip(this,'vs_expect')">Somewhat expected</button>
+            <button class="chip" onclick="selectBackoffChip(this,'vs_expect')">Total surprise</button>
+          </div>
+        </div>
+
+        <div class="backoff-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Looking back, how do you feel about the call?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectBackoffChip(this,'call_feeling')">Right call — wasn't ready</button>
+            <button class="chip" onclick="selectBackoffChip(this,'call_feeling')">Could have pushed through</button>
+            <button class="chip" onclick="selectBackoffChip(this,'call_feeling')">Not sure</button>
+          </div>
+        </div>
+
+        <div class="backoff-q" style="margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything else worth noting</div>
+          <textarea id="backoff-notes-text" placeholder="Optional..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TELL US ABOUT THE SEND — shown only when Result = Sent (Fix 4, build 176) -->
+    <div class="insight-card" id="log-send-group" style="display:none;margin-bottom:10px;">
+      <button onclick="toggleSendSection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;">
+        <span>Tell us about the send <span style="font-size:12px;opacity:.6;">(optional)</span></span>
+        <span id="send-chevron" style="font-size:18px;transition:transform .2s;">›</span>
+      </button>
+      <div id="send-body" style="display:none;margin-top:12px;">
+
+        <div class="send-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What stood out about how it went?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectSendChip(this,'standout')">Solid technique/beta</button>
+            <button class="chip" onclick="selectSendChip(this,'standout')">Mental focus and calm</button>
+            <button class="chip" onclick="selectSendChip(this,'standout')">Physical strength held up</button>
+            <button class="chip" onclick="selectSendChip(this,'standout')">Trusted my body without overthinking</button>
+            <button class="chip" onclick="selectSendChip(this,'standout')">Pushed through some fear</button>
+          </div>
+        </div>
+
+        <div class="send-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How did it feel in the moment (right when you clipped the chains or topped out)?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectSendChip(this,'moment_feeling')">Pure relief</button>
+            <button class="chip" onclick="selectSendChip(this,'moment_feeling')">Excited/pumped</button>
+            <button class="chip" onclick="selectSendChip(this,'moment_feeling')">Calm, almost expected</button>
+            <button class="chip" onclick="selectSendChip(this,'moment_feeling')">Still buzzing with adrenaline</button>
+            <button class="chip" onclick="selectSendChip(this,'moment_feeling')">Surprised it worked</button>
+          </div>
+        </div>
+
+        <div class="send-q" style="margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Now that you're reflecting, how does it feel?</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button class="chip" onclick="selectSendChip(this,'reflection_feeling')">Proud — I earned this</button>
+            <button class="chip" onclick="selectSendChip(this,'reflection_feeling')">Motivated for the next one</button>
+            <button class="chip" onclick="selectSendChip(this,'reflection_feeling')">Still processing</button>
+            <button class="chip" onclick="selectSendChip(this,'reflection_feeling')">Already thinking about what's next</button>
+          </div>
+        </div>
+
+        <div class="send-q" style="margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything else worth noting</div>
+          <textarea id="send-notes-text" placeholder="Optional..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="log-flow-footer">
+    <button class="log-btn log-flow-cta" id="log-result-continue" onclick="logFlowContinueFromResult()">Continue</button>
+    <div class="log-flow-progress" id="log-flow-progress-2" data-step="2">
+      <div class="log-flow-progress-track"><div class="log-flow-progress-fill" style="width:40%"></div></div>
+      <div class="log-flow-progress-label">Step 2 of 5</div>
+    </div>
+  </div>
+</div>
+
+<!-- (3) Terrain -->
+<div class="screen log-flow-screen" id="screen-log-terrain">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-log-result')">← Back</button>
+  </div>
+  <div class="log-flow-body">
+    <div class="screen-title">Terrain<span class="sub">Where and what kind of climb?</span></div>
+
+    <div class="insight-card" id="log-terrain-card" style="margin-bottom:10px;">
+    <div class="field-group" id="log-terrain-group">
+      <div class="field-label">Terrain</div>
+      <div class="log-terrain-picker">
+        <div class="setting-row">
+          <button id="btn-indoor" onclick="selectSetting('indoor',this)" class="chip">Indoor</button>
+          <button id="btn-outdoor" onclick="selectSetting('outdoor',this)" class="chip">Outdoor</button>
+        </div>
+        <div class="terrain-chips">
+          <button class="chip" onclick="selectTerrain(this,'Slab')">Slab</button>
+          <button class="chip" onclick="selectTerrain(this,'Vertical')">Vertical</button>
+          <button class="chip" onclick="selectTerrain(this,'Overhang')">Overhang</button>
+          <button class="chip" onclick="selectTerrain(this,'Roof')">Roof</button>
+          <button class="chip" onclick="selectTerrain(this,'Arête')">Arête</button>
+          <button class="chip" onclick="selectTerrain(this,'Dihedral')">Dihedral</button>
+          <button class="chip" onclick="selectTerrain(this,'Crack')">Crack</button>
+        </div>
+      </div>
+    </div>
+    </div>
+
+  </div>
+  <div class="log-flow-footer">
+    <button class="log-btn log-flow-cta" id="log-terrain-continue" onclick="logFlowContinueFromTerrain()">Continue</button>
+    <div class="log-flow-progress" id="log-flow-progress-3" data-step="3">
+      <div class="log-flow-progress-track"><div class="log-flow-progress-fill" style="width:60%"></div></div>
+      <div class="log-flow-progress-label">Step 3 of 5</div>
+    </div>
+  </div>
+</div>
+
+<!-- (4) Grade -->
+<div class="screen log-flow-screen" id="screen-log-grade">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-log-terrain')">← Back</button>
+  </div>
+  <div class="log-flow-body">
+    <div class="screen-title">Grade<span class="sub">What grade was it?</span></div>
+
+    <div class="insight-card" id="log-grade-card" style="margin-bottom:10px;">
+    <div class="field-group" id="log-grade-group">
+      <div class="field-label">Grade</div>
+      <div class="grade-toggle">
+        <button class="toggle-btn" onclick="setGradeSystem('V')" id="btn-V"><span class="sys-name">V</span><span class="sys-label">Hueco</span></button>
+        <button class="toggle-btn active" onclick="setGradeSystem('YDS')" id="btn-YDS"><span class="sys-name">5.x</span><span class="sys-label">Yosemite</span></button>
+        <button class="toggle-btn" onclick="setGradeSystem('FR')" id="btn-FR"><span class="sys-name">6a+</span><span class="sys-label">French</span></button>
+        <button class="toggle-btn" onclick="setGradeSystem('UK')" id="btn-UK"><span class="sys-name">E1</span><span class="sys-label">UK Tech</span></button>
+      </div>
+      <div class="grade-grid" id="grade-grid"></div>
+    </div>
+    </div>
+
+  </div>
+  <div class="log-flow-footer">
+    <button class="log-btn log-flow-cta" id="log-grade-continue" onclick="logFlowContinueFromGrade()">Continue</button>
+    <div class="log-flow-progress" id="log-flow-progress-4" data-step="4">
+      <div class="log-flow-progress-track"><div class="log-flow-progress-fill" style="width:80%"></div></div>
+      <div class="log-flow-progress-label">Step 4 of 5</div>
+    </div>
+  </div>
+</div>
+
+<!-- (5) Climb name -->
+<div class="screen log-flow-screen" id="screen-log-name">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-log-grade')">← Back</button>
+  </div>
+  <div class="log-flow-body">
+    <div class="screen-title">Name this climb<span class="sub">Optional, but helps over time</span></div>
+
+    <div class="insight-card" id="log-rname-card" style="margin-bottom:10px;">
+    <div class="field-group" id="log-rname-group">
+      <div class="field-label">Climb name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
+      <div style="position:relative;">
+        <input id="log-rname-input" type="text" placeholder="Search existing or type new climb name…" autocomplete="off"
+          style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;transition:border-color .15s;"
+          onfocus="this.style.borderColor='var(--accent)';onClimbNameInput(this.value)"
+          onblur="this.style.borderColor='rgba(232,118,58,.3)'"
+          oninput="onClimbNameInput(this.value)"/>
+        <div id="climb-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-md) var(--r-md);z-index:50;max-height:200px;overflow-y:auto;"></div>
+      </div>
+      <div id="climb-selected-badge" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(232,118,58,.08);border:1px solid rgba(232,118,58,.2);border-radius:6px;font-size:11px;color:var(--accent);">
+        <span id="climb-selected-text">Linked to existing climb</span>
+        <button onclick="clearClimbSelection()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0 4px;float:right;">×</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;">Named climbs link across sessions and build richer patterns over time.</div>
+    </div>
+    </div>
+
+  </div>
+  <div class="log-flow-footer">
+    <button class="log-btn log-flow-cta ready" id="log-name-save" onclick="logFlowSaveSession()">Save climb</button>
+    <button class="log-flow-skip-link" id="log-name-skip" onclick="logFlowSaveSession()">Skip naming</button>
+    <div class="log-flow-progress" id="log-flow-progress-5" data-step="5">
+      <div class="log-flow-progress-track"><div class="log-flow-progress-fill" style="width:100%"></div></div>
+      <div class="log-flow-progress-label">Step 5 of 5</div>
+    </div>
+  </div>
+</div>
+
+<!-- (6) Go deeper prompt -->
+<div class="screen log-flow-screen" id="screen-log-prompt">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="log-flow-body log-flow-prompt-body">
+    <div class="screen-title">Want to go deeper?</div>
+    <div class="log-flow-prompt-sub">Four quick body questions can refine your activation read. All optional.</div>
+    <div class="log-flow-prompt-actions">
+      <button class="log-btn log-flow-cta ready" onclick="logFlowStartDeeper()">Yes, go deeper</button>
+      <button class="log-flow-skip-link" onclick="logFlowSkipDeeper()">Done for now</button>
+    </div>
+  </div>
+</div>
+
+<!-- (8) Reveal / compare -->
+<div class="screen log-flow-screen" id="screen-log-reveal">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="log-flow-body log-flow-reveal">
+    <div class="screen-title">Compare your reads<span class="sub">Your first read vs what your body reported</span></div>
+    <div class="log-flow-reveal-intro" id="log-reveal-intro"></div>
+    <div id="log-reveal-gauge"></div>
+    <div class="log-flow-reveal-options">
+      <button id="log-reveal-own" onclick="logRevealConfirmOwn()">Confirm your own reading</button>
+      <button id="log-reveal-model" class="primary-choice" onclick="logRevealAcceptModel()">Accept the model's suggestion</button>
+      <button id="log-reveal-adjust" onclick="logRevealAdjustDial()">Set it yourself on the dial</button>
+    </div>
+    <div id="log-reveal-dial-wrap" style="display:none;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Drag to set your final read</div>
+      <div id="log-reveal-adjust-gauge"></div>
+      <button class="log-btn log-flow-cta ready" id="log-reveal-adjust-save" onclick="logRevealSaveAdjust()" style="margin-top:16px;">Save and finish</button>
+    </div>
+  </div>
+</div>
+
+<!-- (9) Done -->
+<div class="screen log-flow-screen" id="screen-log-done">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="log-flow-body log-flow-done-body">
+    <div class="screen-title">Climb logged<span class="sub" id="log-done-subtitle">Saved to your history</span></div>
+    <div class="log-flow-done-actions">
+      <button class="log-btn log-flow-cta ready" onclick="logFlowLogAnother()">Log another climb</button>
+      <button class="log-flow-skip-link" onclick="logFlowDoneHome()">Home</button>
+    </div>
+    <div class="log-flow-done-reflection">
+      <div class="insight-card" style="margin-bottom:0;">
+      <div class="field-group" id="log-reflection-group">
+        <button onclick="toggleReflection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;">
+          <span>Add reflection <span style="font-size:12px;opacity:.6;">(optional)</span></span>
+          <span id="refl-chevron" style="font-size:18px;transition:transform .2s;">›</span>
+        </button>
+        <div id="refl-body" style="display:none;margin-top:12px;">
+
+          <!-- What went well -->
+          <div style="margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What went well</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">footwork</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">stayed present</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">committed at crux</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">trusted my feet</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'went-well')">controlled breathing</button>
+            </div>
+            <textarea id="went-well-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+          </div>
+
+          <!-- What to work on -->
+          <div style="margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What to work on</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">footwork precision</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">clipping position</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">breathing at crux</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">committing to moves</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'still-learning')">body tension</button>
+            </div>
+            <textarea id="still-learning-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+          </div>
+
+          <!-- Anything surprise you -->
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything surprise you</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'surprised')">my body responded differently than expected</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'surprised')">I made a decision I didn't anticipate</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'surprised')">the fear was different than I thought</button>
+              <button class="chip refl-chip" onclick="toggleReflChip(this,'surprised')">nothing surprised me</button>
+            </div>
+            <textarea id="surprised-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+          </div>
+
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
