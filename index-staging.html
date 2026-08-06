@@ -275,21 +275,84 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   margin:12px auto 0;
 }
 
-/* Prompt + done screens — no progress bar, centered CTAs */
+/* Prompt + done screens — no progress bar */
 .log-flow-prompt-body,
 .log-flow-done-body{
   flex:1;
   display:flex;
   flex-direction:column;
-  justify-content:center;
   align-items:center;
   text-align:center;
   max-width:360px;
   margin:0 auto;
-  padding:24px 0;
+  padding:8px 0 24px;
+  width:100%;
 }
-.log-flow-prompt-body .screen-title,
-.log-flow-done-body .screen-title{margin-bottom:12px;}
+.log-flow-prompt-body{
+  justify-content:center;
+}
+.log-flow-done-body{
+  justify-content:flex-start;
+}
+.log-flow-prompt-body .screen-title{margin-bottom:12px;}
+.log-flow-done-header{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+}
+.log-flow-done-header .screen-title{margin-bottom:0;}
+.log-done-summary-card{
+  width:100%;
+  text-align:left;
+  margin-bottom:16px;
+}
+.log-done-summary-grade{
+  font-size:22px;
+  font-weight:700;
+  font-family:'Space Mono',monospace;
+  color:var(--accent);
+  margin-bottom:6px;
+}
+.log-done-summary-meta{
+  font-size:14px;
+  color:var(--muted);
+  line-height:1.4;
+}
+.log-done-add-note{
+  background:none;
+  border:none;
+  color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:13px;
+  font-weight:600;
+  padding:10px 0 0;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  text-align:left;
+}
+.log-done-reflection-inline{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--border);
+}
+.zone-arc-link-wrap{margin-top:10px;}
+.zone-arc-link{
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-family:inherit;
+  font-size:13px;
+  cursor:pointer;
+  text-decoration:underline;
+  padding:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.zone-arc-detail-point{
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
 .log-flow-prompt-sub{
   font-size:14px;
   color:var(--muted);
@@ -862,7 +925,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <!-- Real zone arc — moved to lead the page, directly under stats (Fix 1, build 176) -->
       <div class="insight-card" style="margin-bottom:16px;">
         <div class="insight-label" style="margin-bottom:6px;">Zone arc</div>
-        <svg id="river-svg-sessions" width="100%" viewBox="0 0 320 60" style="display:block;overflow:visible;">
+        <svg id="river-svg-sessions" width="100%" viewBox="0 0 320 72" style="display:block;overflow:visible;">
           <rect x="0" y="0" width="320" height="20" fill="rgba(255,92,58,.05)"/>
           <rect x="0" y="20" width="320" height="20" fill="rgba(245,166,35,.04)"/>
           <rect x="0" y="40" width="320" height="20" fill="rgba(200,245,90,.05)"/>
@@ -870,8 +933,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <text x="6" y="32" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(245,166,35,.4)" letter-spacing=".06em">L</text>
           <text x="6" y="56" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(200,245,90,.4)" letter-spacing=".06em">C</text>
           <g id="arc-dots-real"></g>
+          <g id="arc-date-labels"></g>
         </svg>
         <div id="sessions-arc-insight" style="display:none;"></div>
+        <div class="zone-arc-link-wrap">
+          <button class="zone-arc-link" onclick="showZoneArcDetail()">See full zone arc →</button>
+        </div>
       </div>
 
       <!-- YOUR PATTERNS — Stage 1-3 rebuild, build 183: Zone-by-Terrain,
@@ -1723,18 +1790,16 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
   <div class="log-flow-body log-flow-done-body">
-    <div class="screen-title">Climb logged<span class="sub" id="log-done-subtitle">Saved to your history</span></div>
-    <div class="log-flow-done-actions">
-      <button class="log-btn log-flow-cta ready" onclick="logFlowLogAnother()">Log another climb</button>
-      <button class="log-flow-skip-link" onclick="logFlowDoneHome()">Home</button>
+    <div class="log-flow-done-header">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7ec87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" opacity=".25"/><polyline points="8 12 11 15 16 9"/></svg>
+      <div class="screen-title">Climb logged</div>
     </div>
-    <div class="log-flow-done-reflection">
-      <div class="log-flow-prompt-sub" style="margin-bottom:12px;">Want to add a reflection?</div>
-      <div class="log-flow-prompt-actions" id="log-done-refl-prompt">
-        <button class="log-btn log-flow-cta ready" onclick="logFlowShowReflection()">Yes, add reflection</button>
-        <button class="log-flow-skip-link" onclick="logFlowSkipReflection()">Done for now</button>
-      </div>
-      <div class="insight-card" id="log-reflection-panel" style="display:none;margin-bottom:0;margin-top:16px;">
+
+    <div class="insight-card log-done-summary-card">
+      <div class="log-done-summary-grade" id="log-done-grade">—</div>
+      <div class="log-done-summary-meta" id="log-done-meta">Saved to your history</div>
+      <button class="log-done-add-note" id="log-done-add-note" type="button" onclick="logFlowToggleReflection()">+ Add a note</button>
+      <div class="log-done-reflection-inline" id="log-reflection-panel" style="display:none;">
       <div class="field-group" id="log-reflection-group">
         <div id="refl-body" style="margin-top:0;">
 
@@ -1780,6 +1845,38 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
       </div>
     </div>
+
+    <div class="log-flow-done-actions">
+      <button class="log-btn log-flow-cta ready" onclick="logFlowLogAnother()">Log another climb</button>
+      <button class="log-flow-skip-link" onclick="logFlowDoneHome()">Home</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Zone arc detail — full history -->
+<div class="screen" id="screen-zone-arc-detail">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-sessions');loadClimbLog();">← Climb Log</button>
+  </div>
+  <div class="content">
+    <div class="screen-title" style="font-size:24px;margin-bottom:4px;">Zone arc</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Your full activation history, oldest to newest.</div>
+    <div class="insight-card" style="margin-bottom:16px;">
+      <svg id="river-svg-zone-detail" width="100%" viewBox="0 0 320 88" style="display:block;overflow:visible;">
+        <rect x="0" y="0" width="320" height="24" fill="rgba(255,92,58,.05)"/>
+        <rect x="0" y="24" width="320" height="24" fill="rgba(245,166,35,.04)"/>
+        <rect x="0" y="48" width="320" height="24" fill="rgba(200,245,90,.05)"/>
+        <text x="6" y="10" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(255,92,58,.4)">Panic</text>
+        <text x="6" y="38" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(245,166,35,.4)">Learning</text>
+        <text x="6" y="66" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(200,245,90,.4)">Comfort</text>
+        <g id="arc-dots-detail"></g>
+        <g id="arc-date-labels-detail"></g>
+      </svg>
+    </div>
+    <div id="zone-arc-detail-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:16px;"></div>
+    <div id="zone-arc-detail-list"></div>
   </div>
 </div>
 
@@ -3423,7 +3520,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index187';
+var app_version = 'staging-index188';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3813,10 +3910,9 @@ function initGaugeDrag(container, initialScore, onScoreChange, gaugePrefix, dial
     }
   }
 
-  function pulseHub(){
-    var needleHub=wrap.querySelector('.gauge-needle-hub');
-    if(!needleHub || !needleHub.animate) return;
-    needleHub.animate(
+  function pulseHandle(){
+    if(!handle || !handle.animate) return;
+    handle.animate(
       [{transform:'scale(1)'},{transform:'scale(1.15)'},{transform:'scale(1)'}],
       {duration:100, easing:'ease-out'}
     );
@@ -3864,7 +3960,7 @@ function initGaugeDrag(container, initialScore, onScoreChange, gaugePrefix, dial
         targetScore = snapped;
         applyScoreVisual(snapped);
         updateSweetGlow(snapped);
-        pulseHub();
+        pulseHandle();
         if(dialOptions.onRelease) dialOptions.onRelease(snapped);
         if(!dialOptions.flowDial) enableSaveButton();
       }
@@ -4719,10 +4815,7 @@ function startLogFlow(){
   logState.userActivationEstimate = null;
   window._sessionStartTime = Date.now();
   _resetLogFlowContinueButtons();
-  var reflPrompt = document.getElementById('log-done-refl-prompt');
-  var reflPanel = document.getElementById('log-reflection-panel');
-  if(reflPrompt) reflPrompt.style.display = '';
-  if(reflPanel) reflPanel.style.display = 'none';
+  populateLogDoneScreen(true);
   showScreen('screen-log-act');
   updateLogFlowProgress(1);
   setTimeout(initLogActivationGauge, 50);
@@ -4996,11 +5089,7 @@ async function logFlowSaveSession(){
       }
     }
 
-    var doneSub = document.getElementById('log-done-subtitle');
-    if(doneSub){
-      var lbl = { sent: 'Sent', fell: 'Fell', dna: 'Backed off' };
-      doneSub.textContent = (logState.grade || '') + (logState.terrain ? ' · ' + logState.terrain : '') + (logState.result ? ' · ' + (lbl[logState.result] || logState.result) : '');
-    }
+    populateLogDoneScreen();
 
     if(_drillPostActive){
       _drillPostActive = false;
@@ -5023,7 +5112,50 @@ async function logFlowSaveSession(){
   if(saveBtn){ saveBtn.textContent = 'Save climb'; saveBtn.classList.add('ready'); }
 }
 
+function populateLogDoneScreen(resetReflection){
+  var lbl = { sent: 'Sent', fell: 'Fell', dna: 'Backed off' };
+  var gradeEl = document.getElementById('log-done-grade');
+  var metaEl = document.getElementById('log-done-meta');
+  var noteBtn = document.getElementById('log-done-add-note');
+  var panel = document.getElementById('log-reflection-panel');
+  if(gradeEl) gradeEl.textContent = logState.grade || '—';
+  if(metaEl){
+    var terrain = logState.terrain || '—';
+    var result = lbl[logState.result] || logState.result || '—';
+    metaEl.textContent = terrain + ' · ' + result;
+  }
+  if(resetReflection){
+    if(panel) panel.style.display = 'none';
+    if(noteBtn) noteBtn.style.display = '';
+  }
+}
+
+function logFlowToggleReflection(){
+  var panel = document.getElementById('log-reflection-panel');
+  var noteBtn = document.getElementById('log-done-add-note');
+  if(!panel) return;
+  var opening = panel.style.display === 'none' || !panel.style.display;
+  panel.style.display = opening ? 'block' : 'none';
+  if(noteBtn) noteBtn.style.display = opening ? 'none' : '';
+}
+
+function applyRevealZoneChoice(score, confidence){
+  score = Math.max(0, Math.min(12, score));
+  var zone = score <= 4 ? 'comfort' : score <= 9 ? 'learning' : 'panic';
+  logState.zone = zone;
+  logState.zoneConf = confidence;
+  window._zcScore = score;
+  if(!logState.sessId) return;
+  var payload = { zone: zone, zone_confidence: confidence };
+  if(confidence === 'manual'){
+    payload.zone_override = true;
+    payload.zone_override_value = zone;
+  }
+  sbU('sessions', 'id=eq.' + logState.sessId, payload);
+}
+
 function logFlowSkipDeeper(){
+  populateLogDoneScreen(true);
   showScreen('screen-log-done');
 }
 
@@ -5057,12 +5189,15 @@ function showLogReveal(){
 function logRevealConfirmOwn(){
   var score = logState.userActivationEstimate;
   if(score === null || score === undefined) score = logFlowState.activationScore;
-  manualOverrideZone(score);
+  if(score === null || score === undefined) score = 6;
+  applyRevealZoneChoice(score, 'manual');
+  populateLogDoneScreen(true);
   showScreen('screen-log-done');
 }
 
 function logRevealAcceptModel(){
   acceptCalculatedZone();
+  populateLogDoneScreen(true);
   showScreen('screen-log-done');
 }
 
@@ -5081,20 +5216,9 @@ function logRevealSaveAdjust(){
   var score = logFlowState.adjustScore !== null && logFlowState.adjustScore !== undefined
     ? logFlowState.adjustScore
     : (window._zcScore !== undefined ? window._zcScore : 6);
-  manualOverrideZone(score);
+  applyRevealZoneChoice(score, 'manual');
+  populateLogDoneScreen(true);
   showScreen('screen-log-done');
-}
-
-function logFlowShowReflection(){
-  var prompt = document.getElementById('log-done-refl-prompt');
-  var panel = document.getElementById('log-reflection-panel');
-  if(prompt) prompt.style.display = 'none';
-  if(panel) panel.style.display = 'block';
-}
-
-function logFlowSkipReflection(){
-  var prompt = document.getElementById('log-done-refl-prompt');
-  if(prompt) prompt.style.display = 'none';
 }
 
 async function logFlowLogAnother(){
@@ -6458,6 +6582,7 @@ async function afterQ4(){
   var anyAnswered = deepAnswers.q1 || deepAnswers.q2 || deepAnswers.q3 || deepAnswers.q4;
   if(!anyAnswered){
     showToast('No changes — zone stays as estimated');
+    populateLogDoneScreen(true);
     showScreen('screen-log-done');
     return;
   }
@@ -6621,6 +6746,7 @@ async function loadClimbLog(){
   if(sentEl)sentEl.textContent=Math.round(sends/total*100)+'%';
 
   // Arc, radar, list — all use climbs
+  window._cachedArcSessions = climbs;
   buildSessionsArc(climbs);
   // Filter out ghost sessions with no grade, terrain, or zone (Bug 9)
   // Filter ghost sessions — must have grade OR zone to show
@@ -6657,15 +6783,52 @@ async function loadClimbLog(){
   }
 }
 
+function formatArcDateShort(iso){
+  if(!iso) return '';
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+}
+
+function addArcDateLabels(labelGroup, ordered, pts, labelY){
+  if(!labelGroup) return;
+  labelGroup.innerHTML = '';
+  if(!ordered.length || !pts.length) return;
+  var indices = [0];
+  if(ordered.length > 1) indices.push(ordered.length - 1);
+  if(ordered.length >= 4) indices.push(Math.floor(ordered.length / 2));
+  if(ordered.length >= 8){
+    indices.push(Math.floor(ordered.length / 4));
+    indices.push(Math.floor(ordered.length * 3 / 4));
+  }
+  indices = indices.filter(function(v, i, a){ return a.indexOf(v) === i; }).sort(function(a,b){ return a - b; });
+  indices.forEach(function(i){
+    var p = pts[i];
+    var s = ordered[i];
+    if(!p || !s) return;
+    var text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x', p.x.toFixed(1));
+    text.setAttribute('y', labelY);
+    text.setAttribute('font-family', 'Space Grotesk,sans-serif');
+    text.setAttribute('font-size', '7');
+    text.setAttribute('fill', 'rgba(255,255,255,.35)');
+    text.setAttribute('text-anchor', i === 0 ? 'start' : i === ordered.length - 1 ? 'end' : 'middle');
+    text.textContent = formatArcDateShort(s.created_at);
+    labelGroup.appendChild(text);
+  });
+}
+
 function buildSessionsArc(sessions, isExample){
   var g=document.getElementById('arc-dots-real');
   if(!g)return;
   g.innerHTML='';
+  var labelGroup=document.getElementById('arc-date-labels');
+  if(labelGroup) labelGroup.innerHTML='';
   var ordered=sessions.slice().reverse();
-  var zoneY={comfort:52,learning:30,panic:8}; // Panic=top, Comfort=bottom — scaled for 60px height
-  var w=320,h=100;
+  var zoneY={comfort:52,learning:30,panic:8};
+  var w=320;
   var pts=ordered.map(function(s,i){
-    return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||50,z:s.zone,conf:s.zone_confidence,climbId:s.climb_id||null};
+    return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||50,z:s.zone,conf:s.zone_confidence,climbId:s.climb_id||null,session:s};
   });
   if(pts.length>1){
     var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ');
@@ -6678,30 +6841,107 @@ function buildSessionsArc(sessions, isExample){
     var c=zoneColor(p.z);
     var circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
     circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);
-    if(p.conf==='confirmed'){
+    if(p.conf==='confirmed' || p.conf==='manual'){
       circle.setAttribute('r','4');circle.setAttribute('fill',c);
     } else {
       circle.setAttribute('r','4');circle.setAttribute('fill','none');
       circle.setAttribute('stroke',c);circle.setAttribute('stroke-width','1.5');
     }
-    // Named climbs navigate to Route History on click (Fix 6). Example arc and
-    // unnamed/auto-named climbs (no climb_id) get no click action — sensible
-    // conservative fallback per brief, no speculative new screen built for them.
     if(!isExample && p.climbId){
       circle.style.cursor='pointer';
       circle.addEventListener('click', (function(cid){ return function(){ openClimbExposure(cid); }; })(p.climbId));
     }
     g.appendChild(circle);
   });
-  // insight
+  addArcDateLabels(labelGroup, ordered, pts, 68);
+  var linkWrap = document.querySelector('#sessions-real-section .zone-arc-link-wrap');
+  if(linkWrap) linkWrap.style.display = isExample || ordered.length === 0 ? 'none' : 'block';
   var insEl=document.getElementById('sessions-arc-insight');
   if(insEl&&ordered.length>0){
     if(isExample){
       insEl.textContent='Example arc — 14 illustrative sessions showing a non-linear progression pattern.';
     } else {
-      var confirmed=ordered.filter(function(s){return s.zone_confidence==='confirmed';}).length;
+      var confirmed=ordered.filter(function(s){return s.zone_confidence==='confirmed'||s.zone_confidence==='manual';}).length;
       insEl.textContent=ordered.length+' climbs · '+confirmed+' confirmed — confirm more to sharpen your arc.';
     }
+  }
+}
+
+function showZoneArcDetail(){
+  var sessions = window._cachedArcSessions || window._cachedSessions || [];
+  buildZoneArcDetail(sessions);
+  showScreen('screen-zone-arc-detail');
+}
+
+function buildZoneArcDetail(sessions){
+  var g=document.getElementById('arc-dots-detail');
+  var labelGroup=document.getElementById('arc-date-labels-detail');
+  var listEl=document.getElementById('zone-arc-detail-list');
+  var panelEl=document.getElementById('zone-arc-detail-panel');
+  if(!g) return;
+  g.innerHTML='';
+  if(labelGroup) labelGroup.innerHTML='';
+  if(panelEl){ panelEl.style.display='none'; panelEl.innerHTML=''; }
+  var ordered=(sessions||[]).slice().reverse();
+  if(!ordered.length){
+    if(listEl) listEl.innerHTML='<div style="font-size:13px;color:var(--muted);padding:12px 0;">Log climbs to see your zone arc.</div>';
+    return;
+  }
+  var zoneY={comfort:62,learning:38,panic:14};
+  var w=320;
+  var pts=ordered.map(function(s,i){
+    return{x:20+(i/(Math.max(ordered.length-1,1)))*(w-40),y:zoneY[s.zone]||38,z:s.zone,conf:s.zone_confidence,session:s};
+  });
+  if(pts.length>1){
+    var pathD=pts.map(function(p,i){return(i===0?'M':'L')+p.x+','+p.y;}).join(' ');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',pathD);path.setAttribute('fill','none');
+    path.setAttribute('stroke','rgba(255,255,255,.1)');path.setAttribute('stroke-width','1.5');
+    g.appendChild(path);
+  }
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off'};
+  pts.forEach(function(p, idx){
+    var c=zoneColor(p.z);
+    var circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);
+    if(p.conf==='confirmed' || p.conf==='manual'){
+      circle.setAttribute('r','5');circle.setAttribute('fill',c);
+    } else {
+      circle.setAttribute('r','5');circle.setAttribute('fill','none');
+      circle.setAttribute('stroke',c);circle.setAttribute('stroke-width','1.5');
+    }
+    circle.style.cursor='pointer';
+    circle.addEventListener('click', (function(session, pointIdx){
+      return function(){
+        if(panelEl){
+          var dateStr = session.created_at ? new Date(session.created_at).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'}) : 'Unknown date';
+          panelEl.innerHTML = '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">'+dateStr+'</div>'
+            + '<div style="font-size:18px;font-weight:700;font-family:\'Space Mono\',monospace;color:var(--accent);margin-bottom:4px;">'+(session.grade_value||'—')+'</div>'
+            + '<div style="font-size:13px;color:var(--muted);margin-bottom:8px;">'+(session.climbing_type||'—')+' · '+(resultLabels[session.baseline_zone]||session.baseline_zone||'—')+'</div>'
+            + '<div style="font-size:12px;font-weight:700;color:'+c+';">'+zoneName(session.zone||'learning')+(session.zone_confidence==='estimated'?' ~':'')+'</div>';
+          panelEl.style.display='block';
+        }
+        if(listEl){
+          var rows = listEl.querySelectorAll('.zone-arc-detail-point');
+          rows.forEach(function(row, ri){ row.style.opacity = ri === pointIdx ? '1' : '.55'; });
+        }
+      };
+    })(p.session, idx));
+    g.appendChild(circle);
+  });
+  addArcDateLabels(labelGroup, ordered, pts, 84);
+  if(listEl){
+    listEl.innerHTML = ordered.map(function(s, i){
+      var c = zoneColor(s.zone||'learning');
+      var dateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : '—';
+      return '<div class="zone-arc-detail-point" data-arc-idx="'+i+'" style="opacity:.85;">'
+        + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--text);">'+dateStr+'</div>'
+        + '<div style="font-size:11px;font-weight:700;color:'+c+';">'+zoneName(s.zone||'learning')+'</div>'
+        + '</div>'
+        + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">'+(s.grade_value||'—')+' · '+(s.climbing_type||'—')+' · '+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</div>'
+        + '</div>';
+    }).join('');
   }
 }
 
@@ -9882,6 +10122,162 @@ function runScreenSweep(){
   return {passed, failed, screenCount: screens.length, results};
 }
 
+function invokeOnclickHandler(btn, onclickCode){
+  var code = (onclickCode || '').trim();
+  if(!code) return;
+  var fn = new Function('btn', 'event', 'with(this){ ' + code + ' }');
+  fn.call(btn, btn, {preventDefault:function(){}, stopPropagation:function(){}, target:btn, currentTarget:btn});
+}
+
+function captureUiSnapshot(btn){
+  var active = document.querySelector('.screen.active');
+  var dialWrap = document.getElementById('log-reveal-dial-wrap');
+  var reflPanel = document.getElementById('log-reflection-panel');
+  return {
+    activeId: active ? active.id : null,
+    btnClass: btn.className,
+    btnSelected: btn.classList.contains('selected'),
+    bodyLen: document.body ? document.body.innerHTML.length : 0,
+    dialWrapDisplay: dialWrap ? getComputedStyle(dialWrap).display : '',
+    reflPanelDisplay: reflPanel ? getComputedStyle(reflPanel).display : ''
+  };
+}
+
+function uiSnapshotChanged(before, after){
+  if(before.activeId !== after.activeId) return true;
+  if(before.btnClass !== after.btnClass) return true;
+  if(before.btnSelected !== after.btnSelected) return true;
+  if(before.dialWrapDisplay !== after.dialWrapDisplay) return true;
+  if(before.reflPanelDisplay !== after.reflPanelDisplay) return true;
+  if(Math.abs(before.bodyLen - after.bodyLen) > 20) return true;
+  return false;
+}
+
+function seedAuditScreenState(screenId){
+  if(screenId.indexOf('screen-log') !== 0) return;
+  logState.result = logState.result || 'sent';
+  logState.grade = logState.grade || '5.10a';
+  logState.terrain = logState.terrain || 'Vertical';
+  logState.sessId = logState.sessId || 'audit-test-session';
+  logState.userActivationEstimate = logState.userActivationEstimate || 7;
+  if(screenId === 'screen-log-terrain'){
+    var terrainChip = document.querySelector('#screen-log-terrain .chip');
+    if(terrainChip && !logState.terrain) selectTerrain(terrainChip, terrainChip.textContent.trim());
+  }
+  if(screenId === 'screen-log-grade'){
+    buildGradeGrid(logState.gradeSys || 'YDS');
+    var gradeBtn = document.querySelector('#grade-grid .grade-btn');
+    if(gradeBtn && !logState.grade) selectGrade(gradeBtn, logState.gradeSys || 'YDS');
+  }
+}
+
+// Script C — click-test onclick handlers per screen; flag errors and no-op actions.
+function runButtonAudit(options){
+  options = options || {};
+  var fullSweep = !!options.full;
+  var results = [];
+  var screens = Array.from(document.querySelectorAll('.screen[id]'));
+  var startId = (document.querySelector('.screen.active')||{}).id || null;
+  console.log('%c SEE Button Audit (' + screens.length + ' screens) ', 'background:#e8763a;color:#fff;font-weight:bold;padding:2px 8px;');
+
+  function pass(name){ results.push({name:name,status:'PASS'}); console.log('%c PASS %c ' + name, 'background:#7ec87a;color:#000;font-weight:bold;padding:1px 6px;', ''); }
+  function fail(name, reason){ results.push({name:name,status:'FAIL',reason:reason}); console.log('%c FAIL %c ' + name + (reason?' — '+reason:''), 'background:#e84444;color:#fff;font-weight:bold;padding:1px 6px;', 'color:#e84444'); }
+
+  var skipPartial = [
+    'acknowledgeConsent', 'handleSignIn', 'handleSignUp', 'signOut',
+    'saveNote', 'saveGaugeOverride', 'logFlowSaveSession', 'logClimb',
+    'launchLogWithClimb', 'startLogFlow', 'afterQ4', 'openEditSheet',
+    'showNotesEditor', 'celebrateHomeLink', 'logFlowLogAnother', 'logFlowDoneHome',
+    'submitBaseline', 'saveRouteDetails', 'deleteSession', 'flushOfflineQueue',
+    'loadClimbLog', 'loadTrainAssignments', 'loadExampleClimbLog', 'loadDrillRouteOptions',
+    'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
+    'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"'
+  ];
+
+  function shouldSkip(onclick){
+    if(!onclick.trim()) return true;
+    return skipPartial.some(function(s){ return onclick.indexOf(s) > -1; });
+  }
+
+  function isPriorityButton(btn){
+    if(btn.id) return true;
+    if(btn.classList.contains('log-btn') || btn.classList.contains('log-flow-cta')) return true;
+    if(btn.classList.contains('back-btn') || btn.classList.contains('result-btn')) return true;
+    if(btn.classList.contains('log-flow-skip-link') || btn.classList.contains('zone-arc-link')) return true;
+    if(btn.closest('.log-flow-reveal-options')) return true;
+    if(btn.closest('.log-flow-done-actions')) return true;
+    if(btn.closest('.log-flow-prompt-actions')) return true;
+    return false;
+  }
+
+  screens.forEach(function(screenEl){
+    showScreen(screenEl.id);
+    seedAuditScreenState(screenEl.id);
+    var buttons = Array.from(screenEl.querySelectorAll('[onclick]'));
+    if(!fullSweep) buttons = buttons.filter(isPriorityButton);
+    buttons.forEach(function(btn, idx){
+      var onclick = btn.getAttribute('onclick') || '';
+      var btnId = btn.id || (screenEl.id + '-onclick-' + idx);
+      if(shouldSkip(onclick)) return;
+
+      showScreen(screenEl.id);
+      seedAuditScreenState(screenEl.id);
+      var before = captureUiSnapshot(btn);
+      var errMsg = null;
+      try{
+        invokeOnclickHandler(btn, onclick);
+      }catch(e){
+        errMsg = e.message;
+      }
+      var after = captureUiSnapshot(btn);
+      if(errMsg){
+        fail('Button ' + btnId + ' @ ' + screenEl.id, errMsg);
+        showScreen(screenEl.id);
+        return;
+      }
+
+      var changed = uiSnapshotChanged(before, after);
+      var expectsNav = /showScreen\s*\(/.test(onclick);
+      var mustDoSomething = /logReveal|logFlowContinue|Confirm|Save and finish|showZoneArcDetail|logFlowToggleReflection|logFlowSkipDeeper|logFlowStartDeeper/.test(onclick + ' ' + btnId);
+
+      if(expectsNav && before.activeId === after.activeId && !new RegExp("showScreen\\(['\\\"]" + screenEl.id + "['\\\"]\\)").test(onclick)){
+        fail('Button ' + btnId + ' @ ' + screenEl.id, 'showScreen onclick but active screen unchanged (' + after.activeId + ')');
+      } else if(mustDoSomething && !changed){
+        fail('Button ' + btnId + ' @ ' + screenEl.id, 'onclick produced no observable effect');
+      } else {
+        pass('Button ' + btnId + ' @ ' + screenEl.id);
+      }
+      showScreen(screenEl.id);
+    });
+  });
+
+  try{
+    logState.sessId = 'audit-test-session';
+    logState.userActivationEstimate = 7;
+    logState.grade = '5.10a';
+    logState.terrain = 'Vertical';
+    logState.result = 'sent';
+    logFlowState.activationScore = 7;
+    showScreen('screen-log-reveal');
+    logRevealConfirmOwn();
+    if((document.querySelector('.screen.active')||{}).id === 'screen-log-done'){
+      pass('Reveal flow: logRevealConfirmOwn -> screen-log-done');
+    } else {
+      fail('Reveal flow: logRevealConfirmOwn -> screen-log-done', 'active=' + ((document.querySelector('.screen.active')||{}).id));
+    }
+  }catch(e){
+    fail('Reveal flow: logRevealConfirmOwn -> screen-log-done', e.message);
+  }
+
+  if(startId) showScreen(startId);
+
+  var passed = results.filter(function(r){return r.status==='PASS';}).length;
+  var failed = results.filter(function(r){return r.status==='FAIL';}).length;
+  console.log('%c Button audit: ' + passed + ' passed, ' + failed + ' failed ',
+    failed > 0 ? 'background:#e84444;color:#fff;font-weight:bold;padding:2px 8px;' : 'background:#7ec87a;color:#000;font-weight:bold;padding:2px 8px;');
+  return {passed, failed, screenCount: screens.length, results};
+}
+
 async function runSEETests(){
   var results = [];
   var testId = null;
@@ -10074,6 +10470,18 @@ async function runSEETests(){
       fail('Screen isolation', isolationFails.map(function(r){ return r.name.replace('Screen isolation: ','') + ': ' + r.reason; }).join(' | '));
     }
   }catch(e){ fail('Screen sweep + isolation', e.message); }
+
+  // ── SECTION E: Button click audit ───────────────────────
+  console.log('%c E — Button Click Audit ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
+  try{
+    var btnAudit = runButtonAudit({full:false});
+    if(btnAudit.failed === 0){
+      pass('Button audit (' + btnAudit.passed + ' handlers, 0 errors/no-ops flagged)');
+    } else {
+      var btnFails = btnAudit.results.filter(function(r){ return r.status === 'FAIL'; }).slice(0, 8);
+      fail('Button audit', btnAudit.failed + ' issue(s): ' + btnFails.map(function(r){ return r.name + (r.reason ? ' — ' + r.reason : ''); }).join(' | '));
+    }
+  }catch(e){ fail('Button audit', e.message); }
 
   // ── Summary ─────────────────────────────────────────────
   var passed = results.filter(function(r){return r.status==='PASS';}).length;
