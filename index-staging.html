@@ -158,10 +158,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .log-flow-screen{
   padding:16px;
   min-height:calc(100vh - 52px);
-  display:flex;
   flex-direction:column;
   box-sizing:border-box;
   padding-bottom:120px;
+}
+.screen.active.log-flow-screen{
+  display:flex;
 }
 .log-flow-screen .page-header{margin:-16px -16px 0;padding:0 16px;}
 .log-flow-body{flex:1;max-width:480px;width:100%;margin:0 auto;}
@@ -9827,6 +9829,59 @@ async function flushOfflineQueue(){
 // runSEETests() — browser console data layer sanity check
 // Type runSEETests() in console to run
 // ═══════════════════════════════════════════════════════
+
+// Returns IDs of any .screen elements that are visible while activeId is shown.
+function checkScreenIsolation(activeId){
+  var leaked = [];
+  document.querySelectorAll('.screen').forEach(function(el){
+    if(el.id !== activeId){
+      var d = getComputedStyle(el).display;
+      if(d !== 'none') leaked.push(el.id + ' (display:' + d + ')');
+    }
+  });
+  return leaked;
+}
+
+// Script B — sweep every screen; after each showScreen(), verify all others are hidden.
+function runScreenSweep(){
+  var results = [];
+  var screens = Array.from(document.querySelectorAll('.screen[id]'));
+  var startScreen = document.querySelector('.screen.active');
+  var startId = startScreen ? startScreen.id : null;
+  console.log('%c SEE Screen Sweep (' + screens.length + ' screens) ', 'background:#e8763a;color:#fff;font-weight:bold;padding:2px 8px;');
+
+  function pass(name){ results.push({name:name,status:'PASS'}); console.log('%c PASS %c ' + name, 'background:#7ec87a;color:#000;font-weight:bold;padding:1px 6px;', ''); }
+  function fail(name, reason){ results.push({name:name,status:'FAIL',reason:reason}); console.log('%c FAIL %c ' + name + (reason?' — '+reason:''), 'background:#e84444;color:#fff;font-weight:bold;padding:1px 6px;', 'color:#e84444'); }
+
+  screens.forEach(function(el){
+    try{
+      showScreen(el.id);
+      var h = el.offsetHeight;
+      if(h <= 30){
+        fail('Screen renders: ' + el.id, 'height=' + h + 'px — collapsed');
+      } else {
+        pass('Screen renders: ' + el.id + ' (' + h + 'px)');
+      }
+      var leaked = checkScreenIsolation(el.id);
+      if(leaked.length > 0){
+        fail('Screen isolation: ' + el.id, leaked.join('; '));
+      } else {
+        pass('Screen isolation: ' + el.id);
+      }
+    }catch(e){
+      fail('Screen sweep: ' + el.id, e.message);
+    }
+  });
+
+  if(startId){ showScreen(startId); }
+
+  var passed = results.filter(function(r){return r.status==='PASS';}).length;
+  var failed = results.filter(function(r){return r.status==='FAIL';}).length;
+  console.log('%c Sweep: ' + passed + ' passed, ' + failed + ' failed ',
+    failed > 0 ? 'background:#e84444;color:#fff;font-weight:bold;padding:2px 8px;' : 'background:#7ec87a;color:#000;font-weight:bold;padding:2px 8px;');
+  return {passed, failed, screenCount: screens.length, results};
+}
+
 async function runSEETests(){
   var results = [];
   var testId = null;
@@ -10001,6 +10056,24 @@ async function runSEETests(){
       pass('Delete test session');
     }catch(e){ fail('Delete test session', e.message); }
   } else { skip('Delete test session', 'Nothing to delete'); }
+
+  // ── SECTION D: Screen sweep + isolation ─────────────────
+  console.log('%c D — Screen Sweep + Isolation ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
+  try{
+    var sweep = runScreenSweep();
+    var renderFails = sweep.results.filter(function(r){ return r.status==='FAIL' && r.name.indexOf('Screen renders:')===0; });
+    var isolationFails = sweep.results.filter(function(r){ return r.status==='FAIL' && r.name.indexOf('Screen isolation:')===0; });
+    if(renderFails.length === 0){
+      pass('Screen sweep renders (' + sweep.screenCount + '/' + sweep.screenCount + ' screens)');
+    } else {
+      fail('Screen sweep renders', renderFails.map(function(r){ return r.name.replace('Screen renders: ','') + (r.reason?' '+r.reason:''); }).join(' | '));
+    }
+    if(isolationFails.length === 0){
+      pass('Screen isolation (' + sweep.screenCount + '/' + sweep.screenCount + ' screens, 0 leaked)');
+    } else {
+      fail('Screen isolation', isolationFails.map(function(r){ return r.name.replace('Screen isolation: ','') + ': ' + r.reason; }).join(' | '));
+    }
+  }catch(e){ fail('Screen sweep + isolation', e.message); }
 
   // ── Summary ─────────────────────────────────────────────
   var passed = results.filter(function(r){return r.status==='PASS';}).length;
