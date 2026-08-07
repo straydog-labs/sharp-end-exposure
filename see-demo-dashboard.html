@@ -209,6 +209,35 @@ footer{max-width:1180px;margin:0 auto;padding:20px 28px 40px;color:var(--text-se
   </div>
 
   <div class="section">
+    <div class="section-title">How a climb is logged</div>
+    <div class="card" style="border-left:3px solid var(--accent);">
+      <p style="margin:0 0 14px;font-size:14px;">Activation-first: the dial is the first thing a climber sees. Result, terrain, and grade come after. Go Deeper is always optional. A comparison at the end puts your own read next to the model.</p>
+      <div class="grid grid-4" style="gap:10px;">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div class="mono" style="font-size:11px;color:var(--accent);margin-bottom:6px;">1 · FIRST</div>
+          <div style="font-size:14px;font-weight:600;">Activation dial</div>
+          <div class="small">Drag your first read before anything else</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div class="mono" style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">2</div>
+          <div style="font-size:14px;font-weight:600;">Result · terrain · grade</div>
+          <div class="small">What happened on the wall, then context</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div class="mono" style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">3 · OPTIONAL</div>
+          <div style="font-size:14px;font-weight:600;">Go Deeper</div>
+          <div class="small">Four body questions, skip anytime</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;">
+          <div class="mono" style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">4</div>
+          <div style="font-size:14px;font-weight:600;">Compare &amp; confirm</div>
+          <div class="small">Your dial vs the model, then done</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="section-title">Activation arc — last 10 sessions</div>
     <div class="card" id="memberArcCard"></div>
   </div>
@@ -281,13 +310,18 @@ footer{max-width:1180px;margin:0 auto;padding:20px 28px 40px;color:var(--text-se
     </div>
     <div class="card">
       <div class="section-title" style="margin-bottom:12px;">Train</div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;">
         <div>
           <p style="font-weight:600;margin-bottom:4px;">Overhang breathing drill — 3 sessions this week</p>
           <div class="small">Assigned by coach · due 2026-08-02</div>
         </div>
       </div>
-      <button class="btn btn-complete" id="markCompleteBtn" style="margin-top:14px;">Mark Complete</button>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;">
+        <div class="small" style="margin-bottom:4px;">From workout library</div>
+        <p style="font-weight:600;margin-bottom:2px;">Hangboard · Repeaters</p>
+        <div class="small">Same list as coach-assigned or self-written work</div>
+      </div>
+      <button class="btn btn-complete" id="markCompleteBtn">Mark Complete</button>
     </div>
   </div>
 </section>
@@ -312,6 +346,27 @@ footer{max-width:1180px;margin:0 auto;padding:20px 28px 40px;color:var(--text-se
     <p style="margin:0;">Current cycle: Fall practice and fear management — 5 athletes assigned.</p>
   </div>
 
+  <div class="section">
+    <div class="section-title">Workout library</div>
+    <div class="card" style="border-left:3px solid var(--accent);">
+      <p style="margin:0 0 6px;font-weight:600;">Browse proven protocols, then assign in one tap.</p>
+      <p class="small" style="margin-bottom:16px;">Categorized library (Hangboard, Boulder circuits, Strength) sits next to freeform writing. Coaches pick a protocol and send it to an athlete; athletes see it in the same Train list as any other assignment.</p>
+      <div class="grid grid-3" style="gap:12px;margin-bottom:16px;" id="libraryCategories"></div>
+      <div class="form-row" style="align-items:end;">
+        <div>
+          <label>Protocol</label>
+          <select id="libraryProtocolSelect"></select>
+        </div>
+        <div>
+          <label>Assign to</label>
+          <select id="libraryAthleteSelect"></select>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary" id="libraryAssignBtn" style="width:100%;">Assign from library</button>
+      <div id="libraryAssignConfirm" class="small" style="display:none;margin-top:10px;color:var(--success);">Assigned from library (demo — not saved).</div>
+    </div>
+  </div>
+
   <div class="grid" style="grid-template-columns:1.4fr 1fr;gap:20px;align-items:start;">
     <div class="section">
       <div class="section-title">Roster</div>
@@ -324,7 +379,7 @@ footer{max-width:1180px;margin:0 auto;padding:20px 28px 40px;color:var(--text-se
     </div>
 
     <div class="section">
-      <div class="section-title">Create assignment</div>
+      <div class="section-title">Or write your own</div>
       <div class="card">
         <form id="assignForm">
           <label>Title</label>
@@ -546,6 +601,33 @@ document.getElementById('markCompleteBtn').addEventListener('click', function(){
 });
 
 // ---------- Coach tab ----------
+var workoutLibrary = [
+  {category:'Hangboard', name:'Repeaters', blurb:'Finger strength endurance block'},
+  {category:'Hangboard', name:'3x6x9', blurb:'Progressive hang volume'},
+  {category:'Hangboard', name:'Max Hang', blurb:'Peak force hangs with full rest'},
+  {category:'Boulder circuits', name:'4x4', blurb:'Power endurance circuit'},
+  {category:'Boulder circuits', name:'Capacity', blurb:'Volume under moderate load'},
+  {category:'Strength', name:'Spray-wall finger strength', blurb:'Open-ended finger work on spray'}
+];
+
+function renderWorkoutLibrary(){
+  var cats = {};
+  workoutLibrary.forEach(function(p){
+    if(!cats[p.category]) cats[p.category] = [];
+    cats[p.category].push(p);
+  });
+  document.getElementById('libraryCategories').innerHTML = Object.keys(cats).map(function(cat){
+    var names = cats[cat].map(function(p){ return p.name; }).join(' · ');
+    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;">'+
+      '<div style="font-size:14px;font-weight:700;margin-bottom:6px;">'+cat+'</div>'+
+      '<div class="small">'+names+'</div></div>';
+  }).join('');
+  document.getElementById('libraryProtocolSelect').innerHTML = workoutLibrary.map(function(p){
+    return '<option>'+p.category+' · '+p.name+'</option>';
+  }).join('');
+}
+renderWorkoutLibrary();
+
 var athletes = [
   {id:1,name:'Maya T.',sessions:22,sendRate:71,flag:'red',flagText:'3 Panic sessions this week — check in recommended',cross:false,
     arc:[5,6,9,11,12,8,10,9],breathing:'Shallow or tight — 64%',
@@ -613,6 +695,15 @@ document.getElementById('rosterBody').innerHTML = athletes.map(function(a){
 document.getElementById('athleteSelect').innerHTML = athletes.map(function(a){
   return '<option>'+a.name+'</option>';
 }).join('');
+document.getElementById('libraryAthleteSelect').innerHTML = athletes.map(function(a){
+  return '<option>'+a.name+'</option>';
+}).join('');
+
+document.getElementById('libraryAssignBtn').addEventListener('click', function(){
+  var confirm = document.getElementById('libraryAssignConfirm');
+  confirm.style.display = 'block';
+  setTimeout(function(){ confirm.style.display = 'none'; }, 3000);
+});
 
 function openDrawer(id){
   var a = athletes.find(function(x){ return x.id === id; });
