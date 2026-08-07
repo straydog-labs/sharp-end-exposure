@@ -3520,7 +3520,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index188';
+var app_version = 'staging-index189';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -5127,16 +5127,24 @@ function populateLogDoneScreen(resetReflection){
   if(resetReflection){
     if(panel) panel.style.display = 'none';
     if(noteBtn) noteBtn.style.display = '';
+    var body = document.getElementById('refl-body');
+    if(body) body.style.display = 'none';
   }
 }
 
 function logFlowToggleReflection(){
   var panel = document.getElementById('log-reflection-panel');
   var noteBtn = document.getElementById('log-done-add-note');
+  var body = document.getElementById('refl-body');
   if(!panel) return;
   var opening = panel.style.display === 'none' || !panel.style.display;
   panel.style.display = opening ? 'block' : 'none';
+  if(body) body.style.display = opening ? 'block' : 'none';
   if(noteBtn) noteBtn.style.display = opening ? 'none' : '';
+  if(opening){
+    var firstInput = document.getElementById('went-well-text');
+    if(firstInput) setTimeout(function(){ firstInput.focus(); }, 100);
+  }
 }
 
 function applyRevealZoneChoice(score, confidence){
@@ -6225,11 +6233,13 @@ function resetLogScreen(){
     if(b){b.classList.remove('selected','selected-send','selected-attempt','selected-dna');b.style.borderColor='';b.style.background='';}
   });
   logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null};
-  // Reset reflection section
+  // Reset reflection section (panel wrapper + inner body — resetLogScreen hides body so toggle must reopen both)
+  var reflPanel=document.getElementById('log-reflection-panel');
+  var noteBtn=document.getElementById('log-done-add-note');
+  if(reflPanel) reflPanel.style.display='none';
+  if(noteBtn) noteBtn.style.display='';
   var reflBody=document.getElementById('refl-body');
-  var reflChevron=document.getElementById('refl-chevron');
-  if(reflBody)reflBody.style.display='none';
-  if(reflChevron)reflChevron.style.transform='';
+  if(reflBody) reflBody.style.display='none';
   ['went-well-text','still-learning-text','surprised-text'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.querySelectorAll('.refl-chip.selected').forEach(function(b){b.classList.remove('selected');});
   
@@ -10160,6 +10170,12 @@ function seedAuditScreenState(screenId){
   logState.terrain = logState.terrain || 'Vertical';
   logState.sessId = logState.sessId || 'audit-test-session';
   logState.userActivationEstimate = logState.userActivationEstimate || 7;
+  if(screenId === 'screen-log-done'){
+    populateLogDoneScreen(true);
+    // Mirror real flow: resetLogScreen() leaves refl-body hidden until toggle opens it
+    var body = document.getElementById('refl-body');
+    if(body) body.style.display = 'none';
+  }
   if(screenId === 'screen-log-terrain'){
     var terrainChip = document.querySelector('#screen-log-terrain .chip');
     if(terrainChip && !logState.terrain) selectTerrain(terrainChip, terrainChip.textContent.trim());
@@ -10239,10 +10255,14 @@ function runButtonAudit(options){
       var changed = uiSnapshotChanged(before, after);
       var expectsNav = /showScreen\s*\(/.test(onclick);
       var mustDoSomething = /logReveal|logFlowContinue|Confirm|Save and finish|showZoneArcDetail|logFlowToggleReflection|logFlowSkipDeeper|logFlowStartDeeper/.test(onclick + ' ' + btnId);
+      var notePanel = document.getElementById('log-reflection-panel');
+      var noteOpened = btnId === 'log-done-add-note' && notePanel && notePanel.offsetHeight > 80;
 
       if(expectsNav && before.activeId === after.activeId && !new RegExp("showScreen\\(['\\\"]" + screenEl.id + "['\\\"]\\)").test(onclick)){
         fail('Button ' + btnId + ' @ ' + screenEl.id, 'showScreen onclick but active screen unchanged (' + after.activeId + ')');
-      } else if(mustDoSomething && !changed){
+      } else if(btnId === 'log-done-add-note' && !noteOpened){
+        fail('Button ' + btnId + ' @ ' + screenEl.id, 'reflection panel did not expand (height=' + (notePanel ? notePanel.offsetHeight : 0) + ')');
+      } else if(mustDoSomething && !changed && !noteOpened){
         fail('Button ' + btnId + ' @ ' + screenEl.id, 'onclick produced no observable effect');
       } else {
         pass('Button ' + btnId + ' @ ' + screenEl.id);
