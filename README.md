@@ -14,11 +14,13 @@ Sharp End Exposure is a climb-logging app that tracks your somatic response to r
 
 ---
 
-## Four tabs
+## Five tabs
 
-**Climb Log** — the core loop. Log a climb (grade, terrain, result), then Go Deeper: four questions on breathing, gut sensation, crux response, and body state confirm which activation zone you were actually in. Add an optional reflection (what went well, what to work on, what surprised you). Every logged session feeds your Climb Log home — Zone by Terrain radar across all seven terrain types, your activation arc over time, and a Climb History table you can drill into.
+**Climb Log** — the core loop. Logging starts with the activation dial (your first read), then result, terrain, and grade. Go Deeper is always optional: four questions on breathing, gut sensation, crux response, and body state that can refine the reading. A comparison moment at the end puts your own dial read next to the model's so you can confirm or adjust. Add an optional reflection (what went well, what to work on, what surprised you). Every logged session feeds your Climb Log home — Zone by Terrain radar across all seven terrain types, your activation arc over time, and a Climb History table you can drill into.
 
 **Drill** — structured, deliberate practice. Predict your zone before you climb, check in, climb it, log post-climb, and see how prediction and reality compare.
+
+**Train** — write your own training, track what a coach assigns, or browse the workout library. The library is grouped by category (Hangboard, Boulder circuits, Strength, and more). Pull a protocol into your own training the same way you would a self-written or coach-assigned entry; mark complete from one list.
 
 **Research** — the science behind the questions: the somatic markers being tracked and why, in plain language.
 
