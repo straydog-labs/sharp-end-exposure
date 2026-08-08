@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Straydog Labs — Ops</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23c8622a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23c8622a' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0d;
+    --surface:#1a1a1a;
+    --border:#2a2a2a;
+    --text:#f0f0f0;
+    --text-secondary:#888888;
+    --accent:#c8622a;
+    --success:#3B6D11;
+    --warning:#BA7517;
+    --danger:#a83828;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .mono{font-family:'Space Mono',monospace;}
+
+  /* ---------- Password gate ---------- */
+  #gate{
+    position:fixed;inset:0;
+    background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    z-index:1000;
+  }
+  #gate.hidden{display:none;}
+  .gate-box{text-align:center;width:320px;}
+  .gate-word{
+    font-size:22px;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;
+  }
+  .gate-word span{color:var(--accent);}
+  .gate-sub{
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-secondary);margin-top:6px;margin-bottom:32px;
+  }
+  #gate-input{
+    width:100%;background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;padding:12px 14px;color:var(--text);
+    font-family:'Space Mono',monospace;font-size:14px;
+    text-align:center;letter-spacing:.08em;outline:none;
+  }
+  #gate-input:focus{border-color:var(--accent);}
+  #gate-input.shake{animation:shake .35s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px);}
+    20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-8px);}
+    40%,60%{transform:translateX(8px);}
+  }
+  #gate-btn{
+    width:100%;margin-top:12px;background:var(--accent);border:none;
+    border-radius:8px;padding:12px 14px;color:#0d0d0d;
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;cursor:pointer;
+  }
+  #gate-btn:hover{opacity:.9;}
+  #gate-error{margin-top:14px;font-size:12px;color:var(--danger);min-height:16px;}
+
+  /* ---------- Shell ---------- */
+  #app{display:none;height:100vh;}
+  #app.visible{display:flex;}
+
+  #sidebar{
+    width:220px;flex-shrink:0;background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex;flex-direction:column;padding:20px 0;
+  }
+  .sidebar-word{
+    font-size:14px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;padding:0 20px 4px;
+  }
+  .sidebar-word span{color:var(--accent);}
+  .sidebar-label{
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--text-secondary);padding:0 20px 16px;
+  }
+  .nav-divider{border-top:1px solid var(--border);margin:0 20px 8px;}
+  nav{flex:1;}
+  .nav-item{
+    display:flex;align-items:center;gap:12px;
+    padding:11px 20px;color:var(--text-secondary);cursor:pointer;
+    border-left:3px solid transparent;font-size:13.5px;font-weight:500;
+    user-select:none;
+  }
+  .nav-item:hover{color:var(--text);background:rgba(255,255,255,.02);}
+  .nav-item.active{
+    color:var(--text);border-left-color:var(--accent);
+    background:rgba(200,98,42,.08);
+  }
+  .sidebar-footer{
+    padding:12px 20px 0;border-top:1px solid var(--border);
+    font-size:11px;color:var(--text-secondary);line-height:1.8;
+  }
+
+  #main{flex:1;overflow-y:auto;padding:32px 40px 60px;}
+  .section-view{display:none;}
+  .section-view.active{display:block;}
+
+  .page-title{font-size:20px;font-weight:700;margin-bottom:4px;}
+  .page-sub{font-size:13px;color:var(--text-secondary);margin-bottom:28px;}
+
+  /* ---------- Metrics ---------- */
+  .metric-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:14px;margin-bottom:28px;
+  }
+  .metric-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:20px;
+  }
+  .metric-num{
+    font-family:'Space Mono',monospace;font-size:28px;font-weight:700;
+    line-height:1;margin-bottom:8px;
+  }
+  .metric-label{font-size:11.5px;color:var(--text-secondary);line-height:1.4;}
+  .metric-action{margin-top:12px;}
+
+  .toggle-btn{
+    background:transparent;border:1px solid var(--border);border-radius:8px;
+    padding:7px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:12px;font-weight:600;cursor:pointer;
+  }
+  .toggle-btn:hover{border-color:var(--accent);}
+  .toggle-btn.paid{border-color:var(--success);color:#7fbf3f;background:rgba(59,109,17,.12);}
+  .toggle-btn.unpaid{border-color:var(--warning);color:#e0a35a;background:rgba(186,117,23,.12);}
+
+  /* ---------- Tasks ---------- */
+  .phase{margin-bottom:28px;}
+  .phase-title{
+    font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--text-secondary);margin-bottom:12px;padding-bottom:8px;
+    border-bottom:1px solid var(--border);
+  }
+  .task{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:14px 16px;margin-bottom:8px;
+  }
+  .task-row{display:flex;align-items:flex-start;gap:12px;}
+  .task-check{
+    appearance:none;width:18px;height:18px;margin-top:2px;flex-shrink:0;
+    border:1.5px solid var(--border);border-radius:4px;background:transparent;
+    cursor:pointer;position:relative;
+  }
+  .task-check:checked{background:var(--accent);border-color:var(--accent);}
+  .task-check:checked::after{
+    content:'';position:absolute;left:5px;top:1px;
+    width:5px;height:9px;border:solid #0d0d0d;border-width:0 2px 2px 0;
+    transform:rotate(45deg);
+  }
+  .task-body{flex:1;min-width:0;}
+  .task-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .task-name{font-size:13.5px;font-weight:600;}
+  .task.done .task-name{text-decoration:line-through;color:var(--text-secondary);}
+  .task-meta{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    margin-top:6px;font-size:12px;color:var(--text-secondary);
+  }
+  .badge{
+    display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;
+    padding:3px 8px;border-radius:4px;text-transform:uppercase;
+  }
+  .pri-high{background:rgba(168,56,40,.18);color:#e3705f;}
+  .pri-med{background:rgba(186,117,23,.18);color:#e0a35a;}
+  .pri-low{background:rgba(136,136,136,.15);color:#aaa;}
+  .st-done{background:rgba(59,109,17,.18);color:#7fbf3f;}
+  .st-progress{background:rgba(200,98,42,.15);color:var(--accent);}
+  .st-urgent{background:rgba(168,56,40,.18);color:#e3705f;}
+  .st-waiting{background:rgba(186,117,23,.18);color:#e0a35a;}
+  .st-future{background:rgba(136,136,136,.15);color:#aaa;}
+
+  .notes-toggle{
+    background:none;border:none;color:var(--text-secondary);cursor:pointer;
+    font-family:'Space Grotesk',sans-serif;font-size:12px;padding:0;margin-top:8px;
+  }
+  .notes-toggle:hover{color:var(--accent);}
+  .task-notes{
+    display:none;margin-top:10px;width:100%;min-height:64px;
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:13px;resize:vertical;outline:none;
+  }
+  .task-notes:focus{border-color:var(--accent);}
+  .task-notes.open{display:block;}
+
+  /* ---------- Expenses ---------- */
+  .exp-toolbar{
+    display:flex;justify-content:space-between;align-items:center;
+    gap:16px;margin-bottom:20px;flex-wrap:wrap;
+  }
+  .exp-totals{display:flex;gap:24px;}
+  .exp-total-item .label{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.08em;}
+  .exp-total-item .val{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;margin-top:4px;}
+  .btn-primary{
+    background:var(--accent);border:none;border-radius:8px;padding:10px 16px;
+    color:#0d0d0d;font-family:'Space Grotesk',sans-serif;font-weight:600;
+    font-size:13px;cursor:pointer;
+  }
+  .btn-primary:hover{opacity:.9;}
+  .btn-ghost{
+    background:transparent;border:1px solid var(--border);border-radius:8px;
+    padding:8px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:12px;font-weight:600;cursor:pointer;
+  }
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-danger{
+    background:transparent;border:1px solid var(--border);border-radius:6px;
+    padding:4px 8px;color:#e3705f;font-size:11px;cursor:pointer;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .btn-danger:hover{border-color:#e3705f;}
+
+  table.exp-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  table.exp-table th{
+    text-align:left;font-size:11px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--text-secondary);
+    padding:12px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.25);
+  }
+  table.exp-table td{
+    padding:12px 14px;border-bottom:1px solid var(--border);
+    font-size:13px;vertical-align:middle;
+  }
+  table.exp-table tr:last-child td{border-bottom:none;}
+  table.exp-table .amt{font-family:'Space Mono',monospace;font-weight:600;}
+  .cat-pill{
+    display:inline-block;font-size:11px;padding:3px 8px;border-radius:4px;
+    background:rgba(200,98,42,.12);color:var(--accent);text-transform:capitalize;
+  }
+
+  /* Modal */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+    z-index:900;align-items:center;justify-content:center;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    width:440px;max-width:92vw;padding:24px;
+  }
+  .modal h3{font-size:16px;font-weight:700;margin-bottom:18px;}
+  .form-row{margin-bottom:14px;}
+  .form-row label{
+    display:block;font-size:11px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--text-secondary);margin-bottom:6px;
+  }
+  .form-row input,.form-row select{
+    width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:13px;outline:none;
+  }
+  .form-row input:focus,.form-row select:focus{border-color:var(--accent);}
+  .form-row select{cursor:pointer;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+
+  /* ---------- Contacts ---------- */
+  .contact-grid{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
+  }
+  .contact-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:20px 22px;
+  }
+  .contact-name{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .contact-role{font-size:12px;color:var(--accent);font-weight:600;margin-bottom:10px;}
+  .contact-detail{font-size:12.5px;color:var(--text-secondary);line-height:1.6;margin-bottom:2px;}
+  .contact-detail a{color:var(--text);text-decoration:none;}
+  .contact-detail a:hover{color:var(--accent);}
+  .contact-notes-label{
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);margin:14px 0 6px;
+  }
+  .contact-notes{
+    width:100%;min-height:72px;background:var(--bg);border:1px solid var(--border);
+    border-radius:8px;padding:10px 12px;color:var(--text);
+    font-family:'Space Grotesk',sans-serif;font-size:13px;resize:vertical;outline:none;
+  }
+  .contact-notes:focus{border-color:var(--accent);}
+
+  .empty-row{text-align:center;color:var(--text-secondary);padding:28px !important;}
+</style>
+</head>
+<body>
+
+<!-- Password gate -->
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-word">Stray<span>dog</span></div>
+    <div class="gate-sub">Ops Access</div>
+    <input id="gate-input" type="password" placeholder="password" autocomplete="current-password" autofocus>
+    <button id="gate-btn" type="button">Enter</button>
+    <div id="gate-error"></div>
+  </div>
+</div>
+
+<!-- App shell -->
+<div id="app">
+  <aside id="sidebar">
+    <div class="sidebar-word">Stray<span>dog</span></div>
+    <div class="sidebar-label">Labs Ops</div>
+    <div class="nav-divider"></div>
+    <nav>
+      <div class="nav-item active" data-section="overview">Overview</div>
+      <div class="nav-item" data-section="clinic">Red Rocks Clinic</div>
+      <div class="nav-item" data-section="expenses">Expenses</div>
+      <div class="nav-item" data-section="contacts">Contacts</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div>Red Rocks Clinic</div>
+      <div class="mono">Mar 27–29, 2027</div>
+      <div class="mono">Budget $15,000</div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <!-- OVERVIEW -->
+    <section id="sec-overview" class="section-view active">
+      <div class="page-title">Overview</div>
+      <div class="page-sub">Red Rocks Clinic · Crux Wilderness · Mar 27–29, 2027</div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-num mono" id="m-days">—</div>
+          <div class="metric-label">Days until clinic</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num mono" id="m-tasks">—</div>
+          <div class="metric-label">Tasks complete / total</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num mono" id="m-budget">—</div>
+          <div class="metric-label">Budget remaining</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-num mono" id="m-payment">—</div>
+          <div class="metric-label">Payment received</div>
+          <div class="metric-action">
+            <button type="button" class="toggle-btn unpaid" id="payment-toggle">Mark paid</button>
+          </div>
+        </div>
+      </div>
+      <div class="page-sub" style="margin-bottom:12px;">Urgent &amp; in progress</div>
+      <div id="overview-urgent"></div>
+    </section>
+
+    <!-- CLINIC / TASKS -->
+    <section id="sec-clinic" class="section-view">
+      <div class="page-title">Red Rocks Clinic</div>
+      <div class="page-sub">Task tracker · checkboxes and notes persist locally</div>
+      <div id="task-phases"></div>
+    </section>
+
+    <!-- EXPENSES -->
+    <section id="sec-expenses" class="section-view">
+      <div class="page-title">Expenses</div>
+      <div class="page-sub">Clinic budget log · $15,000 total from Crux Wilderness</div>
+      <div class="exp-toolbar">
+        <div class="exp-totals">
+          <div class="exp-total-item">
+            <div class="label">Logged total</div>
+            <div class="val mono" id="exp-total">$0</div>
+          </div>
+          <div class="exp-total-item">
+            <div class="label">Budget remaining</div>
+            <div class="val mono" id="exp-remaining">$15,000</div>
+          </div>
+        </div>
+        <button type="button" class="btn-primary" id="add-expense-btn">+ Add expense</button>
+      </div>
+      <table class="exp-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Paid by</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="exp-body"></tbody>
+      </table>
+    </section>
+
+    <!-- CONTACTS -->
+    <section id="sec-contacts" class="section-view">
+      <div class="page-title">Contacts</div>
+      <div class="page-sub">Key people · notes persist locally</div>
+      <div class="contact-grid" id="contact-grid"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Add expense modal -->
+<div class="modal-backdrop" id="expense-modal">
+  <div class="modal">
+    <h3>Add expense</h3>
+    <form id="expense-form">
+      <div class="form-row">
+        <label for="exp-date">Date</label>
+        <input type="date" id="exp-date" required>
+      </div>
+      <div class="form-row">
+        <label for="exp-desc">Description</label>
+        <input type="text" id="exp-desc" required placeholder="e.g. Van deposit">
+      </div>
+      <div class="form-row">
+        <label for="exp-cat">Category</label>
+        <select id="exp-cat" required>
+          <option value="insurance">Insurance</option>
+          <option value="permits">Permits</option>
+          <option value="flights">Flights</option>
+          <option value="transport">Transport</option>
+          <option value="accommodation">Accommodation</option>
+          <option value="food">Food</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="exp-amt">Amount ($)</label>
+        <input type="number" id="exp-amt" required min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-row">
+        <label for="exp-paidby">Paid by</label>
+        <input type="text" id="exp-paidby" required placeholder="e.g. Straydog / estimate">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="exp-cancel">Cancel</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const PASSWORD = 'straydog2026';
+  const CLINIC_DATE = new Date(2027, 2, 27); // March 27, 2027 local
+  const BUDGET = 15000;
+  const LS = {
+    tasks: 'sl_ops_tasks',
+    expenses: 'sl_ops_expenses',
+    contacts: 'sl_ops_contacts',
+    payment: 'sl_ops_payment'
+  };
+
+  const DEFAULT_TASKS = [
+    // Right now — August 2026
+    { id: 't1', phase: 'Right now — August 2026', name: 'Straydog Labs LLC formed', priority: 'LOW', due: 'Done', status: 'Done', notes: 'EIN 42-4119123', done: true },
+    { id: 't2', phase: 'Right now — August 2026', name: 'Mercury bank account open', priority: 'LOW', due: 'Done', status: 'Done', notes: '', done: true },
+    { id: 't3', phase: 'Right now — August 2026', name: 'BLM permit application submitted', priority: 'MED', due: 'Done', status: 'Done', notes: 'RAPTOR #2026-02151', done: true },
+    { id: 't4', phase: 'Right now — August 2026', name: 'Wes Shih email sent', priority: 'MED', due: 'Awaiting', status: 'Waiting', notes: 'Waiting on reply', done: true },
+    { id: 't5', phase: 'Right now — August 2026', name: 'Get general liability insurance', priority: 'HIGH', due: 'ASAP', status: 'Urgent', notes: 'Required before agreement sent', done: false },
+    { id: 't6', phase: 'Right now — August 2026', name: 'Send clinic agreement to Dana', priority: 'HIGH', due: 'Hold', status: 'Urgent', notes: 'dana@cruxwilderness.org · Hold until insurance confirmed', done: false },
+    { id: 't7', phase: 'Right now — August 2026', name: 'Collect $15,000 payment', priority: 'HIGH', due: 'After agreement', status: 'Urgent', notes: 'ACH to Mercury from Crux Wilderness · After agreement signed', done: false },
+    { id: 't8', phase: 'Right now — August 2026', name: 'File 3 DBA registrations', priority: 'MED', due: 'This week', status: 'Urgent', notes: 'tncab.tnsos.gov · $60 total', done: false },
+    { id: 't9', phase: 'Right now — August 2026', name: 'Alma partnership structure', priority: 'MED', due: 'Tue Aug 11', status: 'In Progress', notes: 'Tuesday Aug 11 call · Need entity details for Rock Zen / RWW', done: false },
+    // September 2026
+    { id: 't10', phase: 'September 2026', name: 'BLM permit lottery results', priority: 'HIGH', due: 'By Sep 30', status: 'Waiting', notes: '8 spots available · Results by Sep 30', done: false },
+    { id: 't11', phase: 'September 2026', name: 'Book accommodation', priority: 'MED', due: 'Sep', status: 'Future', notes: '2 VRBO houses Summerlin Las Vegas · 14 people · 2 nights', done: false },
+    { id: 't12', phase: 'September 2026', name: 'Book van rental', priority: 'MED', due: 'Sep', status: 'Future', notes: 'Mercedes Sprinter Las Vegas · 3 days', done: false },
+    { id: 't13', phase: 'September 2026', name: 'Book Alma flight', priority: 'MED', due: 'Book early', status: 'Future', notes: 'France to Las Vegas · book early', done: false },
+    { id: 't14', phase: 'September 2026', name: 'Book John flight', priority: 'MED', due: 'Sep', status: 'Future', notes: 'Nashville BNA to Las Vegas LAS', done: false },
+    { id: 't15', phase: 'September 2026', name: 'Draft Alma partnership agreement', priority: 'MED', due: 'After call', status: 'Future', notes: 'Scout drafts after Tuesday call', done: false },
+    // October–December 2026
+    { id: 't16', phase: 'October–December 2026', name: 'Complete BLM permit package', priority: 'HIGH', due: 'Oct 15', status: 'Future', notes: 'If drawn — docs due Oct 15', done: false },
+    { id: 't17', phase: 'October–December 2026', name: 'Confirm 12 participants with Dana', priority: 'MED', due: 'Q4', status: 'Future', notes: 'Waivers required', done: false },
+    { id: 't18', phase: 'October–December 2026', name: 'Confirm dates with all parties', priority: 'MED', due: 'Q4', status: 'Future', notes: 'Alma, Dana, John · Mar 27-29', done: false },
+    { id: 't19', phase: 'October–December 2026', name: 'Finalize crag selection', priority: 'LOW', due: 'Q4', status: 'Future', notes: 'Calico Hills or Panty Wall · 5.9 and under', done: false },
+    { id: 't20', phase: 'October–December 2026', name: 'Arrange participant waivers', priority: 'MED', due: 'Q4', status: 'Future', notes: 'Dana handles', done: false },
+    // March 2027
+    { id: 't21', phase: 'March 2027', name: 'Clinic Day 1', priority: 'HIGH', due: 'Mar 27', status: 'Future', notes: 'Foundations · Mar 27', done: false },
+    { id: 't22', phase: 'March 2027', name: 'Clinic Day 2', priority: 'HIGH', due: 'Mar 28', status: 'Future', notes: 'Application · Mar 28', done: false },
+    { id: 't23', phase: 'March 2027', name: 'Post-clinic debrief', priority: 'MED', due: 'Mar 29', status: 'Future', notes: 'Mar 29', done: false }
+  ];
+
+  const DEFAULT_EXPENSES = [
+    { id: 'e1', date: '2026-08-15', description: 'Insurance GL (est)', category: 'insurance', amount: 650, paidBy: 'Estimate' },
+    { id: 'e2', date: '2026-08-01', description: 'BLM permit fee', category: 'permits', amount: 130, paidBy: 'Straydog' },
+    { id: 'e3', date: '2026-09-15', description: 'John flight BNA–LAS (est)', category: 'flights', amount: 500, paidBy: 'Estimate' },
+    { id: 'e4', date: '2026-09-15', description: 'Alma flight France–LAS (est)', category: 'flights', amount: 1500, paidBy: 'Estimate' },
+    { id: 'e5', date: '2026-09-20', description: 'Van rental 3 days (est)', category: 'transport', amount: 750, paidBy: 'Estimate' },
+    { id: 'e6', date: '2026-09-20', description: '2 VRBO houses 2 nights (est)', category: 'accommodation', amount: 1300, paidBy: 'Estimate' },
+    { id: 'e7', date: '2027-03-27', description: 'Meals 14 people 3 days (est)', category: 'food', amount: 2000, paidBy: 'Estimate' }
+  ];
+
+  const DEFAULT_CONTACTS = [
+    { id: 'c1', name: 'Tara Myers', role: 'Funding source', details: [], notes: '' },
+    { id: 'c2', name: 'Dana Stricevic', role: 'Crux Wilderness', details: [
+      { label: 'Email', value: 'dana@cruxwilderness.org', href: 'mailto:dana@cruxwilderness.org' },
+      { label: 'Note', value: 'Client on agreement' }
+    ], notes: '' },
+    { id: 'c3', name: 'Alma', role: 'RWW / Rock Zen', details: [
+      { label: 'Email', value: 'TBD' },
+      { label: 'Note', value: 'Co-trainer flying from France' }
+    ], notes: '' },
+    { id: 'c4', name: 'Abram Johnson', role: 'BLM Red Rock Canyon', details: [
+      { label: 'Email', value: 'abramjohnson@blm.gov', href: 'mailto:abramjohnson@blm.gov' },
+      { label: 'Phone', value: '702-515-5392', href: 'tel:7025155392' },
+      { label: 'Note', value: 'Permit contact' }
+    ], notes: '' }
+  ];
+
+  const PHASE_ORDER = [
+    'Right now — August 2026',
+    'September 2026',
+    'October–December 2026',
+    'March 2027'
+  ];
+
+  // ---------- Storage helpers ----------
+  function load(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return structuredClone(fallback);
+      return JSON.parse(raw);
+    } catch (e) {
+      return structuredClone(fallback);
+    }
+  }
+  function save(key, val) {
+    localStorage.setItem(key, JSON.stringify(val));
+  }
+
+  // Merge defaults: keep user done/notes for known ids, add any new default tasks
+  function loadTasks() {
+    const stored = load(LS.tasks, null);
+    if (!stored) return structuredClone(DEFAULT_TASKS);
+    const map = Object.fromEntries(stored.map(t => [t.id, t]));
+    return DEFAULT_TASKS.map(def => {
+      const s = map[def.id];
+      if (!s) return { ...def };
+      return {
+        ...def,
+        done: typeof s.done === 'boolean' ? s.done : def.done,
+        notes: typeof s.notes === 'string' ? s.notes : def.notes,
+        status: s.done ? 'Done' : def.status
+      };
+    });
+  }
+
+  let tasks = loadTasks();
+  let expenses = load(LS.expenses, DEFAULT_EXPENSES);
+  let contacts = (function () {
+    const stored = load(LS.contacts, null);
+    if (!stored) return structuredClone(DEFAULT_CONTACTS);
+    const map = Object.fromEntries(stored.map(c => [c.id, c]));
+    return DEFAULT_CONTACTS.map(def => {
+      const s = map[def.id];
+      return s ? { ...def, notes: s.notes || '' } : { ...def };
+    });
+  })();
+  let paymentReceived = localStorage.getItem(LS.payment) === 'true';
+
+  // ---------- Gate ----------
+  const gate = document.getElementById('gate');
+  const app = document.getElementById('app');
+  const gateInput = document.getElementById('gate-input');
+  const gateBtn = document.getElementById('gate-btn');
+  const gateError = document.getElementById('gate-error');
+
+  function unlock() {
+    sessionStorage.setItem('sl_auth', 'true');
+    gate.classList.add('hidden');
+    app.classList.add('visible');
+    renderAll();
+  }
+
+  function tryAuth() {
+    if (gateInput.value === PASSWORD) {
+      unlock();
+    } else {
+      gateInput.classList.remove('shake');
+      void gateInput.offsetWidth;
+      gateInput.classList.add('shake');
+      gateError.textContent = 'Incorrect password';
+      gateInput.select();
+    }
+  }
+
+  if (sessionStorage.getItem('sl_auth') === 'true') {
+    unlock();
+  }
+
+  gateBtn.addEventListener('click', tryAuth);
+  gateInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') tryAuth();
+  });
+
+  // ---------- Nav ----------
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
+      item.classList.add('active');
+      const sec = document.getElementById('sec-' + item.dataset.section);
+      if (sec) sec.classList.add('active');
+    });
+  });
+
+  // ---------- Formatters ----------
+  function money(n) {
+    return '$' + Math.round(n).toLocaleString('en-US');
+  }
+  function daysUntilClinic() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(CLINIC_DATE.getFullYear(), CLINIC_DATE.getMonth(), CLINIC_DATE.getDate());
+    return Math.round((end - start) / 86400000);
+  }
+  function expenseTotal() {
+    return expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  }
+  function statusClass(st) {
+    const m = { 'Done': 'st-done', 'In Progress': 'st-progress', 'Urgent': 'st-urgent', 'Waiting': 'st-waiting', 'Future': 'st-future' };
+    return m[st] || 'st-future';
+  }
+  function priClass(p) {
+    return p === 'HIGH' ? 'pri-high' : p === 'MED' ? 'pri-med' : 'pri-low';
+  }
+
+  // ---------- Render overview ----------
+  function renderOverview() {
+    const done = tasks.filter(t => t.done).length;
+    const total = tasks.length;
+    const remaining = BUDGET - expenseTotal();
+
+    document.getElementById('m-days').textContent = daysUntilClinic();
+    document.getElementById('m-tasks').textContent = done + ' / ' + total;
+    document.getElementById('m-budget').textContent = money(remaining);
+    document.getElementById('m-payment').textContent = paymentReceived ? 'PAID' : 'UNPAID';
+
+    const btn = document.getElementById('payment-toggle');
+    btn.textContent = paymentReceived ? 'Mark unpaid' : 'Mark paid';
+    btn.className = 'toggle-btn ' + (paymentReceived ? 'paid' : 'unpaid');
+
+    const urgent = tasks.filter(t => !t.done && (t.status === 'Urgent' || t.status === 'In Progress'));
+    const box = document.getElementById('overview-urgent');
+    if (!urgent.length) {
+      box.innerHTML = '<div class="task"><div class="task-name" style="color:var(--text-secondary)">No urgent items open.</div></div>';
+      return;
+    }
+    box.innerHTML = urgent.map(t => `
+      <div class="task">
+        <div class="task-top">
+          <span class="task-name">${esc(t.name)}</span>
+          <span class="badge ${priClass(t.priority)}">${t.priority}</span>
+          <span class="badge ${statusClass(t.status)}">${esc(t.status)}</span>
+        </div>
+        <div class="task-meta"><span>${esc(t.due)}</span>${t.notes ? '<span>·</span><span>' + esc(t.notes) + '</span>' : ''}</div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('payment-toggle').addEventListener('click', () => {
+    paymentReceived = !paymentReceived;
+    localStorage.setItem(LS.payment, String(paymentReceived));
+    renderOverview();
+  });
+
+  // ---------- Render tasks ----------
+  function renderTasks() {
+    const root = document.getElementById('task-phases');
+    root.innerHTML = PHASE_ORDER.map(phase => {
+      const list = tasks.filter(t => t.phase === phase);
+      return `
+        <div class="phase">
+          <div class="phase-title">${esc(phase)}</div>
+          ${list.map(t => taskHTML(t)).join('')}
+        </div>
+      `;
+    }).join('');
+
+    root.querySelectorAll('.task-check').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const id = cb.dataset.id;
+        const t = tasks.find(x => x.id === id);
+        if (!t) return;
+        t.done = cb.checked;
+        if (t.done) t.status = 'Done';
+        else {
+          const def = DEFAULT_TASKS.find(d => d.id === id);
+          t.status = def ? def.status : 'In Progress';
+        }
+        persistTasks();
+        renderTasks();
+        renderOverview();
+      });
+    });
+
+    root.querySelectorAll('.notes-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ta = document.getElementById('notes-' + btn.dataset.id);
+        if (!ta) return;
+        ta.classList.toggle('open');
+        btn.textContent = ta.classList.contains('open') ? 'Hide notes' : 'Notes';
+        if (ta.classList.contains('open')) ta.focus();
+      });
+    });
+
+    root.querySelectorAll('.task-notes').forEach(ta => {
+      ta.addEventListener('input', () => {
+        const t = tasks.find(x => x.id === ta.dataset.id);
+        if (!t) return;
+        t.notes = ta.value;
+        persistTasks();
+      });
+    });
+  }
+
+  function taskHTML(t) {
+    return `
+      <div class="task ${t.done ? 'done' : ''}">
+        <div class="task-row">
+          <input type="checkbox" class="task-check" data-id="${t.id}" ${t.done ? 'checked' : ''}>
+          <div class="task-body">
+            <div class="task-top">
+              <span class="task-name">${esc(t.name)}</span>
+              <span class="badge ${priClass(t.priority)}">${t.priority}</span>
+              <span class="badge ${statusClass(t.done ? 'Done' : t.status)}">${esc(t.done ? 'Done' : t.status)}</span>
+            </div>
+            <div class="task-meta">
+              <span>Due: ${esc(t.due)}</span>
+            </div>
+            <button type="button" class="notes-toggle" data-id="${t.id}">Notes</button>
+            <textarea class="task-notes" id="notes-${t.id}" data-id="${t.id}" placeholder="Add notes…">${esc(t.notes || '')}</textarea>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function persistTasks() {
+    save(LS.tasks, tasks.map(t => ({ id: t.id, done: t.done, notes: t.notes, status: t.status })));
+  }
+
+  // ---------- Expenses ----------
+  function renderExpenses() {
+    const total = expenseTotal();
+    document.getElementById('exp-total').textContent = money(total);
+    document.getElementById('exp-remaining').textContent = money(BUDGET - total);
+
+    const body = document.getElementById('exp-body');
+    if (!expenses.length) {
+      body.innerHTML = '<tr><td colspan="6" class="empty-row">No expenses logged yet.</td></tr>';
+      return;
+    }
+    const sorted = [...expenses].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    body.innerHTML = sorted.map(e => `
+      <tr>
+        <td class="mono">${esc(e.date)}</td>
+        <td>${esc(e.description)}</td>
+        <td><span class="cat-pill">${esc(e.category)}</span></td>
+        <td class="amt">${money(e.amount)}</td>
+        <td>${esc(e.paidBy)}</td>
+        <td><button type="button" class="btn-danger" data-del="${e.id}">Delete</button></td>
+      </tr>
+    `).join('');
+
+    body.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        expenses = expenses.filter(e => e.id !== btn.dataset.del);
+        save(LS.expenses, expenses);
+        renderExpenses();
+        renderOverview();
+      });
+    });
+  }
+
+  const modal = document.getElementById('expense-modal');
+  document.getElementById('add-expense-btn').addEventListener('click', () => {
+    document.getElementById('expense-form').reset();
+    document.getElementById('exp-date').value = new Date().toISOString().slice(0, 10);
+    modal.classList.add('open');
+  });
+  document.getElementById('exp-cancel').addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+
+  document.getElementById('expense-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const item = {
+      id: 'e' + Date.now(),
+      date: document.getElementById('exp-date').value,
+      description: document.getElementById('exp-desc').value.trim(),
+      category: document.getElementById('exp-cat').value,
+      amount: parseFloat(document.getElementById('exp-amt').value) || 0,
+      paidBy: document.getElementById('exp-paidby').value.trim()
+    };
+    expenses.push(item);
+    save(LS.expenses, expenses);
+    modal.classList.remove('open');
+    renderExpenses();
+    renderOverview();
+  });
+
+  // ---------- Contacts ----------
+  function renderContacts() {
+    const grid = document.getElementById('contact-grid');
+    grid.innerHTML = contacts.map(c => `
+      <div class="contact-card">
+        <div class="contact-name">${esc(c.name)}</div>
+        <div class="contact-role">${esc(c.role)}</div>
+        ${c.details.map(d => {
+          if (d.href) {
+            return `<div class="contact-detail">${esc(d.label)}: <a href="${esc(d.href)}">${esc(d.value)}</a></div>`;
+          }
+          return `<div class="contact-detail">${esc(d.label)}: ${esc(d.value)}</div>`;
+        }).join('')}
+        <div class="contact-notes-label">Notes</div>
+        <textarea class="contact-notes" data-id="${c.id}" placeholder="Add notes…">${esc(c.notes || '')}</textarea>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.contact-notes').forEach(ta => {
+      ta.addEventListener('input', () => {
+        const c = contacts.find(x => x.id === ta.dataset.id);
+        if (!c) return;
+        c.notes = ta.value;
+        save(LS.contacts, contacts.map(x => ({ id: x.id, notes: x.notes })));
+      });
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderAll() {
+    renderOverview();
+    renderTasks();
+    renderExpenses();
+    renderContacts();
+  }
+})();
+</script>
+</body>
+</html>
