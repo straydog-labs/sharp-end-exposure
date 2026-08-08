@@ -1696,11 +1696,19 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
       <div class="field-group" id="log-details-discipline-group" style="display:none;">
         <div class="field-label">Discipline</div>
-        <div class="discipline-chips" id="log-details-discipline-chips">
+        <!-- Outdoor list (build 191) — Sport/Trad/Boulder/Top Rope -->
+        <div class="discipline-chips" id="log-details-discipline-outdoor" style="display:none;">
           <button type="button" class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="logDetailsSelectDisc(this,'Sport')"><strong style="display:block;font-size:15px;">Sport</strong><span style="font-size:12px;color:var(--muted);">Bolted routes</span></button>
           <button type="button" class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="logDetailsSelectDisc(this,'Trad')"><strong style="display:block;font-size:15px;">Trad</strong><span style="font-size:12px;color:var(--muted);">Self-placed gear</span></button>
           <button type="button" class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="logDetailsSelectDisc(this,'Boulder')"><strong style="display:block;font-size:15px;">Boulder</strong><span style="font-size:12px;color:var(--muted);">No rope</span></button>
           <button type="button" class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="logDetailsSelectDisc(this,'Top Rope')"><strong style="display:block;font-size:15px;">Top Rope</strong><span style="font-size:12px;color:var(--muted);">Protected above</span></button>
+        </div>
+        <!-- Indoor list (build 192) — gym terminology, not outdoor labels -->
+        <div class="discipline-chips" id="log-details-discipline-indoor" style="display:none;">
+          <button type="button" class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="logDetailsSelectDisc(this,'Top Rope')"><strong style="display:block;font-size:15px;">Top Rope</strong><span style="font-size:12px;color:var(--muted);">Protected above</span></button>
+          <button type="button" class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="logDetailsSelectDisc(this,'Lead')"><strong style="display:block;font-size:15px;">Lead</strong><span style="font-size:12px;color:var(--muted);">Clipping as you go</span></button>
+          <button type="button" class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="logDetailsSelectDisc(this,'Boulder')"><strong style="display:block;font-size:15px;">Boulder</strong><span style="font-size:12px;color:var(--muted);">No rope</span></button>
+          <button type="button" class="chip" style="border-radius:12px;padding:14px;text-align:left;white-space:normal;" onclick="logDetailsSelectDisc(this,'Auto Belay')"><strong style="display:block;font-size:15px;">Auto Belay</strong><span style="font-size:12px;color:var(--muted);">Self-belay device</span></button>
         </div>
       </div>
 
@@ -3716,7 +3724,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index191';
+var app_version = 'staging-index192';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4934,12 +4942,16 @@ function resetEditFallSection(){
 }
 
 function selectSetting(val, btn){
+  var prev = logState.setting;
   logState.setting = val;
   ['btn-indoor','btn-outdoor'].forEach(function(id){
     var b = document.getElementById(id);
     if(b){ b.classList.remove('selected'); }
   });
   if(btn) btn.classList.add('selected');
+  // Indoor and outdoor use different discipline vocabularies — never carry a
+  // selection across Setting changes (e.g. Trad into Indoor).
+  if(prev !== val) clearLogDetailsDiscipline();
   refreshLogDetailsPanels();
 }
 
@@ -5156,7 +5168,8 @@ function resetLogDetailsState(){
   };
   var gym = document.getElementById('log-gym-name');
   if(gym) gym.value = '';
-  document.querySelectorAll('#log-details-discipline-chips .chip.selected, #log-details-rock-chips .chip.selected').forEach(function(b){
+  clearLogDetailsDiscipline();
+  document.querySelectorAll('#log-details-rock-chips .chip.selected').forEach(function(b){
     b.classList.remove('selected');
   });
   var boltVal = document.getElementById('log-bolt-val');
@@ -5177,12 +5190,23 @@ function resetLogDetailsState(){
   refreshLogDetailsPanels();
 }
 
+function clearLogDetailsDiscipline(){
+  logDetailsState.disc = null;
+  document.querySelectorAll('#log-details-discipline-outdoor .chip.selected, #log-details-discipline-indoor .chip.selected').forEach(function(b){
+    b.classList.remove('selected');
+  });
+}
+
 function refreshLogDetailsPanels(){
   var setting = logState.setting;
   var discGroup = document.getElementById('log-details-discipline-group');
+  var discOutdoor = document.getElementById('log-details-discipline-outdoor');
+  var discIndoor = document.getElementById('log-details-discipline-indoor');
   var indoor = document.getElementById('log-details-indoor-fields');
   var outdoor = document.getElementById('log-details-outdoor-fields');
   if(discGroup) discGroup.style.display = setting ? 'block' : 'none';
+  if(discOutdoor) discOutdoor.style.display = setting === 'outdoor' ? 'grid' : 'none';
+  if(discIndoor) discIndoor.style.display = setting === 'indoor' ? 'grid' : 'none';
   if(indoor) indoor.style.display = setting === 'indoor' ? 'block' : 'none';
   if(outdoor) outdoor.style.display = setting === 'outdoor' ? 'flex' : 'none';
   var boltGroup = document.getElementById('log-details-bolt-group');
@@ -5193,8 +5217,10 @@ function refreshLogDetailsPanels(){
 
 function logDetailsSelectDisc(btn, disc){
   logDetailsState.disc = disc;
-  var group = document.getElementById('log-details-discipline-chips');
-  if(group) group.querySelectorAll('.chip').forEach(function(b){ b.classList.remove('selected'); });
+  var outdoor = document.getElementById('log-details-discipline-outdoor');
+  var indoor = document.getElementById('log-details-discipline-indoor');
+  if(outdoor) outdoor.querySelectorAll('.chip').forEach(function(b){ b.classList.remove('selected'); });
+  if(indoor) indoor.querySelectorAll('.chip').forEach(function(b){ b.classList.remove('selected'); });
   if(btn) btn.classList.add('selected');
   refreshLogDetailsPanels();
 }
@@ -10947,12 +10973,31 @@ function runButtonAudit(options){
     selectSetting('outdoor', document.getElementById('btn-outdoor'));
     var outdoorFields = document.getElementById('log-details-outdoor-fields');
     var indoorFields = document.getElementById('log-details-indoor-fields');
+    var discOutdoor = document.getElementById('log-details-discipline-outdoor');
+    var discIndoor = document.getElementById('log-details-discipline-indoor');
     if(outdoorFields && outdoorFields.style.display === 'flex' && indoorFields && indoorFields.style.display === 'none'){
       pass('Details flow: outdoor fields visible');
     } else {
       fail('Details flow: outdoor fields visible', 'outdoor=' + (outdoorFields && outdoorFields.style.display) + ' indoor=' + (indoorFields && indoorFields.style.display));
     }
-    var sportBtn = document.querySelector('#log-details-discipline-chips .chip');
+    var outdoorDiscLabels = Array.from(document.querySelectorAll('#log-details-discipline-outdoor .chip strong')).map(function(b){ return b.textContent.trim(); });
+    if(discOutdoor && discOutdoor.style.display === 'grid' && outdoorDiscLabels.join('|') === 'Sport|Trad|Boulder|Top Rope'){
+      pass('Details flow: outdoor discipline list');
+    } else {
+      fail('Details flow: outdoor discipline list', 'display=' + (discOutdoor && discOutdoor.style.display) + ' labels=' + outdoorDiscLabels.join(','));
+    }
+    var tradBtn = Array.from(document.querySelectorAll('#log-details-discipline-outdoor .chip')).find(function(b){
+      return b.textContent.indexOf('Trad') > -1;
+    });
+    if(tradBtn) logDetailsSelectDisc(tradBtn, 'Trad');
+    if(logDetailsState.disc === 'Trad'){
+      pass('Details flow: Trad selected outdoors');
+    } else {
+      fail('Details flow: Trad selected outdoors', 'disc=' + logDetailsState.disc);
+    }
+    var sportBtn = Array.from(document.querySelectorAll('#log-details-discipline-outdoor .chip')).find(function(b){
+      return b.querySelector('strong') && b.querySelector('strong').textContent.trim() === 'Sport';
+    });
     if(sportBtn) logDetailsSelectDisc(sportBtn, 'Sport');
     var boltGroup = document.getElementById('log-details-bolt-group');
     if(boltGroup && boltGroup.style.display === 'block'){
@@ -10966,6 +11011,29 @@ function runButtonAudit(options){
     } else {
       fail('Details flow: indoor shows gym name', 'indoor=' + (indoorFields && indoorFields.style.display) + ' outdoor=' + (outdoorFields && outdoorFields.style.display));
     }
+    var indoorDiscLabels = Array.from(document.querySelectorAll('#log-details-discipline-indoor .chip strong')).map(function(b){ return b.textContent.trim(); });
+    if(discIndoor && discIndoor.style.display === 'grid' && indoorDiscLabels.join('|') === 'Top Rope|Lead|Boulder|Auto Belay'){
+      pass('Details flow: indoor discipline list');
+    } else {
+      fail('Details flow: indoor discipline list', 'display=' + (discIndoor && discIndoor.style.display) + ' labels=' + indoorDiscLabels.join(','));
+    }
+    if(logDetailsState.disc === null && !document.querySelector('#log-details-discipline-outdoor .chip.selected') && !document.querySelector('#log-details-discipline-indoor .chip.selected')){
+      pass('Details flow: Setting change clears discipline');
+    } else {
+      fail('Details flow: Setting change clears discipline', 'disc=' + logDetailsState.disc);
+    }
+    // Toggle back outdoor and confirm lists swap again without carrying indoor selection
+    var leadBtn = Array.from(document.querySelectorAll('#log-details-discipline-indoor .chip')).find(function(b){
+      return b.querySelector('strong') && b.querySelector('strong').textContent.trim() === 'Lead';
+    });
+    if(leadBtn) logDetailsSelectDisc(leadBtn, 'Lead');
+    selectSetting('outdoor', document.getElementById('btn-outdoor'));
+    if(logDetailsState.disc === null && discOutdoor && discOutdoor.style.display === 'grid' && discIndoor && discIndoor.style.display === 'none'){
+      pass('Details flow: Outdoor restores outdoor list and clears Lead');
+    } else {
+      fail('Details flow: Outdoor restores outdoor list and clears Lead', 'disc=' + logDetailsState.disc + ' out=' + (discOutdoor && discOutdoor.style.display) + ' in=' + (discIndoor && discIndoor.style.display));
+    }
+    selectSetting('indoor', document.getElementById('btn-indoor'));
     logFlowContinueFromDetails();
     if((document.querySelector('.screen.active')||{}).id === 'screen-log-grade'){
       pass('Details flow: details -> grade');
@@ -11231,27 +11299,27 @@ async function runSEETests(){
     }
   }catch(e){ fail('Activation-first log screens still present', e.message); }
 
-  // ── SECTION D2: Indoor/Outdoor details (build 191) ─────
+  // ── SECTION D2: Indoor/Outdoor details (build 191/192) ─
   console.log('%c D2 — Indoor/Outdoor Details ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
   try{
     var detailsEl = document.getElementById('screen-log-details');
     var rockLabels = Array.from(document.querySelectorAll('#log-details-rock-chips .chip')).map(function(b){ return b.textContent.trim(); });
     var expectedRock = ['Sandstone','Limestone','Granite','Basalt','Quartzite','Conglomerate','Gneiss','Schist','Rhyolite','Tuff','Gabbro','Unknown'];
     var rockOk = expectedRock.every(function(r){ return rockLabels.indexOf(r) > -1; }) && rockLabels.length === expectedRock.length;
-    var discLabels = Array.from(document.querySelectorAll('#log-details-discipline-chips .chip strong')).map(function(b){ return b.textContent.trim(); });
-    var expectedDisc = ['Sport','Trad','Boulder','Top Rope'];
-    var discOk = expectedDisc.every(function(d){ return discLabels.indexOf(d) > -1; });
+    var outdoorDisc = Array.from(document.querySelectorAll('#log-details-discipline-outdoor .chip strong')).map(function(b){ return b.textContent.trim(); });
+    var indoorDisc = Array.from(document.querySelectorAll('#log-details-discipline-indoor .chip strong')).map(function(b){ return b.textContent.trim(); });
+    var discOk = outdoorDisc.join('|') === 'Sport|Trad|Boulder|Top Rope' && indoorDisc.join('|') === 'Top Rope|Lead|Boulder|Auto Belay';
     var boltSlider = document.getElementById('log-bolt-slider');
     var boltRangeOk = boltSlider && boltSlider.min === '1' && boltSlider.max === '35';
     var progressLabels = Array.from(document.querySelectorAll('.log-flow-progress-label')).map(function(el){ return el.textContent; });
     var sixStep = progressLabels.some(function(t){ return /of 6/.test(t); }) && !progressLabels.some(function(t){ return /of 5/.test(t); });
     if(detailsEl && rockOk && discOk && boltRangeOk && sixStep){
-      pass('Indoor/Outdoor details screen reuses route-details lists + 6-step progress');
+      pass('Indoor/Outdoor details has separate discipline lists + 6-step progress');
     } else {
-      fail('Indoor/Outdoor details screen reuses route-details lists + 6-step progress',
-        'details=' + !!detailsEl + ' rockOk=' + rockOk + ' discOk=' + discOk + ' boltRangeOk=' + boltRangeOk + ' sixStep=' + sixStep);
+      fail('Indoor/Outdoor details has separate discipline lists + 6-step progress',
+        'details=' + !!detailsEl + ' rockOk=' + rockOk + ' discOk=' + discOk + ' outdoor=' + outdoorDisc.join(',') + ' indoor=' + indoorDisc.join(',') + ' boltRangeOk=' + boltRangeOk + ' sixStep=' + sixStep);
     }
-  }catch(e){ fail('Indoor/Outdoor details screen reuses route-details lists + 6-step progress', e.message); }
+  }catch(e){ fail('Indoor/Outdoor details has separate discipline lists + 6-step progress', e.message); }
 
   // ── SECTION E: Screen sweep + isolation ─────────────────
   console.log('%c E — Screen Sweep + Isolation ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
