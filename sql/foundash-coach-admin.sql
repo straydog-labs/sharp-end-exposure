@@ -24,15 +24,9 @@
 --   public.coach_athlete_links(id, coach_id, athlete_id, status, created_at, …)
 
 -- ---------------------------------------------------------------------------
--- Tear down any insecure prior revision (password-param + anon grants)
+-- Tear down any insecure prior revision (password-param + anon grants).
+-- DROP IF EXISTS is enough — do not REVOKE first (REVOKE errors if missing).
 -- ---------------------------------------------------------------------------
-REVOKE ALL ON FUNCTION public._foundash_key_ok(text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.foundash_list_coaches(text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.foundash_grant_coach(text, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.foundash_revoke_coach(text, text, boolean) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.foundash_list_roster(text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.foundash_athlete_training(text, uuid) FROM PUBLIC, anon, authenticated;
-
 DROP FUNCTION IF EXISTS public._foundash_key_ok(text);
 DROP FUNCTION IF EXISTS public.foundash_list_coaches(text);
 DROP FUNCTION IF EXISTS public.foundash_grant_coach(text, text);
@@ -40,7 +34,7 @@ DROP FUNCTION IF EXISTS public.foundash_revoke_coach(text, text, boolean);
 DROP FUNCTION IF EXISTS public.foundash_list_roster(text);
 DROP FUNCTION IF EXISTS public.foundash_athlete_training(text, uuid);
 
--- Also drop zero-arg / new signatures if re-running this migration
+-- Also drop secure signatures if re-running this migration
 DROP FUNCTION IF EXISTS public._foundash_is_admin();
 DROP FUNCTION IF EXISTS public.foundash_list_coaches();
 DROP FUNCTION IF EXISTS public.foundash_grant_coach(text);
