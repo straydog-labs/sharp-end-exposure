@@ -515,30 +515,56 @@
     });
   }
 
+  // Cached roster from coach_list_roster() so detail views can show email
+  // without a second lookup.
+  var _coachRoster = [];
+
   function loadRoster(token, user){
     var listEl = document.getElementById('roster-list');
     listEl.innerHTML = '<div class="roster-empty">Loading···</div>';
-    sbSelect(token, 'coach_athlete_links', 'select=*&coach_id=eq.' + user.id + '&status=eq.active&order=created_at.asc')
-      .then(function(links){
-        renderRoster(token, user, links);
-      })
-      .catch(function(err){
-        listEl.innerHTML =
-          '<div class="roster-empty" style="color:var(--danger);">Failed to load roster — ' + escapeHtml(err.message || 'unknown error') + '</div>';
+    // Same rpc POST pattern as link_athlete_by_email — returns
+    // { ok: true, roster: [{ link_id, athlete_id, athlete_email, status, linked_at }] }
+    // scoped to auth.uid(), with emails the raw coach_athlete_links select can't join.
+    fetch(SB_URL + '/rest/v1/rpc/coach_list_roster', {
+      method: 'POST',
+      headers: sbHeaders(token),
+      body: JSON.stringify({})
+    }).then(function(res){
+      return res.json().then(function(body){
+        if(!res.ok) throw body;
+        return body;
       });
+    }).then(function(result){
+      if(!result || result.ok !== true){
+        var errCode = result && result.error;
+        throw { message: errCode ? String(errCode) : 'coach_list_roster returned not-ok' };
+      }
+      _coachRoster = Array.isArray(result.roster) ? result.roster : [];
+      renderRoster(token, user, _coachRoster);
+    }).catch(function(err){
+      var isMissingFn = err && (err.code === 'PGRST202' || err.code === '42883');
+      listEl.innerHTML =
+        '<div class="roster-empty" style="color:var(--danger);">' +
+          (isMissingFn
+            ? 'The <code>coach_list_roster</code> function doesn\'t exist yet.'
+            : 'Failed to load roster. ' + escapeHtml((err && err.message) || 'unknown error')) +
+        '</div>';
+    });
   }
 
-  function renderRoster(token, user, links){
+  function renderRoster(token, user, roster){
     var listEl = document.getElementById('roster-list');
-    if(!links.length){
+    if(!roster.length){
       listEl.innerHTML = '<div class="roster-empty">No athletes linked yet.</div>';
       return;
     }
-    listEl.innerHTML = links.map(function(link, i){
-      return '<div class="roster-row" data-idx="' + i + '" data-athlete-id="' + link.athlete_id + '">' +
+    listEl.innerHTML = roster.map(function(row, i){
+      var email = row.athlete_email || '';
+      var label = email || ('Athlete ' + shortId(row.athlete_id));
+      return '<div class="roster-row" data-idx="' + i + '" data-athlete-id="' + escapeHtml(row.athlete_id) + '" data-athlete-email="' + escapeHtml(email) + '">' +
         '<div>' +
-          '<div class="roster-name">Athlete ' + shortId(link.athlete_id) + '</div>' +
-          '<div class="roster-meta mono">Linked ' + fmtDate(link.created_at) + '</div>' +
+          '<div class="roster-name">' + escapeHtml(label) + '</div>' +
+          '<div class="roster-meta mono">Linked ' + fmtDate(row.linked_at) + '</div>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -547,18 +573,19 @@
       row.addEventListener('click', function(){
         Array.prototype.forEach.call(listEl.querySelectorAll('.roster-row'), function(r){ r.classList.remove('active'); });
         row.classList.add('active');
-        renderAthleteDetail(token, user, row.dataset.athleteId);
+        renderAthleteDetail(token, user, row.dataset.athleteId, row.dataset.athleteEmail || '');
       });
     });
   }
 
-  function renderAthleteDetail(token, coachUser, athleteId){
+  function renderAthleteDetail(token, coachUser, athleteId, athleteEmail){
     var detailEl = document.getElementById('detail-panel');
+    var title = athleteEmail || ('Athlete ' + shortId(athleteId));
     detailEl.innerHTML =
       '<div class="detail-header">' +
         '<div>' +
-          '<div class="detail-title">Athlete ' + shortId(athleteId) + '</div>' +
-          '<div class="detail-sub mono">' + athleteId + '</div>' +
+          '<div class="detail-title">' + escapeHtml(title) + '</div>' +
+          '<div class="detail-sub mono">' + escapeHtml(athleteId) + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="detail-section" id="detail-assignments"><div class="panel-title">Assignments</div><div>Loading···</div></div>' +
