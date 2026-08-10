@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#0d0d0d;
@@ -571,6 +572,15 @@
   .schema-note code{
     background:#141414;border:1px solid var(--border);border-radius:5px;padding:1px 6px;
     font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);
+  }
+  .admin-auth-box{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:20px 24px;max-width:420px;margin-bottom:16px;
+  }
+  .admin-auth-box .bo-form-row{margin-bottom:12px;}
+  .admin-session-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-size:12.5px;color:var(--text-secondary);margin-bottom:14px;
   }
   @media (max-width:900px){
     .bo-layout{grid-template-columns:1fr;}
@@ -1209,38 +1219,44 @@
       <section id="section-coaching-roster" class="section-view">
         <div class="page-title">Coaching Roster</div>
         <div class="page-sub">All active athlete ↔ coach links from <span class="mono">coach_athlete_links</span>. Select an athlete to open their training view.</div>
-        <div id="roster-sql-banner" class="bo-warn" style="display:none;"></div>
-        <div class="bo-layout">
-          <div class="panel">
-            <div class="panel-title">Linked athletes</div>
-            <div id="bo-roster-list"><div class="bo-empty">Loading···</div></div>
+        <div id="roster-admin-auth"></div>
+        <div id="roster-privileged" style="display:none;">
+          <div id="roster-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="bo-layout">
+            <div class="panel">
+              <div class="panel-title">Linked athletes</div>
+              <div id="bo-roster-list"><div class="bo-empty">Loading···</div></div>
+            </div>
+            <div class="panel" id="bo-roster-detail">
+              <div class="bo-empty">Select an athlete from the roster.</div>
+            </div>
           </div>
-          <div class="panel" id="bo-roster-detail">
-            <div class="bo-empty">Select an athlete from the roster.</div>
-          </div>
+          <div class="schema-note">Requires secure <code>sql/foundash-coach-admin.sql</code> + membership in <code>foundash_admins</code>. Coach-facing assign/link tools remain in <code>coach-dashboard.html</code>.</div>
         </div>
-        <div class="schema-note">Requires <code>sql/foundash-coach-admin.sql</code> applied in Supabase. Coach-facing assign/link tools remain in <code>coach-dashboard.html</code>.</div>
       </section>
 
       <!-- ---------- FOUNDASH: ATHLETE TRAINING VIEW ---------- -->
       <section id="section-athlete-training" class="section-view">
         <div class="page-title">Athlete Training View</div>
         <div class="page-sub">Per-athlete sessions (activation/zone), falls, and assignments — from existing tables only.</div>
-        <div id="training-sql-banner" class="bo-warn" style="display:none;"></div>
-        <div class="panel" style="margin-bottom:16px;">
-          <div class="bo-actions">
-            <div class="bo-form-row" style="flex:1;min-width:240px;margin:0;">
-              <label for="training-athlete-select">Athlete</label>
-              <select id="training-athlete-select"><option value="">Loading roster···</option></select>
+        <div id="training-admin-auth"></div>
+        <div id="training-privileged" style="display:none;">
+          <div id="training-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="bo-actions">
+              <div class="bo-form-row" style="flex:1;min-width:240px;margin:0;">
+                <label for="training-athlete-select">Athlete</label>
+                <select id="training-athlete-select"><option value="">Loading roster···</option></select>
+              </div>
+              <div class="bo-form-row" style="flex:1;min-width:240px;margin:0;">
+                <label for="training-athlete-id">Or paste athlete user id</label>
+                <input id="training-athlete-id" class="mono" placeholder="uuid">
+              </div>
+              <button class="bo-btn primary" id="training-load-btn" style="margin-top:18px;">Load</button>
             </div>
-            <div class="bo-form-row" style="flex:1;min-width:240px;margin:0;">
-              <label for="training-athlete-id">Or paste athlete user id</label>
-              <input id="training-athlete-id" class="mono" placeholder="uuid">
-            </div>
-            <button class="bo-btn primary" id="training-load-btn" style="margin-top:18px;">Load</button>
           </div>
+          <div id="training-content"><div class="bo-empty">Pick an athlete to load sessions, falls, and assignments.</div></div>
         </div>
-        <div id="training-content"><div class="bo-empty">Pick an athlete to load sessions, falls, and assignments.</div></div>
       </section>
 
       <!-- ---------- FOUNDASH: SYSTEM / AUDIT LOG ---------- -->
@@ -1279,22 +1295,25 @@
       <section id="section-coach-mgmt" class="section-view">
         <div class="page-title">Coach Management</div>
         <div class="page-sub">Grant or revoke <span class="mono">coach_flags.is_coach</span> by email — no manual SQL for the onboarding bottleneck.</div>
-        <div id="coach-sql-banner" class="bo-warn" style="display:none;"></div>
-        <div class="panel" style="margin-bottom:16px;">
-          <div class="panel-title">Grant coach</div>
-          <div class="bo-actions">
-            <div class="bo-form-row" style="flex:1;min-width:260px;margin:0;">
-              <label for="grant-coach-email">User email</label>
-              <input id="grant-coach-email" type="email" placeholder="coach@example.com">
+        <div id="coach-admin-auth"></div>
+        <div id="coach-privileged" style="display:none;">
+          <div id="coach-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-title">Grant coach</div>
+            <div class="bo-actions">
+              <div class="bo-form-row" style="flex:1;min-width:260px;margin:0;">
+                <label for="grant-coach-email">User email</label>
+                <input id="grant-coach-email" type="email" placeholder="coach@example.com">
+              </div>
+              <button class="bo-btn primary" id="grant-coach-btn" style="margin-top:18px;">Grant coach</button>
             </div>
-            <button class="bo-btn primary" id="grant-coach-btn" style="margin-top:18px;">Grant coach</button>
+            <div id="grant-coach-msg" style="margin-top:10px;"></div>
+            <div class="schema-note">Looks up <code>auth.users</code> by email, then upserts <code>coach_flags</code> with <code>is_coach = true</code>. Callable only with a Foundash admin JWT — not the anon key.</div>
           </div>
-          <div id="grant-coach-msg" style="margin-top:10px;"></div>
-          <div class="schema-note">Looks up <code>auth.users</code> by email, then upserts <code>coach_flags</code> with <code>is_coach = true</code>. Athlete linking still happens in coach-dashboard.</div>
-        </div>
-        <div class="panel">
-          <div class="panel-title">Current coaches</div>
-          <div id="coach-list-wrap"><div class="bo-empty">Loading···</div></div>
+          <div class="panel">
+            <div class="panel-title">Current coaches</div>
+            <div id="coach-list-wrap"><div class="bo-empty">Loading···</div></div>
+          </div>
         </div>
       </section>
 
@@ -2105,11 +2124,14 @@
   ]);
 
   /* ===================== FOUNDASH HELPERS ===================== */
-  // Same password the gate uses — passed to SECURITY DEFINER RPCs so grant/
-  // revoke isn't wide open on the anon key. Apply sql/foundash-coach-admin.sql.
-  function founderKey(){
-    try { return atob(SL_PASS_B64); } catch(e){ return ''; }
-  }
+  // Privileged RPCs require a real Supabase session whose auth.uid() is in
+  // public.foundash_admins. The page password gate only unlocks the UI shell;
+  // it is NOT an API credential and is never sent to Supabase RPCs.
+  var supabaseClient = (window.supabase && window.supabase.createClient)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+  var adminSession = null;   // supabase session
+  var adminProfile = null;   // { email, user_id } when foundash_whoami ok
 
   function escapeHtml(s){
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
@@ -2129,10 +2151,22 @@
     return dt.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
   }
 
+  function adminAccessToken(){
+    return adminSession && adminSession.access_token ? adminSession.access_token : null;
+  }
+
   function sbRpc(fnName, body){
+    var token = adminAccessToken();
+    if(!token){
+      return Promise.reject({ code: 'NO_SESSION', message: 'Sign in required' });
+    }
     return fetch(SUPABASE_URL + '/rest/v1/rpc/' + fnName, {
       method: 'POST',
-      headers: sbHeaders({ 'Content-Type': 'application/json' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + token
+      },
       body: JSON.stringify(body || {})
     }).then(function(res){
       return res.json().then(function(data){
@@ -2154,7 +2188,173 @@
     if(!el) return;
     el.style.display = 'block';
     el.className = 'bo-warn';
-    el.innerHTML = '<b>' + escapeHtml(label) + '</b> needs <code>sql/foundash-coach-admin.sql</code> applied in the Supabase SQL editor. UI is ready; RPCs are not live yet on this project.';
+    el.innerHTML = '<b>' + escapeHtml(label) + '</b> needs the <em>secure</em> <code>sql/foundash-coach-admin.sql</code> applied (authenticated + <code>foundash_admins</code> allowlist — never the old password/anon revision).';
+  }
+
+  function renderAdminSignIn(containerId, nextLabel){
+    var el = document.getElementById(containerId);
+    if(!el) return;
+    el.innerHTML =
+      '<div class="admin-auth-box">' +
+        '<div class="panel-title" style="margin-bottom:8px;">Foundash admin sign-in</div>' +
+        '<div class="schema-note" style="margin:0 0 14px;">Privileged actions use your Supabase account JWT. Your user must be in <code>foundash_admins</code> (inserted once via SQL editor). The page password is only a UI gate — it cannot call grant/revoke.</div>' +
+        '<div class="bo-form-row"><label for="admin-email-' + containerId + '">Email</label>' +
+          '<input id="admin-email-' + containerId + '" type="email" autocomplete="username"></div>' +
+        '<div class="bo-form-row"><label for="admin-pass-' + containerId + '">Password</label>' +
+          '<input id="admin-pass-' + containerId + '" type="password" autocomplete="current-password"></div>' +
+        '<div class="bo-actions"><button class="bo-btn primary" id="admin-signin-' + containerId + '">Sign in' +
+          (nextLabel ? ' to ' + escapeHtml(nextLabel) : '') + '</button></div>' +
+        '<div id="admin-signin-msg-' + containerId + '" style="margin-top:10px;"></div>' +
+      '</div>';
+
+    document.getElementById('admin-signin-' + containerId).addEventListener('click', function(){
+      attemptAdminSignIn(
+        document.getElementById('admin-email-' + containerId).value.trim(),
+        document.getElementById('admin-pass-' + containerId).value,
+        document.getElementById('admin-signin-msg-' + containerId),
+        document.getElementById('admin-signin-' + containerId)
+      );
+    });
+  }
+
+  function renderAdminSessionBar(containerId){
+    var el = document.getElementById(containerId);
+    if(!el || !adminProfile) return;
+    el.innerHTML =
+      '<div class="admin-session-bar">' +
+        '<span>Signed in as <b style="color:var(--text);">' + escapeHtml(adminProfile.email || 'admin') + '</b> · Foundash admin</span>' +
+        '<button class="bo-btn" id="admin-signout-' + containerId + '">Sign out</button>' +
+      '</div>';
+    document.getElementById('admin-signout-' + containerId).addEventListener('click', function(){
+      if(!supabaseClient) return;
+      supabaseClient.auth.signOut().then(function(){
+        adminSession = null;
+        adminProfile = null;
+        rosterLoaded = false;
+        coachesLoaded = false;
+        // Re-render whichever privileged section is active
+        var active = document.querySelector('.nav-item.active');
+        if(active) showSection(active.dataset.section);
+      });
+    });
+  }
+
+  function attemptAdminSignIn(email, password, msgEl, btn){
+    if(!supabaseClient){
+      if(msgEl) msgEl.innerHTML = '<div class="bo-err">Supabase client unavailable.</div>';
+      return;
+    }
+    if(!email || !password){
+      if(msgEl) msgEl.innerHTML = '<div class="bo-err">Email and password required.</div>';
+      return;
+    }
+    if(btn){ btn.disabled = true; btn.textContent = 'Signing in...'; }
+    if(msgEl) msgEl.innerHTML = '';
+    supabaseClient.auth.signInWithPassword({ email: email, password: password }).then(function(res){
+      if(btn){ btn.disabled = false; btn.textContent = 'Sign in'; }
+      if(res.error){
+        if(msgEl) msgEl.innerHTML = '<div class="bo-err">' + escapeHtml(res.error.message || 'Sign in failed') + '</div>';
+        return;
+      }
+      return establishAdminSession(res.data.session).then(function(ok){
+        if(!ok){
+          if(msgEl) msgEl.innerHTML = '<div class="bo-err">Signed in, but this account is not in <code>foundash_admins</code>. Add it via SQL editor, then retry.</div>';
+          return;
+        }
+        rosterLoaded = false;
+        coachesLoaded = false;
+        var active = document.querySelector('.nav-item.active');
+        if(active) showSection(active.dataset.section);
+      });
+    }).catch(function(e){
+      if(btn){ btn.disabled = false; btn.textContent = 'Sign in'; }
+      if(msgEl) msgEl.innerHTML = '<div class="bo-err">' + escapeHtml((e && e.message) || 'Sign in failed') + '</div>';
+    });
+  }
+
+  function establishAdminSession(session){
+    if(!session){
+      adminSession = null;
+      adminProfile = null;
+      return Promise.resolve(false);
+    }
+    adminSession = session;
+    return sbRpc('foundash_whoami', {}).then(function(data){
+      if(data && data.ok){
+        adminProfile = { email: data.email, user_id: data.user_id };
+        return true;
+      }
+      // Signed in but not an admin — drop session for privileged use
+      adminProfile = null;
+      if(data && data.error === 'not_admin'){
+        return false;
+      }
+      if(isMissingRpc(data) || (data && data.code)){
+        adminProfile = null;
+        return false;
+      }
+      return false;
+    }).catch(function(err){
+      adminProfile = null;
+      if(isMissingRpc(err)){
+        // SQL not applied yet — keep session so banners can still mention auth, but block as not ready
+        adminSession = session;
+      }
+      return false;
+    });
+  }
+
+  function setPrivilegedVisible(authId, privilegedId, visible){
+    var authEl = document.getElementById(authId);
+    var privEl = document.getElementById(privilegedId);
+    if(privEl) privEl.style.display = visible ? 'block' : 'none';
+    if(!visible && authEl){
+      // keep auth mount; sign-in form rendered into it
+    } else if(visible && authEl){
+      renderAdminSessionBar(authId);
+    }
+  }
+
+  function requireAdmin(authId, privilegedId, label, onReady){
+    var authEl = document.getElementById(authId);
+    if(!authEl) return;
+
+    function showSignIn(extraMsg){
+      setPrivilegedVisible(authId, privilegedId, false);
+      renderAdminSignIn(authId, label);
+      if(extraMsg){
+        var msg = document.getElementById('admin-signin-msg-' + authId);
+        if(msg) msg.innerHTML = '<div class="bo-err">' + extraMsg + '</div>';
+      }
+    }
+
+    if(adminProfile && adminAccessToken()){
+      setPrivilegedVisible(authId, privilegedId, true);
+      onReady();
+      return;
+    }
+
+    if(!supabaseClient){
+      authEl.innerHTML = '<div class="bo-err">Supabase JS failed to load — cannot sign in for privileged sections.</div>';
+      setPrivilegedVisible(authId, privilegedId, false);
+      return;
+    }
+
+    supabaseClient.auth.getSession().then(function(res){
+      var session = res.data && res.data.session ? res.data.session : null;
+      if(!session){
+        showSignIn('');
+        return;
+      }
+      establishAdminSession(session).then(function(ok){
+        if(!ok){
+          showSignIn('Signed in, but this account is not in <code>foundash_admins</code>, or the secure SQL is not applied yet.');
+          return;
+        }
+        setPrivilegedVisible(authId, privilegedId, true);
+        onReady();
+      });
+    });
   }
 
   /* ===================== COACHING ROSTER ===================== */
@@ -2162,37 +2362,39 @@
   var rosterLoaded = false;
 
   function loadCoachingRoster(force){
-    if(rosterLoaded && !force) return;
-    var listEl = document.getElementById('bo-roster-list');
-    var banner = document.getElementById('roster-sql-banner');
-    listEl.innerHTML = '<div class="bo-empty">Loading···</div>';
-    if(banner) banner.style.display = 'none';
+    requireAdmin('roster-admin-auth', 'roster-privileged', 'Coaching Roster', function(){
+      if(rosterLoaded && !force) return;
+      var listEl = document.getElementById('bo-roster-list');
+      var banner = document.getElementById('roster-sql-banner');
+      listEl.innerHTML = '<div class="bo-empty">Loading···</div>';
+      if(banner) banner.style.display = 'none';
 
-    sbRpc('foundash_list_roster', { p_founder_key: founderKey() })
-      .then(function(data){
-        if(!data || data.ok === false){
-          if(data && data.error === 'unauthorized'){
-            listEl.innerHTML = '<div class="bo-empty" style="color:var(--danger);">Unauthorized — founder key rejected by RPC.</div>';
+      sbRpc('foundash_list_roster', {})
+        .then(function(data){
+          if(!data || data.ok === false){
+            if(data && (data.error === 'not_admin' || data.error === 'not_authenticated')){
+              listEl.innerHTML = '<div class="bo-empty" style="color:var(--danger);">Unauthorized — admin session required.</div>';
+              return;
+            }
+            throw data || { message: 'unknown error' };
+          }
+          rosterLoaded = true;
+          rosterCache = data.links || [];
+          renderRosterList(rosterCache);
+          populateTrainingAthleteSelect(rosterCache);
+        })
+        .catch(function(err){
+          rosterCache = [];
+          populateTrainingAthleteSelect([]);
+          if(isMissingRpc(err)){
+            sqlMissingBanner(banner, 'Coaching Roster');
+            listEl.innerHTML = '<div class="bo-empty">RPC <code>foundash_list_roster</code> not available yet.</div>';
             return;
           }
-          throw data || { message: 'unknown error' };
-        }
-        rosterLoaded = true;
-        rosterCache = data.links || [];
-        renderRosterList(rosterCache);
-        populateTrainingAthleteSelect(rosterCache);
-      })
-      .catch(function(err){
-        rosterCache = [];
-        populateTrainingAthleteSelect([]);
-        if(isMissingRpc(err)){
-          sqlMissingBanner(banner, 'Coaching Roster');
-          listEl.innerHTML = '<div class="bo-empty">RPC <code>foundash_list_roster</code> not available yet.</div>';
-          return;
-        }
-        listEl.innerHTML = '<div class="bo-empty" style="color:var(--danger);">Failed to load roster — ' +
-          escapeHtml((err && (err.message || err.error)) || 'unknown error') + '</div>';
-      });
+          listEl.innerHTML = '<div class="bo-empty" style="color:var(--danger);">Failed to load roster — ' +
+            escapeHtml((err && (err.message || err.error)) || 'unknown error') + '</div>';
+        });
+    });
   }
 
   function renderRosterList(links){
@@ -2242,7 +2444,6 @@
     });
 
     sbRpc('foundash_athlete_training', {
-      p_founder_key: founderKey(),
       p_athlete_id: link.athlete_id
     }).then(function(data){
       var body = document.getElementById('roster-detail-body');
@@ -2295,43 +2496,55 @@
   }
 
   function loadAthleteTrainingSection(){
-    if(!rosterLoaded){
-      loadCoachingRoster(true);
-    } else {
-      populateTrainingAthleteSelect(rosterCache);
-    }
+    requireAdmin('training-admin-auth', 'training-privileged', 'Athlete Training', function(){
+      if(!rosterLoaded){
+        // Load roster into cache without switching sections
+        sbRpc('foundash_list_roster', {}).then(function(data){
+          if(data && data.ok){
+            rosterLoaded = true;
+            rosterCache = data.links || [];
+            populateTrainingAthleteSelect(rosterCache);
+          } else {
+            populateTrainingAthleteSelect([]);
+          }
+        }).catch(function(){ populateTrainingAthleteSelect([]); });
+      } else {
+        populateTrainingAthleteSelect(rosterCache);
+      }
+    });
   }
 
   function loadAthleteTraining(athleteId){
-    var content = document.getElementById('training-content');
-    var banner = document.getElementById('training-sql-banner');
-    if(!athleteId){
-      content.innerHTML = '<div class="bo-empty">Enter or select an athlete id first.</div>';
-      return;
-    }
-    content.innerHTML = '<div class="bo-empty">Loading···</div>';
-    if(banner) banner.style.display = 'none';
-
-    sbRpc('foundash_athlete_training', {
-      p_founder_key: founderKey(),
-      p_athlete_id: athleteId
-    }).then(function(data){
-      if(!data || data.ok === false){
-        if(data && data.error === 'unauthorized'){
-          content.innerHTML = '<div class="bo-err">Unauthorized.</div>';
-          return;
-        }
-        throw data || { message: 'unknown error' };
-      }
-      renderAthleteTraining(data);
-    }).catch(function(err){
-      if(isMissingRpc(err)){
-        sqlMissingBanner(banner, 'Athlete Training View');
-        content.innerHTML = '<div class="bo-empty">RPC <code>foundash_athlete_training</code> not available yet.</div>';
+    requireAdmin('training-admin-auth', 'training-privileged', 'Athlete Training', function(){
+      var content = document.getElementById('training-content');
+      var banner = document.getElementById('training-sql-banner');
+      if(!athleteId){
+        content.innerHTML = '<div class="bo-empty">Enter or select an athlete id first.</div>';
         return;
       }
-      content.innerHTML = '<div class="bo-err">Failed — ' +
-        escapeHtml((err && (err.message || err.error)) || 'unknown error') + '</div>';
+      content.innerHTML = '<div class="bo-empty">Loading···</div>';
+      if(banner) banner.style.display = 'none';
+
+      sbRpc('foundash_athlete_training', {
+        p_athlete_id: athleteId
+      }).then(function(data){
+        if(!data || data.ok === false){
+          if(data && (data.error === 'not_admin' || data.error === 'not_authenticated')){
+            content.innerHTML = '<div class="bo-err">Unauthorized.</div>';
+            return;
+          }
+          throw data || { message: 'unknown error' };
+        }
+        renderAthleteTraining(data);
+      }).catch(function(err){
+        if(isMissingRpc(err)){
+          sqlMissingBanner(banner, 'Athlete Training View');
+          content.innerHTML = '<div class="bo-empty">RPC <code>foundash_athlete_training</code> not available yet.</div>';
+          return;
+        }
+        content.innerHTML = '<div class="bo-err">Failed — ' +
+          escapeHtml((err && (err.message || err.error)) || 'unknown error') + '</div>';
+      });
     });
   }
 
@@ -2418,7 +2631,7 @@
   });
 
   /* ===================== SYSTEM / AUDIT LOG ===================== */
-  var AUDIT_STORAGE_KEY = 'foundash_audit_log_v1';
+  var AUDIT_STORAGE_KEY = 'foundash_audit_log_v2';
   var AUDIT_SEED = [
     {
       id: 'seed-1',
@@ -2448,6 +2661,12 @@
       id: 'seed-5',
       description: 'Coach onboarding bottleneck: no self-service path to set coach_flags.is_coach — Foundash Coach Management RPCs address this (sql/foundash-coach-admin.sql).',
       status: 'watching',
+      date: '2026-08-10'
+    },
+    {
+      id: 'seed-6',
+      description: 'SECURITY: rejected first foundash RPC design (shared password param + GRANT to anon). Password was in page source (base64). Secure revision uses auth.uid() ∈ foundash_admins and authenticated-only EXECUTE — never apply the old revision.',
+      status: 'fixed',
       date: '2026-08-10'
     }
   ];
@@ -2537,33 +2756,35 @@
   var coachesLoaded = false;
 
   function loadCoachManagement(force){
-    if(coachesLoaded && !force) return;
-    var wrap = document.getElementById('coach-list-wrap');
-    var banner = document.getElementById('coach-sql-banner');
-    wrap.innerHTML = '<div class="bo-empty">Loading···</div>';
-    if(banner) banner.style.display = 'none';
+    requireAdmin('coach-admin-auth', 'coach-privileged', 'Coach Management', function(){
+      if(coachesLoaded && !force) return;
+      var wrap = document.getElementById('coach-list-wrap');
+      var banner = document.getElementById('coach-sql-banner');
+      wrap.innerHTML = '<div class="bo-empty">Loading···</div>';
+      if(banner) banner.style.display = 'none';
 
-    sbRpc('foundash_list_coaches', { p_founder_key: founderKey() })
-      .then(function(data){
-        if(!data || data.ok === false){
-          if(data && data.error === 'unauthorized'){
-            wrap.innerHTML = '<div class="bo-err">Unauthorized — founder key rejected.</div>';
+      sbRpc('foundash_list_coaches', {})
+        .then(function(data){
+          if(!data || data.ok === false){
+            if(data && (data.error === 'not_admin' || data.error === 'not_authenticated')){
+              wrap.innerHTML = '<div class="bo-err">Unauthorized — admin session required.</div>';
+              return;
+            }
+            throw data || { message: 'unknown error' };
+          }
+          coachesLoaded = true;
+          renderCoachList(data.coaches || []);
+        })
+        .catch(function(err){
+          if(isMissingRpc(err)){
+            sqlMissingBanner(banner, 'Coach Management');
+            wrap.innerHTML = '<div class="bo-empty">RPC <code>foundash_list_coaches</code> not available yet. Apply the <em>secure</em> <code>sql/foundash-coach-admin.sql</code>, add yourself to <code>foundash_admins</code>, then refresh.</div>';
             return;
           }
-          throw data || { message: 'unknown error' };
-        }
-        coachesLoaded = true;
-        renderCoachList(data.coaches || []);
-      })
-      .catch(function(err){
-        if(isMissingRpc(err)){
-          sqlMissingBanner(banner, 'Coach Management');
-          wrap.innerHTML = '<div class="bo-empty">RPC <code>foundash_list_coaches</code> not available yet. Apply <code>sql/foundash-coach-admin.sql</code>, then refresh.</div>';
-          return;
-        }
-        wrap.innerHTML = '<div class="bo-err">Failed — ' +
-          escapeHtml((err && (err.message || err.error)) || 'unknown error') + '</div>';
-      });
+          wrap.innerHTML = '<div class="bo-err">Failed — ' +
+            escapeHtml((err && (err.message || err.error)) || 'unknown error') + '</div>';
+        });
+    });
   }
 
   function renderCoachList(coaches){
@@ -2615,7 +2836,6 @@
     btn.disabled = true;
     btn.textContent = 'Revoking...';
     sbRpc('foundash_revoke_coach', {
-      p_founder_key: founderKey(),
       p_email: email,
       p_force: force
     }).then(function(data){
@@ -2636,7 +2856,6 @@
           return;
         }
         return sbRpc('foundash_revoke_coach', {
-          p_founder_key: founderKey(),
           p_email: email,
           p_force: true
         }).then(function(data2){
@@ -2678,7 +2897,6 @@
     btn.textContent = 'Granting...';
     msg.innerHTML = '';
     sbRpc('foundash_grant_coach', {
-      p_founder_key: founderKey(),
       p_email: email
     }).then(function(data){
       btn.disabled = false;
@@ -2693,14 +2911,16 @@
       var err = data && data.error;
       var human = err === 'no_account'
         ? 'No account with that email — they need to sign up in the SEE app first.'
-        : (err === 'unauthorized' ? 'Unauthorized.' : ('Could not grant — ' + (err || 'unknown')));
+        : (err === 'not_admin' || err === 'not_authenticated'
+          ? 'Unauthorized — Foundash admin session required.'
+          : ('Could not grant — ' + (err || 'unknown')));
       msg.innerHTML = '<div class="bo-err">' + escapeHtml(human) + '</div>';
     }).catch(function(err){
       btn.disabled = false;
       btn.textContent = 'Grant coach';
       if(isMissingRpc(err)){
         sqlMissingBanner(document.getElementById('coach-sql-banner'), 'Coach Management');
-        msg.innerHTML = '<div class="bo-err">RPC missing — apply <code>sql/foundash-coach-admin.sql</code> first.</div>';
+        msg.innerHTML = '<div class="bo-err">RPC missing — apply the secure <code>sql/foundash-coach-admin.sql</code> first.</div>';
       } else {
         msg.innerHTML = '<div class="bo-err">Failed — ' + escapeHtml((err && err.message) || 'unknown error') + '</div>';
       }

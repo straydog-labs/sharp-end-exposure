@@ -1,27 +1,126 @@
 -- Foundash back-office: coach list / grant / revoke + roster + athlete training
--- Apply in Supabase SQL editor (same delivery pattern as coach-layer-additions.sql).
+-- Apply in Supabase SQL editor AFTER reading the auth model below.
+--
+-- ⚠️  DO NOT use any earlier revision of this file that accepted p_founder_key /
+--     a shared password and GRANTed EXECUTE to anon. That pattern is unsafe:
+--     the password lived in page source and anyone could hit the public REST
+--     RPC endpoint directly. This file replaces that model.
+--
+-- Auth model (secure):
+--   1. RPCs are SECURITY DEFINER but ONLY executable by the `authenticated` role
+--      (anon has no EXECUTE — revoke explicitly below).
+--   2. Authorization is auth.uid() ∈ public.foundash_admins — a server-side
+--      allowlist table. No password parameter. No client-held secret.
+--   3. founder-dashboard.html must sign in with a real Supabase user that has
+--      been inserted into foundash_admins; it passes that user's JWT, not the
+--      publishable/anon key, when calling these RPCs.
+--
+-- Bootstrap (one-time, in SQL editor as postgres/service role):
+--   INSERT INTO public.foundash_admins (user_id)
+--   SELECT id FROM auth.users WHERE lower(email) = lower('YOUR_FOUNDER_EMAIL');
 --
 -- Confirmed live schema (probed 2026-08-10):
 --   public.coach_flags(user_id, is_coach, created_at, …)
 --   public.coach_athlete_links(id, coach_id, athlete_id, status, created_at, …)
---
--- Auth model matches founder-dashboard.html: password gate in the browser, plus
--- these SECURITY DEFINER RPCs which re-check the same founder key server-side
--- before touching auth.users or writing coach_flags. Anon REST alone cannot
--- grant/revoke (RLS blocks INSERT on coach_flags).
 
-CREATE OR REPLACE FUNCTION public._foundash_key_ok(p_founder_key text)
+-- ---------------------------------------------------------------------------
+-- Tear down any insecure prior revision (password-param + anon grants)
+-- ---------------------------------------------------------------------------
+REVOKE ALL ON FUNCTION public._foundash_key_ok(text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_list_coaches(text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_grant_coach(text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_revoke_coach(text, text, boolean) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_list_roster(text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_athlete_training(text, uuid) FROM PUBLIC, anon, authenticated;
+
+DROP FUNCTION IF EXISTS public._foundash_key_ok(text);
+DROP FUNCTION IF EXISTS public.foundash_list_coaches(text);
+DROP FUNCTION IF EXISTS public.foundash_grant_coach(text, text);
+DROP FUNCTION IF EXISTS public.foundash_revoke_coach(text, text, boolean);
+DROP FUNCTION IF EXISTS public.foundash_list_roster(text);
+DROP FUNCTION IF EXISTS public.foundash_athlete_training(text, uuid);
+
+-- Also drop zero-arg / new signatures if re-running this migration
+DROP FUNCTION IF EXISTS public._foundash_is_admin();
+DROP FUNCTION IF EXISTS public.foundash_list_coaches();
+DROP FUNCTION IF EXISTS public.foundash_grant_coach(text);
+DROP FUNCTION IF EXISTS public.foundash_revoke_coach(text, boolean);
+DROP FUNCTION IF EXISTS public.foundash_list_roster();
+DROP FUNCTION IF EXISTS public.foundash_athlete_training(uuid);
+DROP FUNCTION IF EXISTS public.foundash_whoami();
+
+-- ---------------------------------------------------------------------------
+-- Admin allowlist (server-side only — no client writes)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.foundash_admins (
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  note text
+);
+
+ALTER TABLE public.foundash_admins ENABLE ROW LEVEL SECURITY;
+
+-- No policies for anon/authenticated: direct table access denied.
+-- Only SECURITY DEFINER functions below read this table.
+REVOKE ALL ON TABLE public.foundash_admins FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.foundash_admins TO postgres;
+
+CREATE OR REPLACE FUNCTION public._foundash_is_admin()
 RETURNS boolean
 LANGUAGE sql
 STABLE
+SECURITY DEFINER
+SET search_path = public
 AS $$
-  SELECT p_founder_key IS NOT NULL AND p_founder_key = 'straydog2026';
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.foundash_admins a
+    WHERE a.user_id = auth.uid()
+  );
+$$;
+
+-- ---------------------------------------------------------------------------
+-- whoami — lets the UI confirm the signed-in user is a Foundash admin
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.foundash_whoami()
+RETURNS json
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  uid uuid := auth.uid();
+  em text;
+BEGIN
+  IF uid IS NULL THEN
+    RETURN json_build_object('ok', false, 'error', 'not_authenticated');
+  END IF;
+
+  SELECT email INTO em FROM auth.users WHERE id = uid;
+
+  IF NOT public._foundash_is_admin() THEN
+    RETURN json_build_object(
+      'ok', false,
+      'error', 'not_admin',
+      'user_id', uid,
+      'email', em
+    );
+  END IF;
+
+  RETURN json_build_object(
+    'ok', true,
+    'user_id', uid,
+    'email', em,
+    'is_admin', true
+  );
+END;
 $$;
 
 -- ---------------------------------------------------------------------------
 -- List every coach (is_coach = true) with email, granted date, athlete count
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.foundash_list_coaches(p_founder_key text)
+CREATE OR REPLACE FUNCTION public.foundash_list_coaches()
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -30,8 +129,11 @@ AS $$
 DECLARE
   result json;
 BEGIN
-  IF NOT public._foundash_key_ok(p_founder_key) THEN
-    RETURN json_build_object('ok', false, 'error', 'unauthorized');
+  IF auth.uid() IS NULL THEN
+    RETURN json_build_object('ok', false, 'error', 'not_authenticated');
+  END IF;
+  IF NOT public._foundash_is_admin() THEN
+    RETURN json_build_object('ok', false, 'error', 'not_admin');
   END IF;
 
   SELECT COALESCE(json_agg(row_to_json(t) ORDER BY t.granted_at ASC NULLS LAST), '[]'::json)
@@ -60,7 +162,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Grant coach by email (upsert coach_flags.is_coach = true)
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.foundash_grant_coach(p_founder_key text, p_email text)
+CREATE OR REPLACE FUNCTION public.foundash_grant_coach(p_email text)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -69,8 +171,11 @@ AS $$
 DECLARE
   target auth.users%ROWTYPE;
 BEGIN
-  IF NOT public._foundash_key_ok(p_founder_key) THEN
-    RETURN json_build_object('ok', false, 'error', 'unauthorized');
+  IF auth.uid() IS NULL THEN
+    RETURN json_build_object('ok', false, 'error', 'not_authenticated');
+  END IF;
+  IF NOT public._foundash_is_admin() THEN
+    RETURN json_build_object('ok', false, 'error', 'not_admin');
   END IF;
 
   IF p_email IS NULL OR length(trim(p_email)) = 0 THEN
@@ -107,10 +212,9 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Revoke coach by email (sets is_coach = false).
 -- Blocks by default when the coach still has active athlete links unless
--- p_force = true — founders should unlink / accept orphaned links first.
+-- p_force = true.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.foundash_revoke_coach(
-  p_founder_key text,
   p_email text,
   p_force boolean DEFAULT false
 )
@@ -123,8 +227,11 @@ DECLARE
   target auth.users%ROWTYPE;
   link_count int;
 BEGIN
-  IF NOT public._foundash_key_ok(p_founder_key) THEN
-    RETURN json_build_object('ok', false, 'error', 'unauthorized');
+  IF auth.uid() IS NULL THEN
+    RETURN json_build_object('ok', false, 'error', 'not_authenticated');
+  END IF;
+  IF NOT public._foundash_is_admin() THEN
+    RETURN json_build_object('ok', false, 'error', 'not_admin');
   END IF;
 
   IF p_email IS NULL OR length(trim(p_email)) = 0 THEN
@@ -178,7 +285,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Cross-coach roster for Foundash (all active coach_athlete_links)
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.foundash_list_roster(p_founder_key text)
+CREATE OR REPLACE FUNCTION public.foundash_list_roster()
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -187,8 +294,11 @@ AS $$
 DECLARE
   result json;
 BEGIN
-  IF NOT public._foundash_key_ok(p_founder_key) THEN
-    RETURN json_build_object('ok', false, 'error', 'unauthorized');
+  IF auth.uid() IS NULL THEN
+    RETURN json_build_object('ok', false, 'error', 'not_authenticated');
+  END IF;
+  IF NOT public._foundash_is_admin() THEN
+    RETURN json_build_object('ok', false, 'error', 'not_admin');
   END IF;
 
   SELECT COALESCE(json_agg(row_to_json(t) ORDER BY t.linked_at ASC), '[]'::json)
@@ -214,12 +324,8 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- Per-athlete training bundle: sessions / falls / assignments
--- (uses columns already on those tables — no new schema)
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.foundash_athlete_training(
-  p_founder_key text,
-  p_athlete_id uuid
-)
+CREATE OR REPLACE FUNCTION public.foundash_athlete_training(p_athlete_id uuid)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -231,8 +337,11 @@ DECLARE
   falls_json json;
   assignments_json json;
 BEGIN
-  IF NOT public._foundash_key_ok(p_founder_key) THEN
-    RETURN json_build_object('ok', false, 'error', 'unauthorized');
+  IF auth.uid() IS NULL THEN
+    RETURN json_build_object('ok', false, 'error', 'not_authenticated');
+  END IF;
+  IF NOT public._foundash_is_admin() THEN
+    RETURN json_build_object('ok', false, 'error', 'not_admin');
   END IF;
 
   IF p_athlete_id IS NULL THEN
@@ -293,9 +402,21 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public._foundash_key_ok(text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.foundash_list_coaches(text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.foundash_grant_coach(text, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.foundash_revoke_coach(text, text, boolean) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.foundash_list_roster(text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.foundash_athlete_training(text, uuid) TO anon, authenticated;
+-- ---------------------------------------------------------------------------
+-- Privileges: authenticated only. Never anon. Never PUBLIC default grants.
+-- ---------------------------------------------------------------------------
+REVOKE ALL ON FUNCTION public._foundash_is_admin() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_whoami() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_list_coaches() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_grant_coach(text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_revoke_coach(text, boolean) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_list_roster() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.foundash_athlete_training(uuid) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public._foundash_is_admin() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.foundash_whoami() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.foundash_list_coaches() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.foundash_grant_coach(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.foundash_revoke_coach(text, boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.foundash_list_roster() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.foundash_athlete_training(uuid) TO authenticated;
