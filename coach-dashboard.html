@@ -192,14 +192,33 @@
 
   .link-athlete-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);}
 
-  /* ---------- New assignment: library picker ---------- */
-  .mode-tabs{display:flex;gap:6px;margin-bottom:14px;}
-  .mode-tab{
-    flex:1;background:#141414;border:1px solid var(--border);border-radius:6px;padding:9px 10px;
-    color:var(--text-secondary);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;cursor:pointer;
+  /* ---------- New assignment: step wizard ---------- */
+  .wiz-progress{
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);margin-bottom:6px;
   }
-  .mode-tab:hover{border-color:rgba(200,98,42,.45);color:var(--text);}
-  .mode-tab.active{background:rgba(200,98,42,.12);border-color:var(--accent);color:var(--accent);}
+  .wiz-step-title{font-size:14px;font-weight:600;margin-bottom:12px;}
+  .wiz-summary{font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.45;}
+  .wiz-summary b{color:var(--text);font-weight:600;}
+  .wiz-choices{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
+  .wiz-choice{
+    width:100%;text-align:left;background:#141414;border:1px solid var(--border);border-radius:8px;
+    padding:14px 16px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;cursor:pointer;
+  }
+  .wiz-choice:hover{border-color:rgba(200,98,42,.45);}
+  .wiz-choice.selected{background:rgba(200,98,42,.12);border-color:var(--accent);color:var(--accent);}
+  .wiz-choice-meta{display:block;font-size:11.5px;font-weight:500;color:var(--text-secondary);margin-top:3px;}
+  .wiz-choice.selected .wiz-choice-meta{color:rgba(200,98,42,.85);}
+  .wiz-nav{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap;}
+  .btn-secondary{
+    background:transparent;border:1px solid var(--border);border-radius:6px;padding:9px 18px;
+    color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-linkish{
+    background:none;border:none;padding:0;color:var(--accent);font-family:'Space Grotesk',sans-serif;
+    font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px;
+  }
   .lib-results{
     max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:#141414;margin-bottom:12px;
   }
@@ -213,14 +232,6 @@
   .lib-result-name{font-size:13px;font-weight:600;}
   .lib-result-meta{font-size:11px;color:var(--text-secondary);margin-top:2px;}
   .lib-result-empty{padding:12px;font-size:12px;color:var(--text-secondary);}
-  .lib-type-pill{
-    display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--accent);border:1px solid rgba(200,98,42,.35);border-radius:999px;padding:1px 7px;margin-left:6px;
-  }
-  .lib-selected-banner{
-    font-size:12px;color:var(--text-secondary);background:rgba(200,98,42,.08);border:1px solid rgba(200,98,42,.25);
-    border-radius:6px;padding:8px 10px;margin-bottom:12px;
-  }
 
   /* ---------- Athlete training view ---------- */
   .training-header{margin-bottom:20px;}
@@ -645,296 +656,420 @@
     });
   }
 
-  function filterCoachLibraryResults(query, typeFilter){
-    var q = (query || '').trim().toLowerCase();
+  // Categories that always appear in step 2 even when empty for the
+  // selected type — coaches seed Route Climbing / Footwork drills here.
+  var ALWAYS_ASSIGN_CATEGORIES = ['Route Climbing', 'Footwork & Technique'];
+
+  var _assignWizard = null;
+
+  function resetAssignWizard(){
+    _assignWizard = {
+      step: 1,
+      type: null,
+      category: null,
+      createMode: false,
+      libraryItemId: null,
+      drillName: '',
+      libraryDescription: '',
+      assignDescription: '',
+      dueDate: '',
+      resourceLink: '',
+      libLoadError: null
+    };
+    _coachLibSelectedId = null;
+  }
+
+  function drillsForTypeCategory(type, category){
     return _coachLibCache.filter(function(item){
-      if(typeFilter && item.type !== typeFilter) return false;
-      if(!q) return true;
-      var hay = ((item.name || '') + ' ' + (item.category || '') + ' ' + (item.description || '') + ' ' + (item.type || '')).toLowerCase();
+      return item.type === type && item.category === category;
+    });
+  }
+
+  // Distinct categories that have at least one library row for `type`,
+  // plus the always-shown empty-capable categories.
+  function categoriesForAssignType(type){
+    var seen = {};
+    ALWAYS_ASSIGN_CATEGORIES.forEach(function(c){ seen[c] = true; });
+    _coachLibCache.forEach(function(item){
+      if(item.type === type && item.category) seen[item.category] = true;
+    });
+    var rest = Object.keys(seen).filter(function(c){
+      return ALWAYS_ASSIGN_CATEGORIES.indexOf(c) === -1;
+    }).sort(function(a, b){ return a.localeCompare(b); });
+    return ALWAYS_ASSIGN_CATEGORIES.concat(rest);
+  }
+
+  function filterWizardLibraryResults(query){
+    var q = (query || '').trim().toLowerCase();
+    var rows = drillsForTypeCategory(_assignWizard.type, _assignWizard.category);
+    if(!q) return rows;
+    return rows.filter(function(item){
+      var hay = ((item.name || '') + ' ' + (item.description || '')).toLowerCase();
       return hay.indexOf(q) !== -1;
     });
   }
 
-  // Same pattern as athlete populateWorkoutLibraryCategorySuggestions():
-  // free-text category + datalist of categories already in the library.
-  function populateCoachLibraryCategorySuggestions(){
-    var dl = document.getElementById('new-a-category-suggestions');
-    if(!dl) return;
-    var cats = [];
-    _coachLibCache.forEach(function(r){
-      if(r.category && cats.indexOf(r.category) === -1) cats.push(r.category);
-    });
-    cats.sort();
-    dl.innerHTML = cats.map(function(c){ return '<option value="' + escapeHtml(c) + '">'; }).join('');
-  }
-
-  function renderCoachLibraryResults(){
+  function renderWizardLibraryResults(){
     var resultsEl = document.getElementById('new-a-lib-results');
     var searchEl = document.getElementById('new-a-lib-search');
-    var typeEl = document.getElementById('new-a-lib-type-filter');
-    if(!resultsEl) return;
-    var rows = filterCoachLibraryResults(searchEl ? searchEl.value : '', typeEl ? typeEl.value : '');
+    if(!resultsEl || !_assignWizard) return;
+    var rows = filterWizardLibraryResults(searchEl ? searchEl.value : '');
     if(!rows.length){
-      resultsEl.innerHTML = '<div class="lib-result-empty">No library drills match.</div>';
+      resultsEl.innerHTML = '<div class="lib-result-empty">No drills match this search.</div>';
       return;
     }
     resultsEl.innerHTML = rows.map(function(item){
-      var typePill = item.type
-        ? '<span class="lib-type-pill">' + escapeHtml(coachLibTypeLabel(item.type)) + '</span>'
-        : '';
-      var selected = item.id === _coachLibSelectedId ? ' selected' : '';
+      var selected = item.id === _assignWizard.libraryItemId ? ' selected' : '';
       return '<button type="button" class="lib-result' + selected + '" data-id="' + escapeHtml(item.id) + '">' +
-        '<div class="lib-result-name">' + escapeHtml(item.name) + typePill + '</div>' +
-        '<div class="lib-result-meta">' + escapeHtml(item.category || 'Uncategorized') + '</div>' +
+        '<div class="lib-result-name">' + escapeHtml(item.name) + '</div>' +
+        '<div class="lib-result-meta">' + escapeHtml((item.description || '').slice(0, 90)) +
+          ((item.description || '').length > 90 ? '…' : '') + '</div>' +
       '</button>';
     }).join('');
   }
 
-  function selectCoachLibraryItem(id){
-    var item = _coachLibCache.find(function(r){ return r.id === id; });
-    if(!item) return;
-    _coachLibSelectedId = id;
-    var titleEl = document.getElementById('new-a-title');
-    var descEl = document.getElementById('new-a-desc');
-    var bannerEl = document.getElementById('new-a-lib-selected');
-    if(titleEl) titleEl.value = item.name || '';
-    if(descEl) descEl.value = item.description || '';
-    if(bannerEl){
-      var typeTxt = item.type ? ' · ' + coachLibTypeLabel(item.type) : '';
-      bannerEl.style.display = 'block';
-      bannerEl.innerHTML = 'Selected from library: <b style="color:var(--text);">' + escapeHtml(item.name) + '</b>' +
-        ' <span style="color:var(--text-secondary);">(' + escapeHtml(item.category || 'Uncategorized') + typeTxt + ')</span>';
-    }
-    renderCoachLibraryResults();
+  function wizardStepLabel(step){
+    if(step === 1) return 'Energy system';
+    if(step === 2) return 'Category';
+    if(step === 3) return 'Drill';
+    if(step === 4) return 'Customize';
+    if(step === 5) return 'Schedule';
+    return '';
   }
 
-  function setCoachAssignMode(mode){
-    var libPane = document.getElementById('assign-mode-library');
-    var newPane = document.getElementById('assign-mode-new');
-    var tabs = document.querySelectorAll('.mode-tab');
-    tabs.forEach(function(tab){
-      tab.classList.toggle('active', tab.getAttribute('data-mode') === mode);
+  function wizardPathSummary(){
+    var parts = [];
+    if(_assignWizard.type) parts.push('<b>' + escapeHtml(coachLibTypeLabel(_assignWizard.type)) + '</b>');
+    if(_assignWizard.category) parts.push('<b>' + escapeHtml(_assignWizard.category) + '</b>');
+    if(_assignWizard.drillName) parts.push('<b>' + escapeHtml(_assignWizard.drillName) + '</b>');
+    return parts.length ? '<div class="wiz-summary">' + parts.join(' · ') + '</div>' : '';
+  }
+
+  function goAssignWizardStep(step){
+    _assignWizard.step = step;
+    renderAssignWizardBody();
+  }
+
+  function renderAssignWizardBody(){
+    var body = document.getElementById('wiz-body');
+    var prog = document.getElementById('wiz-progress');
+    var msgEl = document.getElementById('new-a-msg');
+    if(!body || !_assignWizard) return;
+    if(msgEl) msgEl.innerHTML = '';
+    if(prog){
+      prog.textContent = 'Step ' + _assignWizard.step + ' of 5 · ' + wizardStepLabel(_assignWizard.step);
+    }
+
+    var step = _assignWizard.step;
+    if(step === 1){
+      body.innerHTML =
+        '<div class="wiz-step-title">Which energy system?</div>' +
+        '<div class="wiz-choices">' +
+          ['strength', 'power', 'endurance'].map(function(t){
+            var sel = _assignWizard.type === t ? ' selected' : '';
+            return '<button type="button" class="wiz-choice' + sel + '" data-type="' + t + '">' +
+              escapeHtml(coachLibTypeLabel(t)) + '</button>';
+          }).join('') +
+        '</div>';
+      Array.prototype.forEach.call(body.querySelectorAll('.wiz-choice'), function(btn){
+        btn.addEventListener('click', function(){
+          _assignWizard.type = btn.getAttribute('data-type');
+          _assignWizard.category = null;
+          _assignWizard.createMode = false;
+          _assignWizard.libraryItemId = null;
+          _assignWizard.drillName = '';
+          _assignWizard.libraryDescription = '';
+          _assignWizard.assignDescription = '';
+          _coachLibSelectedId = null;
+          goAssignWizardStep(2);
+        });
+      });
+      return;
+    }
+
+    if(step === 2){
+      var cats = categoriesForAssignType(_assignWizard.type);
+      body.innerHTML =
+        wizardPathSummary() +
+        '<div class="wiz-step-title">Which category?</div>' +
+        '<div class="wiz-choices">' +
+          cats.map(function(c){
+            var count = drillsForTypeCategory(_assignWizard.type, c).length;
+            var meta = count
+              ? count + (count === 1 ? ' drill' : ' drills')
+              : 'No drills yet — you\'ll create one';
+            var sel = _assignWizard.category === c ? ' selected' : '';
+            return '<button type="button" class="wiz-choice' + sel + '" data-category="' + escapeHtml(c) + '">' +
+              escapeHtml(c) +
+              '<span class="wiz-choice-meta">' + meta + '</span></button>';
+          }).join('') +
+        '</div>' +
+        '<div class="wiz-nav"><button type="button" class="btn-secondary" id="wiz-back">Back</button></div>';
+      document.getElementById('wiz-back').addEventListener('click', function(){
+        goAssignWizardStep(1);
+      });
+      Array.prototype.forEach.call(body.querySelectorAll('.wiz-choice'), function(btn){
+        btn.addEventListener('click', function(){
+          _assignWizard.category = btn.getAttribute('data-category');
+          _assignWizard.libraryItemId = null;
+          _assignWizard.drillName = '';
+          _assignWizard.libraryDescription = '';
+          _assignWizard.assignDescription = '';
+          _coachLibSelectedId = null;
+          // Empty combo → straight into create form (no empty picker).
+          _assignWizard.createMode = drillsForTypeCategory(_assignWizard.type, _assignWizard.category).length === 0;
+          goAssignWizardStep(3);
+        });
+      });
+      return;
+    }
+
+    if(step === 3){
+      if(_assignWizard.createMode){
+        body.innerHTML =
+          wizardPathSummary() +
+          '<div class="wiz-step-title">Create a new drill</div>' +
+          '<div class="form-note" style="margin:-4px 0 12px;">Saves to the shared library under ' +
+            escapeHtml(coachLibTypeLabel(_assignWizard.type)) + ' / ' + escapeHtml(_assignWizard.category) +
+            ', then assigns it.</div>' +
+          '<div class="form-row"><label for="new-a-name">Name *</label>' +
+            '<input id="new-a-name" type="text" placeholder="e.g. Repeaters" value="' +
+            escapeHtml(_assignWizard.drillName) + '"></div>' +
+          '<div class="form-row"><label for="new-a-lib-desc">Description</label>' +
+            '<textarea id="new-a-lib-desc" placeholder="Optional protocol details">' +
+            escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
+          '<div class="wiz-nav">' +
+            '<button type="button" class="btn-secondary" id="wiz-back">Back</button>' +
+            '<button type="button" class="btn-primary" id="wiz-next">Continue</button>' +
+          '</div>';
+        document.getElementById('wiz-back').addEventListener('click', function(){
+          // If we entered create via the escape hatch from a non-empty list,
+          // back returns to the picker; otherwise back to category.
+          var hasDrills = drillsForTypeCategory(_assignWizard.type, _assignWizard.category).length > 0;
+          if(hasDrills){
+            _assignWizard.createMode = false;
+            goAssignWizardStep(3);
+          } else {
+            goAssignWizardStep(2);
+          }
+        });
+        document.getElementById('wiz-next').addEventListener('click', function(){
+          var name = (document.getElementById('new-a-name').value || '').trim();
+          var libDesc = (document.getElementById('new-a-lib-desc').value || '').trim();
+          if(!name){
+            document.getElementById('new-a-msg').innerHTML =
+              '<div class="form-error">Name is required.</div>';
+            return;
+          }
+          _assignWizard.libraryItemId = null;
+          _coachLibSelectedId = null;
+          _assignWizard.drillName = name;
+          _assignWizard.libraryDescription = libDesc;
+          _assignWizard.assignDescription = libDesc;
+          goAssignWizardStep(4);
+        });
+        return;
+      }
+
+      // Pick from existing drills for this type + category only.
+      body.innerHTML =
+        wizardPathSummary() +
+        '<div class="wiz-step-title">Pick a drill</div>' +
+        '<div class="form-row"><label for="new-a-lib-search">Search</label>' +
+          '<input id="new-a-lib-search" type="text" placeholder="Filter by name"></div>' +
+        '<div id="new-a-lib-results" class="lib-results"></div>' +
+        '<button type="button" class="btn-linkish" id="wiz-create-instead">Or create a new drill</button>' +
+        '<div class="wiz-nav"><button type="button" class="btn-secondary" id="wiz-back">Back</button></div>';
+      renderWizardLibraryResults();
+      document.getElementById('new-a-lib-search').addEventListener('input', renderWizardLibraryResults);
+      document.getElementById('new-a-lib-results').addEventListener('click', function(e){
+        var btn = e.target.closest('.lib-result');
+        if(!btn) return;
+        var id = btn.getAttribute('data-id');
+        var item = _coachLibCache.find(function(r){ return r.id === id; });
+        if(!item) return;
+        // Guard: never accept a drill outside the chosen type/category.
+        if(item.type !== _assignWizard.type || item.category !== _assignWizard.category) return;
+        _assignWizard.libraryItemId = item.id;
+        _coachLibSelectedId = item.id;
+        _assignWizard.drillName = item.name || '';
+        _assignWizard.libraryDescription = item.description || '';
+        _assignWizard.assignDescription = item.description || '';
+        _assignWizard.createMode = false;
+        goAssignWizardStep(4);
+      });
+      document.getElementById('wiz-create-instead').addEventListener('click', function(){
+        _assignWizard.createMode = true;
+        _assignWizard.libraryItemId = null;
+        _coachLibSelectedId = null;
+        _assignWizard.drillName = '';
+        _assignWizard.libraryDescription = '';
+        _assignWizard.assignDescription = '';
+        goAssignWizardStep(3);
+      });
+      document.getElementById('wiz-back').addEventListener('click', function(){
+        goAssignWizardStep(2);
+      });
+      return;
+    }
+
+    if(step === 4){
+      body.innerHTML =
+        wizardPathSummary() +
+        '<div class="wiz-step-title">Customize for this athlete</div>' +
+        '<div class="form-note" style="margin:-4px 0 12px;">Edit reps, sets, weight, or notes. Plain text / markdown.</div>' +
+        '<div class="form-row"><label for="new-a-desc">Description</label>' +
+          '<textarea id="new-a-desc" placeholder="Optional — tailor the protocol for this athlete">' +
+          escapeHtml(_assignWizard.assignDescription) + '</textarea></div>' +
+        '<div class="wiz-nav">' +
+          '<button type="button" class="btn-secondary" id="wiz-back">Back</button>' +
+          '<button type="button" class="btn-primary" id="wiz-next">Continue</button>' +
+        '</div>';
+      document.getElementById('wiz-back').addEventListener('click', function(){
+        _assignWizard.assignDescription = document.getElementById('new-a-desc').value || '';
+        goAssignWizardStep(3);
+      });
+      document.getElementById('wiz-next').addEventListener('click', function(){
+        _assignWizard.assignDescription = document.getElementById('new-a-desc').value || '';
+        goAssignWizardStep(5);
+      });
+      return;
+    }
+
+    // Step 5 — due date / resource link (unchanged fields)
+    body.innerHTML =
+      wizardPathSummary() +
+      '<div class="wiz-step-title">Due date &amp; resource</div>' +
+      '<div class="form-row"><label for="new-a-due">Due date</label>' +
+        '<input id="new-a-due" type="date" value="' + escapeHtml(_assignWizard.dueDate) + '"></div>' +
+      '<div class="form-row"><label for="new-a-link">Resource link</label>' +
+        '<input id="new-a-link" type="url" placeholder="Optional — YouTube, Google Drive, etc." value="' +
+        escapeHtml(_assignWizard.resourceLink) + '"></div>' +
+      '<div class="wiz-nav">' +
+        '<button type="button" class="btn-secondary" id="wiz-back">Back</button>' +
+        '<button type="button" class="btn-primary" id="new-a-submit">Create assignment</button>' +
+      '</div>';
+    document.getElementById('wiz-back').addEventListener('click', function(){
+      _assignWizard.dueDate = document.getElementById('new-a-due').value || '';
+      _assignWizard.resourceLink = document.getElementById('new-a-link').value || '';
+      goAssignWizardStep(4);
     });
-    if(libPane) libPane.style.display = mode === 'library' ? 'block' : 'none';
-    if(newPane) newPane.style.display = mode === 'new' ? 'block' : 'none';
+    document.getElementById('new-a-submit').addEventListener('click', submitAssignWizard);
+  }
+
+  var _assignWizardCtx = null;
+
+  function submitAssignWizard(){
+    var ctx = _assignWizardCtx;
+    if(!ctx || !_assignWizard) return;
+    var token = ctx.token;
+    var coachUser = ctx.coachUser;
+    var athleteId = ctx.athleteId;
+    var msgEl = document.getElementById('new-a-msg');
+    var btn = document.getElementById('new-a-submit');
+    var dueInput = document.getElementById('new-a-due');
+    var linkInput = document.getElementById('new-a-link');
+    var due = dueInput ? dueInput.value : '';
+    var link = linkInput ? linkInput.value.trim() : '';
+    _assignWizard.dueDate = due;
+    _assignWizard.resourceLink = link;
+
+    if(!_assignWizard.type || !_assignWizard.category || !_assignWizard.drillName){
+      msgEl.innerHTML = '<div class="form-error">Wizard is incomplete — go back and finish each step.</div>';
+      return;
+    }
+    if(link && !/^https?:\/\//i.test(link)){
+      msgEl.innerHTML = '<div class="form-error">Resource link must start with http:// or https://</div>';
+      return;
+    }
+
+    var assignDescription = (_assignWizard.assignDescription || '').trim() || null;
+
+    function finishSuccess(){
+      btn.disabled = false;
+      btn.textContent = 'Create assignment';
+      loadAssignments(token, coachUser, athleteId);
+      loadCoachWorkoutLibrary(token).then(function(rows){
+        _coachLibCache = Array.isArray(rows) ? rows : [];
+      }).catch(function(){ /* non-blocking */ });
+      resetAssignWizard();
+      renderAssignWizardBody();
+      // renderAssignWizardBody clears #new-a-msg — set success after reset.
+      var okEl = document.getElementById('new-a-msg');
+      if(okEl) okEl.innerHTML = '<div class="form-success">Assignment created.</div>';
+    }
+
+    function failCreate(err){
+      btn.disabled = false;
+      btn.textContent = 'Create assignment';
+      var isMissingColumn = err && (err.code === 'PGRST204' || err.code === '42703');
+      var msg = (err && err.message) || 'unknown error';
+      msgEl.innerHTML = '<div class="form-error">' +
+        (isMissingColumn
+          ? 'A required column is missing in Supabase (resource_link or library_item_id / type). Check recent migrations.'
+          : 'Failed. ' + escapeHtml(msg)) +
+        '</div>';
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+
+    // Existing library drill — link only, no re-insert.
+    if(_assignWizard.libraryItemId && !_assignWizard.createMode){
+      var assignPayload = {
+        coach_id: coachUser.id,
+        athlete_id: athleteId,
+        title: _assignWizard.drillName,
+        description: assignDescription,
+        due_date: due || null,
+        library_item_id: _assignWizard.libraryItemId
+      };
+      if(link) assignPayload.resource_link = link;
+      createCoachLibraryAssignment(token, assignPayload).then(finishSuccess).catch(failCreate);
+      return;
+    }
+
+    // Brand-new drill: insert into workout_library first (type/category
+    // locked from steps 1–2), then assign via library_item_id.
+    createCoachLibraryDrill(token, coachUser, {
+      category: _assignWizard.category,
+      name: _assignWizard.drillName,
+      description: (_assignWizard.libraryDescription || '').trim() || null,
+      type: _assignWizard.type
+    }).then(function(libRow){
+      if(!libRow || !libRow.id) throw { message: 'Library insert returned no id' };
+      var payload = {
+        coach_id: coachUser.id,
+        athlete_id: athleteId,
+        title: _assignWizard.drillName,
+        description: assignDescription,
+        due_date: due || null,
+        library_item_id: libRow.id
+      };
+      if(link) payload.resource_link = link;
+      return createCoachLibraryAssignment(token, payload);
+    }).then(finishSuccess).catch(failCreate);
   }
 
   function renderNewAssignmentForm(token, coachUser, athleteId){
+    _assignWizardCtx = { token: token, coachUser: coachUser, athleteId: athleteId };
     var el = document.getElementById('detail-new-assignment');
-    _coachLibSelectedId = null;
     _coachLibCache = [];
+    resetAssignWizard();
     el.innerHTML =
       '<div class="panel-title">New assignment</div>' +
-      '<div class="mode-tabs">' +
-        '<button type="button" class="mode-tab active" data-mode="library">Use library drill</button>' +
-        '<button type="button" class="mode-tab" data-mode="new">Create new drill</button>' +
-      '</div>' +
-
-      '<div id="assign-mode-library">' +
-        '<div class="form-row"><label for="new-a-lib-type-filter">Filter by type</label>' +
-          '<select id="new-a-lib-type-filter">' +
-            '<option value="">All types</option>' +
-            '<option value="strength">Strength</option>' +
-            '<option value="power">Power</option>' +
-            '<option value="endurance">Endurance</option>' +
-          '</select></div>' +
-        '<div class="form-row"><label for="new-a-lib-search">Search library</label>' +
-          '<input id="new-a-lib-search" type="text" placeholder="Name or category"></div>' +
-        '<div id="new-a-lib-results" class="lib-results"><div class="lib-result-empty">Loading library…</div></div>' +
-        '<div id="new-a-lib-selected" class="lib-selected-banner" style="display:none;"></div>' +
-        '<div class="form-row"><label for="new-a-title">Title *</label><input id="new-a-title" type="text" placeholder="Select a library drill to prefill"></div>' +
-        '<div class="form-row"><label for="new-a-desc">Description</label><textarea id="new-a-desc" placeholder="Optional. Editable after picking."></textarea></div>' +
-      '</div>' +
-
-      '<div id="assign-mode-new" style="display:none;">' +
-        '<div class="form-row"><label for="new-a-category">Category *</label>' +
-          '<input id="new-a-category" type="text" list="new-a-category-suggestions" placeholder="e.g. Hangboard">' +
-          '<datalist id="new-a-category-suggestions"></datalist></div>' +
-        '<div class="form-row"><label for="new-a-name">Name *</label><input id="new-a-name" type="text" placeholder="e.g. Repeaters"></div>' +
-        '<div class="form-row"><label for="new-a-new-desc">Description</label><textarea id="new-a-new-desc" placeholder="Optional protocol details"></textarea></div>' +
-        '<div class="form-row"><label for="new-a-type">Type *</label>' +
-          '<select id="new-a-type">' +
-            '<option value="">Select type</option>' +
-            '<option value="strength">Strength</option>' +
-            '<option value="power">Power</option>' +
-            '<option value="endurance">Endurance</option>' +
-          '</select></div>' +
-        '<div class="form-note">Creates a shared library drill first, then assigns it. Reusable for any athlete on your roster.</div>' +
-      '</div>' +
-
-      '<div class="form-row" style="margin-top:12px;"><label for="new-a-due">Due date</label><input id="new-a-due" type="date"></div>' +
-      '<div class="form-row"><label for="new-a-link">Resource link</label><input id="new-a-link" type="url" placeholder="Optional - YouTube, Google Drive, etc."></div>' +
-      '<div class="form-actions"><button class="btn-primary" id="new-a-submit">Create assignment</button></div>' +
+      '<div class="wiz-progress" id="wiz-progress"></div>' +
+      '<div id="wiz-body"><div class="form-note">Loading library…</div></div>' +
       '<div id="new-a-msg"></div>';
-
-    document.querySelectorAll('.mode-tab').forEach(function(tab){
-      tab.addEventListener('click', function(){
-        setCoachAssignMode(tab.getAttribute('data-mode'));
-        document.getElementById('new-a-msg').innerHTML = '';
-      });
-    });
-
-    var searchEl = document.getElementById('new-a-lib-search');
-    var typeFilterEl = document.getElementById('new-a-lib-type-filter');
-    var resultsEl = document.getElementById('new-a-lib-results');
-    if(searchEl) searchEl.addEventListener('input', renderCoachLibraryResults);
-    if(typeFilterEl) typeFilterEl.addEventListener('change', renderCoachLibraryResults);
-    if(resultsEl){
-      resultsEl.addEventListener('click', function(e){
-        var btn = e.target.closest('.lib-result');
-        if(!btn) return;
-        selectCoachLibraryItem(btn.getAttribute('data-id'));
-      });
-    }
 
     loadCoachWorkoutLibrary(token).then(function(rows){
       _coachLibCache = Array.isArray(rows) ? rows : [];
-      renderCoachLibraryResults();
-      populateCoachLibraryCategorySuggestions();
+      renderAssignWizardBody();
     }).catch(function(err){
-      if(resultsEl){
-        resultsEl.innerHTML = '<div class="lib-result-empty">Could not load library. ' +
-          escapeHtml((err && err.message) || 'unknown error') + '</div>';
-      }
-    });
-
-    document.getElementById('new-a-submit').addEventListener('click', function(){
-      var msgEl = document.getElementById('new-a-msg');
-      var btn = document.getElementById('new-a-submit');
-      var dueInput = document.getElementById('new-a-due');
-      var linkInput = document.getElementById('new-a-link');
-      var mode = document.querySelector('.mode-tab.active');
-      var activeMode = mode ? mode.getAttribute('data-mode') : 'library';
-
-      var link = linkInput.value.trim();
-      if(link && !/^https?:\/\//i.test(link)){
-        msgEl.innerHTML = '<div class="form-error">Resource link must start with http:// or https://</div>';
-        return;
-      }
-
-      function finishSuccess(){
-        btn.disabled = false;
-        btn.textContent = 'Create assignment';
-        // Reset shared fields
-        dueInput.value = '';
-        linkInput.value = '';
-        // Reset library path
-        _coachLibSelectedId = null;
-        var titleEl = document.getElementById('new-a-title');
-        var descEl = document.getElementById('new-a-desc');
-        var bannerEl = document.getElementById('new-a-lib-selected');
-        var searchBox = document.getElementById('new-a-lib-search');
-        if(titleEl) titleEl.value = '';
-        if(descEl) descEl.value = '';
-        if(bannerEl){ bannerEl.style.display = 'none'; bannerEl.innerHTML = ''; }
-        if(searchBox) searchBox.value = '';
-        // Reset new-drill path
-        var catEl = document.getElementById('new-a-category');
-        var nameEl = document.getElementById('new-a-name');
-        var newDescEl = document.getElementById('new-a-new-desc');
-        var typeEl = document.getElementById('new-a-type');
-        if(catEl) catEl.value = '';
-        if(nameEl) nameEl.value = '';
-        if(newDescEl) newDescEl.value = '';
-        if(typeEl) typeEl.value = '';
-        renderCoachLibraryResults();
-        msgEl.innerHTML = '<div class="form-success">Assignment created.</div>';
-        loadAssignments(token, coachUser, athleteId);
-        // Refresh library cache so a just-created drill is immediately reusable
-        loadCoachWorkoutLibrary(token).then(function(rows){
-          _coachLibCache = Array.isArray(rows) ? rows : [];
-          renderCoachLibraryResults();
-          populateCoachLibraryCategorySuggestions();
-        }).catch(function(){ /* non-blocking */ });
-      }
-
-      function failCreate(err){
-        btn.disabled = false;
-        btn.textContent = 'Create assignment';
-        var isMissingColumn = err && (err.code === 'PGRST204' || err.code === '42703');
-        var msg = (err && err.message) || 'unknown error';
-        msgEl.innerHTML = '<div class="form-error">' +
-          (isMissingColumn
-            ? 'A required column is missing in Supabase (resource_link or library_item_id / type). Check recent migrations.'
-            : 'Failed. ' + escapeHtml(msg)) +
-          '</div>';
-      }
-
-      btn.disabled = true;
-      btn.textContent = 'Creating...';
-
-      if(activeMode === 'library'){
-        if(!_coachLibSelectedId){
-          btn.disabled = false;
-          btn.textContent = 'Create assignment';
-          msgEl.innerHTML = '<div class="form-error">Pick a library drill first.</div>';
-          return;
-        }
-        var title = (document.getElementById('new-a-title').value || '').trim();
-        if(!title){
-          btn.disabled = false;
-          btn.textContent = 'Create assignment';
-          msgEl.innerHTML = '<div class="form-error">Title is required.</div>';
-          return;
-        }
-        var assignPayload = {
-          coach_id: coachUser.id,
-          athlete_id: athleteId,
-          title: title,
-          description: (document.getElementById('new-a-desc').value || '').trim() || null,
-          due_date: dueInput.value || null,
-          library_item_id: _coachLibSelectedId
-        };
-        // Omit blank resource_link (same PostgREST reason as before)
-        if(link) assignPayload.resource_link = link;
-        createCoachLibraryAssignment(token, assignPayload).then(finishSuccess).catch(failCreate);
-        return;
-      }
-
-      // Create new drill path — category is modality (Hangboard, etc.);
-      // type is energy system and remains required separately (DB type
-      // nullable so starter rows can stay unclassified).
-      var category = (document.getElementById('new-a-category').value || '').trim();
-      var name = (document.getElementById('new-a-name').value || '').trim();
-      var newDesc = (document.getElementById('new-a-new-desc').value || '').trim();
-      var drillType = (document.getElementById('new-a-type').value || '').trim();
-      if(!category){
-        btn.disabled = false;
-        btn.textContent = 'Create assignment';
-        msgEl.innerHTML = '<div class="form-error">Category is required.</div>';
-        return;
-      }
-      if(!name){
-        btn.disabled = false;
-        btn.textContent = 'Create assignment';
-        msgEl.innerHTML = '<div class="form-error">Name is required.</div>';
-        return;
-      }
-      if(drillType !== 'strength' && drillType !== 'power' && drillType !== 'endurance'){
-        btn.disabled = false;
-        btn.textContent = 'Create assignment';
-        msgEl.innerHTML = '<div class="form-error">Type is required (Strength, Power, or Endurance).</div>';
-        return;
-      }
-
-      createCoachLibraryDrill(token, coachUser, {
-        category: category,
-        name: name,
-        description: newDesc || null,
-        type: drillType
-      }).then(function(libRow){
-        if(!libRow || !libRow.id) throw { message: 'Library insert returned no id' };
-        var assignPayload = {
-          coach_id: coachUser.id,
-          athlete_id: athleteId,
-          title: name,
-          description: newDesc || null,
-          due_date: dueInput.value || null,
-          library_item_id: libRow.id
-        };
-        if(link) assignPayload.resource_link = link;
-        return createCoachLibraryAssignment(token, assignPayload);
-      }).then(finishSuccess).catch(failCreate);
+      _assignWizard.libLoadError = (err && err.message) || 'unknown error';
+      document.getElementById('wiz-body').innerHTML =
+        '<div class="form-error">Could not load library. ' +
+        escapeHtml(_assignWizard.libLoadError) + '</div>';
     });
   }
 
