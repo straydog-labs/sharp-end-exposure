@@ -2183,6 +2183,8 @@
         populateTrainingAthleteSelect(rosterCache);
       })
       .catch(function(err){
+        rosterCache = [];
+        populateTrainingAthleteSelect([]);
         if(isMissingRpc(err)){
           sqlMissingBanner(banner, 'Coaching Roster');
           listEl.innerHTML = '<div class="bo-empty">RPC <code>foundash_list_roster</code> not available yet.</div>';
@@ -2282,7 +2284,7 @@
     var sel = document.getElementById('training-athlete-select');
     if(!sel) return;
     if(!links || !links.length){
-      sel.innerHTML = '<option value="">No linked athletes</option>';
+      sel.innerHTML = '<option value="">No linked athletes — paste a user id below, or apply foundash SQL</option>';
       return;
     }
     sel.innerHTML = '<option value="">Select from roster···</option>' + links.map(function(link){
