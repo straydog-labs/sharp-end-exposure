@@ -608,12 +608,11 @@
 
   // Coach-side insert into workout_library. Mirrors athlete
   // createWorkoutLibraryItem() column set, plus required `type`.
-  // category is NOT NULL in schema; for coach-created drills we set it to
-  // the type label (Strength/Power/Endurance) so the form stays to the
-  // brief's name/description/type fields without inventing a second taxonomy.
+  // category is modality (Hangboard, Boulder circuits, etc.) — free-text from
+  // the form, same pattern as athlete wl-new-category. Separate from type.
   function createCoachLibraryDrill(token, coachUser, fields){
     var payload = {
-      category: coachLibTypeLabel(fields.type),
+      category: fields.category,
       name: fields.name,
       description: fields.description || null,
       created_by: coachUser.id,
@@ -654,6 +653,19 @@
       var hay = ((item.name || '') + ' ' + (item.category || '') + ' ' + (item.description || '') + ' ' + (item.type || '')).toLowerCase();
       return hay.indexOf(q) !== -1;
     });
+  }
+
+  // Same pattern as athlete populateWorkoutLibraryCategorySuggestions():
+  // free-text category + datalist of categories already in the library.
+  function populateCoachLibraryCategorySuggestions(){
+    var dl = document.getElementById('new-a-category-suggestions');
+    if(!dl) return;
+    var cats = [];
+    _coachLibCache.forEach(function(r){
+      if(r.category && cats.indexOf(r.category) === -1) cats.push(r.category);
+    });
+    cats.sort();
+    dl.innerHTML = cats.map(function(c){ return '<option value="' + escapeHtml(c) + '">'; }).join('');
   }
 
   function renderCoachLibraryResults(){
@@ -735,6 +747,9 @@
       '</div>' +
 
       '<div id="assign-mode-new" style="display:none;">' +
+        '<div class="form-row"><label for="new-a-category">Category *</label>' +
+          '<input id="new-a-category" type="text" list="new-a-category-suggestions" placeholder="e.g. Hangboard">' +
+          '<datalist id="new-a-category-suggestions"></datalist></div>' +
         '<div class="form-row"><label for="new-a-name">Name *</label><input id="new-a-name" type="text" placeholder="e.g. Repeaters"></div>' +
         '<div class="form-row"><label for="new-a-new-desc">Description</label><textarea id="new-a-new-desc" placeholder="Optional protocol details"></textarea></div>' +
         '<div class="form-row"><label for="new-a-type">Type *</label>' +
@@ -775,6 +790,7 @@
     loadCoachWorkoutLibrary(token).then(function(rows){
       _coachLibCache = Array.isArray(rows) ? rows : [];
       renderCoachLibraryResults();
+      populateCoachLibraryCategorySuggestions();
     }).catch(function(err){
       if(resultsEl){
         resultsEl.innerHTML = '<div class="lib-result-empty">Could not load library. ' +
@@ -813,9 +829,11 @@
         if(bannerEl){ bannerEl.style.display = 'none'; bannerEl.innerHTML = ''; }
         if(searchBox) searchBox.value = '';
         // Reset new-drill path
+        var catEl = document.getElementById('new-a-category');
         var nameEl = document.getElementById('new-a-name');
         var newDescEl = document.getElementById('new-a-new-desc');
         var typeEl = document.getElementById('new-a-type');
+        if(catEl) catEl.value = '';
         if(nameEl) nameEl.value = '';
         if(newDescEl) newDescEl.value = '';
         if(typeEl) typeEl.value = '';
@@ -826,6 +844,7 @@
         loadCoachWorkoutLibrary(token).then(function(rows){
           _coachLibCache = Array.isArray(rows) ? rows : [];
           renderCoachLibraryResults();
+          populateCoachLibraryCategorySuggestions();
         }).catch(function(){ /* non-blocking */ });
       }
 
@@ -872,11 +891,19 @@
         return;
       }
 
-      // Create new drill path — type required at form level (DB column nullable
-      // so starter rows can stay unclassified).
+      // Create new drill path — category is modality (Hangboard, etc.);
+      // type is energy system and remains required separately (DB type
+      // nullable so starter rows can stay unclassified).
+      var category = (document.getElementById('new-a-category').value || '').trim();
       var name = (document.getElementById('new-a-name').value || '').trim();
       var newDesc = (document.getElementById('new-a-new-desc').value || '').trim();
       var drillType = (document.getElementById('new-a-type').value || '').trim();
+      if(!category){
+        btn.disabled = false;
+        btn.textContent = 'Create assignment';
+        msgEl.innerHTML = '<div class="form-error">Category is required.</div>';
+        return;
+      }
       if(!name){
         btn.disabled = false;
         btn.textContent = 'Create assignment';
@@ -891,6 +918,7 @@
       }
 
       createCoachLibraryDrill(token, coachUser, {
+        category: category,
         name: name,
         description: newDesc || null,
         type: drillType
