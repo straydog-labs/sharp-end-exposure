@@ -192,6 +192,36 @@
 
   .link-athlete-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);}
 
+  /* ---------- New assignment: library picker ---------- */
+  .mode-tabs{display:flex;gap:6px;margin-bottom:14px;}
+  .mode-tab{
+    flex:1;background:#141414;border:1px solid var(--border);border-radius:6px;padding:9px 10px;
+    color:var(--text-secondary);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;cursor:pointer;
+  }
+  .mode-tab:hover{border-color:rgba(200,98,42,.45);color:var(--text);}
+  .mode-tab.active{background:rgba(200,98,42,.12);border-color:var(--accent);color:var(--accent);}
+  .lib-results{
+    max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:#141414;margin-bottom:12px;
+  }
+  .lib-result{
+    width:100%;text-align:left;background:transparent;border:none;border-bottom:1px solid var(--border);
+    padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;cursor:pointer;
+  }
+  .lib-result:last-child{border-bottom:none;}
+  .lib-result:hover{background:rgba(255,255,255,.03);}
+  .lib-result.selected{background:rgba(200,98,42,.1);}
+  .lib-result-name{font-size:13px;font-weight:600;}
+  .lib-result-meta{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+  .lib-result-empty{padding:12px;font-size:12px;color:var(--text-secondary);}
+  .lib-type-pill{
+    display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--accent);border:1px solid rgba(200,98,42,.35);border-radius:999px;padding:1px 7px;margin-left:6px;
+  }
+  .lib-selected-banner{
+    font-size:12px;color:var(--text-secondary);background:rgba(200,98,42,.08);border:1px solid rgba(200,98,42,.25);
+    border-radius:6px;padding:8px 10px;margin-bottom:12px;
+  }
+
   /* ---------- Athlete training view ---------- */
   .training-header{margin-bottom:20px;}
 </style>
@@ -557,79 +587,326 @@
       });
   }
 
+  // ── Workout library (coach-side) ─────────────────────────
+  // Same workout_library / assignments.library_item_id tables the athlete
+  // app uses (createWorkoutLibraryItem / addLibraryItemToTraining in
+  // index.html). Coach-side equivalents below — not a copy-paste of those
+  // helpers, but the same column names and insert shape.
+  var _coachLibCache = [];
+  var _coachLibSelectedId = null;
+
+  function coachLibTypeLabel(type){
+    if(type === 'strength') return 'Strength';
+    if(type === 'power') return 'Power';
+    if(type === 'endurance') return 'Endurance';
+    return '';
+  }
+
+  function loadCoachWorkoutLibrary(token){
+    return sbSelect(token, 'workout_library', 'select=id,category,name,description,type,created_at&order=category.asc,name.asc');
+  }
+
+  // Coach-side insert into workout_library. Mirrors athlete
+  // createWorkoutLibraryItem() column set, plus required `type`.
+  // category is NOT NULL in schema; for coach-created drills we set it to
+  // the type label (Strength/Power/Endurance) so the form stays to the
+  // brief's name/description/type fields without inventing a second taxonomy.
+  function createCoachLibraryDrill(token, coachUser, fields){
+    var payload = {
+      category: coachLibTypeLabel(fields.type),
+      name: fields.name,
+      description: fields.description || null,
+      created_by: coachUser.id,
+      type: fields.type
+    };
+    return fetch(SB_URL + '/rest/v1/workout_library', {
+      method: 'POST',
+      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      return res.json().then(function(rows){
+        return Array.isArray(rows) ? rows[0] : rows;
+      });
+    });
+  }
+
+  // Coach-side assignment insert. Same library_item_id link athlete
+  // addLibraryItemToTraining() writes, with coach_id set.
+  function createCoachLibraryAssignment(token, payload){
+    return fetch(SB_URL + '/rest/v1/assignments', {
+      method: 'POST',
+      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      return res.json().then(function(rows){
+        return Array.isArray(rows) ? rows[0] : rows;
+      });
+    });
+  }
+
+  function filterCoachLibraryResults(query, typeFilter){
+    var q = (query || '').trim().toLowerCase();
+    return _coachLibCache.filter(function(item){
+      if(typeFilter && item.type !== typeFilter) return false;
+      if(!q) return true;
+      var hay = ((item.name || '') + ' ' + (item.category || '') + ' ' + (item.description || '') + ' ' + (item.type || '')).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+  }
+
+  function renderCoachLibraryResults(){
+    var resultsEl = document.getElementById('new-a-lib-results');
+    var searchEl = document.getElementById('new-a-lib-search');
+    var typeEl = document.getElementById('new-a-lib-type-filter');
+    if(!resultsEl) return;
+    var rows = filterCoachLibraryResults(searchEl ? searchEl.value : '', typeEl ? typeEl.value : '');
+    if(!rows.length){
+      resultsEl.innerHTML = '<div class="lib-result-empty">No library drills match.</div>';
+      return;
+    }
+    resultsEl.innerHTML = rows.map(function(item){
+      var typePill = item.type
+        ? '<span class="lib-type-pill">' + escapeHtml(coachLibTypeLabel(item.type)) + '</span>'
+        : '';
+      var selected = item.id === _coachLibSelectedId ? ' selected' : '';
+      return '<button type="button" class="lib-result' + selected + '" data-id="' + escapeHtml(item.id) + '">' +
+        '<div class="lib-result-name">' + escapeHtml(item.name) + typePill + '</div>' +
+        '<div class="lib-result-meta">' + escapeHtml(item.category || 'Uncategorized') + '</div>' +
+      '</button>';
+    }).join('');
+  }
+
+  function selectCoachLibraryItem(id){
+    var item = _coachLibCache.find(function(r){ return r.id === id; });
+    if(!item) return;
+    _coachLibSelectedId = id;
+    var titleEl = document.getElementById('new-a-title');
+    var descEl = document.getElementById('new-a-desc');
+    var bannerEl = document.getElementById('new-a-lib-selected');
+    if(titleEl) titleEl.value = item.name || '';
+    if(descEl) descEl.value = item.description || '';
+    if(bannerEl){
+      var typeTxt = item.type ? ' · ' + coachLibTypeLabel(item.type) : '';
+      bannerEl.style.display = 'block';
+      bannerEl.innerHTML = 'Selected from library: <b style="color:var(--text);">' + escapeHtml(item.name) + '</b>' +
+        ' <span style="color:var(--text-secondary);">(' + escapeHtml(item.category || 'Uncategorized') + typeTxt + ')</span>';
+    }
+    renderCoachLibraryResults();
+  }
+
+  function setCoachAssignMode(mode){
+    var libPane = document.getElementById('assign-mode-library');
+    var newPane = document.getElementById('assign-mode-new');
+    var tabs = document.querySelectorAll('.mode-tab');
+    tabs.forEach(function(tab){
+      tab.classList.toggle('active', tab.getAttribute('data-mode') === mode);
+    });
+    if(libPane) libPane.style.display = mode === 'library' ? 'block' : 'none';
+    if(newPane) newPane.style.display = mode === 'new' ? 'block' : 'none';
+  }
+
   function renderNewAssignmentForm(token, coachUser, athleteId){
     var el = document.getElementById('detail-new-assignment');
+    _coachLibSelectedId = null;
+    _coachLibCache = [];
     el.innerHTML =
       '<div class="panel-title">New assignment</div>' +
-      '<div class="form-row"><label for="new-a-title">Title *</label><input id="new-a-title" type="text" placeholder="e.g. Log 2 sessions this week"></div>' +
-      '<div class="form-row"><label for="new-a-desc">Description</label><textarea id="new-a-desc" placeholder="Optional"></textarea></div>' +
-      '<div class="form-row"><label for="new-a-due">Due date</label><input id="new-a-due" type="date"></div>' +
-      '<div class="form-row"><label for="new-a-link">Resource link</label><input id="new-a-link" type="url" placeholder="Optional — YouTube, Google Drive, etc."></div>' +
+      '<div class="mode-tabs">' +
+        '<button type="button" class="mode-tab active" data-mode="library">Use library drill</button>' +
+        '<button type="button" class="mode-tab" data-mode="new">Create new drill</button>' +
+      '</div>' +
+
+      '<div id="assign-mode-library">' +
+        '<div class="form-row"><label for="new-a-lib-type-filter">Filter by type</label>' +
+          '<select id="new-a-lib-type-filter">' +
+            '<option value="">All types</option>' +
+            '<option value="strength">Strength</option>' +
+            '<option value="power">Power</option>' +
+            '<option value="endurance">Endurance</option>' +
+          '</select></div>' +
+        '<div class="form-row"><label for="new-a-lib-search">Search library</label>' +
+          '<input id="new-a-lib-search" type="text" placeholder="Name or category"></div>' +
+        '<div id="new-a-lib-results" class="lib-results"><div class="lib-result-empty">Loading library…</div></div>' +
+        '<div id="new-a-lib-selected" class="lib-selected-banner" style="display:none;"></div>' +
+        '<div class="form-row"><label for="new-a-title">Title *</label><input id="new-a-title" type="text" placeholder="Select a library drill to prefill"></div>' +
+        '<div class="form-row"><label for="new-a-desc">Description</label><textarea id="new-a-desc" placeholder="Optional. Editable after picking."></textarea></div>' +
+      '</div>' +
+
+      '<div id="assign-mode-new" style="display:none;">' +
+        '<div class="form-row"><label for="new-a-name">Name *</label><input id="new-a-name" type="text" placeholder="e.g. Repeaters"></div>' +
+        '<div class="form-row"><label for="new-a-new-desc">Description</label><textarea id="new-a-new-desc" placeholder="Optional protocol details"></textarea></div>' +
+        '<div class="form-row"><label for="new-a-type">Type *</label>' +
+          '<select id="new-a-type">' +
+            '<option value="">Select type</option>' +
+            '<option value="strength">Strength</option>' +
+            '<option value="power">Power</option>' +
+            '<option value="endurance">Endurance</option>' +
+          '</select></div>' +
+        '<div class="form-note">Creates a shared library drill first, then assigns it. Reusable for any athlete on your roster.</div>' +
+      '</div>' +
+
+      '<div class="form-row" style="margin-top:12px;"><label for="new-a-due">Due date</label><input id="new-a-due" type="date"></div>' +
+      '<div class="form-row"><label for="new-a-link">Resource link</label><input id="new-a-link" type="url" placeholder="Optional - YouTube, Google Drive, etc."></div>' +
       '<div class="form-actions"><button class="btn-primary" id="new-a-submit">Create assignment</button></div>' +
       '<div id="new-a-msg"></div>';
 
+    document.querySelectorAll('.mode-tab').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        setCoachAssignMode(tab.getAttribute('data-mode'));
+        document.getElementById('new-a-msg').innerHTML = '';
+      });
+    });
+
+    var searchEl = document.getElementById('new-a-lib-search');
+    var typeFilterEl = document.getElementById('new-a-lib-type-filter');
+    var resultsEl = document.getElementById('new-a-lib-results');
+    if(searchEl) searchEl.addEventListener('input', renderCoachLibraryResults);
+    if(typeFilterEl) typeFilterEl.addEventListener('change', renderCoachLibraryResults);
+    if(resultsEl){
+      resultsEl.addEventListener('click', function(e){
+        var btn = e.target.closest('.lib-result');
+        if(!btn) return;
+        selectCoachLibraryItem(btn.getAttribute('data-id'));
+      });
+    }
+
+    loadCoachWorkoutLibrary(token).then(function(rows){
+      _coachLibCache = Array.isArray(rows) ? rows : [];
+      renderCoachLibraryResults();
+    }).catch(function(err){
+      if(resultsEl){
+        resultsEl.innerHTML = '<div class="lib-result-empty">Could not load library. ' +
+          escapeHtml((err && err.message) || 'unknown error') + '</div>';
+      }
+    });
+
     document.getElementById('new-a-submit').addEventListener('click', function(){
-      var titleInput = document.getElementById('new-a-title');
-      var descInput = document.getElementById('new-a-desc');
-      var dueInput = document.getElementById('new-a-due');
-      var linkInput = document.getElementById('new-a-link');
       var msgEl = document.getElementById('new-a-msg');
       var btn = document.getElementById('new-a-submit');
+      var dueInput = document.getElementById('new-a-due');
+      var linkInput = document.getElementById('new-a-link');
+      var mode = document.querySelector('.mode-tab.active');
+      var activeMode = mode ? mode.getAttribute('data-mode') : 'library';
 
-      var title = titleInput.value.trim();
-      if(!title){
-        msgEl.innerHTML = '<div class="form-error">Title is required.</div>';
-        return;
-      }
       var link = linkInput.value.trim();
       if(link && !/^https?:\/\//i.test(link)){
         msgEl.innerHTML = '<div class="form-error">Resource link must start with http:// or https://</div>';
         return;
       }
 
-      var payload = {
-        coach_id: coachUser.id,
-        athlete_id: athleteId,
-        title: title,
-        description: descInput.value.trim() || null,
-        due_date: dueInput.value || null
-      };
-      // Only include resource_link when there's an actual value. If the
-      // resource_link column hasn't been added yet (coach-layer-additions.sql
-      // section 3 not run), PostgREST rejects the WHOLE insert the moment the
-      // key is present in the body — even as null — so omitting the key
-      // entirely when the field is blank keeps assignment creation working
-      // exactly as before on a database that hasn't been migrated yet.
-      if(link) payload.resource_link = link;
-
-      btn.disabled = true;
-      btn.textContent = 'Creating...';
-      fetch(SB_URL + '/rest/v1/assignments', {
-        method: 'POST',
-        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
-        body: JSON.stringify(payload)
-      }).then(function(res){
+      function finishSuccess(){
         btn.disabled = false;
         btn.textContent = 'Create assignment';
-        if(!res.ok){
-          return res.json().then(function(err){ throw err; });
-        }
-        titleInput.value = '';
-        descInput.value = '';
+        // Reset shared fields
         dueInput.value = '';
         linkInput.value = '';
+        // Reset library path
+        _coachLibSelectedId = null;
+        var titleEl = document.getElementById('new-a-title');
+        var descEl = document.getElementById('new-a-desc');
+        var bannerEl = document.getElementById('new-a-lib-selected');
+        var searchBox = document.getElementById('new-a-lib-search');
+        if(titleEl) titleEl.value = '';
+        if(descEl) descEl.value = '';
+        if(bannerEl){ bannerEl.style.display = 'none'; bannerEl.innerHTML = ''; }
+        if(searchBox) searchBox.value = '';
+        // Reset new-drill path
+        var nameEl = document.getElementById('new-a-name');
+        var newDescEl = document.getElementById('new-a-new-desc');
+        var typeEl = document.getElementById('new-a-type');
+        if(nameEl) nameEl.value = '';
+        if(newDescEl) newDescEl.value = '';
+        if(typeEl) typeEl.value = '';
+        renderCoachLibraryResults();
         msgEl.innerHTML = '<div class="form-success">Assignment created.</div>';
         loadAssignments(token, coachUser, athleteId);
-      }).catch(function(err){
+        // Refresh library cache so a just-created drill is immediately reusable
+        loadCoachWorkoutLibrary(token).then(function(rows){
+          _coachLibCache = Array.isArray(rows) ? rows : [];
+          renderCoachLibraryResults();
+        }).catch(function(){ /* non-blocking */ });
+      }
+
+      function failCreate(err){
         btn.disabled = false;
         btn.textContent = 'Create assignment';
         var isMissingColumn = err && (err.code === 'PGRST204' || err.code === '42703');
+        var msg = (err && err.message) || 'unknown error';
         msgEl.innerHTML = '<div class="form-error">' +
           (isMissingColumn
-            ? 'The <code>resource_link</code> column doesn\'t exist yet — run coach-layer-additions.sql (section 3) first.'
-            : 'Failed — ' + escapeHtml((err && err.message) || 'unknown error')) +
+            ? 'A required column is missing in Supabase (resource_link or library_item_id / type). Check recent migrations.'
+            : 'Failed. ' + escapeHtml(msg)) +
           '</div>';
-      });
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+
+      if(activeMode === 'library'){
+        if(!_coachLibSelectedId){
+          btn.disabled = false;
+          btn.textContent = 'Create assignment';
+          msgEl.innerHTML = '<div class="form-error">Pick a library drill first.</div>';
+          return;
+        }
+        var title = (document.getElementById('new-a-title').value || '').trim();
+        if(!title){
+          btn.disabled = false;
+          btn.textContent = 'Create assignment';
+          msgEl.innerHTML = '<div class="form-error">Title is required.</div>';
+          return;
+        }
+        var assignPayload = {
+          coach_id: coachUser.id,
+          athlete_id: athleteId,
+          title: title,
+          description: (document.getElementById('new-a-desc').value || '').trim() || null,
+          due_date: dueInput.value || null,
+          library_item_id: _coachLibSelectedId
+        };
+        // Omit blank resource_link (same PostgREST reason as before)
+        if(link) assignPayload.resource_link = link;
+        createCoachLibraryAssignment(token, assignPayload).then(finishSuccess).catch(failCreate);
+        return;
+      }
+
+      // Create new drill path — type required at form level (DB column nullable
+      // so starter rows can stay unclassified).
+      var name = (document.getElementById('new-a-name').value || '').trim();
+      var newDesc = (document.getElementById('new-a-new-desc').value || '').trim();
+      var drillType = (document.getElementById('new-a-type').value || '').trim();
+      if(!name){
+        btn.disabled = false;
+        btn.textContent = 'Create assignment';
+        msgEl.innerHTML = '<div class="form-error">Name is required.</div>';
+        return;
+      }
+      if(drillType !== 'strength' && drillType !== 'power' && drillType !== 'endurance'){
+        btn.disabled = false;
+        btn.textContent = 'Create assignment';
+        msgEl.innerHTML = '<div class="form-error">Type is required (Strength, Power, or Endurance).</div>';
+        return;
+      }
+
+      createCoachLibraryDrill(token, coachUser, {
+        name: name,
+        description: newDesc || null,
+        type: drillType
+      }).then(function(libRow){
+        if(!libRow || !libRow.id) throw { message: 'Library insert returned no id' };
+        var assignPayload = {
+          coach_id: coachUser.id,
+          athlete_id: athleteId,
+          title: name,
+          description: newDesc || null,
+          due_date: dueInput.value || null,
+          library_item_id: libRow.id
+        };
+        if(link) assignPayload.resource_link = link;
+        return createCoachLibraryAssignment(token, assignPayload);
+      }).then(finishSuccess).catch(failCreate);
     });
   }
 
