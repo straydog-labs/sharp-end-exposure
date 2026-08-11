@@ -192,46 +192,125 @@
 
   .link-athlete-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);}
 
-  /* ---------- New assignment: step wizard ---------- */
-  .wiz-progress{
-    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-    color:var(--text-secondary);margin-bottom:6px;
+  /* ---------- New assignment: full-screen step flow (baseline-weight) ---------- */
+  .assign-launch{
+    width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--accent);border:none;border-radius:12px;padding:18px 20px;
+    color:#0d0d0d;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;
   }
-  .wiz-step-title{font-size:14px;font-weight:600;margin-bottom:12px;}
-  .wiz-summary{font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.45;}
-  .wiz-summary b{color:var(--text);font-weight:600;}
-  .wiz-choices{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
-  .wiz-choice{
-    width:100%;text-align:left;background:#141414;border:1px solid var(--border);border-radius:8px;
-    padding:14px 16px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;cursor:pointer;
+  .assign-launch:hover{opacity:.92;}
+  .assign-launch-sub{display:block;font-size:12.5px;font-weight:600;opacity:.7;margin-top:2px;}
+  .assign-launch-arrow{font-size:22px;line-height:1;}
+  .assign-inline-success{
+    margin-top:10px;font-size:13px;color:#7fbf3f;background:rgba(63,109,17,.15);
+    border:1px solid rgba(127,191,63,.35);border-radius:8px;padding:10px 12px;
   }
-  .wiz-choice:hover{border-color:rgba(200,98,42,.45);}
-  .wiz-choice.selected{background:rgba(200,98,42,.12);border-color:var(--accent);color:var(--accent);}
-  .wiz-choice-meta{display:block;font-size:11.5px;font-weight:500;color:var(--text-secondary);margin-top:3px;}
-  .wiz-choice.selected .wiz-choice-meta{color:rgba(200,98,42,.85);}
-  .wiz-nav{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap;}
-  .btn-secondary{
-    background:transparent;border:1px solid var(--border);border-radius:6px;padding:9px 18px;
-    color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;
+
+  #assign-wizard-overlay{
+    display:none;position:fixed;inset:0;z-index:2000;background:var(--bg);
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
   }
-  .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
-  .btn-linkish{
-    background:none;border:none;padding:0;color:var(--accent);font-family:'Space Grotesk',sans-serif;
-    font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px;
+  #assign-wizard-overlay.open{display:block;}
+  .aw-shell{min-height:100%;display:flex;flex-direction:column;}
+  .aw-top{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px 0;max-width:520px;margin:0 auto;width:100%;
   }
-  .lib-results{
-    max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:#141414;margin-bottom:12px;
+  .aw-back{
+    background:none;border:none;color:var(--text-secondary);font-family:'Space Grotesk',sans-serif;
+    font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;
   }
-  .lib-result{
-    width:100%;text-align:left;background:transparent;border:none;border-bottom:1px solid var(--border);
-    padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;cursor:pointer;
+  .aw-back:hover{color:var(--text);}
+  .aw-word{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--text-secondary);
   }
-  .lib-result:last-child{border-bottom:none;}
-  .lib-result:hover{background:rgba(255,255,255,.03);}
-  .lib-result.selected{background:rgba(200,98,42,.1);}
-  .lib-result-name{font-size:13px;font-weight:600;}
-  .lib-result-meta{font-size:11px;color:var(--text-secondary);margin-top:2px;}
-  .lib-result-empty{padding:12px;font-size:12px;color:var(--text-secondary);}
+  .aw-word span{color:var(--accent);}
+  .aw-content{
+    max-width:520px;margin:0 auto;padding:20px 20px 48px;width:100%;box-sizing:border-box;
+  }
+  .aw-eyebrow{
+    font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:8px;
+  }
+  .aw-hero{
+    font-size:26px;font-weight:700;line-height:1.2;margin-bottom:6px;letter-spacing:-.02em;
+  }
+  .aw-hero-sub{
+    font-size:14px;color:var(--text-secondary);line-height:1.55;margin-bottom:20px;
+  }
+  .aw-prog{
+    height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-bottom:24px;overflow:hidden;
+  }
+  .aw-prog-fill{
+    height:100%;background:var(--accent);border-radius:1px;transition:width .35s ease;width:0%;
+  }
+  .aw-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:22px 18px;margin-bottom:16px;
+  }
+  .aw-step-num{
+    font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:8px;
+  }
+  .aw-q{
+    font-size:20px;font-weight:700;line-height:1.3;margin-bottom:6px;color:var(--text);
+  }
+  .aw-hint{
+    font-size:13px;color:var(--text-secondary);line-height:1.55;margin-bottom:16px;
+  }
+  .aw-path{
+    font-size:13px;color:var(--text-secondary);line-height:1.45;margin-bottom:14px;
+  }
+  .aw-path b{color:var(--text);font-weight:600;}
+  .aw-choices{display:flex;flex-direction:column;gap:8px;width:100%;}
+  .aw-chip{
+    width:100%;text-align:left;background:#141414;border:1px solid var(--border);border-radius:14px;
+    padding:16px 18px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:16px;font-weight:600;cursor:pointer;transition:border-color .12s, color .12s, background .12s;
+  }
+  .aw-chip:hover{border-color:rgba(200,98,42,.45);}
+  .aw-chip:active{transform:scale(.985);}
+  .aw-chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
+  .aw-chip-meta{
+    display:block;font-size:12.5px;font-weight:500;color:var(--text-secondary);margin-top:4px;
+  }
+  .aw-chip.selected .aw-chip-meta{color:rgba(200,98,42,.85);}
+  .aw-field{margin-bottom:14px;}
+  .aw-field:last-child{margin-bottom:0;}
+  .aw-field label{
+    display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text);margin-bottom:8px;
+  }
+  .aw-field input, .aw-field textarea, .aw-field select{
+    width:100%;background:#141414;border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;outline:none;
+  }
+  .aw-field input:focus, .aw-field textarea:focus, .aw-field select:focus{border-color:var(--accent);}
+  .aw-field textarea{resize:vertical;min-height:140px;line-height:1.5;}
+  .aw-lib-results{
+    max-height:min(42vh,320px);overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;
+  }
+  .aw-lib-empty{font-size:14px;color:var(--text-secondary);padding:8px 2px;}
+  .aw-next{
+    width:100%;background:var(--accent);border:none;border-radius:14px;color:#0d0d0d;
+    font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;
+    margin-bottom:10px;
+  }
+  .aw-next:hover{opacity:.92;}
+  .aw-next:disabled{opacity:.35;cursor:default;}
+  .aw-secondary-btn{
+    width:100%;background:none;border:none;color:rgba(255,255,255,.35);
+    font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:10px;cursor:pointer;
+  }
+  .aw-secondary-btn:hover{color:var(--text-secondary);}
+  .aw-linkish{
+    background:none;border:none;padding:8px 0;color:var(--accent);font-family:'Space Grotesk',sans-serif;
+    font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;
+  }
+  .aw-msg{min-height:20px;margin-bottom:8px;font-size:13px;}
+  .aw-msg .form-error{color:var(--danger);margin:0;}
+  .aw-msg .form-success{color:#7fbf3f;margin:0;}
 
   /* ---------- Athlete training view ---------- */
   .training-header{margin-bottom:20px;}
@@ -268,6 +347,30 @@
       </div>
     </div>
     <div id="main"></div>
+  </div>
+
+  <!-- Full-screen New assignment flow (baseline-weight step UI) -->
+  <div id="assign-wizard-overlay" aria-hidden="true">
+    <div class="aw-shell">
+      <div class="aw-top">
+        <button type="button" class="aw-back" id="aw-cancel">← Cancel</button>
+        <div class="aw-word">STRAY<span>DOG</span> · Assign</div>
+      </div>
+      <div class="aw-content">
+        <div class="aw-eyebrow">New assignment</div>
+        <div class="aw-hero" id="aw-hero">Assign a drill.</div>
+        <div class="aw-hero-sub" id="aw-hero-sub">One step at a time.</div>
+        <div class="aw-prog"><div class="aw-prog-fill" id="aw-prog-fill"></div></div>
+        <div class="aw-card">
+          <div class="aw-step-num" id="aw-step-num">Step 1 of 5</div>
+          <div class="aw-q" id="aw-q">—</div>
+          <div class="aw-hint" id="aw-hint"></div>
+          <div id="wiz-body"></div>
+        </div>
+        <div class="aw-msg" id="new-a-msg"></div>
+        <div id="aw-footer-nav"></div>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -630,7 +733,7 @@
       '<div class="detail-section" id="detail-notes"></div>';
 
     loadAssignments(token, coachUser, athleteId);
-    renderNewAssignmentForm(token, coachUser, athleteId);
+    renderNewAssignmentForm(token, coachUser, athleteId, title);
     loadAthleteSessions(token, athleteId);
     renderNotesSection(token, coachUser, athleteId);
   }
@@ -727,17 +830,8 @@
     return LOCKED_WORKOUT_CATEGORIES.indexOf(category) !== -1;
   }
 
-  function lockedCategorySelectHtml(selected){
-    return '<select id="new-a-category">' +
-      '<option value="">Select category</option>' +
-      LOCKED_WORKOUT_CATEGORIES.map(function(c){
-        var sel = c === selected ? ' selected' : '';
-        return '<option value="' + escapeHtml(c) + '"' + sel + '>' + escapeHtml(c) + '</option>';
-      }).join('') +
-      '</select>';
-  }
-
   var _assignWizard = null;
+  var _assignWizardCtx = null;
 
   function resetAssignWizard(){
     _assignWizard = {
@@ -778,15 +872,16 @@
     if(!resultsEl || !_assignWizard) return;
     var rows = filterWizardLibraryResults(searchEl ? searchEl.value : '');
     if(!rows.length){
-      resultsEl.innerHTML = '<div class="lib-result-empty">No drills match this search.</div>';
+      resultsEl.innerHTML = '<div class="aw-lib-empty">No drills match this search.</div>';
       return;
     }
     resultsEl.innerHTML = rows.map(function(item){
       var selected = item.id === _assignWizard.libraryItemId ? ' selected' : '';
-      return '<button type="button" class="lib-result' + selected + '" data-id="' + escapeHtml(item.id) + '">' +
-        '<div class="lib-result-name">' + escapeHtml(item.name) + '</div>' +
-        '<div class="lib-result-meta">' + escapeHtml((item.description || '').slice(0, 90)) +
-          ((item.description || '').length > 90 ? '…' : '') + '</div>' +
+      var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
+      if(snippet.length > 100) snippet = snippet.slice(0, 100) + '…';
+      return '<button type="button" class="aw-chip' + selected + '" data-id="' + escapeHtml(item.id) + '">' +
+        escapeHtml(item.name) +
+        (snippet ? '<span class="aw-chip-meta">' + escapeHtml(snippet) + '</span>' : '') +
       '</button>';
     }).join('');
   }
@@ -800,12 +895,34 @@
     return '';
   }
 
-  function wizardPathSummary(){
+  function wizardPathSummaryHtml(){
     var parts = [];
     if(_assignWizard.type) parts.push('<b>' + escapeHtml(coachLibTypeLabel(_assignWizard.type)) + '</b>');
     if(_assignWizard.category) parts.push('<b>' + escapeHtml(_assignWizard.category) + '</b>');
     if(_assignWizard.drillName) parts.push('<b>' + escapeHtml(_assignWizard.drillName) + '</b>');
-    return parts.length ? '<div class="wiz-summary">' + parts.join(' · ') + '</div>' : '';
+    return parts.length ? '<div class="aw-path">' + parts.join(' · ') + '</div>' : '';
+  }
+
+  function setAssignWizardChrome(q, hint){
+    var step = _assignWizard.step;
+    var numEl = document.getElementById('aw-step-num');
+    var qEl = document.getElementById('aw-q');
+    var hintEl = document.getElementById('aw-hint');
+    var fill = document.getElementById('aw-prog-fill');
+    var heroSub = document.getElementById('aw-hero-sub');
+    if(numEl) numEl.textContent = 'Step ' + step + ' of 5 · ' + wizardStepLabel(step);
+    if(qEl) qEl.textContent = q || '';
+    if(hintEl) hintEl.textContent = hint || '';
+    if(fill) fill.style.width = Math.round((step / 5) * 100) + '%';
+    if(heroSub && _assignWizardCtx){
+      var forWhom = _assignWizardCtx.athleteLabel || 'this athlete';
+      heroSub.textContent = 'For ' + forWhom + '.';
+    }
+  }
+
+  function setAssignWizardFooter(html){
+    var footer = document.getElementById('aw-footer-nav');
+    if(footer) footer.innerHTML = html || '';
   }
 
   function goAssignWizardStep(step){
@@ -813,28 +930,56 @@
     renderAssignWizardBody();
   }
 
+  function openAssignWizardOverlay(){
+    var overlay = document.getElementById('assign-wizard-overlay');
+    if(!overlay) return;
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+  }
+
+  function closeAssignWizardOverlay(){
+    var overlay = document.getElementById('assign-wizard-overlay');
+    if(!overlay) return;
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    setAssignWizardFooter('');
+    var msgEl = document.getElementById('new-a-msg');
+    if(msgEl) msgEl.innerHTML = '';
+  }
+
+  function showAssignSavedBanner(){
+    var el = document.getElementById('detail-new-assignment');
+    if(!el) return;
+    var existing = el.querySelector('.assign-inline-success');
+    if(existing) existing.remove();
+    var note = document.createElement('div');
+    note.className = 'assign-inline-success';
+    note.textContent = 'Assignment saved.';
+    el.appendChild(note);
+  }
+
   function renderAssignWizardBody(){
     var body = document.getElementById('wiz-body');
-    var prog = document.getElementById('wiz-progress');
     var msgEl = document.getElementById('new-a-msg');
     if(!body || !_assignWizard) return;
     if(msgEl) msgEl.innerHTML = '';
-    if(prog){
-      prog.textContent = 'Step ' + _assignWizard.step + ' of 5 · ' + wizardStepLabel(_assignWizard.step);
-    }
+    setAssignWizardFooter('');
 
     var step = _assignWizard.step;
     if(step === 1){
+      setAssignWizardChrome('Which energy system?', 'Strength, Power, or Endurance — this filters everything that follows.');
       body.innerHTML =
-        '<div class="wiz-step-title">Which energy system?</div>' +
-        '<div class="wiz-choices">' +
+        '<div class="aw-choices">' +
           ['strength', 'power', 'endurance'].map(function(t){
             var sel = _assignWizard.type === t ? ' selected' : '';
-            return '<button type="button" class="wiz-choice' + sel + '" data-type="' + t + '">' +
+            return '<button type="button" class="aw-chip' + sel + '" data-type="' + t + '">' +
               escapeHtml(coachLibTypeLabel(t)) + '</button>';
           }).join('') +
         '</div>';
-      Array.prototype.forEach.call(body.querySelectorAll('.wiz-choice'), function(btn){
+      Array.prototype.forEach.call(body.querySelectorAll('.aw-chip'), function(btn){
         btn.addEventListener('click', function(){
           _assignWizard.type = btn.getAttribute('data-type');
           _assignWizard.category = null;
@@ -851,28 +996,27 @@
     }
 
     if(step === 2){
-      // Locked taxonomy only — never surface free-text / legacy categories
-      // from workout_library (e.g. invalid "Strength") as choosable options.
+      // Locked taxonomy only — never surface free-text / legacy categories.
+      setAssignWizardChrome('Which category?', 'Only the locked training taxonomy. Empty categories open a create form next.');
       body.innerHTML =
-        wizardPathSummary() +
-        '<div class="wiz-step-title">Which category?</div>' +
-        '<div class="wiz-choices">' +
+        wizardPathSummaryHtml() +
+        '<div class="aw-choices">' +
           LOCKED_WORKOUT_CATEGORIES.map(function(c){
             var count = drillsForTypeCategory(_assignWizard.type, c).length;
             var meta = count
               ? count + (count === 1 ? ' drill' : ' drills')
               : 'No drills yet — you\'ll create one';
             var sel = _assignWizard.category === c ? ' selected' : '';
-            return '<button type="button" class="wiz-choice' + sel + '" data-category="' + escapeHtml(c) + '">' +
+            return '<button type="button" class="aw-chip' + sel + '" data-category="' + escapeHtml(c) + '">' +
               escapeHtml(c) +
-              '<span class="wiz-choice-meta">' + meta + '</span></button>';
+              '<span class="aw-chip-meta">' + meta + '</span></button>';
           }).join('') +
-        '</div>' +
-        '<div class="wiz-nav"><button type="button" class="btn-secondary" id="wiz-back">Back</button></div>';
+        '</div>';
+      setAssignWizardFooter('<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>');
       document.getElementById('wiz-back').addEventListener('click', function(){
         goAssignWizardStep(1);
       });
-      Array.prototype.forEach.call(body.querySelectorAll('.wiz-choice'), function(btn){
+      Array.prototype.forEach.call(body.querySelectorAll('.aw-chip'), function(btn){
         btn.addEventListener('click', function(){
           var cat = btn.getAttribute('data-category');
           if(!isLockedWorkoutCategory(cat)) return;
@@ -882,7 +1026,6 @@
           _assignWizard.libraryDescription = '';
           _assignWizard.assignDescription = '';
           _coachLibSelectedId = null;
-          // Empty combo → straight into create form (no empty picker).
           _assignWizard.createMode = drillsForTypeCategory(_assignWizard.type, _assignWizard.category).length === 0;
           goAssignWizardStep(3);
         });
@@ -892,25 +1035,38 @@
 
     if(step === 3){
       if(_assignWizard.createMode){
+        setAssignWizardChrome('Create a new drill', 'Saves to the shared library under this type and category, then assigns it.');
         body.innerHTML =
-          wizardPathSummary() +
-          '<div class="wiz-step-title">Create a new drill</div>' +
-          '<div class="form-note" style="margin:-4px 0 12px;">Saves to the shared library, then assigns it. Category is locked to the taxonomy below.</div>' +
-          '<div class="form-row"><label for="new-a-category">Category *</label>' +
-            lockedCategorySelectHtml(_assignWizard.category) + '</div>' +
-          '<div class="form-row"><label for="new-a-name">Name *</label>' +
+          wizardPathSummaryHtml() +
+          '<div class="aw-field"><label>Category *</label>' +
+            '<div class="aw-choices" id="new-a-category-chips">' +
+              LOCKED_WORKOUT_CATEGORIES.map(function(c){
+                var sel = c === _assignWizard.category ? ' selected' : '';
+                return '<button type="button" class="aw-chip' + sel + '" data-category="' + escapeHtml(c) + '">' +
+                  escapeHtml(c) + '</button>';
+              }).join('') +
+            '</div></div>' +
+          '<div class="aw-field"><label for="new-a-name">Name *</label>' +
             '<input id="new-a-name" type="text" placeholder="e.g. Repeaters" value="' +
             escapeHtml(_assignWizard.drillName) + '"></div>' +
-          '<div class="form-row"><label for="new-a-lib-desc">Description</label>' +
+          '<div class="aw-field"><label for="new-a-lib-desc">Description</label>' +
             '<textarea id="new-a-lib-desc" placeholder="Optional protocol details">' +
-            escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
-          '<div class="wiz-nav">' +
-            '<button type="button" class="btn-secondary" id="wiz-back">Back</button>' +
-            '<button type="button" class="btn-primary" id="wiz-next">Continue</button>' +
-          '</div>';
+            escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>';
+        Array.prototype.forEach.call(body.querySelectorAll('#new-a-category-chips .aw-chip'), function(btn){
+          btn.addEventListener('click', function(){
+            var cat = btn.getAttribute('data-category');
+            if(!isLockedWorkoutCategory(cat)) return;
+            _assignWizard.category = cat;
+            Array.prototype.forEach.call(body.querySelectorAll('#new-a-category-chips .aw-chip'), function(b){
+              b.classList.toggle('selected', b === btn);
+            });
+          });
+        });
+        setAssignWizardFooter(
+          '<button type="button" class="aw-next" id="wiz-next">Next →</button>' +
+          '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
+        );
         document.getElementById('wiz-back').addEventListener('click', function(){
-          // If we entered create via the escape hatch from a non-empty list,
-          // back returns to the picker; otherwise back to category.
           var hasDrills = drillsForTypeCategory(_assignWizard.type, _assignWizard.category).length > 0;
           if(hasDrills){
             _assignWizard.createMode = false;
@@ -920,7 +1076,7 @@
           }
         });
         document.getElementById('wiz-next').addEventListener('click', function(){
-          var category = (document.getElementById('new-a-category').value || '').trim();
+          var category = _assignWizard.category;
           var name = (document.getElementById('new-a-name').value || '').trim();
           var libDesc = (document.getElementById('new-a-lib-desc').value || '').trim();
           if(!isLockedWorkoutCategory(category)){
@@ -945,23 +1101,21 @@
       }
 
       // Pick from existing drills for this type + category only.
+      setAssignWizardChrome('Pick a drill', 'Only drills matching the energy system and category you chose.');
       body.innerHTML =
-        wizardPathSummary() +
-        '<div class="wiz-step-title">Pick a drill</div>' +
-        '<div class="form-row"><label for="new-a-lib-search">Search</label>' +
+        wizardPathSummaryHtml() +
+        '<div class="aw-field"><label for="new-a-lib-search">Search</label>' +
           '<input id="new-a-lib-search" type="text" placeholder="Filter by name"></div>' +
-        '<div id="new-a-lib-results" class="lib-results"></div>' +
-        '<button type="button" class="btn-linkish" id="wiz-create-instead">Or create a new drill</button>' +
-        '<div class="wiz-nav"><button type="button" class="btn-secondary" id="wiz-back">Back</button></div>';
+        '<div id="new-a-lib-results" class="aw-lib-results"></div>' +
+        '<button type="button" class="aw-linkish" id="wiz-create-instead">Or create a new drill</button>';
       renderWizardLibraryResults();
       document.getElementById('new-a-lib-search').addEventListener('input', renderWizardLibraryResults);
       document.getElementById('new-a-lib-results').addEventListener('click', function(e){
-        var btn = e.target.closest('.lib-result');
+        var btn = e.target.closest('.aw-chip');
         if(!btn) return;
         var id = btn.getAttribute('data-id');
         var item = _coachLibCache.find(function(r){ return r.id === id; });
         if(!item) return;
-        // Guard: never accept a drill outside the chosen type/category.
         if(item.type !== _assignWizard.type || item.category !== _assignWizard.category) return;
         _assignWizard.libraryItemId = item.id;
         _coachLibSelectedId = item.id;
@@ -980,6 +1134,7 @@
         _assignWizard.assignDescription = '';
         goAssignWizardStep(3);
       });
+      setAssignWizardFooter('<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>');
       document.getElementById('wiz-back').addEventListener('click', function(){
         goAssignWizardStep(2);
       });
@@ -987,17 +1142,16 @@
     }
 
     if(step === 4){
+      setAssignWizardChrome('Customize for this athlete', 'Edit reps, sets, weight, or notes. Plain text / markdown.');
       body.innerHTML =
-        wizardPathSummary() +
-        '<div class="wiz-step-title">Customize for this athlete</div>' +
-        '<div class="form-note" style="margin:-4px 0 12px;">Edit reps, sets, weight, or notes. Plain text / markdown.</div>' +
-        '<div class="form-row"><label for="new-a-desc">Description</label>' +
+        wizardPathSummaryHtml() +
+        '<div class="aw-field"><label for="new-a-desc">Description</label>' +
           '<textarea id="new-a-desc" placeholder="Optional — tailor the protocol for this athlete">' +
-          escapeHtml(_assignWizard.assignDescription) + '</textarea></div>' +
-        '<div class="wiz-nav">' +
-          '<button type="button" class="btn-secondary" id="wiz-back">Back</button>' +
-          '<button type="button" class="btn-primary" id="wiz-next">Continue</button>' +
-        '</div>';
+          escapeHtml(_assignWizard.assignDescription) + '</textarea></div>';
+      setAssignWizardFooter(
+        '<button type="button" class="aw-next" id="wiz-next">Next →</button>' +
+        '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
+      );
       document.getElementById('wiz-back').addEventListener('click', function(){
         _assignWizard.assignDescription = document.getElementById('new-a-desc').value || '';
         goAssignWizardStep(3);
@@ -1009,19 +1163,19 @@
       return;
     }
 
-    // Step 5 — due date / resource link (unchanged fields)
+    // Step 5 — due date / resource link
+    setAssignWizardChrome('Due date & resource', 'Optional schedule and a link to a video or doc.');
     body.innerHTML =
-      wizardPathSummary() +
-      '<div class="wiz-step-title">Due date &amp; resource</div>' +
-      '<div class="form-row"><label for="new-a-due">Due date</label>' +
+      wizardPathSummaryHtml() +
+      '<div class="aw-field"><label for="new-a-due">Due date</label>' +
         '<input id="new-a-due" type="date" value="' + escapeHtml(_assignWizard.dueDate) + '"></div>' +
-      '<div class="form-row"><label for="new-a-link">Resource link</label>' +
+      '<div class="aw-field"><label for="new-a-link">Resource link</label>' +
         '<input id="new-a-link" type="url" placeholder="Optional — YouTube, Google Drive, etc." value="' +
-        escapeHtml(_assignWizard.resourceLink) + '"></div>' +
-      '<div class="wiz-nav">' +
-        '<button type="button" class="btn-secondary" id="wiz-back">Back</button>' +
-        '<button type="button" class="btn-primary" id="new-a-submit">Create assignment</button>' +
-      '</div>';
+        escapeHtml(_assignWizard.resourceLink) + '"></div>';
+    setAssignWizardFooter(
+      '<button type="button" class="aw-next" id="new-a-submit">Create assignment</button>' +
+      '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
+    );
     document.getElementById('wiz-back').addEventListener('click', function(){
       _assignWizard.dueDate = document.getElementById('new-a-due').value || '';
       _assignWizard.resourceLink = document.getElementById('new-a-link').value || '';
@@ -1029,8 +1183,6 @@
     });
     document.getElementById('new-a-submit').addEventListener('click', submitAssignWizard);
   }
-
-  var _assignWizardCtx = null;
 
   function submitAssignWizard(){
     var ctx = _assignWizardCtx;
@@ -1063,22 +1215,24 @@
     var assignDescription = (_assignWizard.assignDescription || '').trim() || null;
 
     function finishSuccess(){
-      btn.disabled = false;
-      btn.textContent = 'Create assignment';
+      if(btn){
+        btn.disabled = false;
+        btn.textContent = 'Create assignment';
+      }
       loadAssignments(token, coachUser, athleteId);
       loadCoachWorkoutLibrary(token).then(function(rows){
         _coachLibCache = Array.isArray(rows) ? rows : [];
       }).catch(function(){ /* non-blocking */ });
+      closeAssignWizardOverlay();
       resetAssignWizard();
-      renderAssignWizardBody();
-      // renderAssignWizardBody clears #new-a-msg — set success after reset.
-      var okEl = document.getElementById('new-a-msg');
-      if(okEl) okEl.innerHTML = '<div class="form-success">Assignment created.</div>';
+      showAssignSavedBanner();
     }
 
     function failCreate(err){
-      btn.disabled = false;
-      btn.textContent = 'Create assignment';
+      if(btn){
+        btn.disabled = false;
+        btn.textContent = 'Create assignment';
+      }
       var isMissingColumn = err && (err.code === 'PGRST204' || err.code === '42703');
       var msg = (err && err.message) || 'unknown error';
       msgEl.innerHTML = '<div class="form-error">' +
@@ -1088,8 +1242,10 @@
         '</div>';
     }
 
-    btn.disabled = true;
-    btn.textContent = 'Creating...';
+    if(btn){
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+    }
 
     // Existing library drill — link only, no re-insert.
     if(_assignWizard.libraryItemId && !_assignWizard.createMode){
@@ -1128,27 +1284,51 @@
     }).then(finishSuccess).catch(failCreate);
   }
 
-  function renderNewAssignmentForm(token, coachUser, athleteId){
-    _assignWizardCtx = { token: token, coachUser: coachUser, athleteId: athleteId };
-    var el = document.getElementById('detail-new-assignment');
-    _coachLibCache = [];
+  function startAssignWizard(){
+    var ctx = _assignWizardCtx;
+    if(!ctx) return;
     resetAssignWizard();
-    el.innerHTML =
-      '<div class="panel-title">New assignment</div>' +
-      '<div class="wiz-progress" id="wiz-progress"></div>' +
-      '<div id="wiz-body"><div class="form-note">Loading library…</div></div>' +
-      '<div id="new-a-msg"></div>';
-
-    loadCoachWorkoutLibrary(token).then(function(rows){
+    openAssignWizardOverlay();
+    var body = document.getElementById('wiz-body');
+    if(body) body.innerHTML = '<div class="aw-lib-empty">Loading library…</div>';
+    setAssignWizardChrome('Loading library…', 'Pulling drills for this coach.');
+    setAssignWizardFooter('');
+    loadCoachWorkoutLibrary(ctx.token).then(function(rows){
       _coachLibCache = Array.isArray(rows) ? rows : [];
       renderAssignWizardBody();
     }).catch(function(err){
       _assignWizard.libLoadError = (err && err.message) || 'unknown error';
-      document.getElementById('wiz-body').innerHTML =
-        '<div class="form-error">Could not load library. ' +
-        escapeHtml(_assignWizard.libLoadError) + '</div>';
+      setAssignWizardChrome('Could not load library', 'Check your connection and try again.');
+      if(body){
+        body.innerHTML = '<div class="form-error">' + escapeHtml(_assignWizard.libLoadError) + '</div>';
+      }
+      setAssignWizardFooter('<button type="button" class="aw-secondary-btn" id="aw-close-err">← Close</button>');
+      var closeBtn = document.getElementById('aw-close-err');
+      if(closeBtn) closeBtn.addEventListener('click', closeAssignWizardOverlay);
     });
   }
+
+  function renderNewAssignmentForm(token, coachUser, athleteId, athleteLabel){
+    _assignWizardCtx = {
+      token: token,
+      coachUser: coachUser,
+      athleteId: athleteId,
+      athleteLabel: athleteLabel || ''
+    };
+    var el = document.getElementById('detail-new-assignment');
+    el.innerHTML =
+      '<button type="button" class="assign-launch" id="assign-launch-btn">' +
+        '<span><span>New assignment</span><span class="assign-launch-sub">Full-screen step flow</span></span>' +
+        '<span class="assign-launch-arrow">→</span>' +
+      '</button>';
+    document.getElementById('assign-launch-btn').addEventListener('click', startAssignWizard);
+  }
+
+  // Cancel closes the overlay without saving.
+  document.getElementById('aw-cancel').addEventListener('click', function(){
+    closeAssignWizardOverlay();
+    resetAssignWizard();
+  });
 
   function loadAthleteSessions(token, athleteId){
     var el = document.getElementById('detail-sessions');
