@@ -2145,6 +2145,34 @@
     return id ? String(id).slice(0, 8) : '—';
   }
 
+  // Prefer "First Last" from foundash_list_roster name fields; fall back to email.
+  function personDisplayName(firstName, lastName, email, fallback){
+    var parts = [firstName, lastName].map(function(s){
+      return String(s == null ? '' : s).trim();
+    }).filter(Boolean);
+    if(parts.length) return parts.join(' ');
+    if(email) return String(email);
+    return fallback || '—';
+  }
+
+  function athleteDisplayName(link){
+    return personDisplayName(
+      link.athlete_first_name,
+      link.athlete_last_name,
+      link.athlete_email,
+      'Athlete ' + shortId(link.athlete_id)
+    );
+  }
+
+  function coachDisplayName(link){
+    return personDisplayName(
+      link.coach_first_name,
+      link.coach_last_name,
+      link.coach_email,
+      'Coach ' + shortId(link.coach_id)
+    );
+  }
+
   function fmtDate(d){
     if(!d) return '—';
     var dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(d);
@@ -2406,9 +2434,8 @@
       return;
     }
     listEl.innerHTML = links.map(function(link, i){
-      var name = link.athlete_email || ('Athlete ' + shortId(link.athlete_id));
-      var meta = (link.coach_email ? ('Coach ' + link.coach_email) : ('Coach ' + shortId(link.coach_id))) +
-        ' · Linked ' + fmtDate(link.linked_at);
+      var name = athleteDisplayName(link);
+      var meta = 'Coach ' + coachDisplayName(link) + ' · Linked ' + fmtDate(link.linked_at);
       return '<div class="bo-roster-row" data-idx="' + i + '">' +
         '<div class="bo-roster-name">' + escapeHtml(name) + '</div>' +
         '<div class="bo-roster-meta">' + escapeHtml(meta) + '</div>' +
@@ -2430,13 +2457,21 @@
     detail.innerHTML =
       '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px;">' +
         '<div>' +
-          '<div style="font-size:16px;font-weight:700;">' + escapeHtml(link.athlete_email || ('Athlete ' + shortId(link.athlete_id))) + '</div>' +
-          '<div class="bo-roster-meta mono">' + escapeHtml(link.athlete_id) + '</div>' +
+          '<div style="font-size:16px;font-weight:700;">' + escapeHtml(athleteDisplayName(link)) + '</div>' +
+          '<div class="bo-roster-meta">' +
+            (link.athlete_email && athleteDisplayName(link) !== link.athlete_email
+              ? escapeHtml(link.athlete_email) + ' · '
+              : '') +
+            '<span class="mono">' + escapeHtml(link.athlete_id) + '</span></div>' +
         '</div>' +
         '<button class="bo-btn" id="roster-open-training">Open in Athlete Training →</button>' +
       '</div>' +
       '<div class="bo-roster-meta" style="margin-bottom:14px;">Coach: ' +
-        escapeHtml(link.coach_email || shortId(link.coach_id)) + ' · Linked ' + fmtDate(link.linked_at) + '</div>' +
+        escapeHtml(coachDisplayName(link)) +
+        (link.coach_email && coachDisplayName(link) !== link.coach_email
+          ? ' · ' + escapeHtml(link.coach_email)
+          : '') +
+        ' · Linked ' + fmtDate(link.linked_at) + '</div>' +
       '<div id="roster-detail-body"><div class="bo-empty">Loading training data···</div></div>';
 
     document.getElementById('roster-open-training').addEventListener('click', function(){
@@ -2491,8 +2526,7 @@
       return;
     }
     sel.innerHTML = '<option value="">Select from roster···</option>' + links.map(function(link){
-      var label = (link.athlete_email || shortId(link.athlete_id)) +
-        (link.coach_email ? ' — via ' + link.coach_email : '');
+      var label = athleteDisplayName(link) + ' — via ' + coachDisplayName(link);
       return '<option value="' + escapeHtml(link.athlete_id) + '">' + escapeHtml(label) + '</option>';
     }).join('');
   }

@@ -302,13 +302,19 @@ BEGIN
       cal.id AS link_id,
       cal.coach_id,
       coach.email AS coach_email,
+      coach_p.first_name AS coach_first_name,
+      coach_p.last_name AS coach_last_name,
       cal.athlete_id,
       athlete.email AS athlete_email,
+      athlete_p.first_name AS athlete_first_name,
+      athlete_p.last_name AS athlete_last_name,
       cal.status,
       cal.created_at AS linked_at
     FROM public.coach_athlete_links cal
     LEFT JOIN auth.users coach ON coach.id = cal.coach_id
     LEFT JOIN auth.users athlete ON athlete.id = cal.athlete_id
+    LEFT JOIN public.profiles coach_p ON coach_p.user_id = cal.coach_id
+    LEFT JOIN public.profiles athlete_p ON athlete_p.user_id = cal.athlete_id
     WHERE cal.status = 'active'
   ) t;
 
