@@ -787,6 +787,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <!-- Create account mode (hidden by default) -->
     <div id="auth-mode-signup" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <input id="auth-first-name" type="text" placeholder="First name" autocomplete="given-name"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:13px 14px;outline:none;box-sizing:border-box;">
+        <input id="auth-last-name" type="text" placeholder="Last name" autocomplete="family-name"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:13px 14px;outline:none;box-sizing:border-box;">
+      </div>
       <button onclick="authSignUp()"
         style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:20px;">
         Create account
@@ -3729,7 +3735,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index193';
+var app_version = 'staging-index194';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3786,9 +3792,15 @@ function initAuth(){
       // re-runs this same check after the user taps through — own routing.
       var _hasConsent = null;
       try{ _hasConsent = localStorage.getItem('see_consent_v1'); }catch(e){}
-      if(!_hasConsent){ _authRoutingResolve(); return; }
+      if(!_hasConsent){
+        // Still flush a pending profiles row from sign-up if consent is next
+        flushPendingProfile();
+        _authRoutingResolve();
+        return;
+      }
       // Check Supabase for existing baseline tied to this user_id
       (async function(){
+        await flushPendingProfile();
         var uid = session && session.user ? session.user.id : null;
         if(uid){
           var existing = await sbS('sessions','select=id&is_baseline=eq.true&user_id=eq.'+uid+'&limit=1');
@@ -11105,6 +11117,36 @@ async function runSEETests(){
     else { fail('Supabase auth client initialised', 'supabaseClient is null'); }
   }catch(e){ fail('Supabase auth client initialised', e.message); }
 
+  // A5: Sign-up requires first/last name and creates profiles row (build 194)
+  try{
+    var firstEl = document.getElementById('auth-first-name');
+    var lastEl = document.getElementById('auth-last-name');
+    var signupMode = document.getElementById('auth-mode-signup');
+    if(!firstEl || !lastEl || !signupMode){
+      fail('Sign-up name fields present', 'missing first/last inputs or signup mode');
+    } else if(typeof authSignUp !== 'function' || typeof flushPendingProfile !== 'function'){
+      fail('Sign-up name fields present', 'authSignUp/flushPendingProfile missing');
+    } else {
+      setAuthMode('signup');
+      document.getElementById('auth-email').value = 'test@example.com';
+      document.getElementById('auth-password').value = 'password123';
+      firstEl.value = '';
+      lastEl.value = '';
+      clearAuthError();
+      authSignUp();
+      var errEl = document.getElementById('auth-error');
+      var blocked = errEl && errEl.style.display !== 'none' && /first name and last name required/i.test(errEl.textContent || '');
+      if(blocked){ pass('Sign-up requires first and last name'); }
+      else { fail('Sign-up requires first and last name', 'error=' + (errEl && errEl.textContent)); }
+      clearAuthError();
+      firstEl.value = '';
+      lastEl.value = '';
+      document.getElementById('auth-email').value = '';
+      document.getElementById('auth-password').value = '';
+      setAuthMode('signin');
+    }
+  }catch(e){ fail('Sign-up requires first and last name', e.message); }
+
   // ── SECTION B: CSS / rendering ─────────────────────────
   console.log('%c B — CSS / Rendering ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
 
@@ -11510,6 +11552,11 @@ async function authSignUp(){
   clearAuthError();
   var email = document.getElementById('auth-email').value.trim();
   var password = document.getElementById('auth-password').value;
+  var firstNameEl = document.getElementById('auth-first-name');
+  var lastNameEl = document.getElementById('auth-last-name');
+  var firstName = firstNameEl ? firstNameEl.value.trim() : '';
+  var lastName = lastNameEl ? lastNameEl.value.trim() : '';
+  if(!firstName||!lastName){ showAuthError('First name and last name required'); return; }
   if(!email||!password){ showAuthError('Email and password required'); return; }
   if(password.length < 6){ showAuthError('Password must be at least 6 characters'); return; }
   var btn = document.querySelector('#screen-auth button[onclick="authSignUp()"]');
@@ -11525,13 +11572,56 @@ async function authSignUp(){
     if(res.data.user.identities && res.data.user.identities.length === 0){
       showAuthError('Account already exists — sign in instead');
     } else {
+      var profilePayload = {
+        user_id: res.data.user.id,
+        first_name: firstName,
+        last_name: lastName
+      };
+      // Sync token before profiles insert so RLS (auth.uid() = user_id) can pass.
       if(res.data.session){
+        window._authUser = res.data.user;
+        window._authToken = res.data.session.access_token;
+        var profileSaved = await sbI('profiles', profilePayload);
+        if(!profileSaved){
+          console.error('[authSignUp] profiles insert failed');
+          try{ sessionStorage.setItem('see_pending_profile', JSON.stringify(profilePayload)); }catch(e){}
+        }
         showToast('Account created!');
         // onAuthStateChange handles routing
       } else {
+        // Email confirmation pending — no JWT yet for RLS. Stash names and
+        // write the profiles row on the first authenticated SIGNED_IN.
+        try{ sessionStorage.setItem('see_pending_profile', JSON.stringify(profilePayload)); }catch(e){}
         showToast('Account created — check your email to confirm');
       }
     }
+  }
+}
+
+async function flushPendingProfile(){
+  if(!window._authToken || window._authToken === SB_KEY) return;
+  var raw = null;
+  try{ raw = sessionStorage.getItem('see_pending_profile'); }catch(e){}
+  if(!raw) return;
+  var pending = null;
+  try{ pending = JSON.parse(raw); }catch(e){ pending = null; }
+  if(!pending || !pending.user_id || !pending.first_name || !pending.last_name) return;
+  if(window._authUser && window._authUser.id && pending.user_id !== window._authUser.id) return;
+  var saved = await sbI('profiles', {
+    user_id: pending.user_id,
+    first_name: pending.first_name,
+    last_name: pending.last_name
+  });
+  if(saved){
+    try{ sessionStorage.removeItem('see_pending_profile'); }catch(e){}
+    return;
+  }
+  // Insert may have failed because the row already exists — clear stash if so
+  var existing = await sbS('profiles', 'select=user_id&user_id=eq.'+pending.user_id+'&limit=1');
+  if(Array.isArray(existing) && existing.length > 0){
+    try{ sessionStorage.removeItem('see_pending_profile'); }catch(e){}
+  } else {
+    console.error('[flushPendingProfile] profiles insert failed');
   }
 }
 
