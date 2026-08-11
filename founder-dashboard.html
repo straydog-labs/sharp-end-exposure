@@ -735,14 +735,21 @@
 
       <section id="section-see-live" class="section-view">
         <div class="page-title">SEE Live</div>
-        <div class="page-sub">Quick access to the live app, repo, and Supabase project.</div>
+        <div class="page-sub">Quick access to the live app, staging app, repo, and Supabase project.</div>
 
         <div class="quick-grid">
           <div class="quick-card">
             <div class="quick-card-title">Live app</div>
-            <span class="badge badge-green">staging-index176</span>
+            <span class="badge badge-green" id="see-live-version">···</span>
             <div class="quick-meta"><span>Status</span><span class="mono health-ok">Live ✓</span></div>
             <a class="quick-btn" href="https://straydog-labs.github.io/sharp-end-exposure" target="_blank" rel="noopener">Open live app</a>
+          </div>
+
+          <div class="quick-card">
+            <div class="quick-card-title">Staging app</div>
+            <span class="badge badge-green" id="see-staging-version">···</span>
+            <div class="quick-meta"><span>Status</span><span class="mono">index-staging.html</span></div>
+            <a class="quick-btn" href="https://straydog-labs.github.io/sharp-end-exposure/index-staging.html" target="_blank" rel="noopener">Open staging app</a>
           </div>
 
           <div class="quick-card">
@@ -1448,19 +1455,6 @@
     });
   }
 
-  function sbActiveUsers(){
-    var url = SUPABASE_URL + '/rest/v1/sessions?select=user_id&user_id=not.is.null';
-    return fetch(url, {
-      headers: sbHeaders({ 'Range': '0-49999' })
-    }).then(function(res){
-      if(!res.ok) throw new Error('fetch failed');
-      return res.json();
-    }).then(function(rows){
-      var set = new Set(rows.map(function(r){ return r.user_id; }));
-      return set.size;
-    });
-  }
-
   function sbDaysSinceFirst(){
     var url = SUPABASE_URL + '/rest/v1/sessions?select=created_at&order=created_at.asc&limit=1';
     return fetch(url, { headers: sbHeaders() }).then(function(res){
@@ -1473,28 +1467,51 @@
     });
   }
 
-  var OVERVIEW_METRICS = [
+  // Anon-readable metrics only. users/falls/journal go through
+  // foundash_overview_counts() (admin JWT) — see getOverviewCounts below.
+  var OVERVIEW_ANON_METRICS = [
     { id: 'metric-sessions', fetcher: function(){ return sbCount('sessions', '&deleted_at=is.null'); } },
     { id: 'metric-climbs', fetcher: function(){ return sbCount('climbs', '&deleted_at=is.null'); } },
-    { id: 'metric-users', fetcher: sbActiveUsers },
-    { id: 'metric-falls', fetcher: function(){ return sbCount('falls'); } },
-    { id: 'metric-journal', fetcher: function(){ return sbCount('journal_entries', '&deleted_at=is.null'); } },
     { id: 'metric-days', fetcher: sbDaysSinceFirst }
   ];
 
-  var overviewLoaded = false;
+  var overviewAnonLoaded = false;
   function loadOverview(){
-    if(overviewLoaded) return;
-    overviewLoaded = true;
-    OVERVIEW_METRICS.forEach(function(m){
-      var el = document.getElementById(m.id);
-      el.textContent = '···';
-      m.fetcher().then(function(val){
-        el.textContent = (val === null || val === undefined) ? '—' : val.toLocaleString();
-      }).catch(function(){
-        el.textContent = '—';
+    if(!overviewAnonLoaded){
+      overviewAnonLoaded = true;
+      OVERVIEW_ANON_METRICS.forEach(function(m){
+        var el = document.getElementById(m.id);
+        el.textContent = '···';
+        m.fetcher().then(function(val){
+          el.textContent = (val === null || val === undefined) ? '—' : val.toLocaleString();
+        }).catch(function(){
+          el.textContent = '—';
+        });
       });
+    }
+    loadOverviewPrivilegedCounts();
+  }
+
+  function loadOverviewPrivilegedCounts(){
+    ['metric-users', 'metric-falls', 'metric-journal'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.textContent = '···';
     });
+    getOverviewCounts().then(function(data){
+      setMetric('metric-users', data.active_users);
+      setMetric('metric-falls', data.falls_logged);
+      setMetric('metric-journal', data.journal_entries);
+    }).catch(function(){
+      setMetric('metric-users', null);
+      setMetric('metric-falls', null);
+      setMetric('metric-journal', null);
+    });
+  }
+
+  function setMetric(id, val){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = (val === null || val === undefined) ? '—' : Number(val).toLocaleString();
   }
 
   /* ===================== SEE LIVE ===================== */
@@ -1519,6 +1536,16 @@
         commitEl.textContent = '—';
       });
 
+    // Live + staging app_version from raw main files (same source of truth as deploys)
+    fetchAppVersionBadge(
+      'https://raw.githubusercontent.com/straydog-labs/sharp-end-exposure/main/index.html',
+      'see-live-version'
+    );
+    fetchAppVersionBadge(
+      'https://raw.githubusercontent.com/straydog-labs/sharp-end-exposure/main/index-staging.html',
+      'see-staging-version'
+    );
+
     // Supabase health check
     var healthEl = document.getElementById('see-live-health');
     var healthMsEl = document.getElementById('see-live-health-ms');
@@ -1536,6 +1563,24 @@
         healthEl.textContent = 'Supabase ✗ unreachable';
         healthEl.className = 'health-status health-fail';
         healthMsEl.textContent = dt + 'ms';
+      });
+  }
+
+  function fetchAppVersionBadge(rawUrl, elementId){
+    var el = document.getElementById(elementId);
+    if(!el) return;
+    el.textContent = '···';
+    fetch(rawUrl)
+      .then(function(res){
+        if(!res.ok) throw new Error('bad response');
+        return res.text();
+      })
+      .then(function(text){
+        var m = text.match(/var\s+app_version\s*=\s*['"]([^'"]+)['"]/);
+        el.textContent = (m && m[1]) ? m[1] : '—';
+      })
+      .catch(function(){
+        el.textContent = '—';
       });
   }
 
@@ -1822,22 +1867,31 @@
   }
 
   /* ===================== INVESTOR VIEW ===================== */
-  var investorLoaded = false;
+  var investorAnonLoaded = false;
   function loadInvestorView(){
-    if(investorLoaded) return;
-    investorLoaded = true;
-    var fields = [
-      { id: 'iv-sessions', fetcher: function(){ return sbCount('sessions', '&deleted_at=is.null'); } },
-      { id: 'iv-users', fetcher: sbActiveUsers },
-      { id: 'iv-falls', fetcher: function(){ return sbCount('falls'); } }
-    ];
-    fields.forEach(function(f){
-      var el = document.getElementById(f.id);
-      f.fetcher().then(function(val){
-        el.textContent = (val === null || val === undefined) ? '—' : val.toLocaleString();
+    if(!investorAnonLoaded){
+      investorAnonLoaded = true;
+      var sessionsEl = document.getElementById('iv-sessions');
+      sbCount('sessions', '&deleted_at=is.null').then(function(val){
+        sessionsEl.textContent = (val === null || val === undefined) ? '—' : val.toLocaleString();
       }).catch(function(){
-        el.textContent = '—';
+        sessionsEl.textContent = '—';
       });
+    }
+    loadInvestorPrivilegedCounts();
+  }
+
+  function loadInvestorPrivilegedCounts(){
+    var usersEl = document.getElementById('iv-users');
+    var fallsEl = document.getElementById('iv-falls');
+    if(usersEl) usersEl.textContent = '···';
+    if(fallsEl) fallsEl.textContent = '···';
+    getOverviewCounts().then(function(data){
+      setMetric('iv-users', data.active_users);
+      setMetric('iv-falls', data.falls_logged);
+    }).catch(function(){
+      setMetric('iv-users', null);
+      setMetric('iv-falls', null);
     });
   }
 
@@ -2211,6 +2265,46 @@
     });
   }
 
+  // Shared admin-only counts for Overview + Investor View.
+  // foundash_overview_counts is SECURITY DEFINER / authenticated-only — anon RLS
+  // cannot see session user_ids, falls, or journal rows (seed-4).
+  var overviewCountsPromise = null;
+
+  function ensureAdminForRpc(){
+    if(adminProfile && adminAccessToken()) return Promise.resolve(true);
+    if(!supabaseClient) return Promise.resolve(false);
+    return supabaseClient.auth.getSession().then(function(res){
+      var session = res.data && res.data.session ? res.data.session : null;
+      if(!session) return false;
+      return establishAdminSession(session);
+    }).catch(function(){ return false; });
+  }
+
+  function getOverviewCounts(){
+    if(!overviewCountsPromise){
+      overviewCountsPromise = ensureAdminForRpc().then(function(ok){
+        if(!ok) throw { code: 'NO_SESSION', message: 'Admin sign-in required' };
+        return sbRpc('foundash_overview_counts', {});
+      }).then(function(data){
+        if(!data || data.ok !== true) throw data || { message: 'overview counts failed' };
+        return data;
+      }).catch(function(err){
+        overviewCountsPromise = null; // allow retry after admin sign-in
+        throw err;
+      });
+    }
+    return overviewCountsPromise;
+  }
+
+  function refreshPrivilegedMetrics(){
+    overviewCountsPromise = null;
+    loadOverviewPrivilegedCounts();
+    if(document.getElementById('section-investor-view') &&
+       document.getElementById('section-investor-view').classList.contains('active')){
+      loadInvestorPrivilegedCounts();
+    }
+  }
+
   function isMissingRpc(err){
     return err && (err.code === 'PGRST202' || err.code === '42883' || err.code === 'PGRST205');
   }
@@ -2263,6 +2357,8 @@
         adminProfile = null;
         rosterLoaded = false;
         coachesLoaded = false;
+        overviewCountsPromise = null;
+        refreshPrivilegedMetrics();
         // Re-render whichever privileged section is active
         var active = document.querySelector('.nav-item.active');
         if(active) showSection(active.dataset.section);
@@ -2294,6 +2390,7 @@
         }
         rosterLoaded = false;
         coachesLoaded = false;
+        refreshPrivilegedMetrics();
         var active = document.querySelector('.nav-item.active');
         if(active) showSection(active.dataset.section);
       });
