@@ -140,16 +140,34 @@
   .assign-card.done{opacity:.55;}
   .assign-title{font-size:13.5px;font-weight:600;margin-bottom:4px;}
   .assign-desc{font-size:12.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px;}
-  .assign-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--text-secondary);}
+  .assign-meta{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--text-secondary);}
+  .assign-dates{display:flex;flex-direction:column;gap:3px;}
   .assign-due{font-family:'Space Mono',monospace;}
   .assign-due.overdue{color:var(--danger);}
+  .assign-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
   .assign-complete-btn{
     background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 12px;
     color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;
   }
   .assign-complete-btn:hover{border-color:var(--success);color:#7fbf3f;}
   .assign-complete-btn:disabled{opacity:.5;cursor:default;}
+  .assign-repeat-btn{
+    background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 12px;
+    color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;
+  }
+  .assign-repeat-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .assign-repeat-btn:disabled{opacity:.5;cursor:default;}
   .assign-done-tag{font-size:11px;font-weight:700;color:#7fbf3f;}
+
+  .roster-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .roster-stat{
+    background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 12px;
+  }
+  .roster-stat-val{font-size:22px;font-weight:700;line-height:1;letter-spacing:-.02em;}
+  .roster-stat-label{
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);margin-top:6px;
+  }
 
   .form-row{margin-bottom:12px;}
   .form-row label{display:block;font-size:11.5px;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.03em;}
@@ -451,18 +469,31 @@
   }
 
   // Shared card markup for both the coach-side assignment list and the
-  // athlete Train tab — `withCompleteButton` is the only real difference.
-  function assignCardHtml(a, withCompleteButton){
+  // athlete Train tab. Coach cards get Assigned date + Repeat; athlete
+  // cards get Mark complete.
+  function assignCardHtml(a, withCompleteButton, withRepeatButton){
     var done = !!a.completed_at;
-    return '<div class="assign-card' + (done ? ' done' : '') + '"' + (withCompleteButton ? ' data-id="' + a.id + '"' : '') + '>' +
+    var actions = '';
+    if(done){
+      actions = '<span class="assign-done-tag">✓ Completed ' + fmtDate(a.completed_at) + '</span>';
+    } else if(withCompleteButton){
+      actions = '<button type="button" class="assign-complete-btn" data-id="' + escapeHtml(a.id) + '">Mark complete</button>';
+    } else {
+      actions = '<span>Open</span>';
+    }
+    if(withRepeatButton){
+      actions += '<button type="button" class="assign-repeat-btn" data-id="' + escapeHtml(a.id) + '">Repeat workout</button>';
+    }
+    return '<div class="assign-card' + (done ? ' done' : '') + '"' + (withCompleteButton ? ' data-id="' + escapeHtml(a.id) + '"' : '') + '>' +
       '<div class="assign-title">' + escapeHtml(a.title) + '</div>' +
       (a.description ? '<div class="assign-desc">' + escapeHtml(a.description) + '</div>' : '') +
       assignResourceHtml(a) +
       '<div class="assign-meta">' +
-        '<span class="assign-due">Due ' + fmtDate(a.due_date) + '</span>' +
-        (done
-          ? '<span class="assign-done-tag">✓ Completed ' + fmtDate(a.completed_at) + '</span>'
-          : (withCompleteButton ? '<button class="assign-complete-btn" data-id="' + a.id + '">Mark complete</button>' : '<span>Open</span>')) +
+        '<div class="assign-dates">' +
+          '<span class="assign-due">Assigned ' + fmtDate(a.created_at) + '</span>' +
+          '<span class="assign-due">Due ' + fmtDate(a.due_date) + '</span>' +
+        '</div>' +
+        '<div class="assign-actions">' + actions + '</div>' +
       '</div>' +
     '</div>';
   }
@@ -470,17 +501,17 @@
   // Locked scope: completed assignments must visually separate from open ones
   // (not just dim in place) — open ones render normally, completed ones drop
   // into a collapsed <details> group below, most-recently-completed first.
-  function renderAssignmentGroups(rows, withCompleteButton){
+  function renderAssignmentGroups(rows, withCompleteButton, withRepeatButton){
     var open = rows.filter(function(a){ return !a.completed_at; });
     var done = rows.filter(function(a){ return !!a.completed_at; }).sort(function(a, b){
       return new Date(b.completed_at) - new Date(a.completed_at);
     });
     var html = open.length
-      ? open.map(function(a){ return assignCardHtml(a, withCompleteButton); }).join('')
+      ? open.map(function(a){ return assignCardHtml(a, withCompleteButton, withRepeatButton); }).join('')
       : '<div class="open-empty">No open assignments.</div>';
     if(done.length){
       html += '<details class="completed-group"><summary>Completed (' + done.length + ')</summary>' +
-        done.map(function(a){ return assignCardHtml(a, withCompleteButton); }).join('') +
+        done.map(function(a){ return assignCardHtml(a, withCompleteButton, withRepeatButton); }).join('') +
         '</details>';
     }
     return html;
@@ -573,7 +604,12 @@
       '<div class="page-sub">Athletes linked to you via <span class="mono">coach_athlete_links</span>. Tap an athlete for assignments, session data, and notes.</div>' +
       '<div class="coach-layout">' +
         '<div class="panel" id="roster-panel">' +
-          '<div class="panel-title">Athletes</div><div id="roster-list"><div class="roster-empty">Loading···</div></div>' +
+          '<div class="panel-title">Athletes</div>' +
+          '<div class="roster-stats" id="roster-stats">' +
+            '<div class="roster-stat"><div class="roster-stat-val" id="stat-athletes">—</div><div class="roster-stat-label">Athletes</div></div>' +
+            '<div class="roster-stat"><div class="roster-stat-val" id="stat-sessions">—</div><div class="roster-stat-label">Sessions</div></div>' +
+          '</div>' +
+          '<div id="roster-list"><div class="roster-empty">Loading···</div></div>' +
           '<div class="link-athlete-box">' +
             '<div class="panel-title" style="margin-bottom:10px;">Link athlete</div>' +
             '<div class="form-row"><label for="link-athlete-email">Athlete email</label><input id="link-athlete-email" type="email" placeholder="athlete@example.com"></div>' +
@@ -671,6 +707,7 @@
       }
       _coachRoster = Array.isArray(result.roster) ? result.roster : [];
       renderRoster(token, user, _coachRoster);
+      updateRosterStats(token, _coachRoster);
     }).catch(function(err){
       var isMissingFn = err && (err.code === 'PGRST202' || err.code === '42883');
       listEl.innerHTML =
@@ -679,6 +716,51 @@
             ? 'The <code>coach_list_roster</code> function doesn\'t exist yet.'
             : 'Failed to load roster. ' + escapeHtml((err && err.message) || 'unknown error')) +
         '</div>';
+      updateRosterStats(token, []);
+    });
+  }
+
+  // Athletes tile = roster length. Sessions tile = count of non-deleted
+  // sessions for linked athletes via sessions_select_coach RLS (user_id
+  // is the athlete on public.sessions).
+  function updateRosterStats(token, roster){
+    var athletesEl = document.getElementById('stat-athletes');
+    var sessionsEl = document.getElementById('stat-sessions');
+    if(athletesEl) athletesEl.textContent = String(roster.length);
+    if(!sessionsEl) return;
+    if(!roster.length){
+      sessionsEl.textContent = '0';
+      return;
+    }
+    sessionsEl.textContent = '…';
+    countCoachRosterSessions(token, roster.map(function(r){ return r.athlete_id; }))
+      .then(function(n){ sessionsEl.textContent = String(n); })
+      .catch(function(){ sessionsEl.textContent = '—'; });
+  }
+
+  function countCoachRosterSessions(token, athleteIds){
+    var ids = (athleteIds || []).filter(Boolean);
+    if(!ids.length) return Promise.resolve(0);
+    var q = 'select=id&user_id=in.(' + ids.join(',') + ')&deleted_at=is.null';
+    return fetch(SB_URL + '/rest/v1/sessions?' + q, {
+      headers: Object.assign(sbHeaders(token), {
+        'Prefer': 'count=exact',
+        'Range': '0-0'
+      })
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      var cr = res.headers.get('content-range') || '';
+      var slash = cr.lastIndexOf('/');
+      if(slash !== -1){
+        var total = cr.slice(slash + 1);
+        if(total && total !== '*'){
+          var n = parseInt(total, 10);
+          if(!isNaN(n)) return n;
+        }
+      }
+      return res.json().then(function(rows){
+        return Array.isArray(rows) ? rows.length : 0;
+      });
     });
   }
 
@@ -738,23 +820,70 @@
 
     loadAssignments(token, coachUser, athleteId);
     renderNewAssignmentForm(token, coachUser, athleteId, title);
-    loadAthleteSessions(token, athleteId);
-    renderNotesSection(token, coachUser, athleteId);
+    // Notes session dropdown depends on the sessions query — load first,
+    // then render notes so the select is populated from real rows.
+    renderNotesSection(token, coachUser, athleteId, true);
+    loadAthleteSessions(token, athleteId).then(function(){
+      populateNotesSessionSelect();
+    });
   }
+
+  var _lastCoachAssignments = [];
 
   function loadAssignments(token, coachUser, athleteId){
     var el = document.getElementById('detail-assignments');
     sbSelect(token, 'assignments', 'select=*&athlete_id=eq.' + athleteId + '&coach_id=eq.' + coachUser.id + '&deleted_at=is.null&order=due_date.asc.nullslast')
       .then(function(rows){
-        if(!rows.length){
+        _lastCoachAssignments = Array.isArray(rows) ? rows : [];
+        if(!_lastCoachAssignments.length){
           el.innerHTML = '<div class="panel-title">Assignments</div><div class="form-note">No assignments yet.</div>';
           return;
         }
-        el.innerHTML = '<div class="panel-title">Assignments</div>' + renderAssignmentGroups(rows, false);
+        el.innerHTML = '<div class="panel-title">Assignments</div>' +
+          renderAssignmentGroups(_lastCoachAssignments, false, true);
+        wireCoachAssignmentActions(token, coachUser, athleteId, el);
       })
       .catch(function(err){
+        _lastCoachAssignments = [];
         el.innerHTML = '<div class="panel-title">Assignments</div><div class="form-error">Failed to load — ' + escapeHtml(err.message || 'unknown error') + '</div>';
       });
+  }
+
+  function wireCoachAssignmentActions(token, coachUser, athleteId, rootEl){
+    Array.prototype.forEach.call(rootEl.querySelectorAll('.assign-repeat-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-id');
+        var src = _lastCoachAssignments.find(function(a){ return a.id === id; });
+        if(!src) return;
+        btn.disabled = true;
+        var prev = btn.textContent;
+        btn.textContent = 'Repeating...';
+        repeatCoachAssignment(token, coachUser, athleteId, src)
+          .then(function(){
+            return loadAssignments(token, coachUser, athleteId);
+          })
+          .catch(function(err){
+            btn.disabled = false;
+            btn.textContent = prev;
+            alert('Failed to repeat workout — ' + ((err && err.message) || 'unknown error'));
+          });
+      });
+    });
+  }
+
+  // New assignment row copied from an existing one — same idea as the
+  // athlete-side +Attempt pattern. Does not modify the source row.
+  function repeatCoachAssignment(token, coachUser, athleteId, source){
+    var payload = {
+      coach_id: coachUser.id,
+      athlete_id: athleteId,
+      title: source.title,
+      description: source.description || null
+    };
+    // Fresh due_date / completed_at — omit so DB defaults (null) apply.
+    if(source.library_item_id) payload.library_item_id = source.library_item_id;
+    if(source.resource_link) payload.resource_link = source.resource_link;
+    return createCoachLibraryAssignment(token, payload);
   }
 
   // ── Workout library (coach-side) ─────────────────────────
@@ -1336,18 +1465,16 @@
 
   function loadAthleteSessions(token, athleteId){
     var el = document.getElementById('detail-sessions');
-    sbSelect(token, 'sessions', 'select=id,created_at,route_name,zone&user_id=eq.' + athleteId + '&deleted_at=is.null&order=created_at.desc&limit=20')
+    return sbSelect(token, 'sessions', 'select=id,created_at,route_name,zone&user_id=eq.' + athleteId + '&deleted_at=is.null&order=created_at.desc&limit=20')
       .then(function(rows){
-        _lastSessionRows = rows;
-        if(!rows.length){
+        _lastSessionRows = Array.isArray(rows) ? rows : [];
+        if(!_lastSessionRows.length){
           el.innerHTML = '<div class="panel-title">Session &amp; climb data</div>' +
-            '<div class="stub">No sessions visible for this athlete yet.<br>If this athlete has logged sessions in the SEE app, this is most likely ' +
-            'because coach read-access hasn\'t been granted at the database level — see <code>coach-layer-additions.sql</code> ' +
-            '(section 1, <code>sessions_select_coach</code> etc.) delivered alongside this file.</div>';
-          return;
+            '<div class="form-note">No sessions logged yet for this athlete.</div>';
+          return _lastSessionRows;
         }
-        el.innerHTML = '<div class="panel-title">Session &amp; climb data — last ' + rows.length + '</div>' +
-          rows.map(function(s){
+        el.innerHTML = '<div class="panel-title">Session &amp; climb data — last ' + _lastSessionRows.length + '</div>' +
+          _lastSessionRows.map(function(s){
             return '<div class="assign-card">' +
               '<div class="assign-meta">' +
                 '<span class="assign-due">' + fmtDate(s.created_at) + '</span>' +
@@ -1355,40 +1482,53 @@
               '</div>' +
             '</div>';
           }).join('');
+        return _lastSessionRows;
       })
       .catch(function(err){
         _lastSessionRows = [];
         el.innerHTML = '<div class="panel-title">Session &amp; climb data</div>' +
-          '<div class="stub">Unable to load — ' + escapeHtml(err.message || 'unknown error') +
-          '<br>This table likely needs the coach-read policy in <code>coach-layer-additions.sql</code> before this will work.</div>';
+          '<div class="stub">Unable to load sessions — ' + escapeHtml(err.message || 'unknown error') + '</div>';
+        return [];
       });
   }
 
   var _lastSessionRows = [];
 
-  function renderNotesSection(token, coachUser, athleteId){
+  function populateNotesSessionSelect(){
+    var sessionSelect = document.getElementById('new-note-session');
+    if(!sessionSelect) return;
+    if(_lastSessionRows.length){
+      sessionSelect.disabled = false;
+      sessionSelect.innerHTML = '<option value="">Select a session···</option>' +
+        _lastSessionRows.map(function(s){
+          return '<option value="' + escapeHtml(s.id) + '">' +
+            fmtDate(s.created_at) + ' — ' + escapeHtml(s.route_name || 'unnamed') +
+          '</option>';
+        }).join('');
+    } else {
+      sessionSelect.innerHTML = '<option value="">No sessions logged yet</option>';
+      sessionSelect.disabled = true;
+    }
+  }
+
+  function renderNotesSection(token, coachUser, athleteId, waitingForSessions){
     var el = document.getElementById('detail-notes');
     el.innerHTML =
       '<div class="panel-title">Coach notes</div>' +
       '<div id="notes-list"><div class="form-note">Loading···</div></div>' +
       '<div class="form-row" style="margin-top:14px;"><label for="new-note-session">Session</label>' +
-        '<select id="new-note-session"><option value="">Select a session···</option></select></div>' +
+        '<select id="new-note-session"' + (waitingForSessions ? ' disabled' : '') + '>' +
+          '<option value="">' + (waitingForSessions ? 'Loading sessions···' : 'Select a session···') + '</option>' +
+        '</select></div>' +
       '<div class="form-row"><label for="new-note-text">Note</label><textarea id="new-note-text" placeholder="Free-text note attached to the session above"></textarea></div>' +
       '<div class="form-actions"><button class="btn-primary" id="new-note-submit">Save note</button></div>' +
       '<div id="new-note-msg"></div>';
 
-    var sessionSelect = document.getElementById('new-note-session');
-    if(_lastSessionRows.length){
-      sessionSelect.innerHTML = '<option value="">Select a session···</option>' + _lastSessionRows.map(function(s){
-        return '<option value="' + s.id + '">' + fmtDate(s.created_at) + ' — ' + escapeHtml(s.route_name || 'unnamed') + '</option>';
-      }).join('');
-    } else {
-      sessionSelect.innerHTML = '<option value="">No sessions available — see coach-layer-additions.sql</option>';
-      sessionSelect.disabled = true;
-    }
+    if(!waitingForSessions) populateNotesSessionSelect();
 
     loadNotes(token, coachUser, athleteId);
 
+    var sessionSelect = document.getElementById('new-note-session');
     document.getElementById('new-note-submit').addEventListener('click', function(){
       var msgEl = document.getElementById('new-note-msg');
       var noteText = document.getElementById('new-note-text').value.trim();
