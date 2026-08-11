@@ -2765,6 +2765,24 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div id="train-new-msg" style="font-size:12px;color:var(--muted);margin:-6px 0 14px;"></div>
 
       <div id="train-list"><div style="text-align:center;padding:16px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
+
+      <!-- Coach chat (build 197) — only rendered when athlete has an active
+           coach_athlete_links row. No teaser / empty unlock state when unlinked. -->
+      <div id="coach-chat-section" style="display:none;margin-top:24px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Coach chat</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
+          <div id="coach-chat-list" style="max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end;">
+            <input id="coach-chat-input" type="text" placeholder="Message your coach..."
+              autocomplete="off"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();sendCoachChatMessage();}"
+              style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;box-sizing:border-box;">
+            <button type="button" id="coach-chat-send" onclick="sendCoachChatMessage()"
+              style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;">Send</button>
+          </div>
+          <div id="coach-chat-err" style="font-size:12px;color:var(--panic);margin-top:8px;min-height:16px;"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2846,7 +2864,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <button class="back-btn" onclick="showScreen('screen-workout-library')">← Library</button>
   </div>
   <div class="content">
-    <div class="screen-title">Add a protocol<span class="sub">Shared with everyone who uses the library.</span></div>
+    <div class="screen-title">Add a protocol<span class="sub">Coaches' protocols are shared with everyone. If you're not a coach, what you add here is private to you.</span></div>
     <div class="insight-card" style="margin-top:16px;">
       <div class="field-group">
         <!-- Locked taxonomy + energy system (build 196) — mirrors coach create path -->
@@ -3820,7 +3838,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index196';
+var app_version = 'staging-index197';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4416,7 +4434,7 @@ function showScreen(id){
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
-  if(id==='screen-train')loadTrainAssignments();
+  if(id==='screen-train'){ loadTrainAssignments(); loadCoachChat(); }
   if(id==='screen-workout-library')loadWorkoutLibrary();
   if(id==='screen-workout-library-add')initWorkoutLibraryAddForm();
   if(id==='screen-baseline'){baselineState.qi=0;renderBaselineQ();}
@@ -6680,6 +6698,7 @@ async function loadTrainAssignments(){
   if(!window._authUser){
     if(anonEl) anonEl.style.display = 'block';
     if(contentEl) contentEl.style.display = 'none';
+    hideCoachChatSection();
     return;
   }
   if(anonEl) anonEl.style.display = 'none';
@@ -6689,6 +6708,186 @@ async function loadTrainAssignments(){
   var rows = await sbS('assignments', 'select=*&athlete_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=due_date.asc.nullslast');
   _trainAssignmentsCache = Array.isArray(rows) ? rows : [];
   renderTrainList();
+}
+
+// ═══════════════════════════════════════════════════════
+// COACH CHAT (build 197) — athlete ↔ linked coach thread on Train.
+// UX gate via coach_athlete_links (active); RLS also enforces participants.
+// ═══════════════════════════════════════════════════════
+var _coachChatCoachId = null;
+var _coachChatMessages = [];
+var _coachChatLabels = { self: 'You', coach: 'Your coach' };
+
+function hideCoachChatSection(){
+  _coachChatCoachId = null;
+  _coachChatMessages = [];
+  var section = document.getElementById('coach-chat-section');
+  if(section) section.style.display = 'none';
+  var list = document.getElementById('coach-chat-list');
+  if(list) list.innerHTML = '';
+  var err = document.getElementById('coach-chat-err');
+  if(err) err.textContent = '';
+}
+
+// Same preference as coach roster / Foundash: First Last, else email, else fallback.
+function personDisplayLabel(first, last, email, fallback){
+  first = String(first != null ? first : '').trim();
+  last = String(last != null ? last : '').trim();
+  if(first && last) return first + ' ' + last;
+  if(first) return first;
+  email = String(email != null ? email : '').trim();
+  if(email) return email;
+  return fallback || 'Unknown';
+}
+
+// Only http(s) — same defense as coach-dashboard safeUrl for resource_link.
+function safeUrl(u){
+  if(!u) return null;
+  return /^https?:\/\//i.test(String(u).trim()) ? String(u).trim() : null;
+}
+
+function formatChatBodyHtml(text){
+  var s = String(text || '');
+  var re = /(https?:\/\/[^\s]+)/gi;
+  var out = '';
+  var last = 0;
+  var m;
+  while((m = re.exec(s))){
+    out += escTrainHtml(s.slice(last, m.index));
+    var url = safeUrl(m[0]);
+    if(url){
+      out += '<a href="' + escTrainHtml(url) + '" target="_blank" rel="noopener noreferrer" style="color:var(--accent);word-break:break-all;">' +
+        escTrainHtml(url) + '</a>';
+    } else {
+      out += escTrainHtml(m[0]);
+    }
+    last = m.index + m[0].length;
+  }
+  out += escTrainHtml(s.slice(last));
+  return out;
+}
+
+function formatChatTimestamp(iso){
+  if(!iso) return '';
+  var dt = new Date(iso);
+  if(isNaN(dt.getTime())) return '';
+  var diff = Date.now() - dt.getTime();
+  if(diff < 60000) return 'Just now';
+  if(diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+  if(diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+async function resolveChatLabels(coachId){
+  var selfId = window._authUser && window._authUser.id;
+  var selfEmail = (window._authUser && window._authUser.email) || '';
+  var selfLabel = 'You';
+  if(selfId){
+    var own = await sbS('profiles', 'select=first_name,last_name&user_id=eq.' + selfId + '&limit=1');
+    if(Array.isArray(own) && own[0]){
+      selfLabel = personDisplayLabel(own[0].first_name, own[0].last_name, selfEmail, 'You');
+    } else if(selfEmail){
+      selfLabel = selfEmail;
+    }
+  }
+  // profiles RLS is own-row; coach name may not be readable. Prefer First Last
+  // when available, else "Your coach".
+  var coachLabel = 'Your coach';
+  if(coachId){
+    var coachProf = await sbS('profiles', 'select=first_name,last_name&user_id=eq.' + coachId + '&limit=1');
+    if(Array.isArray(coachProf) && coachProf[0]){
+      coachLabel = personDisplayLabel(coachProf[0].first_name, coachProf[0].last_name, '', 'Your coach');
+    }
+  }
+  _coachChatLabels = { self: selfLabel, coach: coachLabel };
+}
+
+function renderCoachChatMessages(){
+  var list = document.getElementById('coach-chat-list');
+  if(!list) return;
+  var selfId = window._authUser && window._authUser.id;
+  var rows = _coachChatMessages;
+  if(!rows.length){
+    list.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 2px;">No messages yet. Say hello.</div>';
+    return;
+  }
+  list.innerHTML = rows.map(function(m){
+    var mine = m.sender_id === selfId;
+    var label = mine ? _coachChatLabels.self : _coachChatLabels.coach;
+    var align = mine ? 'flex-end' : 'flex-start';
+    var bg = mine ? 'var(--accent-dim)' : 'var(--surface2)';
+    return '<div style="display:flex;flex-direction:column;align-items:' + align + ';">' +
+      '<div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">' +
+        escTrainHtml(label) +
+        '<span style="font-weight:500;text-transform:none;letter-spacing:0;margin-left:8px;font-family:\'Space Mono\',monospace;">' +
+        escTrainHtml(formatChatTimestamp(m.created_at)) + '</span></div>' +
+      '<div style="max-width:92%;background:' + bg + ';border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;font-size:14px;color:var(--text);line-height:1.55;word-break:break-word;">' +
+        formatChatBodyHtml(m.body) +
+      '</div></div>';
+  }).join('');
+  list.scrollTop = list.scrollHeight;
+}
+
+async function loadCoachChat(){
+  var section = document.getElementById('coach-chat-section');
+  if(!section) return;
+  if(!window._authUser){
+    hideCoachChatSection();
+    return;
+  }
+  var links = await sbS(
+    'coach_athlete_links',
+    'select=coach_id&athlete_id=eq.' + window._authUser.id + '&status=eq.active&limit=1'
+  );
+  if(!Array.isArray(links) || !links.length || !links[0].coach_id){
+    // No active coach - render nothing (not an empty "unlock chat" teaser).
+    hideCoachChatSection();
+    return;
+  }
+  _coachChatCoachId = links[0].coach_id;
+  section.style.display = 'block';
+  var list = document.getElementById('coach-chat-list');
+  if(list) list.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 2px;">Loading...</div>';
+  await resolveChatLabels(_coachChatCoachId);
+  var rows = await sbS(
+    'coach_messages',
+    'select=id,coach_id,athlete_id,sender_id,body,link,created_at&coach_id=eq.' + _coachChatCoachId +
+      '&athlete_id=eq.' + window._authUser.id + '&order=created_at.asc'
+  );
+  _coachChatMessages = Array.isArray(rows) ? rows : [];
+  renderCoachChatMessages();
+}
+
+async function sendCoachChatMessage(){
+  if(!window._authUser || !_coachChatCoachId) return;
+  var input = document.getElementById('coach-chat-input');
+  var errEl = document.getElementById('coach-chat-err');
+  var btn = document.getElementById('coach-chat-send');
+  var body = input ? input.value.trim() : '';
+  if(errEl) errEl.textContent = '';
+  if(!body){ if(errEl) errEl.textContent = 'Type a message first'; return; }
+  if(btn){ btn.disabled = true; btn.textContent = 'Sending...'; }
+  var saved = await sbI('coach_messages', {
+    coach_id: _coachChatCoachId,
+    athlete_id: window._authUser.id,
+    sender_id: window._authUser.id,
+    body: body,
+    link: null
+  });
+  if(btn){ btn.disabled = false; btn.textContent = 'Send'; }
+  if(!saved){
+    if(errEl) errEl.textContent = 'Could not send. Try again.';
+    return;
+  }
+  if(input) input.value = '';
+  // Reload thread so server timestamps / ordering stay authoritative
+  var rows = await sbS(
+    'coach_messages',
+    'select=id,coach_id,athlete_id,sender_id,body,link,created_at&coach_id=eq.' + _coachChatCoachId +
+      '&athlete_id=eq.' + window._authUser.id + '&order=created_at.asc'
+  );
+  _coachChatMessages = Array.isArray(rows) ? rows : _coachChatMessages.concat([saved]);
+  renderCoachChatMessages();
 }
 
 // Sanitizes user-generated Markdown before it's ever used as innerHTML (build
@@ -7404,8 +7603,11 @@ function renderWorkoutLibrary(){
   categories.forEach(function(cat){
     html += '<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;">'+escTrainHtml(cat)+'</div>';
     byCat[cat].forEach(function(item){
+      var privateTag = item.visibility === 'private'
+        ? '<span style="margin-left:8px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 6px;vertical-align:middle;">Private</span>'
+        : '';
       html += '<button type="button" onclick="openWorkoutLibraryItem(\''+item.id+'\')" style="width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:8px;cursor:pointer;color:var(--text);font-family:\'Space Grotesk\',sans-serif;-webkit-tap-highlight-color:transparent;">'
-        +'<div style="font-size:15px;font-weight:600;">'+escTrainHtml(item.name)+'</div>'
+        +'<div style="font-size:15px;font-weight:600;">'+escTrainHtml(item.name)+privateTag+'</div>'
         +(item.description ? '<div style="font-size:12px;color:var(--muted);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escTrainHtml(String(item.description).replace(/\s+/g,' ').replace(/[#*_`>\-\[\]()]/g,'').trim())+'</div>' : '')
         +'</button>';
     });
@@ -11537,7 +11739,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat'
   ];
 
   function shouldSkip(onclick){
@@ -12083,6 +12285,58 @@ async function runSEETests(){
     }
     showScreen('screen-train');
   }catch(e){ fail('Library add uses locked category + type', e.message); }
+
+  // Coach chat + library privacy (build 197)
+  try{
+    var chatFns = ['loadCoachChat','sendCoachChatMessage','safeUrl','formatChatBodyHtml','personDisplayLabel','hideCoachChatSection'];
+    var missingChat = chatFns.filter(function(f){ return typeof window[f] !== 'function'; });
+    var section = document.getElementById('coach-chat-section');
+    var input = document.getElementById('coach-chat-input');
+    var sendBtn = document.getElementById('coach-chat-send');
+    if(missingChat.length){ fail('Coach chat helpers defined', 'Missing: ' + missingChat.join(', ')); }
+    else if(!section || !input || !sendBtn){ fail('Coach chat helpers defined', 'DOM missing'); }
+    else if(safeUrl('javascript:alert(1)') !== null || safeUrl('https://example.com/x') !== 'https://example.com/x'){
+      fail('Coach chat helpers defined', 'safeUrl failed');
+    } else {
+      var linked = formatChatBodyHtml('see https://example.com/path ok');
+      var bad = formatChatBodyHtml('no javascript:alert(1) here');
+      if(linked.indexOf('href="https://example.com/path"') === -1 || bad.indexOf('href="javascript:') !== -1){
+        fail('Coach chat helpers defined', 'linkify unsafe');
+      } else {
+        pass('Coach chat helpers defined (' + chatFns.length + ')');
+      }
+    }
+  }catch(e){ fail('Coach chat helpers defined', e.message); }
+
+  try{
+    // Without an active coach link, section must stay hidden (no unlock teaser).
+    hideCoachChatSection();
+    var sec = document.getElementById('coach-chat-section');
+    if(sec && sec.style.display === 'none'){
+      pass('Coach chat hidden when unlinked');
+    } else {
+      fail('Coach chat hidden when unlinked', 'display=' + (sec && sec.style.display));
+    }
+  }catch(e){ fail('Coach chat hidden when unlinked', e.message); }
+
+  try{
+    var addSub = document.querySelector('#screen-workout-library-add .screen-title .sub');
+    var copy = addSub ? (addSub.textContent || '') : '';
+    var hasPrivacyCopy = /private to you/i.test(copy) && /shared with everyone/i.test(copy);
+    var hasEmDash = copy.indexOf('\u2014') > -1 || copy.indexOf('\u2013') > -1;
+    // Private tag renders for visibility===private
+    var prevCache = _workoutLibraryCache;
+    _workoutLibraryCache = [{ id: 'priv-1', category: 'Hangboard', name: 'My private drill', description: '', visibility: 'private' }];
+    renderWorkoutLibrary();
+    var listHtml = (document.getElementById('wl-list') || {}).innerHTML || '';
+    var hasPrivateTag = /Private/.test(listHtml);
+    _workoutLibraryCache = prevCache;
+    if(hasPrivacyCopy && !hasEmDash && hasPrivateTag){
+      pass('Library privacy copy + Private tag');
+    } else {
+      fail('Library privacy copy + Private tag', 'copyOk=' + hasPrivacyCopy + ' tag=' + hasPrivateTag + ' emdash=' + hasEmDash);
+    }
+  }catch(e){ fail('Library privacy copy + Private tag', e.message); }
 
   try{
     if(Array.isArray(WORKOUT_LIBRARY_STARTERS) && WORKOUT_LIBRARY_STARTERS.length >= 6){
