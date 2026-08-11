@@ -195,6 +195,33 @@
   .note-meta{font-size:11px;color:var(--text-secondary);margin-bottom:5px;}
   .note-text{font-size:13px;line-height:1.5;}
 
+  /* ---------- Coach ↔ athlete chat ---------- */
+  .chat-thread{
+    max-height:320px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);
+    border-radius:8px;padding:12px;margin-bottom:12px;
+  }
+  .chat-empty{font-size:12.5px;color:var(--text-secondary);padding:8px 2px;}
+  .chat-msg{margin-bottom:12px;}
+  .chat-msg:last-child{margin-bottom:0;}
+  .chat-msg-meta{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    font-size:11px;color:var(--text-secondary);margin-bottom:4px;
+  }
+  .chat-msg-who{font-weight:700;color:var(--text);}
+  .chat-msg.mine .chat-msg-who{color:var(--accent);}
+  .chat-msg-time{font-size:10.5px;}
+  .chat-msg-body{font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+  .chat-msg-body a{color:var(--accent);text-decoration:none;}
+  .chat-msg-body a:hover{text-decoration:underline;}
+  .chat-compose{display:flex;gap:8px;align-items:flex-end;}
+  .chat-compose textarea{
+    flex:1;min-height:44px;max-height:120px;resize:vertical;background:var(--bg);
+    border:1px solid var(--border);border-radius:6px;padding:9px 11px;color:var(--text);
+    font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none;
+  }
+  .chat-compose textarea:focus{border-color:var(--accent);}
+  .chat-compose .btn-primary{flex-shrink:0;}
+
   .assign-resource{margin-bottom:8px;}
   .assign-resource a{font-size:12px;color:var(--accent);text-decoration:none;}
   .assign-resource a:hover{text-decoration:underline;}
@@ -456,6 +483,34 @@
   function safeUrl(u){
     if(!u) return null;
     return /^https?:\/\//i.test(u.trim()) ? u.trim() : null;
+  }
+
+  // Auto-linkify http(s) URLs inside already-escaped chat body text.
+  // Never promotes any other scheme (javascript:, data:, etc.).
+  function linkifyHttpText(text){
+    var escaped = escapeHtml(text == null ? '' : text);
+    return escaped.replace(/https?:\/\/[^\s<]+/gi, function(raw){
+      var url = raw;
+      var trail = '';
+      while(/[.,);:!?]$/.test(url)){
+        trail = url.slice(-1) + trail;
+        url = url.slice(0, -1);
+      }
+      // safeUrl expects unescaped input; undo &amp; only for the check/href.
+      var hrefCandidate = url.replace(/&amp;/g, '&');
+      if(!safeUrl(hrefCandidate)) return raw;
+      return '<a href="' + escapeHtml(hrefCandidate) + '" target="_blank" rel="noopener">' +
+        url + '</a>' + trail;
+    });
+  }
+
+  function fmtChatTime(d){
+    if(!d) return '—';
+    var dt = new Date(d);
+    if(isNaN(dt.getTime())) return d;
+    return dt.toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    });
   }
 
   function assignResourceHtml(a){
@@ -816,7 +871,8 @@
       '<div class="detail-section" id="detail-assignments"><div class="panel-title">Assignments</div><div>Loading···</div></div>' +
       '<div class="detail-section" id="detail-new-assignment"></div>' +
       '<div class="detail-section" id="detail-sessions"><div class="panel-title">Session &amp; climb data</div><div>Loading···</div></div>' +
-      '<div class="detail-section" id="detail-notes"></div>';
+      '<div class="detail-section" id="detail-notes"></div>' +
+      '<div class="detail-section" id="detail-chat"></div>';
 
     loadAssignments(token, coachUser, athleteId);
     renderNewAssignmentForm(token, coachUser, athleteId, title);
@@ -826,6 +882,7 @@
     loadAthleteSessions(token, athleteId).then(function(){
       populateNotesSessionSelect();
     });
+    renderChatSection(token, coachUser, athleteId, title);
   }
 
   var _lastCoachAssignments = [];
@@ -1599,6 +1656,109 @@
             : 'Failed to load notes — ' + escapeHtml(err.message || 'unknown error')) +
           '</div>';
       });
+  }
+
+  // ── Coach ↔ athlete chat (coach_messages) ────────────────
+  function chatMessageHtml(m, coachUserId, athleteLabel){
+    var mine = m.sender_id === coachUserId;
+    var who = mine ? 'You' : (athleteLabel || 'Athlete');
+    return '<div class="chat-msg' + (mine ? ' mine' : '') + '">' +
+      '<div class="chat-msg-meta">' +
+        '<span class="chat-msg-who">' + escapeHtml(who) + '</span>' +
+        '<span class="chat-msg-time mono">' + fmtChatTime(m.created_at) + '</span>' +
+      '</div>' +
+      '<div class="chat-msg-body">' + linkifyHttpText(m.body || '') + '</div>' +
+    '</div>';
+  }
+
+  function renderChatSection(token, coachUser, athleteId, athleteLabel){
+    var el = document.getElementById('detail-chat');
+    if(!el) return;
+    el.innerHTML =
+      '<div class="panel-title">Chat</div>' +
+      '<div id="chat-thread" class="chat-thread"><div class="chat-empty">Loading···</div></div>' +
+      '<div class="chat-compose">' +
+        '<textarea id="chat-input" rows="2" placeholder="Message ' + escapeHtml(athleteLabel || 'athlete') + '…"></textarea>' +
+        '<button type="button" class="btn-primary" id="chat-send">Send</button>' +
+      '</div>' +
+      '<div id="chat-msg"></div>';
+
+    loadChatMessages(token, coachUser, athleteId, athleteLabel);
+
+    var input = document.getElementById('chat-input');
+    var sendBtn = document.getElementById('chat-send');
+    function doSend(){
+      var msgEl = document.getElementById('chat-msg');
+      var body = (input.value || '').trim();
+      if(!body){
+        msgEl.innerHTML = '<div class="form-error">Message is required.</div>';
+        return;
+      }
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Sending...';
+      fetch(SB_URL + '/rest/v1/coach_messages', {
+        method: 'POST',
+        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+        body: JSON.stringify({
+          coach_id: coachUser.id,
+          athlete_id: athleteId,
+          sender_id: coachUser.id,
+          body: body
+        })
+      }).then(function(res){
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send';
+        if(!res.ok) return res.json().then(function(err){ throw err; });
+        input.value = '';
+        msgEl.innerHTML = '';
+        return loadChatMessages(token, coachUser, athleteId, athleteLabel);
+      }).catch(function(err){
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send';
+        var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
+        msgEl.innerHTML = '<div class="form-error">' +
+          (isMissingTable
+            ? 'The <code>coach_messages</code> table isn\'t available yet.'
+            : 'Failed to send — ' + escapeHtml((err && err.message) || 'unknown error')) +
+          '</div>';
+      });
+    }
+    sendBtn.addEventListener('click', doSend);
+    input.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        doSend();
+      }
+    });
+  }
+
+  function loadChatMessages(token, coachUser, athleteId, athleteLabel){
+    var thread = document.getElementById('chat-thread');
+    if(!thread) return Promise.resolve();
+    return sbSelect(
+      token,
+      'coach_messages',
+      'select=id,coach_id,athlete_id,sender_id,body,link,created_at' +
+        '&athlete_id=eq.' + athleteId +
+        '&coach_id=eq.' + coachUser.id +
+        '&order=created_at.asc'
+    ).then(function(rows){
+      if(!rows.length){
+        thread.innerHTML = '<div class="chat-empty">No messages yet. Say hello.</div>';
+        return;
+      }
+      thread.innerHTML = rows.map(function(m){
+        return chatMessageHtml(m, coachUser.id, athleteLabel);
+      }).join('');
+      thread.scrollTop = thread.scrollHeight;
+    }).catch(function(err){
+      var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
+      thread.innerHTML = '<div class="chat-empty" style="color:var(--danger);">' +
+        (isMissingTable
+          ? 'The <code>coach_messages</code> table isn\'t available yet.'
+          : 'Failed to load chat — ' + escapeHtml((err && err.message) || 'unknown error')) +
+        '</div>';
+    });
   }
 
   /* ===================== ATHLETE VIEW ===================== */
