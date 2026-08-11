@@ -4,22 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Straydog Labs — Coaching</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23c8622a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23c8622a' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e89252' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e89252' stroke-width='2.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --bg:#161616;
-    --surface:#212121;
-    --border:#333333;
+    /* Dark grey (not near-black). Surface stays one step lighter than bg;
+       border steps up again so panels/chips still edge-define. */
+    --bg:#2e2e2e;
+    --surface:#3a3a3a;
+    --border:#4a4a4a;
     --text:#f0f0f0;
-    --text-secondary:#999999;
-    --accent:#c8622a;
+    /* Brighter than old #999 — keeps AA on the lighter --surface */
+    --text-secondary:#a8a8a8;
+    /* Accent/danger lifted with the bg so links + error copy stay readable */
+    --accent:#e89252;
     --success:#3B6D11;
     --warning:#BA7517;
-    --danger:#a83828;
+    --danger:#ef8575;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;}
@@ -105,7 +109,7 @@
   }
   .stub b{color:var(--text);}
   .stub code{
-    background:#141414;border:1px solid var(--border);border-radius:5px;padding:1px 6px;
+    background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:1px 6px;
     font-family:'Space Mono',monospace;font-size:11.5px;color:var(--accent);
   }
 
@@ -117,7 +121,7 @@
   }
   .roster-row:last-child{border-bottom:none;}
   .roster-row:hover{background:rgba(255,255,255,.02);}
-  .roster-row.active{background:rgba(200,98,42,.08);border-left:3px solid var(--accent);padding-left:12px;}
+  .roster-row.active{background:rgba(232,146,82,.1);border-left:3px solid var(--accent);padding-left:12px;}
   .roster-name{font-size:13px;font-weight:600;}
   .roster-meta{font-size:11px;color:var(--text-secondary);margin-top:2px;}
   .roster-empty{font-size:13px;color:var(--text-secondary);padding:12px 4px;}
@@ -129,7 +133,7 @@
   .detail-section:last-child{margin-bottom:0;}
 
   .assign-card{
-    background:#141414;border:1px solid var(--border);border-radius:8px;
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;
     padding:14px 16px;margin-bottom:10px;
   }
   .assign-card:last-child{margin-bottom:0;}
@@ -150,7 +154,7 @@
   .form-row{margin-bottom:12px;}
   .form-row label{display:block;font-size:11.5px;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.03em;}
   .form-row input, .form-row textarea, .form-row select{
-    width:100%;background:#141414;border:1px solid var(--border);border-radius:6px;
+    width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;
     padding:9px 11px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none;
   }
   .form-row input:focus, .form-row textarea:focus, .form-row select:focus{border-color:var(--accent);}
@@ -167,7 +171,7 @@
   .form-success{font-size:11.5px;color:#7fbf3f;margin-top:8px;}
 
   .note-card{
-    background:#141414;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;
   }
   .note-card:last-child{margin-bottom:0;}
   .note-meta{font-size:11px;color:var(--text-secondary);margin-bottom:5px;}
@@ -265,17 +269,17 @@
   .aw-path b{color:var(--text);font-weight:600;}
   .aw-choices{display:flex;flex-direction:column;gap:8px;width:100%;}
   .aw-chip{
-    width:100%;text-align:left;background:#141414;border:1px solid var(--border);border-radius:14px;
+    width:100%;text-align:left;background:var(--bg);border:1px solid var(--border);border-radius:14px;
     padding:16px 18px;color:var(--text);font-family:'Space Grotesk',sans-serif;
     font-size:16px;font-weight:600;cursor:pointer;transition:border-color .12s, color .12s, background .12s;
   }
-  .aw-chip:hover{border-color:rgba(200,98,42,.45);}
+  .aw-chip:hover{border-color:rgba(232,146,82,.5);}
   .aw-chip:active{transform:scale(.985);}
   .aw-chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
   .aw-chip-meta{
     display:block;font-size:12.5px;font-weight:500;color:var(--text-secondary);margin-top:4px;
   }
-  .aw-chip.selected .aw-chip-meta{color:rgba(200,98,42,.85);}
+  .aw-chip.selected .aw-chip-meta{color:rgba(232,146,82,.9);}
   .aw-field{margin-bottom:14px;}
   .aw-field:last-child{margin-bottom:0;}
   .aw-field label{
@@ -283,7 +287,7 @@
     color:var(--text);margin-bottom:8px;
   }
   .aw-field input, .aw-field textarea, .aw-field select{
-    width:100%;background:#141414;border:1px solid var(--border);border-radius:12px;
+    width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;
     padding:14px 16px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;outline:none;
   }
   .aw-field input:focus, .aw-field textarea:focus, .aw-field select:focus{border-color:var(--accent);}
@@ -300,10 +304,10 @@
   .aw-next:hover{opacity:.92;}
   .aw-next:disabled{opacity:.35;cursor:default;}
   .aw-secondary-btn{
-    width:100%;background:none;border:none;color:rgba(255,255,255,.35);
+    width:100%;background:none;border:none;color:var(--text-secondary);
     font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:10px;cursor:pointer;
   }
-  .aw-secondary-btn:hover{color:var(--text-secondary);}
+  .aw-secondary-btn:hover{color:var(--text);}
   .aw-linkish{
     background:none;border:none;padding:8px 0;color:var(--accent);font-family:'Space Grotesk',sans-serif;
     font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;
