@@ -1,6 +1,12 @@
--- Training / custom workouts schema (build 198)
+-- Training / custom workouts schema (build 198/199)
 -- John runs this in Supabase; member app builds against this shape.
 -- Confirm live column names if anything drifts.
+--
+-- LIVE as of build 199 (do not recreate if already present):
+--   coach_flags(user_id, is_coach) — source of truth for coach role / dash toggle
+--   assignments.library_item_id XOR custom_workout_item_id (at most one set)
+--   workout_library = foundational catalog only going forward
+--   custom_workouts = coach/athlete customs (same shape as library)
 
 -- 1) Expand workout_library.type and category for foundational catalog
 -- type values: strength | power | endurance | capacity | skill_development | mobility
