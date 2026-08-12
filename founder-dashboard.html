@@ -465,24 +465,40 @@
   .iv-tagline{font-size:14px;color:var(--text-secondary);font-style:italic;margin-top:4px;}
   .iv-meta{font-size:12px;color:var(--text-secondary);margin-top:8px;}
   .iv-section{margin-bottom:26px;}
-  .iv-problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  .iv-problem-col{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;}
-  .iv-problem-col.missing{border-color:rgba(200,98,42,.4);}
-  .iv-problem-col-title{font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;}
-  .iv-problem-col ul{padding-left:18px;font-size:13px;line-height:1.8;}
+  .iv-status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media (max-width:1100px){.iv-status-grid{grid-template-columns:1fr;}}
+  .iv-status-col{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+  .iv-status-col.exists{border-top:3px solid #7fbf3f;}
+  .iv-status-col.progress{border-top:3px solid var(--warning);}
+  .iv-status-col.missing{border-top:3px solid var(--danger);}
+  .iv-status-col-title{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+  .iv-status-col.exists .iv-status-col-title{color:#7fbf3f;}
+  .iv-status-col.progress .iv-status-col-title{color:#e0a23a;}
+  .iv-status-col.missing .iv-status-col-title{color:#e07060;}
+  .iv-status-col ul{padding-left:18px;font-size:12.5px;line-height:1.7;color:var(--text);}
+  .iv-status-col li{margin-bottom:8px;}
+  .iv-status-col li span{display:block;color:var(--text-secondary);font-size:11.5px;line-height:1.45;margin-top:2px;}
   .iv-signal-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;text-align:center;}
   .iv-signal-num{font-family:'Space Mono',monospace;font-size:56px;font-weight:700;color:var(--accent);line-height:1;}
   .iv-signal-label{font-size:13px;margin-top:8px;}
   .iv-signal-caveat{font-size:11.5px;font-style:italic;color:var(--text-secondary);margin-top:8px;}
-  .iv-pricing-row{display:flex;gap:16px;}
-  .iv-pricing-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;text-align:center;}
-  .iv-pricing-price{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;}
-  .iv-pricing-name{font-size:12px;color:var(--text-secondary);margin-top:4px;}
   .iv-gtm-row{display:flex;gap:16px;}
   .iv-gtm-stage{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:12.5px;}
   .iv-gtm-stage b{display:block;margin-bottom:4px;}
   .iv-contact{font-size:13px;line-height:1.8;}
   .iv-contact a{color:var(--accent);text-decoration:none;}
+  .iv-concept-banner{
+    background:rgba(186,117,23,.12);border:1px solid rgba(186,117,23,.45);
+    border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.55;margin-bottom:14px;
+  }
+  .iv-concept-banner b{color:#e0a23a;letter-spacing:.06em;text-transform:uppercase;font-size:11px;}
+  .iv-chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px 10px;}
+  .iv-chart-wrap canvas{width:100% !important;max-height:280px;}
+  .iv-chart-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:11.5px;color:var(--text-secondary);margin-top:8px;padding-bottom:6px;}
+  .iv-chart-legend i{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+  .iv-chart-legend .load{background:#7fbf3f;}
+  .iv-chart-legend .activation{background:var(--accent);}
+  .iv-chart-legend .window{background:rgba(186,117,23,.55);width:14px;height:14px;border-radius:3px;}
 
   /* ---------- Analytics ---------- */
   .skeleton-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
@@ -611,8 +627,8 @@
       <div class="nav-divider"></div>
       <nav id="nav"></nav>
       <div class="sidebar-footer">
-        <div class="mono">v0.2.0 · foundash</div>
-        <div>Last updated 2026-08-10</div>
+        <div class="mono">v0.3.0 · foundash</div>
+        <div>Last updated 2026-08-12</div>
       </div>
     </div>
 
@@ -621,7 +637,7 @@
       <!-- ---------- OVERVIEW ---------- -->
       <section id="section-overview" class="section-view active">
         <div class="page-title">Founder Overview</div>
-        <div class="page-sub">At-a-glance status — metrics, relationships, business and build status. Reused as-is from the prior founder dashboard.</div>
+        <div class="page-sub">Metrics, build/version status, and relationship trackers — the functional core of the Foundash back office.</div>
 
         <div class="metric-grid" id="overview-metrics">
           <div class="metric-card">
@@ -1131,24 +1147,69 @@
 
       <section id="section-investor-view" class="section-view">
         <div class="page-title">Investor View</div>
-        <div class="page-sub">One-page business overview — what you'd show Glenn, Amanda, or any future investor in the first 5 minutes.</div>
+        <div class="page-sub">Honest picture of what exists, what's in progress, and what's still missing - presentable without embarrassment, not public-facing.</div>
 
         <div class="iv-section">
           <div class="iv-title">Sharp End Exposure <span style="color:var(--text-secondary);font-weight:400;">by Straydog Labs</span></div>
           <div class="iv-tagline">"A climb log that tracks your body, not just your grades."</div>
-          <div class="iv-meta">Straydog Labs LLC — Nashville, TN — Founded 2026</div>
+          <div class="iv-meta">Straydog Labs LLC · Nashville, TN · Founded 2026 · DBAs: Straydog Guiding · Honey &amp; Light Photography · Sharp End Exposure</div>
         </div>
 
         <div class="iv-section">
-          <div class="section-label" style="margin-top:0;">The Problem</div>
-          <div class="iv-problem-grid">
-            <div class="iv-problem-col">
-              <div class="iv-problem-col-title">What exists</div>
-              <ul><li>Grades</li><li>Volume</li><li>Sends</li><li>Training load</li></ul>
+          <div class="section-label" style="margin-top:0;">Status - honest cut</div>
+          <div class="iv-status-grid">
+            <div class="iv-status-col exists">
+              <div class="iv-status-col-title">What exists (shipped, real)</div>
+              <ul>
+                <li>SEE app live · activation-first redesign complete
+                  <span>Public/staging on GitHub Pages; core Log loop shipping.</span></li>
+                <li>Coaching data layer live in Supabase
+                  <span>coach_athlete_links, assignments, coach_flags, RLS configured.</span></li>
+                <li>Straydog Labs LLC + 3 DBAs
+                  <span>Straydog Guiding, Honey &amp; Light Photography, Sharp End Exposure.</span></li>
+                <li>Real revenue
+                  <span>Jess Webster - first paying PC client ($200/mo). Crux Wilderness - $15,000 veteran clinic, signed &amp; invoiced.</span></li>
+                <li>Business infrastructure
+                  <span>Mercury banking + debit card, Stripe for card payments, Dropbox Sign for e-signatures.</span></li>
+                <li>Core legal docs finalized
+                  <span>Reusable Coaching Agreement, attorney-reviewed Participant Waiver, Crux Clinic Services Agreement.</span></li>
+                <li>Live business verification site + revenue/expense model
+                  <span>Per-service cost breakdown modeled.</span></li>
+              </ul>
             </div>
-            <div class="iv-problem-col missing">
-              <div class="iv-problem-col-title">What's missing</div>
-              <ul><li>Activation state</li><li>Fear response</li><li>Somatic signals</li><li>Fall experience</li></ul>
+            <div class="iv-status-col progress">
+              <div class="iv-status-col-title">What's in progress</div>
+              <ul>
+                <li>Coaching UI
+                  <span>Roster, assignment creation, Train tab, coach notes - being built; not confirmed complete.</span></li>
+                <li>Foundash back-office consolidation
+                  <span>This dashboard - founder + coaching ops in one shell.</span></li>
+                <li>Veracity insurance application
+                  <span>Fully drafted; blocked on Alma's guide roster info and Veracity's reply on coverage.</span></li>
+                <li>10th Mountain Division clinic
+                  <span>Budget worked (~$6,350-6,480 profit at $8K); not yet formalized into an agreement.</span></li>
+              </ul>
+            </div>
+            <div class="iv-status-col missing">
+              <div class="iv-status-col-title">What's missing / not started</div>
+              <ul>
+                <li>SEE monetization
+                  <span>No paywall yet. Individual/coach/gym tiers are conceptual only.</span></li>
+                <li>Known unresolved app bugs
+                  <span>falls device_id constraint; UI label clipping; baseline refresh routing; "+Attempt does nothing" (root cause unconfirmed).</span></li>
+                <li>Train pillar integrations
+                  <span>Apple Health / Google Fit, Mountain Project, CSV/JSON - roadmap only.</span></li>
+                <li>Reflect pillar / AI insights
+                  <span>Roadmap only - Peak Performance Window below is illustrative, not live.</span></li>
+                <li>Community pillar
+                  <span>Shared routes, gym partnerships - long-term; architecture not started.</span></li>
+                <li>Formal Alma / Rock Zen partnership
+                  <span>Undrafted.</span></li>
+                <li>Business domain / email
+                  <span>Deliberately deferred.</span></li>
+                <li>Schema cleanup + two TOS clauses
+                  <span>Duplicate falls columns, dormant assessments table; two TOS clauses still need attorney review before public launch.</span></li>
+              </ul>
             </div>
           </div>
         </div>
@@ -1156,7 +1217,7 @@
         <div class="iv-section">
           <div class="section-label" style="margin-top:0;">The Product</div>
           <div class="panel">
-            <p style="font-size:14px;line-height:1.8;">SEE tracks somatic response to climbing across sessions over time. It builds self-awareness until the pre-climb check-in becomes automatic. It is a noticing tool, not a decision-maker — the climber interprets the data.</p>
+            <p style="font-size:14px;line-height:1.8;">SEE tracks somatic response to climbing across sessions over time. It builds self-awareness until the pre-climb check-in becomes automatic. It is a noticing tool, not a decision-maker - the climber interprets the data.</p>
           </div>
         </div>
 
@@ -1165,12 +1226,12 @@
           <div class="iv-signal-card">
             <div class="iv-signal-num mono">78%</div>
             <div class="iv-signal-label">of logged incidents occurred in Panic-zone sessions</div>
-            <div class="iv-signal-caveat">Early signal — not yet statistically conclusive. We're building the dataset.</div>
+            <div class="iv-signal-caveat">Early signal - not yet statistically conclusive. We're building the dataset.</div>
           </div>
         </div>
 
         <div class="iv-section">
-          <div class="section-label" style="margin-top:0;">Traction — live from Supabase</div>
+          <div class="section-label" style="margin-top:0;">Traction - live from Supabase</div>
           <div class="metric-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0;">
             <div class="metric-card"><div class="metric-num mono" id="iv-sessions">···</div><div class="metric-label">Sessions logged</div></div>
             <div class="metric-card"><div class="metric-num mono" id="iv-users">···</div><div class="metric-label">Active users</div></div>
@@ -1179,11 +1240,27 @@
         </div>
 
         <div class="iv-section">
+          <div class="section-label" style="margin-top:0;">Vision - Peak Performance Window</div>
+          <div class="iv-concept-banner">
+            <b>Concept / roadmap illustration - not live data</b><br>
+            Speculative Reflect-pillar idea: overlay training load (volume/intensity, once Train exists) against activation index (already core to SEE) to surface a hypothetical "peak performance window." Depends on real data accumulating first. This chart uses example curves only - it is <em>not</em> a working feature.
+          </div>
+          <div class="iv-chart-wrap">
+            <canvas id="iv-peak-chart" height="260"></canvas>
+            <div class="iv-chart-legend">
+              <span><i class="load"></i>Training load (illustrative)</span>
+              <span><i class="activation"></i>Activation index (illustrative)</span>
+              <span><i class="window"></i>Hypothetical peak window</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="iv-section">
           <div class="section-label" style="margin-top:0;">Three Pillars</div>
           <div class="iv-gtm-row">
-            <div class="iv-gtm-stage"><b style="color:#7fbf3f;">Log</b>Built</div>
-            <div class="iv-gtm-stage"><b style="color:var(--accent);">Train</b>Next</div>
-            <div class="iv-gtm-stage"><b style="color:#aaa;">Reflect</b>After Train</div>
+            <div class="iv-gtm-stage"><b style="color:#7fbf3f;">Log</b>Built - activation-first live</div>
+            <div class="iv-gtm-stage"><b style="color:var(--accent);">Train</b>Next - integrations roadmap only</div>
+            <div class="iv-gtm-stage"><b style="color:#aaa;">Reflect</b>After Train - Peak Window concept below</div>
           </div>
         </div>
 
@@ -1198,19 +1275,16 @@
 
         <div class="iv-section">
           <div class="section-label" style="margin-top:0;">Business Model</div>
-          <div class="panel" style="margin-bottom:12px;">Free during beta.</div>
-          <div class="iv-pricing-row">
-            <div class="iv-pricing-card"><div class="iv-pricing-price mono">$7.99/mo</div><div class="iv-pricing-name">SEE Pro</div></div>
-            <div class="iv-pricing-card"><div class="iv-pricing-price mono">$29.99/mo</div><div class="iv-pricing-name">SEE Coach</div></div>
-            <div class="iv-pricing-card"><div class="iv-pricing-price mono">$149–399/mo</div><div class="iv-pricing-name">Gym</div></div>
+          <div class="panel" style="margin-bottom:0;font-size:13px;line-height:1.7;">
+            Free during beta. Individual / coach / gym pricing tiers are <b>conceptual only</b> - no paywall exists yet. Guiding &amp; clinic revenue (PC coaching, Crux Wilderness) is real and separate from SEE app monetization.
           </div>
         </div>
 
         <div class="iv-section">
           <div class="section-label" style="margin-top:0;">Team</div>
           <div class="panel">
-            <div style="font-size:13px;margin-bottom:6px;"><b>John Campbell</b> — founder, Warriors Way practitioner, climbing professional</div>
-            <div style="font-size:12px;color:var(--text-secondary);font-style:italic;">Advisors: pending — listed only after agreements are in place.</div>
+            <div style="font-size:13px;margin-bottom:6px;"><b>John Campbell</b> - founder, Warriors Way practitioner, climbing professional</div>
+            <div style="font-size:12px;color:var(--text-secondary);font-style:italic;">Advisors: pending - listed only after agreements are in place.</div>
           </div>
         </div>
 
@@ -1376,13 +1450,13 @@
     {id:'coaching-roster', icon:'👥', label:'Coaching Roster', group:'foundash'},
     {id:'athlete-training', icon:'🧗', label:'Athlete Training', group:'foundash'},
     {id:'audit-log', icon:'📋', label:'System / Audit Log', group:'foundash'},
+    {id:'investor-view', icon:'◇', label:'Investor View', group:'foundash'},
     {id:'coach-mgmt', icon:'🔑', label:'Coach Management', group:'foundash'},
     {id:'analytics', icon:'📊', label:'Analytics', group:'tools'},
     {id:'see-live', icon:'●', label:'SEE Live', group:'tools'},
     {id:'demo-center', icon:'◎', label:'Demo Center', group:'tools'},
     {id:'roadmap', icon:'↦', label:'Roadmap', group:'tools'},
-    {id:'build-queue', icon:'▣', label:'Build Queue', group:'tools'},
-    {id:'investor-view', icon:'◇', label:'Investor View', group:'tools'}
+    {id:'build-queue', icon:'▣', label:'Build Queue', group:'tools'}
   ];
 
   var navEl = document.getElementById('nav');
@@ -1868,6 +1942,7 @@
 
   /* ===================== INVESTOR VIEW ===================== */
   var investorAnonLoaded = false;
+  var peakWindowChart = null;
   function loadInvestorView(){
     if(!investorAnonLoaded){
       investorAnonLoaded = true;
@@ -1877,6 +1952,7 @@
       }).catch(function(){
         sessionsEl.textContent = '—';
       });
+      renderPeakWindowConcept();
     }
     loadInvestorPrivilegedCounts();
   }
@@ -1892,6 +1968,113 @@
     }).catch(function(){
       setMetric('iv-users', null);
       setMetric('iv-falls', null);
+    });
+  }
+
+  // Illustrative only — NOT live athlete data. Reflect-pillar roadmap concept.
+  function renderPeakWindowConcept(){
+    var canvas = document.getElementById('iv-peak-chart');
+    if(!canvas) return;
+    if(typeof Chart === 'undefined'){
+      var msg = document.createElement('div');
+      msg.className = 'bo-empty';
+      msg.textContent = 'Chart.js unavailable — concept illustration cannot render.';
+      canvas.replaceWith(msg);
+      return;
+    }
+    if(peakWindowChart){ peakWindowChart.destroy(); peakWindowChart = null; }
+
+    var labels = ['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12'];
+    // Synthetic example curves (not fetched from Supabase)
+    var trainingLoad = [42, 48, 55, 62, 70, 78, 74, 68, 60, 58, 64, 72];
+    var activation =   [58, 55, 52, 48, 44, 40, 42, 46, 50, 54, 49, 45];
+    // Highlight weeks 6-8 as the hypothetical "peak window"
+    var peakBand = labels.map(function(_, i){ return (i >= 5 && i <= 7) ? 100 : null; });
+
+    peakWindowChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Training load (illustrative)',
+            data: trainingLoad,
+            borderColor: '#7fbf3f',
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#7fbf3f',
+            yAxisID: 'y'
+          },
+          {
+            label: 'Activation index (illustrative)',
+            data: activation,
+            borderColor: '#c8622a',
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#c8622a',
+            yAxisID: 'y'
+          },
+          {
+            label: 'Hypothetical peak window',
+            data: peakBand,
+            type: 'bar',
+            backgroundColor: 'rgba(186,117,23,0.18)',
+            borderWidth: 0,
+            barPercentage: 1.1,
+            categoryPercentage: 1.0,
+            yAxisID: 'yBand',
+            order: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          title: {
+            display: true,
+            text: 'CONCEPT ONLY — example curves, not live data',
+            color: '#e0a23a',
+            font: { family: 'Space Grotesk', size: 12, weight: '700' },
+            padding: { bottom: 12 }
+          },
+          tooltip: {
+            callbacks: {
+              footer: function(){ return 'Illustrative roadmap concept — not athlete data'; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a8a8a8', font: { family: 'Space Mono', size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          },
+          y: {
+            min: 0,
+            max: 100,
+            ticks: { color: '#a8a8a8', font: { family: 'Space Mono', size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            title: {
+              display: true,
+              text: 'Index (example scale)',
+              color: '#a8a8a8',
+              font: { family: 'Space Grotesk', size: 11 }
+            }
+          },
+          yBand: {
+            min: 0,
+            max: 100,
+            display: false,
+            grid: { display: false }
+          }
+        }
+      }
     });
   }
 
@@ -2156,28 +2339,29 @@
   }
 
   renderStatusRows('panel-relationships', [
-    { name: 'Wes Shih (Sender One)', detail: 'Email pending Monday', dot: 'amber' },
+    { name: 'Jess Webster (PC client)', detail: 'First paying coaching client — $200/mo', dot: 'green' },
+    { name: 'Crux Wilderness', detail: '$15k veteran clinic — signed & invoiced', dot: 'green' },
+    { name: 'Alma / Rock Zen', detail: 'Partnership undrafted; Veracity blocked on roster', dot: 'amber' },
+    { name: 'Wes Shih (Sender One)', detail: 'Pilot conversation path', dot: 'amber' },
     { name: 'Garnett (CWA)', detail: 'Not yet contacted', dot: 'gray' },
-    { name: 'Arno Ilgner (RWW)', detail: 'IP agreement needed', dot: 'red' },
-    { name: 'Glenn Ritter (advisor)', detail: 'Not yet contacted', dot: 'gray' },
-    { name: 'Amanda (advisor)', detail: 'Not yet contacted', dot: 'gray' }
+    { name: 'Arno Ilgner (RWW)', detail: 'IP agreement still needed', dot: 'red' }
   ]);
 
   renderStatusRows('panel-business', [
-    { name: 'LLC filing', detail: 'Not yet filed — file Tuesday', dot: 'red' },
-    { name: 'DBA registrations', detail: 'Pending LLC', dot: 'red' },
-    { name: 'Insurance', detail: 'Pending LLC', dot: 'red' },
-    { name: 'Arno IP agreement', detail: 'Highest priority legal item', dot: 'red' },
-    { name: 'Supabase Pro', detail: 'At public launch', dot: 'gray' },
-    { name: 'Vercel migration', detail: 'At Train pillar', dot: 'gray' }
+    { name: 'LLC + 3 DBAs', detail: 'Formed — Guiding, Honey & Light, SEE', dot: 'green' },
+    { name: 'Mercury + Stripe + Dropbox Sign', detail: 'Banking, card payments, e-sign live', dot: 'green' },
+    { name: 'Core legal docs', detail: 'Coaching Agreement, Waiver, Crux CSA finalized', dot: 'green' },
+    { name: 'Veracity insurance', detail: 'Drafted — waiting Alma roster + Veracity reply', dot: 'amber' },
+    { name: 'SEE paywall / tiers', detail: 'Conceptual only — not built', dot: 'red' },
+    { name: 'Business domain / email', detail: 'Deliberately deferred', dot: 'gray' }
   ]);
 
   renderStatusRows('panel-build', [
-    { name: 'Current build', detail: 'staging-index174 — deployed', dot: 'green' },
-    { name: 'Smoke test', detail: 'Not yet run on 174', dot: 'amber' },
-    { name: 'Next build', detail: 'terms.html + privacy.html', dot: 'gray' },
-    { name: 'Demo package', detail: 'Brief pending', dot: 'gray' },
-    { name: 'Consent screen', detail: 'Live', dot: 'green' }
+    { name: 'Activation-first SEE', detail: 'Live on staging/production', dot: 'green' },
+    { name: 'Coaching data layer', detail: 'Supabase tables + RLS live', dot: 'green' },
+    { name: 'Coaching UI', detail: 'In progress — not confirmed complete', dot: 'amber' },
+    { name: 'Known app bugs', detail: 'device_id, clipping, baseline route, +Attempt', dot: 'red' },
+    { name: 'Train / Reflect pillars', detail: 'Roadmap only', dot: 'gray' }
   ]);
 
   /* ===================== FOUNDASH HELPERS ===================== */
@@ -2771,7 +2955,7 @@
   });
 
   /* ===================== SYSTEM / AUDIT LOG ===================== */
-  var AUDIT_STORAGE_KEY = 'foundash_audit_log_v2';
+  var AUDIT_STORAGE_KEY = 'foundash_audit_log_v3';
   var AUDIT_SEED = [
     {
       id: 'seed-1',
@@ -2805,9 +2989,27 @@
     },
     {
       id: 'seed-6',
-      description: 'SECURITY: rejected first foundash RPC design (shared password param + GRANT to anon). Password was in page source (base64). Secure revision uses auth.uid() ∈ foundash_admins and authenticated-only EXECUTE — never apply the old revision.',
+      description: 'SECURITY: rejected first foundash RPC design (shared password param + GRANT to anon). Password was in page source (base64). Secure revision uses auth.uid() in foundash_admins and authenticated-only EXECUTE — never apply the old revision.',
       status: 'fixed',
       date: '2026-08-10'
+    },
+    {
+      id: 'seed-7',
+      description: 'Known app bugs still open: falls device_id constraint failure; UI label clipping; baseline refresh routing bug; "+Attempt does nothing" (root cause unconfirmed).',
+      status: 'open',
+      date: '2026-08-12'
+    },
+    {
+      id: 'seed-8',
+      description: 'Schema cleanup still open: duplicate falls columns; dormant assessments table. Two TOS clauses still need attorney review before public launch.',
+      status: 'schema',
+      date: '2026-08-12'
+    },
+    {
+      id: 'seed-9',
+      description: 'Peak Performance Window (training load x activation overlay) is Investor View concept/roadmap illustration only — not live data, not a working feature.',
+      status: 'watching',
+      date: '2026-08-12'
     }
   ];
 
