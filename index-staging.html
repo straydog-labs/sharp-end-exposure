@@ -48,7 +48,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 /* ── SCREENS ── */
 .screen{display:none}.screen.active{display:block;width:100%;min-height:calc(100vh - 52px);overflow-y:auto;flex:1;}
-.content{max-width:480px;margin-left:auto;margin-right:auto;padding:0 16px;width:100%;box-sizing:border-box;}
+.content{max-width:480px;margin-left:auto;margin-right:auto;padding:20px 20px 24px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;}
 #research-sheet{transform:translateY(100%);}
 #research-sheet.open{transform:translateY(0);}
 
@@ -66,9 +66,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .wordmark{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
 .wordmark span{color:var(--accent);}
 .back-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;-webkit-tap-highlight-color:transparent;}
-
-/* ── CONTENT WRAPPER ── */
-.content{padding:20px 20px 24px;display:flex;flex-direction:column;gap:20px;}
 
 /* ── HELPER TIP CARDS (build 195) ── */
 .see-tip-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:4px;flex-shrink:0;}
@@ -2945,7 +2942,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         </div>
       </div>
     </div>
-    </div>
   </div>
 </div>
 
@@ -4060,7 +4056,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 <!-- s-body-scan removed (Fix 7, build 173) — confirmed zero call sites -->
 
-<!-- end .app -->
+</div><!-- end .app -->
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -4069,7 +4065,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index201';
+var app_version = 'staging-index202';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -7516,7 +7512,7 @@ function renderSelfAssignWizardBody(){
   var step = _selfAssignWizard.step;
 
   if(step === 1){
-    setSelfAssignChrome('Which energy system?', 'Strength, Power, Endurance, Capacity, Skill, or Mobility - this filters everything that follows.');
+    setSelfAssignChrome('Which energy system?', 'Filters everything that follows.');
     body.innerHTML =
       '<div class="saw-choices">' +
         ['strength', 'power', 'endurance', 'capacity', 'skill_development', 'mobility'].map(function(t){
@@ -13212,6 +13208,21 @@ async function runSEETests(){
         pass('Self-assign wizard present (5-step + clean category filter)');
       } else {
         fail('Self-assign wizard present', 'matched=' + matchedLabels.join(',') + ' empty=' + emptyShown.length + ' drills=' + drillIds.join(',') + ' bleed=' + !noCampusBleed);
+      }
+      // Gap regression (build 202): screen must live inside .app, header near top nav
+      var appEl = document.querySelector('.app');
+      var sawInApp = !!(appEl && appEl.contains(wizScreen));
+      _selfAssignWizard.step = 1;
+      renderSelfAssignWizardBody();
+      var hint = (document.getElementById('saw-hint') || {}).textContent || '';
+      var copyOk = /Filters everything that follows/i.test(hint) && !/Strength, Power, or Endurance/i.test(hint);
+      var header = wizScreen.querySelector('.page-header');
+      var headerTop = header ? header.getBoundingClientRect().top : 9999;
+      var gapOk = sawInApp && headerTop < 120;
+      if(!sawInApp || !gapOk || !copyOk){
+        fail('Self-assign wizard layout/copy', 'inApp=' + sawInApp + ' headerTop=' + Math.round(headerTop) + ' copyOk=' + copyOk);
+      } else {
+        pass('Self-assign wizard layout/copy (inside .app, no header gap)');
       }
       showScreen('screen-train');
       resetSelfAssignWizard();
