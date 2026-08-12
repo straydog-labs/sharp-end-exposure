@@ -1373,6 +1373,61 @@
         </div>
       </section>
 
+      <!-- ---------- FOUNDASH: CUSTOM WORKOUT ANALYTICS ---------- -->
+      <section id="section-custom-workouts" class="section-view">
+        <div class="page-title">Custom Workouts</div>
+        <div class="page-sub">Founder oversight for <span class="mono">custom_workouts</span> — aggregates and a browsable list. Read-only; no edit/delete in this pass.</div>
+        <div id="cw-admin-auth"></div>
+        <div id="cw-privileged" style="display:none;">
+          <div id="cw-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="bo-actions" style="margin-bottom:14px;">
+            <button class="bo-btn" id="cw-refresh-btn">Refresh</button>
+          </div>
+          <div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;" id="cw-metrics">
+            <div class="metric-card">
+              <div class="metric-num mono" id="cw-total">···</div>
+              <div class="metric-label">Custom workouts created</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-num mono" id="cw-coach">···</div>
+              <div class="metric-label">Coach-created</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-num mono" id="cw-athlete">···</div>
+              <div class="metric-label">Athlete-created</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-num mono" id="cw-shared">···</div>
+              <div class="metric-label">Shared / private</div>
+            </div>
+          </div>
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Creations over time — last 12 weeks</div>
+            <canvas id="chart-cw-weeks" height="180"></canvas>
+            <div class="schema-note" style="margin-top:10px;">Coach vs athlete split uses <code>coach_flags.is_coach</code> at query time for <code>created_by</code>.</div>
+          </div>
+          <div class="panel" style="margin-bottom:0;">
+            <div class="panel-title">Browsable list <span style="font-weight:500;color:var(--text-secondary);text-transform:none;letter-spacing:0;">(newest 200)</span></div>
+            <div id="cw-list-empty" class="bo-empty" style="display:none;">No custom workouts yet — table is empty until member/coach builders land rows.</div>
+            <table class="log-table" id="cw-table" style="display:none;">
+              <thead>
+                <tr>
+                  <th>Created</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Category</th>
+                  <th>Visibility</th>
+                  <th>Creator</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+              <tbody id="cw-tbody"></tbody>
+            </table>
+          </div>
+          <div class="schema-note">Requires <code>sql/foundash-custom-workout-analytics.sql</code> (after secure coach-admin SQL + <code>custom_workouts</code> table). RPC: <code>foundash_custom_workout_analytics()</code>.</div>
+        </div>
+      </section>
+
       <!-- ---------- FOUNDASH: COACH MANAGEMENT ---------- -->
       <section id="section-coach-mgmt" class="section-view">
         <div class="page-title">Coach Management</div>
@@ -1449,6 +1504,7 @@
     {id:'overview', icon:'⌂', label:'Founder Overview', group:'foundash'},
     {id:'coaching-roster', icon:'👥', label:'Coaching Roster', group:'foundash'},
     {id:'athlete-training', icon:'🧗', label:'Athlete Training', group:'foundash'},
+    {id:'custom-workouts', icon:'⚙', label:'Custom Workouts', group:'foundash'},
     {id:'audit-log', icon:'📋', label:'System / Audit Log', group:'foundash'},
     {id:'investor-view', icon:'◇', label:'Investor View', group:'foundash'},
     {id:'coach-mgmt', icon:'🔑', label:'Coach Management', group:'foundash'},
@@ -1495,6 +1551,7 @@
     if(id === 'analytics') loadAnalytics();
     if(id === 'coaching-roster') loadCoachingRoster();
     if(id === 'athlete-training') loadAthleteTrainingSection();
+    if(id === 'custom-workouts') loadCustomWorkoutAnalytics();
     if(id === 'audit-log') renderAuditLog();
     if(id === 'coach-mgmt') loadCoachManagement();
   }
@@ -2541,6 +2598,7 @@
         adminProfile = null;
         rosterLoaded = false;
         coachesLoaded = false;
+        customWorkoutsLoaded = false;
         overviewCountsPromise = null;
         refreshPrivilegedMetrics();
         // Re-render whichever privileged section is active
@@ -2668,6 +2726,186 @@
       });
     });
   }
+
+  /* ===================== CUSTOM WORKOUT ANALYTICS ===================== */
+  var customWorkoutsLoaded = false;
+  var cwWeekChart = null;
+
+  function loadCustomWorkoutAnalytics(force){
+    requireAdmin('cw-admin-auth', 'cw-privileged', 'Custom Workouts', function(){
+      if(customWorkoutsLoaded && !force) return;
+      var banner = document.getElementById('cw-sql-banner');
+      if(banner) banner.style.display = 'none';
+      setCwLoading();
+
+      sbRpc('foundash_custom_workout_analytics', {})
+        .then(function(data){
+          if(!data || data.ok === false){
+            if(data && (data.error === 'not_admin' || data.error === 'not_authenticated')){
+              setCwError('Unauthorized — admin session required.');
+              return;
+            }
+            throw data || { message: 'unknown error' };
+          }
+          customWorkoutsLoaded = true;
+          renderCustomWorkoutAnalytics(data);
+        })
+        .catch(function(err){
+          if(isMissingRpc(err)){
+            if(banner){
+              banner.style.display = 'block';
+              banner.className = 'bo-warn';
+              banner.innerHTML = '<b>Custom Workouts</b> needs <code>sql/foundash-custom-workout-analytics.sql</code> applied (after secure <code>foundash-coach-admin.sql</code> + <code>custom_workouts</code>).';
+            }
+            setCwError('RPC <code>foundash_custom_workout_analytics</code> not available yet.');
+            return;
+          }
+          setCwError('Failed to load — ' + escapeHtml((err && (err.message || err.error)) || 'unknown error'));
+        });
+    });
+  }
+
+  function setCwLoading(){
+    ['cw-total','cw-coach','cw-athlete','cw-shared'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.textContent = '···';
+    });
+  }
+
+  function setCwError(html){
+    var empty = document.getElementById('cw-list-empty');
+    var table = document.getElementById('cw-table');
+    if(table) table.style.display = 'none';
+    if(empty){
+      empty.style.display = 'block';
+      empty.innerHTML = html;
+    }
+  }
+
+  function renderCustomWorkoutAnalytics(data){
+    var totals = data.totals || {};
+    var total = Number(totals.total || 0);
+    var coach = Number(totals.coach_created || 0);
+    var athlete = Number(totals.athlete_created || 0);
+    var shared = Number(totals.shared || 0);
+    var priv = Number(totals.private || 0);
+
+    document.getElementById('cw-total').textContent = total.toLocaleString();
+    document.getElementById('cw-coach').textContent = coach.toLocaleString();
+    document.getElementById('cw-athlete').textContent = athlete.toLocaleString();
+    document.getElementById('cw-shared').textContent = shared.toLocaleString() + ' / ' + priv.toLocaleString();
+
+    renderCwWeekChart(data.by_week || []);
+    renderCwList(data.workouts || []);
+  }
+
+  function renderCwWeekChart(byWeek){
+    var buckets = weekBuckets(12);
+    var labels = buckets.map(function(b){ return b.label; });
+    var coachSeries = buckets.map(function(){ return 0; });
+    var athleteSeries = buckets.map(function(){ return 0; });
+
+    (byWeek || []).forEach(function(w){
+      var ws = new Date(String(w.week_start).slice(0, 10) + 'T12:00:00Z');
+      if(isNaN(ws.getTime())) return;
+      for(var i = 0; i < buckets.length; i++){
+        if(ws >= buckets[i].start && ws < buckets[i].end){
+          coachSeries[i] += Number(w.coach_created || 0);
+          athleteSeries[i] += Number(w.athlete_created || 0);
+          break;
+        }
+      }
+    });
+
+    renderChartOrFallback('chart-cw-weeks', function(canvas){
+      if(cwWeekChart){
+        try{ cwWeekChart.destroy(); }catch(e){}
+        cwWeekChart = null;
+      }
+      cwWeekChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Coach',
+              data: coachSeries,
+              backgroundColor: 'rgba(200,98,42,.85)',
+              stack: 'cw'
+            },
+            {
+              label: 'Athlete',
+              data: athleteSeries,
+              backgroundColor: 'rgba(138,180,248,.75)',
+              stack: 'cw'
+            }
+          ]
+        },
+        options: {
+          plugins: {
+            legend: {
+              display: true,
+              labels: { color: '#a8a8a8', font: { family: 'Space Grotesk', size: 11 } }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { color: '#2a2a2a' },
+              ticks: { color: '#888888', font: { family: 'Space Mono', size: 10 } }
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              grid: { color: '#2a2a2a' },
+              ticks: { color: '#888888', font: { family: 'Space Mono', size: 10 }, precision: 0 }
+            }
+          }
+        }
+      });
+    });
+  }
+
+  function renderCwList(workouts){
+    var empty = document.getElementById('cw-list-empty');
+    var table = document.getElementById('cw-table');
+    var tbody = document.getElementById('cw-tbody');
+    if(!workouts.length){
+      table.style.display = 'none';
+      empty.style.display = 'block';
+      empty.textContent = 'No custom workouts yet — table is empty until member/coach builders land rows.';
+      return;
+    }
+    empty.style.display = 'none';
+    table.style.display = 'table';
+    tbody.innerHTML = workouts.map(function(w){
+      var creator = personDisplayName(w.creator_first_name, w.creator_last_name, w.creator_email, shortId(w.created_by));
+      var role = w.creator_role || 'unknown';
+      var roleChip = role === 'coach'
+        ? '<span class="bo-chip open">coach</span>'
+        : role === 'athlete'
+          ? '<span class="bo-chip watching">athlete</span>'
+          : '<span class="bo-chip">unknown</span>';
+      var vis = w.visibility === 'shared'
+        ? '<span class="bo-chip fixed">shared</span>'
+        : '<span class="bo-chip">private</span>';
+      var typeLabel = w.type ? String(w.type).replace(/_/g, ' ') : '—';
+      return '<tr title="' + escapeHtml(w.description || '') + '">' +
+        '<td class="mono">' + escapeHtml(fmtDate(w.created_at)) + '</td>' +
+        '<td><b>' + escapeHtml(w.name || '—') + '</b></td>' +
+        '<td style="text-transform:capitalize;">' + escapeHtml(typeLabel) + '</td>' +
+        '<td>' + escapeHtml(w.category || '—') + '</td>' +
+        '<td>' + vis + '</td>' +
+        '<td>' + escapeHtml(creator) + '</td>' +
+        '<td>' + roleChip + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('cw-refresh-btn').addEventListener('click', function(){
+    customWorkoutsLoaded = false;
+    loadCustomWorkoutAnalytics(true);
+  });
 
   /* ===================== COACHING ROSTER ===================== */
   var rosterCache = [];
