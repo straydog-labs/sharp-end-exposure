@@ -79,6 +79,23 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 #tips-enabled-toggle,#tips-enabled-toggle-anon{min-width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 #tips-enabled-toggle.on,#tips-enabled-toggle-anon.on{background:var(--accent);border-color:var(--accent);color:#fff;}
 
+
+/* ── TRAIN HUB + SESSION BUILDER (build 198) ── */
+.coach-dash-toggle{display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.coach-dash-toggle.show{display:inline-flex;align-items:center;gap:4px;}
+.train-energy-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+.train-energy-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 14px;cursor:pointer;text-align:left;color:var(--text);font-family:'Space Grotesk',sans-serif;-webkit-tap-highlight-color:transparent;min-height:96px;display:flex;flex-direction:column;justify-content:space-between;}
+.train-energy-card:active{transform:scale(.98);}
+.train-energy-card .te-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+.train-energy-card .te-title{font-size:16px;font-weight:700;line-height:1.25;}
+.train-energy-card .te-sub{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4;}
+.train-energy-card.mental{border-color:var(--drill-a-dim);}
+.train-energy-card.mental .te-label{color:var(--drill-a);}
+.train-badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--muted);margin-left:6px;vertical-align:middle;}
+.train-badge.foundational{color:var(--accent);border-color:rgba(232,118,58,.35);}
+.train-badge.custom{color:var(--drill-b);border-color:var(--drill-b-dim);}
+.train-block-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;margin-bottom:10px;}
+.train-attempt-btn{width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px;cursor:pointer;margin-top:8px;}
 /* ── SELF-ASSIGN WIZARD (build 196) — baseline-weight chrome, coach data model ── */
 .saw-launch{width:100%;margin-top:0;margin-bottom:16px;background:var(--accent);border:none;border-radius:var(--r-xl);padding:18px 20px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;-webkit-tap-highlight-color:transparent;}
 .saw-launch-sub{display:block;font-size:12.5px;font-weight:600;opacity:.75;margin-top:2px;}
@@ -750,6 +767,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
      TOP NAV
 ═══════════════════════════════════════ -->
 <nav class="footer-nav">
+  <button type="button" id="coach-dash-toggle" class="coach-dash-toggle" onclick="openCoachDashboard()" title="Open coach tools">Coach tools ↗</button>
+
   <button class="footer-btn" id="fnav-sessions" onclick="showScreen('screen-sessions')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 20 9 10 13 15 17 9 21 20"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
     Climb Log
@@ -2720,6 +2739,43 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
   </div>
 </div>
+
+<div class="res-card">
+  <div class="res-card-header" onclick="toggleRes(this)" style="text-align:left;">
+    <div class="res-card-icon">
+      <svg width="56" height="56" viewBox="0 0 64 64"><rect width="64" height="64" fill="#120e08"/><circle cx="18" cy="32" r="8" fill="rgba(232,118,58,.25)" stroke="#e8763a" stroke-width="1.5"/><circle cx="32" cy="22" r="8" fill="rgba(245,166,35,.2)" stroke="#f5a623" stroke-width="1.5"/><circle cx="46" cy="32" r="8" fill="rgba(126,200,122,.2)" stroke="#7ec87a" stroke-width="1.5"/><text x="32" y="54" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(232,118,58,.7)" letter-spacing=".06em">ENERGY</text></svg>
+    </div>
+    <div class="res-card-meta">
+      <div class="res-card-label">Training energy systems</div>
+      <div class="res-card-title">Strength, power, endurance, and capacity sit on different fuel systems</div>
+      <div class="res-card-sub">The Train tab cards map to phosphagen, glycolytic, and oxidative systems - plus skill and mobility as distinct axes.</div>
+    </div>
+    <div class="res-card-chevron">›</div>
+  </div>
+  <div class="res-card-body">
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">Framework</span><span class="res-author">Phosphagen / ATP-PC</span></div>
+      <div class="res-study-text">The phosphagen system fuels very short, high-intensity efforts (seconds). It underlies max-force Strength work and explosive Power efforts.</div>
+      <div class="res-apply">On Train: Strength and Power cards. Short intervals, long rests, quality over volume.</div>
+    </div>
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">Framework</span><span class="res-author">Glycolytic / anaerobic</span></div>
+      <div class="res-study-text">Glycolysis supports hard efforts lasting roughly tens of seconds to a few minutes when oxygen delivery cannot keep up. It is the primary driver behind classic Endurance protocols.</div>
+      <div class="res-apply">On Train: Endurance card. Work/rest intervals and pump management live here.</div>
+    </div>
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">Framework</span><span class="res-author">Oxidative / aerobic</span></div>
+      <div class="res-study-text">Aerobic metabolism supports longer continuous or repeated work with lower peak intensity. Capacity training builds the aerobic base that recovers between hard efforts.</div>
+      <div class="res-apply">On Train: Capacity card. Longer circuits, continuous movement, recovery quality.</div>
+    </div>
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">Framework</span><span class="res-author">Skill &amp; mobility (non-energy axes)</span></div>
+      <div class="res-study-text">Skill development and mobility are not energy-system categories. They improve movement quality, tissue tolerance, and coordination - prerequisites for applying force through any energy system.</div>
+      <div class="res-apply">On Train: Skill Development and Mobility cards. Mental Training routes to Drill practices.</div>
+    </div>
+  </div>
+</div>
+
 </div>
 </div>
 
@@ -2748,26 +2804,62 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <div id="train-signed-in-content" style="display:none;">
-      <!-- Workout library entry (build 190) — browse shared protocols, pull into
-           the same assignments list as self-written / coach-assigned entries. -->
+      <!-- Stats (Climb Log visual parity, build 198) -->
+      <div id="train-stats-section" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+        <div class="insight-card" style="padding:16px;">
+          <div class="insight-label" style="margin-bottom:6px;">Sessions logged</div>
+          <div id="train-stat-total" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">training sessions</div>
+        </div>
+        <div class="insight-card" style="padding:16px;">
+          <div class="insight-label" style="margin-bottom:6px;">This week</div>
+          <div id="train-stat-week" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">sessions</div>
+        </div>
+      </div>
+
+      <div class="insight-card" style="margin-top:4px;">
+        <div class="insight-label" style="margin-bottom:6px;">Energy mix</div>
+        <svg id="train-arc-svg" width="100%" viewBox="0 0 320 72" style="display:block;overflow:visible;">
+          <rect x="0" y="0" width="320" height="24" fill="rgba(232,118,58,.06)"/>
+          <rect x="0" y="24" width="320" height="24" fill="rgba(61,184,201,.05)"/>
+          <rect x="0" y="48" width="320" height="24" fill="rgba(126,200,122,.05)"/>
+          <text x="6" y="14" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(232,118,58,.45)" letter-spacing=".06em">STR/PWR</text>
+          <text x="6" y="38" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(61,184,201,.5)" letter-spacing=".06em">END/CAP</text>
+          <text x="6" y="62" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.5)" letter-spacing=".06em">SKL/MOB</text>
+          <g id="train-arc-dots"></g>
+        </svg>
+      </div>
+
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-top:8px;">Start a session</div>
+      <div class="train-energy-grid" id="train-energy-grid">
+        <button type="button" class="train-energy-card" onclick="openTrainEnergy('strength')"><div class="te-label">Energy</div><div class="te-title">Strength</div><div class="te-sub">Max force · phosphagen</div></button>
+        <button type="button" class="train-energy-card" onclick="openTrainEnergy('power')"><div class="te-label">Energy</div><div class="te-title">Power</div><div class="te-sub">Force fast · phosphagen</div></button>
+        <button type="button" class="train-energy-card" onclick="openTrainEnergy('capacity')"><div class="te-label">Energy</div><div class="te-title">Capacity</div><div class="te-sub">Aerobic power · oxidative</div></button>
+        <button type="button" class="train-energy-card" onclick="openTrainEnergy('endurance')"><div class="te-label">Energy</div><div class="te-title">Endurance</div><div class="te-sub">Sustained work · glycolytic</div></button>
+        <button type="button" class="train-energy-card" onclick="openTrainEnergy('skill_development')"><div class="te-label">Skill</div><div class="te-title">Skill Development</div><div class="te-sub">Movement quality</div></button>
+        <button type="button" class="train-energy-card mental" onclick="openTrainEnergy('mental')"><div class="te-label">Mental</div><div class="te-title">Mental Training</div><div class="te-sub">Opens Drill practices</div></button>
+        <button type="button" class="train-energy-card" onclick="openTrainEnergy('mobility')" style="grid-column:1 / -1;"><div class="te-label">Recovery</div><div class="te-title">Mobility</div><div class="te-sub">Range, tissue quality, prep</div></button>
+      </div>
+
       <button type="button" onclick="showScreen('screen-workout-library')"
-        style="width:100%;margin-top:16px;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent;">
-        <span>Browse workout library</span>
-        <span style="color:var(--accent);">→</span>
+        style="width:100%;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+        <span>Browse workout library</span><span style="color:var(--accent);">→</span>
       </button>
 
-      <!-- Self-assign wizard launcher (build 196) — replaces bare title/desc form.
-           Same 5-step data model as coach-dashboard New assignment. -->
-      <button type="button" class="saw-launch" id="self-assign-launch" onclick="startSelfAssignWizard()">
-        <span><span>New training entry</span><span class="saw-launch-sub">Full-screen step flow</span></span>
+      <button type="button" class="saw-launch" id="self-assign-launch" onclick="startSelfAssignWizard()" style="margin-top:4px;">
+        <span><span>Plan / assignments</span><span class="saw-launch-sub">Self-assign wizard + coach plans</span></span>
         <span class="saw-launch-arrow">→</span>
       </button>
-      <div id="train-new-msg" style="font-size:12px;color:var(--muted);margin:-6px 0 14px;"></div>
+      <div id="train-new-msg" style="font-size:12px;color:var(--muted);margin:-6px 0 8px;"></div>
 
-      <div id="train-list"><div style="text-align:center;padding:16px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Recent sessions</div>
+      <div id="train-session-list"><div style="text-align:center;padding:12px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
 
-      <!-- Coach chat (build 197) — only rendered when athlete has an active
-           coach_athlete_links row. No teaser / empty unlock state when unlinked. -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:16px 0 8px;">Open assignments</div>
+      <div id="train-list"><div style="text-align:center;padding:12px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
+
+      <!-- Coach chat (build 197) -->
       <div id="coach-chat-section" style="display:none;margin-top:24px;">
         <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Coach chat</div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
@@ -2778,12 +2870,78 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
               onkeydown="if(event.key==='Enter'){event.preventDefault();sendCoachChatMessage();}"
               style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;box-sizing:border-box;">
             <button type="button" id="coach-chat-send" onclick="sendCoachChatMessage()"
-              style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;">Send</button>
+              style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;flex-shrink:0;">Send</button>
           </div>
           <div id="coach-chat-err" style="font-size:12px;color:var(--panic);margin-top:8px;min-height:16px;"></div>
         </div>
       </div>
     </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     TRAIN PICKER — foundational + custom workouts (build 198)
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-train-picker">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
+  </div>
+  <div class="content">
+    <div class="screen-title" id="train-picker-title">Strength<span class="sub">Pick a foundational or custom workout, or start a blank session.</span></div>
+    <button type="button" id="train-picker-blank" onclick="startBlankTrainSession()"
+      style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px;cursor:pointer;margin:8px 0 16px;">Start blank session →</button>
+    <div id="train-picker-list"><div style="font-size:13px;color:var(--muted);">Loading…</div></div>
+    <button type="button" onclick="startCustomWorkoutCreate()"
+      style="width:100%;margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">+ Add custom workout</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TRAIN SESSION BUILDER (build 198)
+═══════════════════════════════════════ -->
+<div class="screen" id="screen-train-session">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="cancelTrainSession()">← Cancel</button>
+  </div>
+  <div class="content">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="train-sess-eyebrow">Training session</div>
+    <div style="font-size:26px;font-weight:700;line-height:1.2;margin-bottom:16px;" id="train-sess-title">Session</div>
+
+    <div class="insight-card" style="margin-bottom:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="saw-field" style="margin:0;"><label for="train-sess-start">Start</label><input id="train-sess-start" type="datetime-local"></div>
+        <div class="saw-field" style="margin:0;"><label for="train-sess-end">End</label><input id="train-sess-end" type="datetime-local"></div>
+      </div>
+    </div>
+
+    <div class="insight-card" style="margin-bottom:12px;">
+      <div class="insight-label" style="margin-bottom:8px;">Warm up</div>
+      <textarea id="train-sess-warmup" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="insight-label" style="margin:0;">Blocks</div>
+      <button type="button" onclick="trainAddBlockMenu()" style="background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">+ Add block</button>
+    </div>
+    <div id="train-block-menu" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:8px;margin-bottom:10px;">
+      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('interval')">Interval</button>
+      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('emom')">EMOM boulder list</button>
+      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('circuit')">Weighted circuit</button>
+      <button type="button" class="saw-chip" onclick="trainAddBlock('rep_pass_fail')">Rep-level pass/fail</button>
+    </div>
+    <div id="train-blocks-wrap"></div>
+
+    <div class="insight-card" style="margin:12px 0;">
+      <div class="insight-label" style="margin-bottom:8px;">Cool down</div>
+      <textarea id="train-sess-cooldown" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
+    </div>
+
+    <div id="train-sess-msg" style="font-size:13px;color:var(--panic);min-height:18px;margin-bottom:8px;"></div>
+    <button type="button" id="train-sess-save" onclick="saveTrainSession()" class="saw-next">Save session</button>
   </div>
 </div>
 
@@ -2873,6 +3031,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <button type="button" class="wl-type-chip" data-type="strength" onclick="selectWlNewType('strength')">Strength</button>
           <button type="button" class="wl-type-chip" data-type="power" onclick="selectWlNewType('power')">Power</button>
           <button type="button" class="wl-type-chip" data-type="endurance" onclick="selectWlNewType('endurance')">Endurance</button>
+          <button type="button" class="wl-type-chip" data-type="capacity" onclick="selectWlNewType('capacity')">Capacity</button>
+          <button type="button" class="wl-type-chip" data-type="skill_development" onclick="selectWlNewType('skill_development')">Skill</button>
+          <button type="button" class="wl-type-chip" data-type="mobility" onclick="selectWlNewType('mobility')">Mobility</button>
         </div>
         <input type="hidden" id="wl-new-type" value="">
         <div class="field-label">Category</div>
@@ -3838,7 +3999,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index197';
+var app_version = 'staging-index198';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -3878,6 +4039,7 @@ function initAuth(){
   supabaseClient.auth.onAuthStateChange(function(event, session){
     window._authUser = session ? session.user : null;
     window._authToken = session ? session.access_token : null;
+    try{ refreshCoachDashToggle(); }catch(e){}
     // INITIAL_SESSION fires when Supabase restores an already-persisted session
     // on load (e.g. reopening a fresh tab) — SIGNED_IN never fires in that case,
     // so this needs the exact same baseline-check + flag-sync routing (Fix 3,
@@ -4430,11 +4592,14 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
+  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
-  if(id==='screen-train'){ loadTrainAssignments(); loadCoachChat(); }
+  if(id==='screen-train'){ loadTrainAssignments(); loadCoachChat(); loadTrainHub(); refreshCoachDashToggle(); }
+  if(id==='screen-train-picker'){ renderTrainPicker(); }
+  if(id==='screen-train-session'){ renderTrainSessionBuilder(); }
+  if(id==='screen-profile' || id==='screen-sessions' || id==='screen-drill'){ refreshCoachDashToggle(); }
   if(id==='screen-workout-library')loadWorkoutLibrary();
   if(id==='screen-workout-library-add')initWorkoutLibraryAddForm();
   if(id==='screen-baseline'){baselineState.qi=0;renderBaselineQ();}
@@ -4465,7 +4630,7 @@ var SEE_TIPS = {
   },
   'screen-train': {
     id: 'train-home',
-    text: 'Train is where you track your own training plan, or see what your coach has assigned you. Browse the workout library any time for ideas.'
+    text: 'Train is your training log - pick an energy system, build a session, and track it the same way you log climbs.'
   },
   'screen-profile': {
     id: 'profile-home',
@@ -7040,7 +7205,8 @@ var LOCKED_WORKOUT_CATEGORIES = [
   'Core & Antagonist Strength',
   'Flexibility & Mobility',
   'Footwork & Technique',
-  'Aerobic Base/Capacity'
+  'Aerobic Base/Capacity',
+  'Mobility'
 ];
 
 function isLockedWorkoutCategory(category){
@@ -7051,6 +7217,10 @@ function workoutTypeLabel(type){
   if(type === 'strength') return 'Strength';
   if(type === 'power') return 'Power';
   if(type === 'endurance') return 'Endurance';
+  if(type === 'capacity') return 'Capacity';
+  if(type === 'skill_development') return 'Skill Development';
+  if(type === 'mobility') return 'Mobility';
+  if(type === 'mental') return 'Mental Training';
   return '';
 }
 
@@ -7194,7 +7364,7 @@ function renderSelfAssignWizardBody(){
     setSelfAssignChrome('Which energy system?', 'Strength, Power, or Endurance - this filters everything that follows.');
     body.innerHTML =
       '<div class="saw-choices">' +
-        ['strength', 'power', 'endurance'].map(function(t){
+        ['strength', 'power', 'endurance', 'capacity', 'skill_development', 'mobility'].map(function(t){
           var sel = _selfAssignWizard.type === t ? ' selected' : '';
           return '<button type="button" class="saw-chip' + sel + '" data-type="' + t + '">' +
             escTrainHtml(workoutTypeLabel(t)) + '</button>';
@@ -7486,6 +7656,465 @@ async function trainMarkComplete(id){
 }
 
 // ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// TRAIN HUB + SESSION BUILDER (build 198)
+// Climb-log visual parity; foundational workout_library + custom_workouts.
+// ═══════════════════════════════════════════════════════
+var _trainSessionsCache = [];
+var _trainPickerType = 'strength';
+var _trainPickerItems = [];
+var _isCoachUser = false;
+var trainSessionState = null;
+
+function uid(){
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+    var r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8);
+    return v.toString(16);
+  });
+}
+
+function toLocalInputValue(d){
+  var dt = d instanceof Date ? d : new Date(d);
+  if(isNaN(dt.getTime())) return '';
+  var pad = function(n){ return (n<10?'0':'')+n; };
+  return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate())+'T'+pad(dt.getHours())+':'+pad(dt.getMinutes());
+}
+
+async function refreshCoachDashToggle(){
+  var btn = document.getElementById('coach-dash-toggle');
+  if(!btn) return;
+  if(!window._authUser){
+    _isCoachUser = false;
+    btn.classList.remove('show');
+    btn.style.display = 'none';
+    return;
+  }
+  // Brief: coach role via coach_athlete_links as coach_id (active), not a new flag.
+  var rows = await sbS(
+    'coach_athlete_links',
+    'select=id&coach_id=eq.' + window._authUser.id + '&status=eq.active&limit=1'
+  );
+  _isCoachUser = Array.isArray(rows) && rows.length > 0;
+  if(_isCoachUser){
+    btn.classList.add('show');
+    btn.style.display = 'inline-flex';
+  } else {
+    btn.classList.remove('show');
+    btn.style.display = 'none';
+  }
+}
+
+function openCoachDashboard(){
+  // Companion coach-side toggle opens athlete view; athlete-side opens coach tools.
+  window.open('coach-dashboard.html', '_blank', 'noopener');
+}
+
+async function loadTrainHub(){
+  if(!window._authUser){
+    _trainSessionsCache = [];
+    renderTrainHubStats();
+    return;
+  }
+  var rows = await sbS(
+    'training_sessions',
+    'select=*&user_id=eq.' + window._authUser.id + '&deleted_at=is.null&order=created_at.desc&limit=40'
+  );
+  // Soft-fail if table not migrated yet
+  _trainSessionsCache = Array.isArray(rows) ? rows : [];
+  renderTrainHubStats();
+  renderTrainSessionList();
+}
+
+function renderTrainHubStats(){
+  var totalEl = document.getElementById('train-stat-total');
+  var weekEl = document.getElementById('train-stat-week');
+  var rows = _trainSessionsCache || [];
+  if(totalEl) totalEl.textContent = String(rows.length);
+  var weekAgo = Date.now() - 7*24*3600*1000;
+  var weekN = rows.filter(function(r){
+    var t = new Date(r.started_at || r.created_at).getTime();
+    return t >= weekAgo;
+  }).length;
+  if(weekEl) weekEl.textContent = String(weekN);
+  renderTrainEnergyArc(rows);
+}
+
+function renderTrainEnergyArc(rows){
+  var g = document.getElementById('train-arc-dots');
+  if(!g) return;
+  g.innerHTML = '';
+  var recent = (rows || []).slice(0, 16).reverse();
+  if(!recent.length) return;
+  recent.forEach(function(r, i){
+    var x = 28 + (i / Math.max(recent.length-1, 1)) * 280;
+    var t = r.energy_type || '';
+    var band = 36;
+    if(t==='strength' || t==='power') band = 12;
+    else if(t==='endurance' || t==='capacity') band = 36;
+    else band = 60;
+    var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', x);
+    c.setAttribute('cy', band);
+    c.setAttribute('r', 4);
+    c.setAttribute('fill', 'var(--accent)');
+    g.appendChild(c);
+  });
+}
+
+function renderTrainSessionList(){
+  var el = document.getElementById('train-session-list');
+  if(!el) return;
+  var rows = _trainSessionsCache || [];
+  if(!rows.length){
+    el.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No training sessions yet - pick an energy system above.</div>';
+    return;
+  }
+  el.innerHTML = rows.slice(0, 8).map(function(r){
+    var when = formatChatTimestamp(r.started_at || r.created_at);
+    var blocks = Array.isArray(r.blocks) ? r.blocks : (typeof r.blocks==='string' ? JSON.parse(r.blocks||'[]') : []);
+    var n = Array.isArray(blocks) ? blocks.length : 0;
+    return '<div class="insight-card" style="padding:12px 14px;margin-bottom:8px;">'
+      + '<div style="font-size:14px;font-weight:700;">' + escTrainHtml(workoutTypeLabel(r.energy_type) || r.energy_type || 'Session') + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' + escTrainHtml(when) + ' · ' + n + ' block' + (n===1?'':'s') + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function openTrainEnergy(type){
+  if(type === 'mental'){
+    showScreen('screen-drill');
+    return;
+  }
+  _trainPickerType = type;
+  showScreen('screen-train-picker');
+}
+
+async function renderTrainPicker(){
+  var title = document.getElementById('train-picker-title');
+  if(title){
+    title.innerHTML = escTrainHtml(workoutTypeLabel(_trainPickerType)) +
+      '<span class="sub">Foundational catalog + your customs (and coach shared customs).</span>';
+  }
+  var list = document.getElementById('train-picker-list');
+  if(list) list.innerHTML = '<div style="font-size:13px;color:var(--muted);">Loading…</div>';
+  var foundational = await sbS('workout_library', 'select=*&type=eq.' + _trainPickerType + '&order=category.asc,name.asc');
+  var customs = await sbS('custom_workouts', 'select=*&type=eq.' + _trainPickerType + '&order=category.asc,name.asc');
+  var items = [];
+  (Array.isArray(foundational) ? foundational : []).forEach(function(r){
+    items.push(Object.assign({}, r, { _source: 'foundational' }));
+  });
+  (Array.isArray(customs) ? customs : []).forEach(function(r){
+    items.push(Object.assign({}, r, { _source: 'custom' }));
+  });
+  // Also include untyped foundational with matching category heuristics if type filter empty
+  if(!items.length){
+    var allLib = await sbS('workout_library', 'select=*&order=category.asc,name.asc');
+    (Array.isArray(allLib) ? allLib : []).forEach(function(r){
+      if(!r.type) items.push(Object.assign({}, r, { _source: 'foundational' }));
+    });
+  }
+  _trainPickerItems = items;
+  if(!list) return;
+  if(!items.length){
+    list.innerHTML = '<div style="font-size:13px;color:var(--muted);">No matching workouts yet. Start blank, or add a custom.</div>';
+    return;
+  }
+  list.innerHTML = items.map(function(item, idx){
+    var badge = item._source === 'custom'
+      ? '<span class="train-badge custom">Custom</span>'
+      : '<span class="train-badge foundational">Foundational</span>';
+    var priv = item.visibility === 'private' ? '<span class="train-badge">Private</span>' : '';
+    return '<button type="button" onclick="startTrainSessionFromPicker('+idx+')" style="width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:8px;cursor:pointer;color:var(--text);font-family:\'Space Grotesk\',sans-serif;">'
+      + '<div style="font-size:15px;font-weight:600;">' + escTrainHtml(item.name) + badge + priv + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:4px;">' + escTrainHtml(item.category || '') + '</div>'
+      + '</button>';
+  }).join('');
+}
+
+function newTrainSessionState(energyType, seedName, seedDesc){
+  var now = new Date();
+  return {
+    id: uid(),
+    energy_type: energyType,
+    title: seedName || workoutTypeLabel(energyType),
+    started_at: now.toISOString(),
+    ended_at: null,
+    warm_up: '',
+    cool_down: '',
+    blocks: [],
+    seed_description: seedDesc || ''
+  };
+}
+
+function startBlankTrainSession(){
+  trainSessionState = newTrainSessionState(_trainPickerType);
+  showScreen('screen-train-session');
+}
+
+function startTrainSessionFromPicker(idx){
+  var item = _trainPickerItems[idx];
+  if(!item) return;
+  trainSessionState = newTrainSessionState(_trainPickerType, item.name, item.description || '');
+  // Seed one circuit-style block from protocol text as notes carrier
+  trainSessionState.blocks.push({
+    id: uid(),
+    shape: 'circuit',
+    title: item.name || 'Protocol',
+    rest_after_sec: 0,
+    exercises: [],
+    rounds: 1,
+    notes: item.description || '',
+    attempts: []
+  });
+  showScreen('screen-train-session');
+}
+
+function startCustomWorkoutCreate(){
+  // Reuse library-add form path but write to custom_workouts
+  showScreen('screen-workout-library-add');
+  var msg = document.getElementById('wl-new-msg');
+  if(msg) msg.textContent = 'Saving here creates a custom workout (private unless you are a coach).';
+  window._wlSaveAsCustom = true;
+  selectWlNewType(_trainPickerType);
+}
+
+function cancelTrainSession(){
+  trainSessionState = null;
+  showScreen('screen-train');
+}
+
+function trainAddBlockMenu(){
+  var m = document.getElementById('train-block-menu');
+  if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+
+function trainAddBlock(shape){
+  if(!trainSessionState) return;
+  var block = { id: uid(), shape: shape, title: '', rest_after_sec: 120, attempts: [] };
+  if(shape === 'interval'){
+    block.work_sec = 120; block.rest_sec = 120; block.target_sets = 12;
+    block.groups = [{ sets: 6, rest_after_sec: 300 }, { sets: 6, rest_after_sec: 0 }];
+  } else if(shape === 'emom'){
+    block.rounds = [{ boulders: [{ text: '' }, { text: '' }, { text: '' }, { text: '' }], notes: '', rest_after_sec: 180 }];
+  } else if(shape === 'circuit'){
+    block.exercises = [{ name: '', weight: '', reps: '' }];
+    block.rounds = 3; block.notes = '';
+  } else if(shape === 'rep_pass_fail'){
+    block.grip = ''; block.assistance = '';
+    block.sets = [{ reps: [{ ok: null }, { ok: null }, { ok: null }, { ok: null }, { ok: null }] }];
+    block.progression_note = '';
+  }
+  trainSessionState.blocks.push(block);
+  var m = document.getElementById('train-block-menu');
+  if(m) m.style.display = 'none';
+  renderTrainSessionBuilder();
+}
+
+function trainRemoveBlock(id){
+  if(!trainSessionState) return;
+  trainSessionState.blocks = trainSessionState.blocks.filter(function(b){ return b.id !== id; });
+  renderTrainSessionBuilder();
+}
+
+function syncTrainSessionFieldsFromDom(){
+  if(!trainSessionState) return;
+  var s = document.getElementById('train-sess-start');
+  var e = document.getElementById('train-sess-end');
+  var w = document.getElementById('train-sess-warmup');
+  var c = document.getElementById('train-sess-cooldown');
+  if(s && s.value) trainSessionState.started_at = new Date(s.value).toISOString();
+  if(e && e.value) trainSessionState.ended_at = new Date(e.value).toISOString();
+  else trainSessionState.ended_at = null;
+  if(w) trainSessionState.warm_up = w.value;
+  if(c) trainSessionState.cool_down = c.value;
+}
+
+function renderTrainSessionBuilder(){
+  if(!trainSessionState){
+    trainSessionState = newTrainSessionState(_trainPickerType || 'strength');
+  }
+  var title = document.getElementById('train-sess-title');
+  var eye = document.getElementById('train-sess-eyebrow');
+  if(title) title.textContent = trainSessionState.title || 'Session';
+  if(eye) eye.textContent = workoutTypeLabel(trainSessionState.energy_type) || 'Training session';
+  var s = document.getElementById('train-sess-start');
+  var e = document.getElementById('train-sess-end');
+  var w = document.getElementById('train-sess-warmup');
+  var c = document.getElementById('train-sess-cooldown');
+  if(s && !s.value) s.value = toLocalInputValue(trainSessionState.started_at || new Date());
+  if(e && trainSessionState.ended_at && !e.value) e.value = toLocalInputValue(trainSessionState.ended_at);
+  if(w) w.value = trainSessionState.warm_up || '';
+  if(c) c.value = trainSessionState.cool_down || '';
+  var wrap = document.getElementById('train-blocks-wrap');
+  if(!wrap) return;
+  if(!trainSessionState.blocks.length){
+    wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No blocks yet. Add an interval, EMOM, circuit, or pass/fail block.</div>';
+    return;
+  }
+  wrap.innerHTML = trainSessionState.blocks.map(function(b, bi){
+    return renderTrainBlockHtml(b, bi);
+  }).join('');
+}
+
+function renderTrainBlockHtml(b, bi){
+  var head = '<div class="train-block-card" data-block-id="'+b.id+'">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+    + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+escTrainHtml(b.shape.replace(/_/g,' '))+'</div>'
+    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div>';
+  var body = '';
+  if(b.shape === 'interval'){
+    body = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
+      + fieldHtml('Work sec', 'tb-'+b.id+'-work', b.work_sec)
+      + fieldHtml('Rest sec', 'tb-'+b.id+'-rest', b.rest_sec)
+      + fieldHtml('Target sets', 'tb-'+b.id+'-sets', b.target_sets)
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin:8px 0;">Groups: ' + escTrainHtml((b.groups||[]).map(function(g){ return g.sets+' sets'; }).join(' / ')) + '</div>'
+      + attemptSummary(b)
+      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+  } else if(b.shape === 'emom'){
+    var round = (b.rounds && b.rounds[0]) || { boulders: [], notes: '' };
+    body = '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Round 1 boulders</div>'
+      + (round.boulders||[]).map(function(bo, i){
+        return '<input id="tb-'+b.id+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+      }).join('')
+      + '<textarea id="tb-'+b.id+'-notes" placeholder="Round notes" style="width:100%;min-height:56px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;box-sizing:border-box;">'+escTrainHtml(round.notes||'')+'</textarea>'
+      + attemptSummary(b)
+      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+  } else if(b.shape === 'circuit'){
+    body = fieldHtml('Rounds', 'tb-'+b.id+'-rounds', b.rounds)
+      + (b.exercises||[]).map(function(ex, i){
+        return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-top:6px;">'
+          + '<input id="tb-'+b.id+'-ex'+i+'-name" value="'+escTrainHtml(ex.name||'')+'" placeholder="Exercise" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+          + '<input id="tb-'+b.id+'-ex'+i+'-wt" value="'+escTrainHtml(ex.weight||'')+'" placeholder="Weight" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+          + '<input id="tb-'+b.id+'-ex'+i+'-reps" value="'+escTrainHtml(ex.reps||'')+'" placeholder="Reps" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+          + '</div>';
+      }).join('')
+      + '<textarea id="tb-'+b.id+'-cnotes" placeholder="Block notes" style="width:100%;margin-top:8px;min-height:56px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;box-sizing:border-box;">'+escTrainHtml(b.notes||'')+'</textarea>'
+      + attemptSummary(b)
+      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+  } else if(b.shape === 'rep_pass_fail'){
+    var set0 = (b.sets && b.sets[0]) || { reps: [] };
+    body = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+      + fieldHtml('Grip / variant', 'tb-'+b.id+'-grip', b.grip)
+      + fieldHtml('Assistance', 'tb-'+b.id+'-assist', b.assistance)
+      + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;">'
+      + (set0.reps||[]).map(function(rp, i){
+        var col = rp.ok === true ? 'var(--comfort)' : (rp.ok === false ? 'var(--panic)' : 'var(--muted)');
+        return '<button type="button" onclick="trainToggleRep(\''+b.id+'\','+i+')" style="width:36px;height:36px;border-radius:8px;border:1px solid '+col+';background:var(--bg);color:'+col+';font-weight:700;cursor:pointer;">'+(i+1)+'</button>';
+      }).join('')
+      + '</div><textarea id="tb-'+b.id+'-prog" placeholder="Progression rule" style="width:100%;min-height:56px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;box-sizing:border-box;">'+escTrainHtml(b.progression_note||'')+'</textarea>'
+      + attemptSummary(b)
+      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+  }
+  return head + body + '</div>';
+}
+
+function fieldHtml(label, id, val){
+  return '<div class="saw-field" style="margin:0 0 8px;"><label for="'+id+'">'+escTrainHtml(label)+'</label>'
+    + '<input id="'+id+'" value="'+escTrainHtml(val==null?'':String(val))+'" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;"></div>';
+}
+
+function attemptSummary(b){
+  var n = (b.attempts && b.attempts.length) || 0;
+  return '<div style="font-size:12px;color:var(--muted);margin-top:8px;">Attempts logged: <b style="color:var(--text);">'+n+'</b></div>';
+}
+
+function trainToggleRep(blockId, repIdx){
+  if(!trainSessionState) return;
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || !b.sets || !b.sets[0] || !b.sets[0].reps[repIdx]) return;
+  var cur = b.sets[0].reps[repIdx].ok;
+  b.sets[0].reps[repIdx].ok = (cur === true) ? false : (cur === false ? null : true);
+  collectTrainBlockFields();
+  renderTrainSessionBuilder();
+}
+
+function collectTrainBlockFields(){
+  if(!trainSessionState) return;
+  trainSessionState.blocks.forEach(function(b){
+    if(b.shape === 'interval'){
+      b.work_sec = numOr(document.getElementById('tb-'+b.id+'-work'), b.work_sec);
+      b.rest_sec = numOr(document.getElementById('tb-'+b.id+'-rest'), b.rest_sec);
+      b.target_sets = numOr(document.getElementById('tb-'+b.id+'-sets'), b.target_sets);
+    } else if(b.shape === 'emom'){
+      if(!b.rounds[0]) b.rounds[0] = { boulders: [], notes: '' };
+      (b.rounds[0].boulders||[]).forEach(function(bo, i){
+        var el = document.getElementById('tb-'+b.id+'-b'+i);
+        if(el) bo.text = el.value;
+      });
+      var n = document.getElementById('tb-'+b.id+'-notes');
+      if(n) b.rounds[0].notes = n.value;
+    } else if(b.shape === 'circuit'){
+      b.rounds = numOr(document.getElementById('tb-'+b.id+'-rounds'), b.rounds);
+      (b.exercises||[]).forEach(function(ex, i){
+        var n = document.getElementById('tb-'+b.id+'-ex'+i+'-name');
+        var w = document.getElementById('tb-'+b.id+'-ex'+i+'-wt');
+        var r = document.getElementById('tb-'+b.id+'-ex'+i+'-reps');
+        if(n) ex.name = n.value; if(w) ex.weight = w.value; if(r) ex.reps = r.value;
+      });
+      var cn = document.getElementById('tb-'+b.id+'-cnotes');
+      if(cn) b.notes = cn.value;
+    } else if(b.shape === 'rep_pass_fail'){
+      var g = document.getElementById('tb-'+b.id+'-grip');
+      var a = document.getElementById('tb-'+b.id+'-assist');
+      var p = document.getElementById('tb-'+b.id+'-prog');
+      if(g) b.grip = g.value; if(a) b.assistance = a.value; if(p) b.progression_note = p.value;
+    }
+  });
+}
+
+function numOr(el, fallback){
+  if(!el) return fallback;
+  var n = parseFloat(el.value);
+  return isNaN(n) ? fallback : n;
+}
+
+function trainLogAttempt(blockId){
+  // Mirrors Climb Log +Attempt: record another logged effort on this block.
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b) return;
+  if(!b.attempts) b.attempts = [];
+  b.attempts.push({ at: new Date().toISOString(), note: 'attempt ' + (b.attempts.length + 1) });
+  showToast('Attempt logged ✓');
+  renderTrainSessionBuilder();
+}
+
+async function saveTrainSession(){
+  if(!trainSessionState) return;
+  if(!window._authUser){ showToast('Sign in to save training sessions', true); return; }
+  syncTrainSessionFieldsFromDom();
+  collectTrainBlockFields();
+  var msg = document.getElementById('train-sess-msg');
+  var btn = document.getElementById('train-sess-save');
+  if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+  var payload = {
+    id: trainSessionState.id,
+    user_id: window._authUser.id,
+    device_id: (typeof getDeviceId === 'function' ? getDeviceId() : null),
+    energy_type: trainSessionState.energy_type,
+    started_at: trainSessionState.started_at,
+    ended_at: trainSessionState.ended_at || new Date().toISOString(),
+    warm_up: trainSessionState.warm_up || null,
+    cool_down: trainSessionState.cool_down || null,
+    blocks: trainSessionState.blocks,
+    notes: trainSessionState.title || null,
+    app_version: app_version
+  };
+  var saved = await sbI('training_sessions', payload);
+  if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
+  if(!saved){
+    if(msg) msg.textContent = 'Could not save. If this is a fresh environment, confirm training_sessions migration is applied.';
+    return;
+  }
+  if(msg) msg.textContent = '';
+  showToast('Session saved ✓');
+  trainSessionState = null;
+  showScreen('screen-train');
+}
+
 // WORKOUT LIBRARY (build 190) — shared protocol browser.
 // Rows live in workout_library; "Add to my training" creates a normal
 // self-assignment (coach_id null, library_item_id set) via the existing
@@ -7724,7 +8353,7 @@ async function createWorkoutLibraryItem(){
   var type = typeEl ? typeEl.value.trim() : '';
   var category = catEl ? catEl.value.trim() : '';
   var name = nameEl ? nameEl.value.trim() : '';
-  if(!type || ['strength','power','endurance'].indexOf(type) === -1){
+  if(!type || ['strength','power','endurance','capacity','skill_development','mobility'].indexOf(type) === -1){
     if(msgEl) msgEl.textContent = 'Pick an energy system'; return;
   }
   if(!isLockedWorkoutCategory(category)){
@@ -7738,14 +8367,18 @@ async function createWorkoutLibraryItem(){
     created_by: window._authUser.id,
     type: type
   };
-  var saved = await sbI('workout_library', payload);
+  var asCustom = !!window._wlSaveAsCustom;
+  var table = asCustom ? 'custom_workouts' : 'workout_library';
+  var saved = await sbI(table, payload);
   if(saved === null){ if(msgEl) msgEl.textContent = 'Could not save. Try again.'; return; }
   if(nameEl) nameEl.value = '';
   if(descEl) descEl.value = '';
+  window._wlSaveAsCustom = false;
   initWorkoutLibraryAddForm();
   if(msgEl) msgEl.textContent = '';
-  showToast('Added to library ✓');
-  showScreen('screen-workout-library');
+  showToast(asCustom ? 'Custom workout saved ✓' : 'Added to library ✓');
+  if(asCustom) showScreen('screen-train-picker');
+  else showScreen('screen-workout-library');
 }
 
 
@@ -11739,7 +12372,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'loadTrainHub'
   ];
 
   function shouldSkip(onclick){
@@ -12242,7 +12875,7 @@ async function runSEETests(){
   try{
     var wizFns = ['startSelfAssignWizard','closeSelfAssignWizard','submitSelfAssignWizard','renderSelfAssignWizardBody','isLockedWorkoutCategory'];
     var missingWiz = wizFns.filter(function(f){ return typeof window[f] !== 'function'; });
-    var lockedOk = Array.isArray(LOCKED_WORKOUT_CATEGORIES) && LOCKED_WORKOUT_CATEGORIES.length === 9 &&
+    var lockedOk = Array.isArray(LOCKED_WORKOUT_CATEGORIES) && LOCKED_WORKOUT_CATEGORIES.length === 10 &&
       isLockedWorkoutCategory('Hangboard') && isLockedWorkoutCategory('Aerobic Base/Capacity') &&
       !isLockedWorkoutCategory('Strength') && !isLockedWorkoutCategory('Boulder circuits');
     var wizScreen = document.getElementById('screen-self-assign');
@@ -12261,10 +12894,10 @@ async function runSEETests(){
       renderSelfAssignWizardBody();
       var step1 = document.getElementById('saw-step-num');
       var chips = document.querySelectorAll('#saw-body .saw-chip[data-type]');
-      if(step1 && /Step 1 of 5/.test(step1.textContent || '') && chips.length === 3){
+      if(step1 && /Step 1 of 5/.test(step1.textContent || '') && chips.length === 6){
         pass('Self-assign wizard present (5-step + locked taxonomy)');
       } else {
-        fail('Self-assign wizard present', 'step1 chrome incomplete');
+        fail('Self-assign wizard present', 'step1 chrome incomplete chips=' + chips.length);
       }
       showScreen('screen-train');
     }
@@ -12278,7 +12911,7 @@ async function runSEETests(){
     selectWlNewCategory('Hangboard');
     var typeVal = (document.getElementById('wl-new-type') || {}).value;
     var catVal = (document.getElementById('wl-new-category') || {}).value;
-    if(catChips.length === 9 && typeVal === 'power' && catVal === 'Hangboard'){
+    if(catChips.length === 10 && typeVal === 'power' && catVal === 'Hangboard'){
       pass('Library add uses locked category + type');
     } else {
       fail('Library add uses locked category + type', 'chips=' + catChips.length + ' type=' + typeVal + ' cat=' + catVal);
@@ -12337,6 +12970,44 @@ async function runSEETests(){
       fail('Library privacy copy + Private tag', 'copyOk=' + hasPrivacyCopy + ' tag=' + hasPrivateTag + ' emdash=' + hasEmDash);
     }
   }catch(e){ fail('Library privacy copy + Private tag', e.message); }
+
+  // Train hub + session builder (build 198)
+  try{
+    var trainFns = ['loadTrainHub','openTrainEnergy','renderTrainPicker','startBlankTrainSession','trainAddBlock','trainLogAttempt','saveTrainSession','refreshCoachDashToggle','openCoachDashboard'];
+    var missingTrain = trainFns.filter(function(f){ return typeof window[f] !== 'function'; });
+    var hub = document.getElementById('train-energy-grid');
+    var picker = document.getElementById('screen-train-picker');
+    var sess = document.getElementById('screen-train-session');
+    var energyCard = document.querySelectorAll('.train-energy-card');
+    if(missingTrain.length) fail('Train hub + session builder', 'Missing: ' + missingTrain.join(', '));
+    else if(!hub || !picker || !sess || energyCard.length < 7) fail('Train hub + session builder', 'DOM incomplete cards=' + energyCard.length);
+    else {
+      openTrainEnergy('strength');
+      var active = (document.querySelector('.screen.active')||{}).id;
+      if(active !== 'screen-train-picker') fail('Train hub + session builder', 'picker not opened: ' + active);
+      else {
+        startBlankTrainSession();
+        trainAddBlock('interval');
+        trainLogAttempt(trainSessionState.blocks[0].id);
+        var attempts = trainSessionState.blocks[0].attempts.length;
+        if(attempts !== 1) fail('Train hub + session builder', 'attempt not logged');
+        else pass('Train hub + session builder (7 cards + attempt)');
+      }
+      trainSessionState = null;
+      showScreen('screen-train');
+    }
+  }catch(e){ fail('Train hub + session builder', e.message); }
+
+  try{
+    var resCards = document.querySelectorAll('#screen-research .res-card');
+    var energyCardFound = Array.prototype.some.call(resCards, function(c){
+      return /Training energy systems/i.test(c.textContent || '');
+    });
+    if(energyCardFound) pass('Research energy-systems science card');
+    else fail('Research energy-systems science card', 'card missing');
+  }catch(e){ fail('Research energy-systems science card', e.message); }
+
+
 
   try{
     if(Array.isArray(WORKOUT_LIBRARY_STARTERS) && WORKOUT_LIBRARY_STARTERS.length >= 6){
