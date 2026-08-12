@@ -1,7 +1,9 @@
-# Straydog Labs Ops
+# Straydog Labs Ops → Foundash
 
-Internal Red Rocks Clinic operations dashboard.
+The Red Rocks Clinic command center now lives in **Foundash → Clinic Ops**:
 
-**Live:** https://straydog-labs.github.io/sharp-end-exposure/ops/
+`../founder-dashboard.html#clinic-ops`
 
-Password-gated. All data in `localStorage` / `sessionStorage`. No backend.
+`index.html` here redirects to that section.
+
+Same password gate (`sessionStorage.sl_auth`) and the same `localStorage` keys (`sl_ops_tasks`, `sl_ops_expenses`, `sl_ops_contacts`, `sl_ops_payment`, `sl_ops_content_rev`) so existing browser data carries over.
