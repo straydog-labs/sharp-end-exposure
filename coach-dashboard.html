@@ -93,6 +93,11 @@
     color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12.5px;cursor:pointer;
   }
   #signout-btn:hover{border-color:var(--accent);color:var(--accent);}
+  #personal-dash-btn{
+    background:transparent;border:1px solid var(--border);border-radius:8px;padding:7px 14px;
+    color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;
+  }
+  #personal-dash-btn:hover{border-color:var(--accent);background:rgba(232,146,82,.08);}
 
   #main{max-width:1100px;margin:0 auto;padding:32px 24px 60px;}
   .page-title{font-size:20px;font-weight:700;margin-bottom:4px;}
@@ -325,6 +330,13 @@
     display:block;font-size:12.5px;font-weight:500;color:var(--text-secondary);margin-top:4px;
   }
   .aw-chip.selected .aw-chip-meta{color:rgba(232,146,82,.9);}
+  .aw-src-badge{
+    display:inline-block;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    border:1px solid var(--border);border-radius:4px;padding:2px 6px;margin-left:8px;vertical-align:middle;
+    color:var(--text-secondary);
+  }
+  .aw-src-badge.foundational{color:var(--accent);border-color:rgba(232,146,82,.4);}
+  .aw-src-badge.custom{color:#7ec8c0;border-color:rgba(126,200,192,.35);}
   .aw-field{margin-bottom:14px;}
   .aw-field:last-child{margin-bottom:0;}
   .aw-field label{
@@ -392,6 +404,7 @@
       <!-- Founder back-office (roster across coaches, grant/revoke is_coach): founder-dashboard.html -->
       <div class="topbar-right">
         <span id="whoami"></span>
+        <button type="button" id="personal-dash-btn" title="Open your personal athlete dashboard">My dashboard ↗</button>
         <button id="signout-btn">Sign out</button>
       </div>
     </div>
@@ -618,6 +631,12 @@
       passwordInput.value = '';
       mainEl.innerHTML = '';
     });
+  });
+
+  // Coach-side half of the dashboard toggle — personal/athlete app in a new tab.
+  // Athlete-side (index.html) opens coach-dashboard.html the other direction.
+  document.getElementById('personal-dash-btn').addEventListener('click', function(){
+    window.open('index.html', '_blank', 'noopener');
   });
 
   function enterApp(session){
@@ -930,6 +949,7 @@
 
   // New assignment row copied from an existing one — same idea as the
   // athlete-side +Attempt pattern. Does not modify the source row.
+  // Copy library_item_id OR custom_workout_item_id (never both).
   function repeatCoachAssignment(token, coachUser, athleteId, source){
     var payload = {
       coach_id: coachUser.id,
@@ -938,35 +958,59 @@
       description: source.description || null
     };
     // Fresh due_date / completed_at — omit so DB defaults (null) apply.
-    if(source.library_item_id) payload.library_item_id = source.library_item_id;
+    if(source.custom_workout_item_id){
+      payload.custom_workout_item_id = source.custom_workout_item_id;
+    } else if(source.library_item_id){
+      payload.library_item_id = source.library_item_id;
+    }
     if(source.resource_link) payload.resource_link = source.resource_link;
     return createCoachLibraryAssignment(token, payload);
   }
 
-  // ── Workout library (coach-side) ─────────────────────────
-  // Same workout_library / assignments.library_item_id tables the athlete
-  // app uses (createWorkoutLibraryItem / addLibraryItemToTraining in
-  // index.html). Coach-side equivalents below — not a copy-paste of those
-  // helpers, but the same column names and insert shape.
+  // ── Workout catalogs (coach-side) ────────────────────────
+  // Foundational rows live in workout_library (read-only for coaches).
+  // Coach/athlete customs live in custom_workouts. Assignments reference
+  // one or the other via library_item_id XOR custom_workout_item_id.
   var _coachLibCache = [];
   var _coachLibSelectedId = null;
+
+  var COACH_WORKOUT_TYPES = [
+    'strength', 'power', 'endurance', 'capacity', 'skill_development', 'mobility'
+  ];
 
   function coachLibTypeLabel(type){
     if(type === 'strength') return 'Strength';
     if(type === 'power') return 'Power';
     if(type === 'endurance') return 'Endurance';
+    if(type === 'capacity') return 'Capacity';
+    if(type === 'skill_development') return 'Skill Development';
+    if(type === 'mobility') return 'Mobility';
     return '';
   }
 
   function loadCoachWorkoutLibrary(token){
-    return sbSelect(token, 'workout_library', 'select=id,category,name,description,type,created_at&order=category.asc,name.asc');
+    return Promise.all([
+      sbSelect(token, 'workout_library',
+        'select=id,category,name,description,type,created_at&order=category.asc,name.asc'
+      ).catch(function(){ return []; }),
+      sbSelect(token, 'custom_workouts',
+        'select=id,category,name,description,type,visibility,created_by,created_at&order=category.asc,name.asc'
+      ).catch(function(){ return []; })
+    ]).then(function(parts){
+      var foundational = Array.isArray(parts[0]) ? parts[0] : [];
+      var customs = Array.isArray(parts[1]) ? parts[1] : [];
+      return foundational.map(function(r){
+        return Object.assign({}, r, { _source: 'foundational' });
+      }).concat(customs.map(function(r){
+        return Object.assign({}, r, { _source: 'custom' });
+      }));
+    });
   }
 
-  // Coach-side insert into workout_library. Mirrors athlete
-  // createWorkoutLibraryItem() column set, plus required `type`.
-  // category is modality from the locked taxonomy (see LOCKED_WORKOUT_CATEGORIES).
-  // Separate from type (energy system).
-  function createCoachLibraryDrill(token, coachUser, fields){
+  // Coach-created drills go into custom_workouts (foundational catalog is
+  // not coach-editable). Do NOT set visibility — DB default + coach_flags
+  // trigger decide shared vs private.
+  function createCoachCustomWorkout(token, coachUser, fields){
     var payload = {
       category: fields.category,
       name: fields.name,
@@ -974,7 +1018,7 @@
       created_by: coachUser.id,
       type: fields.type
     };
-    return fetch(SB_URL + '/rest/v1/workout_library', {
+    return fetch(SB_URL + '/rest/v1/custom_workouts', {
       method: 'POST',
       headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
       body: JSON.stringify(payload)
@@ -986,8 +1030,8 @@
     });
   }
 
-  // Coach-side assignment insert. Same library_item_id link athlete
-  // addLibraryItemToTraining() writes, with coach_id set.
+  // Coach-side assignment insert. Same library_item_id / custom_workout_item_id
+  // link shape athlete Train uses, with coach_id set.
   function createCoachLibraryAssignment(token, payload){
     return fetch(SB_URL + '/rest/v1/assignments', {
       method: 'POST',
@@ -1013,11 +1057,19 @@
     'Core & Antagonist Strength',
     'Flexibility & Mobility',
     'Footwork & Technique',
-    'Aerobic Base/Capacity'
+    'Aerobic Base/Capacity',
+    'Mobility'
   ];
 
   function isLockedWorkoutCategory(category){
     return LOCKED_WORKOUT_CATEGORIES.indexOf(category) !== -1;
+  }
+
+  function sourceBadgeHtml(item){
+    if(item && item._source === 'custom'){
+      return '<span class="aw-src-badge custom">Custom</span>';
+    }
+    return '<span class="aw-src-badge foundational">Foundational</span>';
   }
 
   var _assignWizard = null;
@@ -1030,6 +1082,8 @@
       category: null,
       createMode: false,
       libraryItemId: null,
+      customWorkoutItemId: null,
+      itemSource: null,
       drillName: '',
       libraryDescription: '',
       assignDescription: '',
@@ -1062,15 +1116,19 @@
     if(!resultsEl || !_assignWizard) return;
     var rows = filterWizardLibraryResults(searchEl ? searchEl.value : '');
     if(!rows.length){
-      resultsEl.innerHTML = '<div class="aw-lib-empty">No drills match this search.</div>';
+      resultsEl.innerHTML = '<div class="aw-lib-empty">No workouts match this search.</div>';
       return;
     }
     resultsEl.innerHTML = rows.map(function(item){
-      var selected = item.id === _assignWizard.libraryItemId ? ' selected' : '';
+      var src = item._source === 'custom' ? 'custom' : 'foundational';
+      var selected = src === 'custom'
+        ? (item.id === _assignWizard.customWorkoutItemId ? ' selected' : '')
+        : (item.id === _assignWizard.libraryItemId ? ' selected' : '');
       var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
       if(snippet.length > 100) snippet = snippet.slice(0, 100) + '…';
-      return '<button type="button" class="aw-chip' + selected + '" data-id="' + escapeHtml(item.id) + '">' +
-        escapeHtml(item.name) +
+      return '<button type="button" class="aw-chip' + selected + '" data-id="' + escapeHtml(item.id) +
+        '" data-source="' + src + '">' +
+        escapeHtml(item.name) + sourceBadgeHtml(item) +
         (snippet ? '<span class="aw-chip-meta">' + escapeHtml(snippet) + '</span>' : '') +
       '</button>';
     }).join('');
@@ -1079,7 +1137,7 @@
   function wizardStepLabel(step){
     if(step === 1) return 'Energy system';
     if(step === 2) return 'Category';
-    if(step === 3) return 'Drill';
+    if(step === 3) return 'Workout';
     if(step === 4) return 'Customize';
     if(step === 5) return 'Schedule';
     return '';
@@ -1160,10 +1218,10 @@
 
     var step = _assignWizard.step;
     if(step === 1){
-      setAssignWizardChrome('Which energy system?', 'Strength, Power, or Endurance — this filters everything that follows.');
+      setAssignWizardChrome('Which energy system?', 'Strength, Power, Endurance, Capacity, Skill, or Mobility — this filters everything that follows.');
       body.innerHTML =
         '<div class="aw-choices">' +
-          ['strength', 'power', 'endurance'].map(function(t){
+          COACH_WORKOUT_TYPES.map(function(t){
             var sel = _assignWizard.type === t ? ' selected' : '';
             return '<button type="button" class="aw-chip' + sel + '" data-type="' + t + '">' +
               escapeHtml(coachLibTypeLabel(t)) + '</button>';
@@ -1175,6 +1233,8 @@
           _assignWizard.category = null;
           _assignWizard.createMode = false;
           _assignWizard.libraryItemId = null;
+          _assignWizard.customWorkoutItemId = null;
+          _assignWizard.itemSource = null;
           _assignWizard.drillName = '';
           _assignWizard.libraryDescription = '';
           _assignWizard.assignDescription = '';
@@ -1194,8 +1254,8 @@
           LOCKED_WORKOUT_CATEGORIES.map(function(c){
             var count = drillsForTypeCategory(_assignWizard.type, c).length;
             var meta = count
-              ? count + (count === 1 ? ' drill' : ' drills')
-              : 'No drills yet — you\'ll create one';
+              ? count + (count === 1 ? ' workout' : ' workouts')
+              : 'No workouts yet — you\'ll create one';
             var sel = _assignWizard.category === c ? ' selected' : '';
             return '<button type="button" class="aw-chip' + sel + '" data-category="' + escapeHtml(c) + '">' +
               escapeHtml(c) +
@@ -1212,6 +1272,8 @@
           if(!isLockedWorkoutCategory(cat)) return;
           _assignWizard.category = cat;
           _assignWizard.libraryItemId = null;
+          _assignWizard.customWorkoutItemId = null;
+          _assignWizard.itemSource = null;
           _assignWizard.drillName = '';
           _assignWizard.libraryDescription = '';
           _assignWizard.assignDescription = '';
@@ -1225,7 +1287,7 @@
 
     if(step === 3){
       if(_assignWizard.createMode){
-        setAssignWizardChrome('Create a new drill', 'Saves to the shared library under this type and category, then assigns it.');
+        setAssignWizardChrome('Create a custom workout', 'Saves to your custom workouts (not the foundational catalog), then assigns it. Visibility is set automatically.');
         body.innerHTML =
           wizardPathSummaryHtml() +
           '<div class="aw-field"><label>Category *</label>' +
@@ -1280,6 +1342,8 @@
             return;
           }
           _assignWizard.libraryItemId = null;
+          _assignWizard.customWorkoutItemId = null;
+          _assignWizard.itemSource = null;
           _coachLibSelectedId = null;
           _assignWizard.category = category;
           _assignWizard.drillName = name;
@@ -1290,24 +1354,35 @@
         return;
       }
 
-      // Pick from existing drills for this type + category only.
-      setAssignWizardChrome('Pick a drill', 'Only drills matching the energy system and category you chose.');
+      // Pick from foundational + custom workouts for this type + category.
+      setAssignWizardChrome('Pick a workout', 'Foundational catalog and custom workouts matching the type and category you chose.');
       body.innerHTML =
         wizardPathSummaryHtml() +
         '<div class="aw-field"><label for="new-a-lib-search">Search</label>' +
           '<input id="new-a-lib-search" type="text" placeholder="Filter by name"></div>' +
         '<div id="new-a-lib-results" class="aw-lib-results"></div>' +
-        '<button type="button" class="aw-linkish" id="wiz-create-instead">Or create a new drill</button>';
+        '<button type="button" class="aw-linkish" id="wiz-create-instead">Or create a custom workout</button>';
       renderWizardLibraryResults();
       document.getElementById('new-a-lib-search').addEventListener('input', renderWizardLibraryResults);
       document.getElementById('new-a-lib-results').addEventListener('click', function(e){
         var btn = e.target.closest('.aw-chip');
         if(!btn) return;
         var id = btn.getAttribute('data-id');
-        var item = _coachLibCache.find(function(r){ return r.id === id; });
+        var src = btn.getAttribute('data-source') || 'foundational';
+        var item = _coachLibCache.find(function(r){
+          return r.id === id && (r._source === 'custom' ? 'custom' : 'foundational') === src;
+        });
         if(!item) return;
         if(item.type !== _assignWizard.type || item.category !== _assignWizard.category) return;
-        _assignWizard.libraryItemId = item.id;
+        if(src === 'custom'){
+          _assignWizard.customWorkoutItemId = item.id;
+          _assignWizard.libraryItemId = null;
+          _assignWizard.itemSource = 'custom';
+        } else {
+          _assignWizard.libraryItemId = item.id;
+          _assignWizard.customWorkoutItemId = null;
+          _assignWizard.itemSource = 'foundational';
+        }
         _coachLibSelectedId = item.id;
         _assignWizard.drillName = item.name || '';
         _assignWizard.libraryDescription = item.description || '';
@@ -1318,6 +1393,8 @@
       document.getElementById('wiz-create-instead').addEventListener('click', function(){
         _assignWizard.createMode = true;
         _assignWizard.libraryItemId = null;
+        _assignWizard.customWorkoutItemId = null;
+        _assignWizard.itemSource = null;
         _coachLibSelectedId = null;
         _assignWizard.drillName = '';
         _assignWizard.libraryDescription = '';
@@ -1427,7 +1504,7 @@
       var msg = (err && err.message) || 'unknown error';
       msgEl.innerHTML = '<div class="form-error">' +
         (isMissingColumn
-          ? 'A required column is missing in Supabase (resource_link or library_item_id / type). Check recent migrations.'
+          ? 'A required column is missing in Supabase (resource_link, library_item_id, or custom_workout_item_id). Check recent migrations.'
           : 'Failed. ' + escapeHtml(msg)) +
         '</div>';
     }
@@ -1437,37 +1514,43 @@
       btn.textContent = 'Creating...';
     }
 
-    // Existing library drill — link only, no re-insert.
-    if(_assignWizard.libraryItemId && !_assignWizard.createMode){
+    // Existing foundational or custom workout — link only, no re-insert.
+    // Assignments take library_item_id XOR custom_workout_item_id (never both).
+    if(!_assignWizard.createMode && (_assignWizard.libraryItemId || _assignWizard.customWorkoutItemId)){
       var assignPayload = {
         coach_id: coachUser.id,
         athlete_id: athleteId,
         title: _assignWizard.drillName,
         description: assignDescription,
-        due_date: due || null,
-        library_item_id: _assignWizard.libraryItemId
+        due_date: due || null
       };
+      if(_assignWizard.customWorkoutItemId){
+        assignPayload.custom_workout_item_id = _assignWizard.customWorkoutItemId;
+      } else {
+        assignPayload.library_item_id = _assignWizard.libraryItemId;
+      }
       if(link) assignPayload.resource_link = link;
       createCoachLibraryAssignment(token, assignPayload).then(finishSuccess).catch(failCreate);
       return;
     }
 
-    // Brand-new drill: insert into workout_library first (type/category
-    // locked from steps 1–2), then assign via library_item_id.
-    createCoachLibraryDrill(token, coachUser, {
+    // Brand-new custom workout: insert into custom_workouts (type/category
+    // locked from steps 1–2), then assign via custom_workout_item_id.
+    // Do not write to workout_library (foundational catalog is read-only).
+    createCoachCustomWorkout(token, coachUser, {
       category: _assignWizard.category,
       name: _assignWizard.drillName,
       description: (_assignWizard.libraryDescription || '').trim() || null,
       type: _assignWizard.type
-    }).then(function(libRow){
-      if(!libRow || !libRow.id) throw { message: 'Library insert returned no id' };
+    }).then(function(customRow){
+      if(!customRow || !customRow.id) throw { message: 'Custom workout insert returned no id' };
       var payload = {
         coach_id: coachUser.id,
         athlete_id: athleteId,
         title: _assignWizard.drillName,
         description: assignDescription,
         due_date: due || null,
-        library_item_id: libRow.id
+        custom_workout_item_id: customRow.id
       };
       if(link) payload.resource_link = link;
       return createCoachLibraryAssignment(token, payload);
@@ -1480,15 +1563,15 @@
     resetAssignWizard();
     openAssignWizardOverlay();
     var body = document.getElementById('wiz-body');
-    if(body) body.innerHTML = '<div class="aw-lib-empty">Loading library…</div>';
-    setAssignWizardChrome('Loading library…', 'Pulling drills for this coach.');
+    if(body) body.innerHTML = '<div class="aw-lib-empty">Loading workouts…</div>';
+    setAssignWizardChrome('Loading workouts…', 'Pulling foundational catalog and custom workouts.');
     setAssignWizardFooter('');
     loadCoachWorkoutLibrary(ctx.token).then(function(rows){
       _coachLibCache = Array.isArray(rows) ? rows : [];
       renderAssignWizardBody();
     }).catch(function(err){
       _assignWizard.libLoadError = (err && err.message) || 'unknown error';
-      setAssignWizardChrome('Could not load library', 'Check your connection and try again.');
+      setAssignWizardChrome('Could not load workouts', 'Check your connection and try again.');
       if(body){
         body.innerHTML = '<div class="form-error">' + escapeHtml(_assignWizard.libLoadError) + '</div>';
       }
