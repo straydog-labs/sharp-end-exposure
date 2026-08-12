@@ -2962,6 +2962,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="screen-title" id="train-picker-title">Strength<span class="sub">Pick a foundational or custom workout, or start a blank session.</span></div>
     <button type="button" id="train-picker-blank" onclick="startBlankTrainSession()"
       style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px;cursor:pointer;margin:8px 0 16px;">Start blank session →</button>
+    <div id="train-picker-cats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
     <div id="train-picker-list"><div style="font-size:13px;color:var(--muted);">Loading…</div></div>
     <button type="button" onclick="startCustomWorkoutCreate()"
       style="width:100%;margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">+ Add custom workout</button>
@@ -4068,7 +4069,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index200';
+var app_version = 'staging-index201';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -7278,8 +7279,20 @@ var LOCKED_WORKOUT_CATEGORIES = [
   'Mobility'
 ];
 
+// Legacy / dirty category strings → locked canonical form (case + spacing).
+// Returns '' when the value is not in the locked taxonomy (e.g. free-text "Strength").
+function normalizeWorkoutCategory(category){
+  var raw = String(category || '').trim().replace(/\s+/g, ' ');
+  if(!raw) return '';
+  var lower = raw.toLowerCase();
+  for(var i = 0; i < LOCKED_WORKOUT_CATEGORIES.length; i++){
+    if(LOCKED_WORKOUT_CATEGORIES[i].toLowerCase() === lower) return LOCKED_WORKOUT_CATEGORIES[i];
+  }
+  return '';
+}
+
 function isLockedWorkoutCategory(category){
-  return LOCKED_WORKOUT_CATEGORIES.indexOf(category) !== -1;
+  return normalizeWorkoutCategory(category) !== '';
 }
 
 function workoutTypeLabel(type){
@@ -7295,6 +7308,7 @@ function workoutTypeLabel(type){
 
 var _selfAssignWizard = null;
 var _selfAssignLibCache = [];
+var _selfAssignShowEmptyCategories = false;
 
 function resetSelfAssignWizard(){
   _selfAssignWizard = {
@@ -7303,17 +7317,55 @@ function resetSelfAssignWizard(){
     category: null,
     createMode: false,
     libraryItemId: null,
+    customWorkoutItemId: null,
+    itemSource: null,
     drillName: '',
     libraryDescription: '',
     assignDescription: '',
     dueDate: '',
     resourceLink: ''
   };
+  _selfAssignShowEmptyCategories = false;
+}
+
+function canonicalizeWizardItem(row, source){
+  var cat = normalizeWorkoutCategory(row.category);
+  return Object.assign({}, row, {
+    category: cat || (row.category || ''),
+    _canonicalCategory: cat,
+    _source: source || row._source || 'foundational'
+  });
+}
+
+// Strict type match, OR untyped legacy rows (type null) that share the category.
+// Category compare always goes through normalizeWorkoutCategory so
+// "Boulder circuits" === "Boulder Circuits".
+function workoutMatchesTypeCategory(item, type, category){
+  if(!item) return false;
+  var wantCat = normalizeWorkoutCategory(category);
+  var itemCat = item._canonicalCategory || normalizeWorkoutCategory(item.category);
+  if(!wantCat || itemCat !== wantCat) return false;
+  if(!type) return true;
+  if(item.type === type) return true;
+  if(!item.type) return true; // legacy untyped — still surface under matching category
+  return false;
 }
 
 function drillsForTypeCategory(type, category){
   return _selfAssignLibCache.filter(function(item){
-    return item.type === type && item.category === category;
+    return workoutMatchesTypeCategory(item, type, category);
+  });
+}
+
+function categoriesWithDrillsForType(type){
+  return LOCKED_WORKOUT_CATEGORIES.filter(function(c){
+    return drillsForTypeCategory(type, c).length > 0;
+  });
+}
+
+function emptyCategoriesForType(type){
+  return LOCKED_WORKOUT_CATEGORIES.filter(function(c){
+    return drillsForTypeCategory(type, c).length === 0;
   });
 }
 
@@ -7331,17 +7383,24 @@ function renderSelfAssignLibraryResults(){
   var resultsEl = document.getElementById('saw-lib-results');
   var searchEl = document.getElementById('saw-lib-search');
   if(!resultsEl || !_selfAssignWizard) return;
+  // Always replace — never append — so prior category lists cannot leak.
   var rows = filterSelfAssignLibraryResults(searchEl ? searchEl.value : '');
   if(!rows.length){
-    resultsEl.innerHTML = '<div class="saw-lib-empty">No drills match this search.</div>';
+    resultsEl.innerHTML = '<div class="saw-lib-empty">No drills in ' +
+      escTrainHtml(_selfAssignWizard.category || 'this category') +
+      ' for ' + escTrainHtml(workoutTypeLabel(_selfAssignWizard.type) || 'this system') +
+      '.</div>';
     return;
   }
   resultsEl.innerHTML = rows.map(function(item){
     var selected = item.id === _selfAssignWizard.libraryItemId ? ' selected' : '';
     var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
     if(snippet.length > 100) snippet = snippet.slice(0, 100) + '...';
+    var src = item._source === 'custom'
+      ? '<span class="saw-chip-meta">Custom</span>'
+      : (item.type ? '' : '<span class="saw-chip-meta">Untyped legacy</span>');
     return '<button type="button" class="saw-chip' + selected + '" data-id="' + escTrainHtml(item.id) + '">' +
-      escTrainHtml(item.name) +
+      escTrainHtml(item.name) + src +
       (snippet ? '<span class="saw-chip-meta">' + escTrainHtml(snippet) + '</span>' : '') +
       '</button>';
   }).join('');
@@ -7407,13 +7466,19 @@ function startSelfAssignWizard(){
   showScreen('screen-self-assign');
   var body = document.getElementById('saw-body');
   if(body) body.innerHTML = '<div class="saw-lib-empty">Loading library...</div>';
-  setSelfAssignChrome('Loading library...', 'Pulling drills you can assign to yourself.');
+  setSelfAssignChrome('Loading library...', 'Pulling foundational + custom workouts you can assign.');
   setSelfAssignFooter('');
   setSelfAssignMsg('');
-  sbS('workout_library', 'select=id,category,name,description,type,created_at&order=category.asc,name.asc').then(function(rows){
-    _selfAssignLibCache = Array.isArray(rows) ? rows : [];
-    // Keep the shared library cache warm for Browse too
-    if(_selfAssignLibCache.length) _workoutLibraryCache = _selfAssignLibCache.slice();
+  Promise.all([
+    sbS('workout_library', 'select=id,category,name,description,type,created_at&order=category.asc,name.asc'),
+    sbS('custom_workouts', 'select=id,category,name,description,type,visibility,created_by,created_at&order=category.asc,name.asc')
+  ]).then(function(parts){
+    var foundational = Array.isArray(parts[0]) ? parts[0] : [];
+    var customs = Array.isArray(parts[1]) ? parts[1] : [];
+    _selfAssignLibCache = foundational.map(function(r){ return canonicalizeWizardItem(r, 'foundational'); })
+      .concat(customs.map(function(r){ return canonicalizeWizardItem(r, 'custom'); }));
+    // Keep the shared library cache warm for Browse (foundational only)
+    if(foundational.length) _workoutLibraryCache = foundational.slice();
     renderSelfAssignWizardBody();
   }).catch(function(err){
     setSelfAssignChrome('Could not load library', 'Check your connection and try again.');
@@ -7422,15 +7487,36 @@ function startSelfAssignWizard(){
   });
 }
 
+function pickSelfAssignCategory(cat){
+  var canonical = normalizeWorkoutCategory(cat);
+  if(!canonical) return;
+  _selfAssignWizard.category = canonical;
+  _selfAssignWizard.libraryItemId = null;
+  _selfAssignWizard.customWorkoutItemId = null;
+  _selfAssignWizard.itemSource = null;
+  _selfAssignWizard.drillName = '';
+  _selfAssignWizard.libraryDescription = '';
+  _selfAssignWizard.assignDescription = '';
+  _selfAssignWizard.createMode = drillsForTypeCategory(_selfAssignWizard.type, _selfAssignWizard.category).length === 0;
+  goSelfAssignStep(3);
+}
+
+function toggleSelfAssignEmptyCategories(){
+  _selfAssignShowEmptyCategories = !_selfAssignShowEmptyCategories;
+  renderSelfAssignWizardBody();
+}
+
 function renderSelfAssignWizardBody(){
   var body = document.getElementById('saw-body');
   if(!body || !_selfAssignWizard) return;
+  // Full replace every step — prevents prior category/workout lists from stacking.
   setSelfAssignMsg('');
   setSelfAssignFooter('');
+  body.innerHTML = '';
   var step = _selfAssignWizard.step;
 
   if(step === 1){
-    setSelfAssignChrome('Which energy system?', 'Strength, Power, or Endurance - this filters everything that follows.');
+    setSelfAssignChrome('Which energy system?', 'Strength, Power, Endurance, Capacity, Skill, or Mobility - this filters everything that follows.');
     body.innerHTML =
       '<div class="saw-choices">' +
         ['strength', 'power', 'endurance', 'capacity', 'skill_development', 'mobility'].map(function(t){
@@ -7445,9 +7531,12 @@ function renderSelfAssignWizardBody(){
         _selfAssignWizard.category = null;
         _selfAssignWizard.createMode = false;
         _selfAssignWizard.libraryItemId = null;
+        _selfAssignWizard.customWorkoutItemId = null;
+        _selfAssignWizard.itemSource = null;
         _selfAssignWizard.drillName = '';
         _selfAssignWizard.libraryDescription = '';
         _selfAssignWizard.assignDescription = '';
+        _selfAssignShowEmptyCategories = false;
         goSelfAssignStep(2);
       });
     });
@@ -7455,33 +7544,56 @@ function renderSelfAssignWizardBody(){
   }
 
   if(step === 2){
-    setSelfAssignChrome('Which category?', 'Only the locked training taxonomy. Empty categories open a create form next.');
-    body.innerHTML =
-      selfAssignPathSummaryHtml() +
-      '<div class="saw-choices">' +
-        LOCKED_WORKOUT_CATEGORIES.map(function(c){
+    // Clean options only: categories that actually have workouts for this type.
+    // Empty taxonomy entries stay hidden unless the athlete asks for them.
+    var withDrills = categoriesWithDrillsForType(_selfAssignWizard.type);
+    var emptyCats = emptyCategoriesForType(_selfAssignWizard.type);
+    setSelfAssignChrome(
+      'Which category?',
+      withDrills.length
+        ? ('Only categories with ' + workoutTypeLabel(_selfAssignWizard.type) + ' workouts. Empty ones stay hidden unless you expand them.')
+        : 'No matching workouts yet for this energy system - pick a category to create one.'
+    );
+    var html = selfAssignPathSummaryHtml();
+    if(withDrills.length){
+      html += '<div class="saw-hint" style="margin-bottom:10px;">Matching categories</div>';
+      html += '<div class="saw-choices" id="saw-cat-matched">' +
+        withDrills.map(function(c){
           var count = drillsForTypeCategory(_selfAssignWizard.type, c).length;
-          var meta = count
-            ? count + (count === 1 ? ' drill' : ' drills')
-            : 'No drills yet - you\'ll create one';
+          var meta = count + (count === 1 ? ' workout' : ' workouts');
           var sel = _selfAssignWizard.category === c ? ' selected' : '';
           return '<button type="button" class="saw-chip' + sel + '" data-category="' + escTrainHtml(c) + '">' +
             escTrainHtml(c) +
             '<span class="saw-chip-meta">' + meta + '</span></button>';
         }).join('') +
       '</div>';
+    } else {
+      html += '<div class="saw-lib-empty" style="margin-bottom:12px;">No foundational or custom workouts match this energy system yet.</div>';
+    }
+    if(emptyCats.length){
+      html += '<button type="button" class="saw-linkish" id="saw-toggle-empty" onclick="toggleSelfAssignEmptyCategories()">' +
+        (_selfAssignShowEmptyCategories || !withDrills.length
+          ? 'Hide empty categories'
+          : 'Create in another category (' + emptyCats.length + ')') +
+        '</button>';
+      if(_selfAssignShowEmptyCategories || !withDrills.length){
+        html += '<div class="saw-hint" style="margin:12px 0 10px;">Empty for ' +
+          escTrainHtml(workoutTypeLabel(_selfAssignWizard.type)) + ' - create new</div>';
+        html += '<div class="saw-choices" id="saw-cat-empty">' +
+          emptyCats.map(function(c){
+            var sel = _selfAssignWizard.category === c ? ' selected' : '';
+            return '<button type="button" class="saw-chip' + sel + '" data-category="' + escTrainHtml(c) + '">' +
+              escTrainHtml(c) +
+              '<span class="saw-chip-meta">No workouts yet - you\'ll create one</span></button>';
+          }).join('') +
+        '</div>';
+      }
+    }
+    body.innerHTML = html;
     setSelfAssignFooter('<button type="button" class="saw-secondary-btn" id="saw-back" onclick="goSelfAssignStep(1)">← Back</button>');
-    Array.prototype.forEach.call(body.querySelectorAll('.saw-chip'), function(btn){
+    Array.prototype.forEach.call(body.querySelectorAll('.saw-chip[data-category]'), function(btn){
       btn.addEventListener('click', function(){
-        var cat = btn.getAttribute('data-category');
-        if(!isLockedWorkoutCategory(cat)) return;
-        _selfAssignWizard.category = cat;
-        _selfAssignWizard.libraryItemId = null;
-        _selfAssignWizard.drillName = '';
-        _selfAssignWizard.libraryDescription = '';
-        _selfAssignWizard.assignDescription = '';
-        _selfAssignWizard.createMode = drillsForTypeCategory(_selfAssignWizard.type, _selfAssignWizard.category).length === 0;
-        goSelfAssignStep(3);
+        pickSelfAssignCategory(btn.getAttribute('data-category'));
       });
     });
     return;
@@ -7489,33 +7601,19 @@ function renderSelfAssignWizardBody(){
 
   if(step === 3){
     if(_selfAssignWizard.createMode){
-      setSelfAssignChrome('Create a new drill', 'Saves to the shared library under this type and category, then adds it to your training.');
+      setSelfAssignChrome('Create a new drill', 'Saves under this type and category, then adds it to your training.');
+      // Category already chosen in step 2 — do NOT re-dump the full taxonomy here.
       body.innerHTML =
         selfAssignPathSummaryHtml() +
-        '<div class="saw-field"><label>Category *</label>' +
-          '<div class="saw-choices" id="saw-category-chips">' +
-            LOCKED_WORKOUT_CATEGORIES.map(function(c){
-              var sel = c === _selfAssignWizard.category ? ' selected' : '';
-              return '<button type="button" class="saw-chip' + sel + '" data-category="' + escTrainHtml(c) + '">' +
-                escTrainHtml(c) + '</button>';
-            }).join('') +
-          '</div></div>' +
+        '<div class="saw-field"><label>Category</label>' +
+          '<div style="font-size:15px;font-weight:600;padding:12px 0;">' + escTrainHtml(_selfAssignWizard.category) + '</div>' +
+          '<button type="button" class="saw-linkish" id="saw-change-cat" onclick="goSelfAssignStep(2)">Change category</button></div>' +
         '<div class="saw-field"><label for="saw-name">Name *</label>' +
           '<input id="saw-name" type="text" placeholder="e.g. Repeaters" value="' +
           escTrainHtml(_selfAssignWizard.drillName) + '"></div>' +
         '<div class="saw-field"><label for="saw-lib-desc">Description</label>' +
           '<textarea id="saw-lib-desc" placeholder="Optional protocol details">' +
           escTrainHtml(_selfAssignWizard.libraryDescription) + '</textarea></div>';
-      Array.prototype.forEach.call(body.querySelectorAll('#saw-category-chips .saw-chip'), function(btn){
-        btn.addEventListener('click', function(){
-          var cat = btn.getAttribute('data-category');
-          if(!isLockedWorkoutCategory(cat)) return;
-          _selfAssignWizard.category = cat;
-          Array.prototype.forEach.call(body.querySelectorAll('#saw-category-chips .saw-chip'), function(b){
-            b.classList.toggle('selected', b === btn);
-          });
-        });
-      });
       setSelfAssignFooter(
         '<button type="button" class="saw-next" id="saw-next" onclick="selfAssignCreateDrillNext()">Next →</button>' +
         '<button type="button" class="saw-secondary-btn" id="saw-back" onclick="selfAssignCreateDrillBack()">← Back</button>'
@@ -7523,11 +7621,12 @@ function renderSelfAssignWizardBody(){
       return;
     }
 
-    setSelfAssignChrome('Pick a drill', 'Only drills matching the energy system and category you chose.');
+    setSelfAssignChrome('Pick a workout', 'Only workouts matching ' +
+      workoutTypeLabel(_selfAssignWizard.type) + ' · ' + _selfAssignWizard.category + '.');
     body.innerHTML =
       selfAssignPathSummaryHtml() +
       '<div class="saw-field"><label for="saw-lib-search">Search</label>' +
-        '<input id="saw-lib-search" type="text" placeholder="Filter by name"></div>' +
+        '<input id="saw-lib-search" type="text" placeholder="Filter by name" autocomplete="off"></div>' +
       '<div id="saw-lib-results" class="saw-lib-results"></div>' +
       '<button type="button" class="saw-linkish" id="saw-create-instead" onclick="selfAssignSwitchToCreate()">Or create a new drill</button>';
     renderSelfAssignLibraryResults();
@@ -7538,8 +7637,10 @@ function renderSelfAssignWizardBody(){
       var id = btn.getAttribute('data-id');
       var item = _selfAssignLibCache.find(function(r){ return r.id === id; });
       if(!item) return;
-      if(item.type !== _selfAssignWizard.type || item.category !== _selfAssignWizard.category) return;
-      _selfAssignWizard.libraryItemId = item.id;
+      if(!workoutMatchesTypeCategory(item, _selfAssignWizard.type, _selfAssignWizard.category)) return;
+      _selfAssignWizard.libraryItemId = item._source === 'custom' ? null : item.id;
+      _selfAssignWizard.customWorkoutItemId = item._source === 'custom' ? item.id : null;
+      _selfAssignWizard.itemSource = item._source || 'foundational';
       _selfAssignWizard.drillName = item.name || '';
       _selfAssignWizard.libraryDescription = item.description || '';
       _selfAssignWizard.assignDescription = item.description || '';
@@ -7580,12 +7681,15 @@ function renderSelfAssignWizardBody(){
 }
 
 function selfAssignCreateDrillNext(){
-  var category = _selfAssignWizard.category;
+  var category = normalizeWorkoutCategory(_selfAssignWizard.category);
   var name = ((document.getElementById('saw-name') || {}).value || '').trim();
   var libDesc = ((document.getElementById('saw-lib-desc') || {}).value || '').trim();
-  if(!isLockedWorkoutCategory(category)){ setSelfAssignMsg('Pick a category from the list.'); return; }
+  if(!category){ setSelfAssignMsg('Pick a category from the list.'); return; }
   if(!name){ setSelfAssignMsg('Name is required.'); return; }
   _selfAssignWizard.libraryItemId = null;
+  _selfAssignWizard.customWorkoutItemId = null;
+  _selfAssignWizard.itemSource = null;
+  _selfAssignWizard.createMode = true;
   _selfAssignWizard.category = category;
   _selfAssignWizard.drillName = name;
   _selfAssignWizard.libraryDescription = libDesc;
@@ -7606,6 +7710,8 @@ function selfAssignCreateDrillBack(){
 function selfAssignSwitchToCreate(){
   _selfAssignWizard.createMode = true;
   _selfAssignWizard.libraryItemId = null;
+  _selfAssignWizard.customWorkoutItemId = null;
+  _selfAssignWizard.itemSource = null;
   _selfAssignWizard.drillName = '';
   _selfAssignWizard.libraryDescription = '';
   _selfAssignWizard.assignDescription = '';
@@ -7635,6 +7741,7 @@ async function submitSelfAssignWizard(){
   var link = ((document.getElementById('saw-link') || {}).value || '').trim();
   _selfAssignWizard.dueDate = due;
   _selfAssignWizard.resourceLink = link;
+  _selfAssignWizard.category = normalizeWorkoutCategory(_selfAssignWizard.category);
 
   if(!_selfAssignWizard.type || !_selfAssignWizard.category || !_selfAssignWizard.drillName){
     setSelfAssignMsg('Wizard is incomplete - go back and finish each step.');
@@ -7669,16 +7776,20 @@ async function submitSelfAssignWizard(){
     setSelfAssignMsg(msg || 'Could not save. Try again.');
   }
 
-  // Existing library drill - link only
-  if(_selfAssignWizard.libraryItemId && !_selfAssignWizard.createMode){
+  // Existing foundational OR custom workout - XOR FK, never both.
+  if(!_selfAssignWizard.createMode && (_selfAssignWizard.libraryItemId || _selfAssignWizard.customWorkoutItemId)){
     var assignPayload = {
       coach_id: null,
       athlete_id: window._authUser.id,
       title: _selfAssignWizard.drillName,
       description: assignDescription,
-      due_date: due || null,
-      library_item_id: _selfAssignWizard.libraryItemId
+      due_date: due || null
     };
+    if(_selfAssignWizard.customWorkoutItemId){
+      assignPayload.custom_workout_item_id = _selfAssignWizard.customWorkoutItemId;
+    } else {
+      assignPayload.library_item_id = _selfAssignWizard.libraryItemId;
+    }
     if(link) assignPayload.resource_link = link;
     var saved = await sbI('assignments', assignPayload);
     if(!saved){ failCreate('Could not save assignment. Try again.'); return; }
@@ -7686,26 +7797,26 @@ async function submitSelfAssignWizard(){
     return;
   }
 
-  // New drill: workout_library first, then assignments
-  var libRow = await sbI('workout_library', {
+  // New athlete/coach customs go to custom_workouts (foundational catalog stays sealed).
+  var customRow = await sbI('custom_workouts', {
     category: _selfAssignWizard.category,
     name: _selfAssignWizard.drillName,
     description: (_selfAssignWizard.libraryDescription || '').trim() || null,
     created_by: window._authUser.id,
     type: _selfAssignWizard.type
   });
-  if(!libRow || !libRow.id){ failCreate('Could not save drill to library. Try again.'); return; }
+  if(!customRow || !customRow.id){ failCreate('Could not save custom workout. Try again.'); return; }
   var payload = {
     coach_id: null,
     athlete_id: window._authUser.id,
     title: _selfAssignWizard.drillName,
     description: assignDescription,
     due_date: due || null,
-    library_item_id: libRow.id
+    custom_workout_item_id: customRow.id
   };
   if(link) payload.resource_link = link;
   var assigned = await sbI('assignments', payload);
-  if(!assigned){ failCreate('Drill saved, but assignment failed. Try again from the library.'); return; }
+  if(!assigned){ failCreate('Workout saved, but assignment failed. Try again from Train.'); return; }
   await finishOk();
 }
 
@@ -7733,6 +7844,7 @@ async function trainMarkComplete(id){
 var _trainSessionsCache = [];
 var _trainPickerType = 'strength';
 var _trainPickerItems = [];
+var _trainPickerCategory = 'all';
 var _isCoachUser = false;
 var trainSessionState = null;
 
@@ -7880,49 +7992,104 @@ function openTrainEnergy(type){
     return;
   }
   _trainPickerType = type;
+  _trainPickerCategory = 'all';
   showScreen('screen-train-picker');
 }
 
-async function renderTrainPicker(){
-  var title = document.getElementById('train-picker-title');
-  if(title){
-    title.innerHTML = escTrainHtml(workoutTypeLabel(_trainPickerType)) +
-      '<span class="sub">Foundational catalog + your customs (and coach shared customs).</span>';
-  }
+function setTrainPickerCategory(cat){
+  _trainPickerCategory = cat || 'all';
+  paintTrainPickerList();
+}
+
+function paintTrainPickerCategoryChips(items){
+  var wrap = document.getElementById('train-picker-cats');
+  if(!wrap) return;
+  var counts = {};
+  (items || []).forEach(function(item){
+    var cat = normalizeWorkoutCategory(item.category) || (item.category || 'Other');
+    counts[cat] = (counts[cat] || 0) + 1;
+  });
+  var cats = Object.keys(counts).sort();
+  var chips = [{ key: 'all', label: 'All', n: (items || []).length }].concat(
+    cats.map(function(c){ return { key: c, label: c, n: counts[c] }; })
+  );
+  // Replace chip row entirely — selected filter must not stack lists.
+  wrap.innerHTML = chips.map(function(c){
+    var sel = _trainPickerCategory === c.key ? ' selected' : '';
+    return '<button type="button" class="wl-cat-chip' + sel + '" data-cat="' + escTrainHtml(c.key) + '"' +
+      ' onclick="setTrainPickerCategory(this.getAttribute(\'data-cat\'))">' +
+      escTrainHtml(c.label) + ' · ' + c.n + '</button>';
+  }).join('');
+}
+
+function paintTrainPickerList(){
   var list = document.getElementById('train-picker-list');
-  if(list) list.innerHTML = '<div style="font-size:13px;color:var(--muted);">Loading…</div>';
-  var foundational = await sbS('workout_library', 'select=*&type=eq.' + _trainPickerType + '&order=category.asc,name.asc');
-  var customs = await sbS('custom_workouts', 'select=*&type=eq.' + _trainPickerType + '&order=category.asc,name.asc');
-  var items = [];
-  (Array.isArray(foundational) ? foundational : []).forEach(function(r){
-    items.push(Object.assign({}, r, { _source: 'foundational' }));
-  });
-  (Array.isArray(customs) ? customs : []).forEach(function(r){
-    items.push(Object.assign({}, r, { _source: 'custom' }));
-  });
-  // Also include untyped foundational with matching category heuristics if type filter empty
-  if(!items.length){
-    var allLib = await sbS('workout_library', 'select=*&order=category.asc,name.asc');
-    (Array.isArray(allLib) ? allLib : []).forEach(function(r){
-      if(!r.type) items.push(Object.assign({}, r, { _source: 'foundational' }));
+  if(!list) return;
+  var items = _trainPickerItems || [];
+  if(_trainPickerCategory && _trainPickerCategory !== 'all'){
+    items = items.filter(function(item){
+      var cat = normalizeWorkoutCategory(item.category) || (item.category || 'Other');
+      return cat === _trainPickerCategory;
     });
   }
-  _trainPickerItems = items;
-  if(!list) return;
   if(!items.length){
-    list.innerHTML = '<div style="font-size:13px;color:var(--muted);">No matching workouts yet. Start blank, or add a custom.</div>';
+    list.innerHTML = '<div style="font-size:13px;color:var(--muted);">No workouts in this category. Try All, or start blank.</div>';
     return;
   }
-  list.innerHTML = items.map(function(item, idx){
+  // Rebuild from scratch every filter change (no append / no leftover rows).
+  list.innerHTML = items.map(function(item){
+    var idx = _trainPickerItems.indexOf(item);
     var badge = item._source === 'custom'
       ? '<span class="train-badge custom">Custom</span>'
       : '<span class="train-badge foundational">Foundational</span>';
     var priv = item.visibility === 'private' ? '<span class="train-badge">Private</span>' : '';
     return '<button type="button" onclick="startTrainSessionFromPicker('+idx+')" style="width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:8px;cursor:pointer;color:var(--text);font-family:\'Space Grotesk\',sans-serif;">'
       + '<div style="font-size:15px;font-weight:600;">' + escTrainHtml(item.name) + badge + priv + '</div>'
-      + '<div style="font-size:11px;color:var(--muted);margin-top:4px;">' + escTrainHtml(item.category || '') + '</div>'
+      + '<div style="font-size:11px;color:var(--muted);margin-top:4px;">' + escTrainHtml(normalizeWorkoutCategory(item.category) || item.category || '') + '</div>'
       + '</button>';
   }).join('');
+}
+
+async function renderTrainPicker(){
+  var title = document.getElementById('train-picker-title');
+  if(title){
+    title.innerHTML = escTrainHtml(workoutTypeLabel(_trainPickerType)) +
+      '<span class="sub">Foundational catalog + your customs. Category chips replace the list — they do not stack.</span>';
+  }
+  var list = document.getElementById('train-picker-list');
+  if(list) list.innerHTML = '<div style="font-size:13px;color:var(--muted);">Loading…</div>';
+  var cats = document.getElementById('train-picker-cats');
+  if(cats) cats.innerHTML = '';
+  var foundational = await sbS('workout_library', 'select=*&type=eq.' + _trainPickerType + '&order=category.asc,name.asc');
+  var customs = await sbS('custom_workouts', 'select=*&type=eq.' + _trainPickerType + '&order=category.asc,name.asc');
+  var items = [];
+  (Array.isArray(foundational) ? foundational : []).forEach(function(r){
+    items.push(canonicalizeWizardItem(r, 'foundational'));
+  });
+  (Array.isArray(customs) ? customs : []).forEach(function(r){
+    items.push(canonicalizeWizardItem(r, 'custom'));
+  });
+  // Soft-include untyped foundational rows whose category is locked (legacy orphans)
+  if(!items.length){
+    var allLib = await sbS('workout_library', 'select=*&order=category.asc,name.asc');
+    (Array.isArray(allLib) ? allLib : []).forEach(function(r){
+      if(!r.type && normalizeWorkoutCategory(r.category)){
+        items.push(canonicalizeWizardItem(r, 'foundational'));
+      }
+    });
+  }
+  _trainPickerItems = items;
+  if(!_trainPickerCategory) _trainPickerCategory = 'all';
+  // If selected category vanished after reload, snap back to All
+  if(_trainPickerCategory !== 'all'){
+    var stillThere = items.some(function(item){
+      var cat = normalizeWorkoutCategory(item.category) || (item.category || 'Other');
+      return cat === _trainPickerCategory;
+    });
+    if(!stillThere) _trainPickerCategory = 'all';
+  }
+  paintTrainPickerCategoryChips(items);
+  paintTrainPickerList();
 }
 
 function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
@@ -8463,11 +8630,13 @@ function selectWlNewType(type){
 }
 
 function selectWlNewCategory(category){
-  if(!isLockedWorkoutCategory(category)) return;
+  var canonical = normalizeWorkoutCategory(category);
+  if(!canonical) return;
   var catEl = document.getElementById('wl-new-category');
-  if(catEl) catEl.value = category;
+  if(catEl) catEl.value = canonical;
   Array.prototype.forEach.call(document.querySelectorAll('.wl-cat-chip'), function(b){
-    b.classList.toggle('selected', b.getAttribute('data-category') === category);
+    var chipCat = normalizeWorkoutCategory(b.getAttribute('data-category'));
+    b.classList.toggle('selected', chipCat === canonical);
   });
 }
 
@@ -12999,35 +13168,54 @@ async function runSEETests(){
     else { fail('Workout library helpers defined', 'Missing: ' + missingFns.join(', ')); }
   }catch(e){ fail('Workout library helpers defined', e.message); }
 
-  // Self-assign wizard + locked taxonomy (build 196)
+  // Self-assign wizard + locked taxonomy (build 196/201)
   try{
-    var wizFns = ['startSelfAssignWizard','closeSelfAssignWizard','submitSelfAssignWizard','renderSelfAssignWizardBody','isLockedWorkoutCategory'];
+    var wizFns = ['startSelfAssignWizard','closeSelfAssignWizard','submitSelfAssignWizard','renderSelfAssignWizardBody','isLockedWorkoutCategory','normalizeWorkoutCategory','categoriesWithDrillsForType','pickSelfAssignCategory'];
     var missingWiz = wizFns.filter(function(f){ return typeof window[f] !== 'function'; });
     var lockedOk = Array.isArray(LOCKED_WORKOUT_CATEGORIES) && LOCKED_WORKOUT_CATEGORIES.length === 10 &&
       isLockedWorkoutCategory('Hangboard') && isLockedWorkoutCategory('Aerobic Base/Capacity') &&
-      !isLockedWorkoutCategory('Strength') && !isLockedWorkoutCategory('Boulder circuits');
+      isLockedWorkoutCategory('Boulder circuits') && normalizeWorkoutCategory('Boulder circuits') === 'Boulder Circuits' &&
+      !isLockedWorkoutCategory('Strength') && normalizeWorkoutCategory('Strength') === '';
     var wizScreen = document.getElementById('screen-self-assign');
     var launchBtn = document.getElementById('self-assign-launch');
     var legacyFormGone = !document.getElementById('train-new-title');
     var addHasType = !!document.getElementById('wl-new-type') && !!document.getElementById('wl-new-type-chips');
     var addNoDatalist = !document.getElementById('wl-category-suggestions');
     if(missingWiz.length){ fail('Self-assign wizard present', 'Missing: ' + missingWiz.join(', ')); }
-    else if(!lockedOk){ fail('Self-assign wizard present', 'LOCKED_WORKOUT_CATEGORIES mismatch'); }
+    else if(!lockedOk){ fail('Self-assign wizard present', 'LOCKED_WORKOUT_CATEGORIES / normalize mismatch'); }
     else if(!wizScreen || !launchBtn || !legacyFormGone){ fail('Self-assign wizard present', 'screen/launch/legacy form state wrong'); }
     else if(!addHasType || !addNoDatalist){ fail('Self-assign wizard present', 'library-add still free-text or missing type'); }
     else {
       resetSelfAssignWizard();
-      _selfAssignLibCache = [];
+      // Seed cache: Strength has Hangboard only — category step must NOT dump full taxonomy.
+      _selfAssignLibCache = [
+        canonicalizeWizardItem({ id: 'a', type: 'strength', category: 'Hangboard', name: 'Repeaters', description: '' }, 'foundational'),
+        canonicalizeWizardItem({ id: 'b', type: 'power', category: 'Campus Board', name: 'Campus', description: '' }, 'foundational'),
+        canonicalizeWizardItem({ id: 'c', type: 'endurance', category: 'Boulder circuits', name: 'EMOM', description: '' }, 'foundational')
+      ];
+      _selfAssignWizard.type = 'strength';
+      _selfAssignWizard.step = 2;
       showScreen('screen-self-assign');
       renderSelfAssignWizardBody();
-      var step1 = document.getElementById('saw-step-num');
-      var chips = document.querySelectorAll('#saw-body .saw-chip[data-type]');
-      if(step1 && /Step 1 of 5/.test(step1.textContent || '') && chips.length === 6){
-        pass('Self-assign wizard present (5-step + locked taxonomy)');
+      var matched = document.querySelectorAll('#saw-cat-matched .saw-chip[data-category]');
+      var emptyShown = document.querySelectorAll('#saw-cat-empty .saw-chip[data-category]');
+      var matchedLabels = Array.prototype.map.call(matched, function(b){ return b.getAttribute('data-category'); });
+      var onlyHangboard = matched.length === 1 && matchedLabels[0] === 'Hangboard';
+      var emptyHidden = emptyShown.length === 0;
+      // Pick Hangboard → step 3 list must only contain Hangboard/strength rows
+      pickSelfAssignCategory('Hangboard');
+      var drillChips = document.querySelectorAll('#saw-lib-results .saw-chip[data-id]');
+      var drillIds = Array.prototype.map.call(drillChips, function(b){ return b.getAttribute('data-id'); });
+      var drillOk = drillIds.length === 1 && drillIds[0] === 'a';
+      var noCampusBleed = (document.getElementById('saw-body').textContent || '').indexOf('Campus') === -1;
+      if(onlyHangboard && emptyHidden && drillOk && noCampusBleed){
+        pass('Self-assign wizard present (5-step + clean category filter)');
       } else {
-        fail('Self-assign wizard present', 'step1 chrome incomplete chips=' + chips.length);
+        fail('Self-assign wizard present', 'matched=' + matchedLabels.join(',') + ' empty=' + emptyShown.length + ' drills=' + drillIds.join(',') + ' bleed=' + !noCampusBleed);
       }
       showScreen('screen-train');
+      resetSelfAssignWizard();
+      _selfAssignLibCache = [];
     }
   }catch(e){ fail('Self-assign wizard present', e.message); }
 
