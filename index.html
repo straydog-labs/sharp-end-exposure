@@ -767,7 +767,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
      TOP NAV
 ═══════════════════════════════════════ -->
 <nav class="footer-nav">
-  <button type="button" id="coach-dash-toggle" class="coach-dash-toggle" onclick="openCoachDashboard()" title="Open coach tools">Coach tools ↗</button>
+  <button type="button" id="coach-dash-toggle" class="coach-dash-toggle" onclick="openAthleteDashboard()" title="Open athlete dashboard">Athlete dashboard ↗</button>
 
   <button class="footer-btn" id="fnav-sessions" onclick="showScreen('screen-sessions')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 20 9 10 13 15 17 9 21 20"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
@@ -3999,7 +3999,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index198';
+var app_version = 'staging-index199';
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -7690,12 +7690,12 @@ async function refreshCoachDashToggle(){
     btn.style.display = 'none';
     return;
   }
-  // Brief: coach role via coach_athlete_links as coach_id (active), not a new flag.
+  // Confirmed source of truth: coach_flags.is_coach (not coach_athlete_links).
   var rows = await sbS(
-    'coach_athlete_links',
-    'select=id&coach_id=eq.' + window._authUser.id + '&status=eq.active&limit=1'
+    'coach_flags',
+    'select=is_coach&user_id=eq.' + window._authUser.id + '&limit=1'
   );
-  _isCoachUser = Array.isArray(rows) && rows.length > 0;
+  _isCoachUser = Array.isArray(rows) && rows.length > 0 && rows[0].is_coach === true;
   if(_isCoachUser){
     btn.classList.add('show');
     btn.style.display = 'inline-flex';
@@ -7705,10 +7705,17 @@ async function refreshCoachDashToggle(){
   }
 }
 
-function openCoachDashboard(){
-  // Companion coach-side toggle opens athlete view; athlete-side opens coach tools.
-  window.open('coach-dashboard.html', '_blank', 'noopener');
+function openAthleteDashboard(){
+  // Dashboard toggle: coaches open their personal/athlete view in a new tab.
+  var url = (window.location && window.location.pathname)
+    ? window.location.pathname.replace(/[^/]+$/, 'index.html')
+    : 'index.html';
+  if(!/index\.html$/i.test(url)) url = 'index.html';
+  window.open(url, '_blank', 'noopener');
 }
+
+// Back-compat alias for older smoke / audit strings
+function openCoachDashboard(){ openAthleteDashboard(); }
 
 async function loadTrainHub(){
   if(!window._authUser){
@@ -7832,8 +7839,9 @@ async function renderTrainPicker(){
   }).join('');
 }
 
-function newTrainSessionState(energyType, seedName, seedDesc){
+function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
   var now = new Date();
+  sourceMeta = sourceMeta || {};
   return {
     id: uid(),
     energy_type: energyType,
@@ -7843,7 +7851,10 @@ function newTrainSessionState(energyType, seedName, seedDesc){
     warm_up: '',
     cool_down: '',
     blocks: [],
-    seed_description: seedDesc || ''
+    seed_description: seedDesc || '',
+    // XOR: at most one library reference (DB constraint on assignments)
+    library_item_id: sourceMeta.library_item_id || null,
+    custom_workout_item_id: sourceMeta.custom_workout_item_id || null
   };
 }
 
@@ -7855,7 +7866,13 @@ function startBlankTrainSession(){
 function startTrainSessionFromPicker(idx){
   var item = _trainPickerItems[idx];
   if(!item) return;
-  trainSessionState = newTrainSessionState(_trainPickerType, item.name, item.description || '');
+  var sourceMeta = {};
+  if(item._source === 'custom'){
+    sourceMeta.custom_workout_item_id = item.id;
+  } else {
+    sourceMeta.library_item_id = item.id;
+  }
+  trainSessionState = newTrainSessionState(_trainPickerType, item.name, item.description || '', sourceMeta);
   // Seed one circuit-style block from protocol text as notes carrier
   trainSessionState.blocks.push({
     id: uid(),
@@ -8104,11 +8121,36 @@ async function saveTrainSession(){
     app_version: app_version
   };
   var saved = await sbI('training_sessions', payload);
-  if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
   if(!saved){
+    if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
     if(msg) msg.textContent = 'Could not save. If this is a fresh environment, confirm training_sessions migration is applied.';
     return;
   }
+
+  // When the session came from a logged workout, also write an assignments
+  // row with XOR library_item_id / custom_workout_item_id (never both).
+  var libId = trainSessionState.library_item_id || null;
+  var customId = trainSessionState.custom_workout_item_id || null;
+  if(libId && customId){
+    // Safety: prefer foundational library id, clear custom
+    customId = null;
+  }
+  if(libId || customId){
+    var assignPayload = {
+      coach_id: null,
+      athlete_id: window._authUser.id,
+      title: trainSessionState.title || workoutTypeLabel(trainSessionState.energy_type) || 'Training session',
+      description: trainSessionState.seed_description || trainSessionState.warm_up || null
+    };
+    if(libId) assignPayload.library_item_id = libId;
+    if(customId) assignPayload.custom_workout_item_id = customId;
+    var assignSaved = await sbI('assignments', assignPayload);
+    if(!assignSaved){
+      console.warn('[saveTrainSession] session saved but assignment link failed');
+    }
+  }
+
+  if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
   if(msg) msg.textContent = '';
   showToast('Session saved ✓');
   trainSessionState = null;
@@ -12372,7 +12414,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'loadTrainHub'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub'
   ];
 
   function shouldSkip(onclick){
@@ -12973,25 +13015,33 @@ async function runSEETests(){
 
   // Train hub + session builder (build 198)
   try{
-    var trainFns = ['loadTrainHub','openTrainEnergy','renderTrainPicker','startBlankTrainSession','trainAddBlock','trainLogAttempt','saveTrainSession','refreshCoachDashToggle','openCoachDashboard'];
+    var trainFns = ['loadTrainHub','openTrainEnergy','renderTrainPicker','startBlankTrainSession','trainAddBlock','trainLogAttempt','saveTrainSession','refreshCoachDashToggle','openCoachDashboard','openAthleteDashboard'];
     var missingTrain = trainFns.filter(function(f){ return typeof window[f] !== 'function'; });
     var hub = document.getElementById('train-energy-grid');
     var picker = document.getElementById('screen-train-picker');
     var sess = document.getElementById('screen-train-session');
     var energyCard = document.querySelectorAll('.train-energy-card');
+    var toggleBtn = document.getElementById('coach-dash-toggle');
+    var toggleOk = toggleBtn && /openAthleteDashboard/.test(toggleBtn.getAttribute('onclick') || '');
+    var srcOk = typeof refreshCoachDashToggle === 'function' && /coach_flags/.test(String(refreshCoachDashToggle));
     if(missingTrain.length) fail('Train hub + session builder', 'Missing: ' + missingTrain.join(', '));
     else if(!hub || !picker || !sess || energyCard.length < 7) fail('Train hub + session builder', 'DOM incomplete cards=' + energyCard.length);
+    else if(!toggleOk || !srcOk) fail('Train hub + session builder', 'coach toggle missing athlete dash / coach_flags');
     else {
       openTrainEnergy('strength');
       var active = (document.querySelector('.screen.active')||{}).id;
       if(active !== 'screen-train-picker') fail('Train hub + session builder', 'picker not opened: ' + active);
       else {
         startBlankTrainSession();
+        // XOR source tracking for library vs custom
+        trainSessionState.library_item_id = 'lib-test';
+        trainSessionState.custom_workout_item_id = null;
         trainAddBlock('interval');
         trainLogAttempt(trainSessionState.blocks[0].id);
         var attempts = trainSessionState.blocks[0].attempts.length;
-        if(attempts !== 1) fail('Train hub + session builder', 'attempt not logged');
-        else pass('Train hub + session builder (7 cards + attempt)');
+        var xorOk = trainSessionState.library_item_id && !trainSessionState.custom_workout_item_id;
+        if(attempts !== 1 || !xorOk) fail('Train hub + session builder', 'attempt/xor fail');
+        else pass('Train hub + session builder (7 cards + attempt + coach_flags)');
       }
       trainSessionState = null;
       showScreen('screen-train');
