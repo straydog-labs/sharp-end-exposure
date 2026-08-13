@@ -149,19 +149,28 @@
   .assign-dates{display:flex;flex-direction:column;gap:3px;}
   .assign-due{font-family:'Space Mono',monospace;}
   .assign-due.overdue{color:var(--danger);}
-  .assign-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .assign-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
   .assign-complete-btn{
     background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 12px;
     color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;
   }
   .assign-complete-btn:hover{border-color:var(--success);color:#7fbf3f;}
   .assign-complete-btn:disabled{opacity:.5;cursor:default;}
+  .assign-edit-btn,
   .assign-repeat-btn{
     background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 12px;
     color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;
   }
+  .assign-edit-btn:hover,
   .assign-repeat-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .assign-edit-btn:disabled,
   .assign-repeat-btn:disabled{opacity:.5;cursor:default;}
+  .assign-delete-btn{
+    background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 12px;
+    color:var(--text-secondary);font-family:'Space Grotesk',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;
+  }
+  .assign-delete-btn:hover{border-color:var(--danger);color:var(--danger);}
+  .assign-delete-btn:disabled{opacity:.5;cursor:default;}
   .assign-done-tag{font-size:11px;font-weight:700;color:#7fbf3f;}
 
   .roster-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
@@ -548,22 +557,25 @@
   }
 
   // Shared card markup for both the coach-side assignment list and the
-  // athlete Train tab. Coach cards get Assigned date + Repeat; athlete
+  // athlete Train tab. Coach cards get Edit / Delete / Repeat; athlete
   // cards get Mark complete.
   function assignCardHtml(a, withCompleteButton, withRepeatButton){
     var done = !!a.completed_at;
+    var idAttr = escapeHtml(a.id);
     var actions = '';
     if(done){
       actions = '<span class="assign-done-tag">✓ Completed ' + fmtDate(a.completed_at) + '</span>';
     } else if(withCompleteButton){
-      actions = '<button type="button" class="assign-complete-btn" data-id="' + escapeHtml(a.id) + '">Mark complete</button>';
-    } else {
-      actions = '<span>Open</span>';
+      actions = '<button type="button" class="assign-complete-btn" data-id="' + idAttr + '">Mark complete</button>';
+    } else if(withRepeatButton){
+      // Coach open card — Edit replaces the old inert "Open" span.
+      actions = '<button type="button" class="assign-edit-btn" data-id="' + idAttr + '">Edit</button>';
     }
     if(withRepeatButton){
-      actions += '<button type="button" class="assign-repeat-btn" data-id="' + escapeHtml(a.id) + '">Repeat workout</button>';
+      actions += '<button type="button" class="assign-delete-btn" data-id="' + idAttr + '">Delete</button>';
+      actions += '<button type="button" class="assign-repeat-btn" data-id="' + idAttr + '">Repeat workout</button>';
     }
-    return '<div class="assign-card' + (done ? ' done' : '') + '"' + (withCompleteButton ? ' data-id="' + escapeHtml(a.id) + '"' : '') + '>' +
+    return '<div class="assign-card' + (done ? ' done' : '') + '"' + (withCompleteButton ? ' data-id="' + idAttr + '"' : '') + '>' +
       '<div class="assign-title">' + escapeHtml(a.title) + '</div>' +
       (a.description ? '<div class="assign-desc">' + escapeHtml(a.description) + '</div>' : '') +
       assignResourceHtml(a) +
@@ -937,30 +949,74 @@
   }
 
   function wireCoachAssignmentActions(token, coachUser, athleteId, rootEl){
+    Array.prototype.forEach.call(rootEl.querySelectorAll('.assign-edit-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-id');
+        var src = _lastCoachAssignments.find(function(a){ return a.id === id; });
+        if(!src) return;
+        startAssignWizardFromAssignment(src, 'edit');
+      });
+    });
     Array.prototype.forEach.call(rootEl.querySelectorAll('.assign-repeat-btn'), function(btn){
       btn.addEventListener('click', function(){
         var id = btn.getAttribute('data-id');
         var src = _lastCoachAssignments.find(function(a){ return a.id === id; });
         if(!src) return;
+        // Prefill wizard (due blank) — POST only after coach confirms at step 5.
+        startAssignWizardFromAssignment(src, 'repeat');
+      });
+    });
+    Array.prototype.forEach.call(rootEl.querySelectorAll('.assign-delete-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-id');
+        var src = _lastCoachAssignments.find(function(a){ return a.id === id; });
+        if(!src) return;
+        var label = src.title ? '"' + src.title + '"' : 'this assignment';
+        if(!window.confirm('Delete ' + label + '? It will be removed from the list.')) return;
         btn.disabled = true;
         var prev = btn.textContent;
-        btn.textContent = 'Repeating...';
-        repeatCoachAssignment(token, coachUser, athleteId, src)
+        btn.textContent = 'Deleting...';
+        softDeleteCoachAssignment(token, id)
           .then(function(){
             return loadAssignments(token, coachUser, athleteId);
           })
           .catch(function(err){
             btn.disabled = false;
             btn.textContent = prev;
-            alert('Failed to repeat workout — ' + ((err && err.message) || 'unknown error'));
+            alert('Failed to delete — ' + ((err && err.message) || 'unknown error'));
           });
       });
     });
   }
 
-  // New assignment row copied from an existing one — same idea as the
-  // athlete-side +Attempt pattern. Does not modify the source row.
-  // Copy library_item_id OR custom_workout_item_id (never both).
+  // Soft-delete: set deleted_at (reads already filter deleted_at=is.null).
+  function softDeleteCoachAssignment(token, assignmentId){
+    return fetch(SB_URL + '/rest/v1/assignments?id=eq.' + encodeURIComponent(assignmentId), {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ deleted_at: new Date().toISOString() })
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      return res.json();
+    });
+  }
+
+  function patchCoachAssignment(token, assignmentId, fields){
+    return fetch(SB_URL + '/rest/v1/assignments?id=eq.' + encodeURIComponent(assignmentId), {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify(fields)
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      return res.json().then(function(rows){
+        return Array.isArray(rows) ? rows[0] : rows;
+      });
+    });
+  }
+
+  // Payload helper still used conceptually by repeat-via-wizard POST path
+  // (same XOR library/custom shape). Instant POST from the Repeat button
+  // was removed — Repeat now opens the prefilled wizard instead.
   function repeatCoachAssignment(token, coachUser, athleteId, source){
     var payload = {
       coach_id: coachUser.id,
@@ -968,7 +1024,6 @@
       title: source.title,
       description: source.description || null
     };
-    // Fresh due_date / completed_at — omit so DB defaults (null) apply.
     if(source.custom_workout_item_id){
       payload.custom_workout_item_id = source.custom_workout_item_id;
     } else if(source.library_item_id){
@@ -1089,6 +1144,8 @@
   function resetAssignWizard(){
     _assignWizard = {
       step: 1,
+      mode: 'create', // create | edit | repeat
+      editAssignmentId: null,
       type: null,
       category: null,
       createMode: false,
@@ -1104,6 +1161,51 @@
       libLoadError: null
     };
     _coachLibSelectedId = null;
+  }
+
+  function dueDateInputValue(d){
+    if(!d) return '';
+    var m = String(d).match(/^(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : '';
+  }
+
+  function findLibItemForAssignment(assignment){
+    if(!assignment) return null;
+    if(assignment.custom_workout_item_id){
+      return (_coachLibCache || []).find(function(r){
+        return r.id === assignment.custom_workout_item_id && r._source === 'custom';
+      }) || null;
+    }
+    if(assignment.library_item_id){
+      return (_coachLibCache || []).find(function(r){
+        return r.id === assignment.library_item_id && r._source !== 'custom';
+      }) || null;
+    }
+    return null;
+  }
+
+  function syncWizardShellMode(){
+    var eyebrow = document.querySelector('#assign-wizard-overlay .aw-eyebrow');
+    var hero = document.getElementById('aw-hero');
+    var mode = _assignWizard && _assignWizard.mode;
+    if(mode === 'edit'){
+      if(eyebrow) eyebrow.textContent = 'Edit assignment';
+      if(hero) hero.textContent = 'Update this drill.';
+    } else if(mode === 'repeat'){
+      if(eyebrow) eyebrow.textContent = 'Repeat workout';
+      if(hero) hero.textContent = 'Adjust, then create a copy.';
+    } else {
+      if(eyebrow) eyebrow.textContent = 'New assignment';
+      if(hero) hero.textContent = 'Assign a drill.';
+    }
+  }
+
+  function wizardSubmitLabel(){
+    return (_assignWizard && _assignWizard.mode === 'edit') ? 'Save changes' : 'Create assignment';
+  }
+
+  function wizardBusyLabel(){
+    return (_assignWizard && _assignWizard.mode === 'edit') ? 'Saving...' : 'Creating...';
   }
 
   function drillsForTypeCategory(type, category){
@@ -1306,14 +1408,14 @@
     if(msgEl) msgEl.innerHTML = '';
   }
 
-  function showAssignSavedBanner(){
+  function showAssignSavedBanner(msg){
     var el = document.getElementById('detail-new-assignment');
     if(!el) return;
     var existing = el.querySelector('.assign-inline-success');
     if(existing) existing.remove();
     var note = document.createElement('div');
     note.className = 'assign-inline-success';
-    note.textContent = 'Assignment saved.';
+    note.textContent = msg || 'Assignment saved.';
     el.appendChild(note);
   }
 
@@ -1560,6 +1662,9 @@
       setAssignWizardChrome('Customize for this athlete', 'Edit reps, sets, weight, or notes. Plain text / markdown.');
       body.innerHTML =
         wizardPathSummaryHtml() +
+        '<div class="aw-field"><label for="new-a-name-edit">Title</label>' +
+          '<input id="new-a-name-edit" type="text" maxlength="120" value="' +
+          escapeHtml(_assignWizard.drillName || '') + '"></div>' +
         '<div class="aw-field"><label for="new-a-desc">Description</label>' +
           '<textarea id="new-a-desc" placeholder="Optional — tailor the protocol for this athlete">' +
           escapeHtml(_assignWizard.assignDescription) + '</textarea></div>';
@@ -1568,10 +1673,21 @@
         '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
       );
       document.getElementById('wiz-back').addEventListener('click', function(){
+        var nameEl = document.getElementById('new-a-name-edit');
+        if(nameEl) _assignWizard.drillName = (nameEl.value || '').trim() || _assignWizard.drillName;
         _assignWizard.assignDescription = document.getElementById('new-a-desc').value || '';
-        goAssignWizardStep(3);
+        if(_assignWizard.type && _assignWizard.category) goAssignWizardStep(3);
+        else goAssignWizardStep(1);
       });
       document.getElementById('wiz-next').addEventListener('click', function(){
+        var nameEl = document.getElementById('new-a-name-edit');
+        var name = nameEl ? (nameEl.value || '').trim() : '';
+        if(!name){
+          document.getElementById('new-a-msg').innerHTML =
+            '<div class="form-error">Title is required.</div>';
+          return;
+        }
+        _assignWizard.drillName = name;
         _assignWizard.assignDescription = document.getElementById('new-a-desc').value || '';
         goAssignWizardStep(5);
       });
@@ -1588,7 +1704,7 @@
         '<input id="new-a-link" type="url" placeholder="Optional — YouTube, Google Drive, etc." value="' +
         escapeHtml(_assignWizard.resourceLink) + '"></div>';
     setAssignWizardFooter(
-      '<button type="button" class="aw-next" id="new-a-submit">Create assignment</button>' +
+      '<button type="button" class="aw-next" id="new-a-submit">' + escapeHtml(wizardSubmitLabel()) + '</button>' +
       '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
     );
     document.getElementById('wiz-back').addEventListener('click', function(){
@@ -1614,11 +1730,22 @@
     _assignWizard.dueDate = due;
     _assignWizard.resourceLink = link;
 
-    if(!_assignWizard.type || !_assignWizard.category || !_assignWizard.drillName){
+    var isEdit = _assignWizard.mode === 'edit' && _assignWizard.editAssignmentId;
+
+    if(!_assignWizard.drillName){
       msgEl.innerHTML = '<div class="form-error">Wizard is incomplete — go back and finish each step.</div>';
       return;
     }
-    if(!isLockedWorkoutCategory(_assignWizard.category)){
+    if(!isEdit){
+      if(!_assignWizard.type || !_assignWizard.category){
+        msgEl.innerHTML = '<div class="form-error">Wizard is incomplete — go back and finish each step.</div>';
+        return;
+      }
+      if(!isLockedWorkoutCategory(_assignWizard.category)){
+        msgEl.innerHTML = '<div class="form-error">Category must be one of the locked taxonomy values.</div>';
+        return;
+      }
+    } else if(_assignWizard.category && !isLockedWorkoutCategory(_assignWizard.category)){
       msgEl.innerHTML = '<div class="form-error">Category must be one of the locked taxonomy values.</div>';
       return;
     }
@@ -1628,11 +1755,12 @@
     }
 
     var assignDescription = (_assignWizard.assignDescription || '').trim() || null;
+    var doneMsg = isEdit ? 'Assignment updated.' : 'Assignment saved.';
 
     function finishSuccess(){
       if(btn){
         btn.disabled = false;
-        btn.textContent = 'Create assignment';
+        btn.textContent = wizardSubmitLabel();
       }
       loadAssignments(token, coachUser, athleteId);
       loadCoachWorkoutLibrary(token).then(function(rows){
@@ -1640,13 +1768,14 @@
       }).catch(function(){ /* non-blocking */ });
       closeAssignWizardOverlay();
       resetAssignWizard();
-      showAssignSavedBanner();
+      syncWizardShellMode();
+      showAssignSavedBanner(doneMsg);
     }
 
     function failCreate(err){
       if(btn){
         btn.disabled = false;
-        btn.textContent = 'Create assignment';
+        btn.textContent = wizardSubmitLabel();
       }
       var isMissingColumn = err && (err.code === 'PGRST204' || err.code === '42703');
       var msg = (err && err.message) || 'unknown error';
@@ -1659,11 +1788,62 @@
 
     if(btn){
       btn.disabled = true;
-      btn.textContent = 'Creating...';
+      btn.textContent = wizardBusyLabel();
+    }
+
+    // Edit existing row — PATCH title/description/due/link (+ workout FKs).
+    if(isEdit){
+      function applyEditPatch(extra){
+        var patch = {
+          title: _assignWizard.drillName,
+          description: assignDescription,
+          due_date: due || null,
+          resource_link: link || null
+        };
+        if(extra){
+          if(extra.custom_workout_item_id){
+            patch.custom_workout_item_id = extra.custom_workout_item_id;
+            patch.library_item_id = null;
+          } else if(extra.library_item_id){
+            patch.library_item_id = extra.library_item_id;
+            patch.custom_workout_item_id = null;
+          }
+        } else if(!_assignWizard.createMode){
+          if(_assignWizard.customWorkoutItemId){
+            patch.custom_workout_item_id = _assignWizard.customWorkoutItemId;
+            patch.library_item_id = null;
+          } else if(_assignWizard.libraryItemId){
+            patch.library_item_id = _assignWizard.libraryItemId;
+            patch.custom_workout_item_id = null;
+          }
+        }
+        return patchCoachAssignment(token, _assignWizard.editAssignmentId, patch);
+      }
+
+      if(_assignWizard.createMode){
+        if(!_assignWizard.type || !_assignWizard.category){
+          failCreate({ message: 'Pick a type and category for the custom workout.' });
+          return;
+        }
+        createCoachCustomWorkout(token, coachUser, {
+          category: _assignWizard.category,
+          name: _assignWizard.drillName,
+          description: (_assignWizard.libraryDescription || '').trim() || null,
+          type: _assignWizard.type
+        }).then(function(customRow){
+          if(!customRow || !customRow.id) throw { message: 'Custom workout insert returned no id' };
+          return applyEditPatch({ custom_workout_item_id: customRow.id });
+        }).then(finishSuccess).catch(failCreate);
+        return;
+      }
+
+      applyEditPatch(null).then(finishSuccess).catch(failCreate);
+      return;
     }
 
     // Existing foundational or custom workout — link only, no re-insert.
     // Assignments take library_item_id XOR custom_workout_item_id (never both).
+    // Also covers Repeat (mode=repeat): POST a new row after coach reviews.
     if(!_assignWizard.createMode && (_assignWizard.libraryItemId || _assignWizard.customWorkoutItemId)){
       var assignPayload = {
         coach_id: coachUser.id,
@@ -1709,6 +1889,7 @@
     var ctx = _assignWizardCtx;
     if(!ctx) return;
     resetAssignWizard();
+    syncWizardShellMode();
     openAssignWizardOverlay();
     var body = document.getElementById('wiz-body');
     if(body) body.innerHTML = '<div class="aw-lib-empty">Loading workouts…</div>';
@@ -1716,6 +1897,61 @@
     setAssignWizardFooter('');
     loadCoachWorkoutLibrary(ctx.token).then(function(rows){
       _coachLibCache = Array.isArray(rows) ? rows : [];
+      renderAssignWizardBody();
+    }).catch(function(err){
+      _assignWizard.libLoadError = (err && err.message) || 'unknown error';
+      setAssignWizardChrome('Could not load workouts', 'Check your connection and try again.');
+      if(body){
+        body.innerHTML = '<div class="form-error">' + escapeHtml(_assignWizard.libLoadError) + '</div>';
+      }
+      setAssignWizardFooter('<button type="button" class="aw-secondary-btn" id="aw-close-err">← Close</button>');
+      var closeBtn = document.getElementById('aw-close-err');
+      if(closeBtn) closeBtn.addEventListener('click', closeAssignWizardOverlay);
+    });
+  }
+
+  // Prefill wizard from an existing assignment and jump to customize (step 4).
+  // mode 'edit' → PATCH on submit; mode 'repeat' → POST new row, due blank.
+  function startAssignWizardFromAssignment(assignment, mode){
+    var ctx = _assignWizardCtx;
+    if(!ctx || !assignment) return;
+    resetAssignWizard();
+    _assignWizard.mode = mode === 'edit' ? 'edit' : 'repeat';
+    _assignWizard.editAssignmentId = mode === 'edit' ? assignment.id : null;
+    _assignWizard.createMode = false;
+    _assignWizard.drillName = assignment.title || '';
+    _assignWizard.assignDescription = assignment.description || '';
+    _assignWizard.libraryDescription = assignment.description || '';
+    _assignWizard.resourceLink = assignment.resource_link || '';
+    // Edit keeps due date; Repeat starts fresh (blank due).
+    _assignWizard.dueDate = mode === 'edit' ? dueDateInputValue(assignment.due_date) : '';
+    if(assignment.custom_workout_item_id){
+      _assignWizard.customWorkoutItemId = assignment.custom_workout_item_id;
+      _assignWizard.libraryItemId = null;
+      _assignWizard.itemSource = 'custom';
+    } else if(assignment.library_item_id){
+      _assignWizard.libraryItemId = assignment.library_item_id;
+      _assignWizard.customWorkoutItemId = null;
+      _assignWizard.itemSource = 'foundational';
+    }
+    syncWizardShellMode();
+    openAssignWizardOverlay();
+    var body = document.getElementById('wiz-body');
+    if(body) body.innerHTML = '<div class="aw-lib-empty">Loading workouts…</div>';
+    setAssignWizardChrome('Loading workouts…', 'Pulling foundational catalog and custom workouts.');
+    setAssignWizardFooter('');
+    loadCoachWorkoutLibrary(ctx.token).then(function(rows){
+      _coachLibCache = Array.isArray(rows) ? rows : [];
+      var item = findLibItemForAssignment(assignment);
+      if(item){
+        _assignWizard.type = item.type || null;
+        _assignWizard.category = item.category || null;
+        _coachLibSelectedId = item.id;
+        if(!_assignWizard.libraryDescription && item.description){
+          _assignWizard.libraryDescription = item.description;
+        }
+      }
+      _assignWizard.step = 4;
       renderAssignWizardBody();
     }).catch(function(err){
       _assignWizard.libLoadError = (err && err.message) || 'unknown error';
@@ -1749,6 +1985,7 @@
   document.getElementById('aw-cancel').addEventListener('click', function(){
     closeAssignWizardOverlay();
     resetAssignWizard();
+    syncWizardShellMode();
   });
 
   function loadAthleteSessions(token, athleteId){
