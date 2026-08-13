@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Straydog Labs — Coaching</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e89252' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e89252' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e8763a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SEE">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -424,7 +431,7 @@
       <!-- Founder back-office (roster across coaches, grant/revoke is_coach): founder-dashboard.html -->
       <div class="topbar-right">
         <span id="whoami"></span>
-        <button type="button" id="personal-dash-btn" title="Open your personal athlete dashboard">My dashboard ↗</button>
+        <button type="button" id="personal-dash-btn" title="Go to your personal athlete dashboard">My dashboard</button>
         <button id="signout-btn">Sign out</button>
       </div>
     </div>
@@ -656,10 +663,11 @@
     });
   });
 
-  // Coach-side half of the dashboard toggle — personal/athlete app in a new tab.
-  // Athlete-side (index.html) opens coach-dashboard.html the other direction.
+  // Coach-side half of the dashboard toggle — same-window so an installed
+  // standalone PWA stays inside the app (window.open/_blank kicks out to a
+  // browser tab). Athlete-side index.html uses the same pattern the other way.
   document.getElementById('personal-dash-btn').addEventListener('click', function(){
-    window.open('index.html', '_blank', 'noopener');
+    window.location.href = 'index.html';
   });
 
   function enterApp(session){
@@ -2283,6 +2291,16 @@
       alert('Failed to mark complete — ' + (err && err.message ? err.message : 'unknown error'));
     });
   }
+
+  // Same site-root service worker as index.html (do not invent a second SW).
+  function registerSEEServiceWorker(){
+    if(typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    var proto = (window.location && window.location.protocol) || '';
+    if(proto !== 'https:' && proto !== 'http:') return;
+    navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' }).catch(function(){});
+  }
+  if(document.readyState === 'complete') registerSEEServiceWorker();
+  else window.addEventListener('load', registerSEEServiceWorker);
 
 })();
 </script>
