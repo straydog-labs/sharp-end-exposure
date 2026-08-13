@@ -437,11 +437,13 @@
   .athlete-roster-row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--border);cursor:pointer;}
   .athlete-roster-row:hover{background:rgba(255,255,255,.02);}
   .athlete-roster-row:last-child{border-bottom:none;}
+  .athlete-roster-row.flagged{background:rgba(168,56,40,.08);}
   .athlete-name{font-size:13px;font-weight:600;flex:1;}
   .athlete-tag{font-size:10.5px;color:var(--text-secondary);border:1px solid var(--border);border-radius:99px;padding:2px 8px;flex-shrink:0;}
   .athlete-flag{font-size:11.5px;font-weight:600;flex-shrink:0;}
   .flag-red{color:#e3705f;}
   .flag-amber{color:#e0a23a;}
+  .athlete-zone-mini{width:72px;height:8px;border-radius:4px;overflow:hidden;display:flex;background:var(--bg);flex-shrink:0;}
 
   .drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;}
   .drawer-backdrop.open{display:block;}
@@ -920,7 +922,7 @@
 
       <section id="section-demo-center" class="section-view">
         <div class="page-title">Demo Center</div>
-        <div class="page-sub">Member / Coach / Gym / Industry — the Wes / Garnett / Glenn / Amanda presentation view.</div>
+        <div class="page-sub">Member / Coach / Gym / Industry — illustrative presentation views for partner conversations.</div>
 
         <div class="dc-tabs" id="dc-tabs">
           <button class="dc-tab-btn active" data-tab="member">Member</button>
@@ -1042,11 +1044,13 @@
         <div class="dc-panel" id="dc-coach">
           <div class="dc-illustrative-banner">
             <strong>Example data — illustrative coach view, not live roster totals.</strong>
-            <span>Metrics and athlete rows below are simulated for presentation. John Campbell is a real person (SEE founder); the counts are not current production numbers.</span>
+            <span>Metrics and athlete rows below are simulated for presentation; the counts are not current production numbers.</span>
           </div>
           <div class="dc-header-row">
-            <div class="dc-persona">Coach view — <b>John Campbell</b>, first coach</div>
+            <div class="dc-persona">Coach view — <b>Example coach persona</b></div>
           </div>
+
+          <div class="dc-highlight" id="dc-coach-highlight"></div>
 
           <div class="metric-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px;">
             <div class="metric-card"><div class="metric-num mono">12</div><div class="metric-label">Athletes</div></div>
@@ -1054,6 +1058,12 @@
             <div class="metric-card"><div class="metric-num mono">59%</div><div class="metric-label">Learning avg</div></div>
             <div class="metric-card"><div class="metric-num mono">68%</div><div class="metric-label">Send rate</div></div>
             <div class="metric-card"><div class="metric-num mono" style="color:#e3705f;">2</div><div class="metric-label">Flagged</div></div>
+          </div>
+
+          <div class="panel" style="margin-bottom:20px;">
+            <div class="panel-title">Team zone mix — last 8 sessions</div>
+            <div class="schema-note" style="margin:0 0 12px;">Share of this roster’s logged sessions in Comfort / Learning / Panic. Descriptive only — no causal claim.</div>
+            <div id="dc-coach-zone-bar"></div>
           </div>
 
           <div class="panel" style="margin-bottom:20px;">
@@ -1071,7 +1081,7 @@
         <div class="dc-panel" id="dc-gym">
           <div class="dc-illustrative-banner">
             <strong>Example data — illustrative single-location view.</strong>
-            <span>Sender One DTLA persona for Wes’s review. Fabricated metrics for presentation — not live gym feed.</span>
+            <span>Sender One DTLA persona for gym-partner review. Fabricated metrics for presentation — not live gym feed.</span>
           </div>
           <div class="dc-header-row">
             <div class="dc-persona">Single location · <b>Sender One DTLA</b></div>
@@ -2450,7 +2460,7 @@
   var ZONE_LABEL = { 1: 'Comfort', 2: 'Learning', 3: 'Panic' };
 
   var ATHLETES = [
-    { name:'Maya T.', sessions:22, sendRate:61, flag:{text:'3 Panic sessions this week', cls:'flag-red'}, tag:null,
+    { name:'Maya T.', sessions:22, sendRate:61, panicThisWeek:3, flag:{text:'3 Panic sessions this week', cls:'flag-red'}, tag:null,
       zoneArc:[2,2,3,2,3,2,3,2],
       breathing:{ 'Shallow or tight':55, 'Steady':30, 'Held':15 },
       reflection:'Still shaking out the fear on steep terrain — but I stayed on the wall longer than last week.' },
@@ -2511,15 +2521,73 @@
       '<polyline points="' + pts + '" fill="none" stroke="#c8622a" stroke-width="2"/>' + circles + '</svg>';
   }
 
+  var PANIC_WEEK_THRESHOLD = 3;
+
+  function athleteZoneCounts(arc){
+    var counts = { comfort: 0, learning: 0, panic: 0 };
+    var keyFor = { 1: 'comfort', 2: 'learning', 3: 'panic' };
+    (arc || []).forEach(function(z){
+      if(keyFor[z]) counts[keyFor[z]]++;
+    });
+    return counts;
+  }
+
+  function zoneBarSegs(counts){
+    var total = counts.comfort + counts.learning + counts.panic;
+    if(!total) return '';
+    return ZONE_KEYS.map(function(z){
+      var pct = (counts[z] / total) * 100;
+      if(pct <= 0) return '';
+      return '<div class="terrain-bar-seg" style="width:' + pct + '%;background:' + ZONE_HEX[z] + ';" title="' + ZONE_CAP[z] + ' ' + counts[z] + '"></div>';
+    }).join('');
+  }
+
+  function renderCoachHighlight(){
+    var el = document.getElementById('dc-coach-highlight');
+    if(!el) return;
+    var n = ATHLETES.filter(function(a){ return (a.panicThisWeek || 0) >= PANIC_WEEK_THRESHOLD; }).length;
+    var who = n === 1
+      ? '<b>1 athlete</b> logged'
+      : '<b>' + n + ' athletes</b> logged';
+    el.innerHTML =
+      '<div class="dc-highlight-kicker">This week · pattern highlight</div>' +
+      '<p>' + who + ' several Panic-zone sessions this week.</p>' +
+      '<div class="dc-highlight-note">Describes a count of logged Activation bands this week — not a claim that SEE caused the pattern.</div>';
+  }
+
+  function renderCoachTeamZoneBar(){
+    var el = document.getElementById('dc-coach-zone-bar');
+    if(!el) return;
+    var counts = { comfort: 0, learning: 0, panic: 0 };
+    ATHLETES.forEach(function(a){
+      var c = athleteZoneCounts(a.zoneArc);
+      counts.comfort += c.comfort;
+      counts.learning += c.learning;
+      counts.panic += c.panic;
+    });
+    var total = counts.comfort + counts.learning + counts.panic;
+    var legend = ZONE_KEYS.map(function(z){
+      var pct = total ? Math.round((counts[z] / total) * 100) : 0;
+      var dot = z === 'comfort' ? 'green' : z === 'learning' ? 'amber' : 'red';
+      return '<span><span class="zone-dot dot-' + dot + '"></span>' + ZONE_CAP[z] + ' <span class="mono">' + pct + '%</span></span>';
+    }).join('');
+    el.innerHTML =
+      '<div class="terrain-bar-row"><div class="terrain-bar-label">Team</div><div class="terrain-bar-track" style="height:18px;">' + zoneBarSegs(counts) + '</div></div>' +
+      '<div style="display:flex;gap:16px;font-size:12px;color:var(--text-secondary);margin-top:10px;">' + legend + '</div>';
+  }
+
   function renderAthleteRoster(){
     var container = document.getElementById('athlete-roster');
     if(!container) return;
     container.innerHTML = ATHLETES.map(function(a, i){
+      var panicWeek = a.panicThisWeek || 0;
+      var crossesPanic = panicWeek >= PANIC_WEEK_THRESHOLD;
       var flag = a.flag ? '<span class="athlete-flag ' + a.flag.cls + '">' + a.flag.text + '</span>' : '';
       var tag = a.tag ? '<span class="athlete-tag">' + a.tag + '</span>' : '';
-      return '<div class="athlete-roster-row" data-athlete="' + i + '">' +
+      var mini = '<div class="athlete-zone-mini">' + zoneBarSegs(athleteZoneCounts(a.zoneArc)) + '</div>';
+      return '<div class="athlete-roster-row' + (crossesPanic ? ' flagged' : '') + '" data-athlete="' + i + '">' +
         '<span class="athlete-name">' + a.name + '</span>' +
-        tag + flag +
+        mini + tag + flag +
         '</div>';
     }).join('');
     container.querySelectorAll('.athlete-roster-row').forEach(function(row){
@@ -2557,6 +2625,8 @@
   document.getElementById('athlete-drawer-close').addEventListener('click', closeAthleteDrawer);
   document.getElementById('athlete-drawer-backdrop').addEventListener('click', closeAthleteDrawer);
 
+  renderCoachHighlight();
+  renderCoachTeamZoneBar();
   renderAthleteRoster();
 
   /* ===================== BUILD QUEUE (KANBAN) ===================== */
