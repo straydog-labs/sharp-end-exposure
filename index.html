@@ -9,6 +9,13 @@
 <title>Sharp End Exposure</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%232a2420' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 48'%3E%3Crect x='8' y='4' width='24' height='40' rx='12' fill='none' stroke='%23e8763a' stroke-width='4'/%3E%3Crect x='4' y='16' width='8' height='16' rx='3' fill='none' stroke='%23e8763a' stroke-width='2.5'/%3E%3Cline x1='8' y1='16' x2='8' y2='32' stroke='%233a342c' stroke-width='5'/%3E%3Cline x1='8' y1='17' x2='8' y2='31' stroke='%23e8763a' stroke-width='2' stroke-linecap='round' stroke-dasharray='2 2'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e8763a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SEE">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -4065,7 +4072,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index202';
+var app_version = 'staging-index203'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -7899,7 +7906,10 @@ function openCoachDashboard(){
   // Root cause of the build-199 miss: this button re-opened index.html instead
   // of coach-dashboard.html. The reverse direction (personal/athlete tab) lives
   // on coach-dashboard.html.
-  window.open('coach-dashboard.html', '_blank', 'noopener');
+  // Same-window navigation (build 203): opening a new browsing context
+  // kicks an installed standalone PWA out into a browser tab. Stay inside
+  // the installed app on iOS and Android.
+  window.location.href = 'coach-dashboard.html';
 }
 
 function openAthleteDashboard(){
@@ -7908,7 +7918,7 @@ function openAthleteDashboard(){
     ? window.location.pathname.replace(/[^/]+$/, 'index.html')
     : 'index.html';
   if(!/index\.html$/i.test(url)) url = 'index.html';
-  window.open(url, '_blank', 'noopener');
+  window.location.href = url;
 }
 
 async function loadTrainHub(){
@@ -13310,11 +13320,14 @@ async function runSEETests(){
     var toggleOk = toggleBtn && /openCoachDashboard/.test(toggleBtn.getAttribute('onclick') || '');
     var srcOk = typeof refreshCoachDashToggle === 'function' && /coach_flags/.test(String(refreshCoachDashToggle));
     var openSrc = String(openCoachDashboard);
+    var athleteSrc = String(openAthleteDashboard);
     var clickOk = /coach-dashboard\.html/.test(openSrc) && !/openAthleteDashboard\(\)/.test(openSrc);
+    var sameWindowOk = /location\.href/.test(openSrc) && !/window\.open/.test(openSrc) && !/_blank/.test(openSrc)
+      && /location\.href/.test(athleteSrc) && !/window\.open/.test(athleteSrc) && !/_blank/.test(athleteSrc);
     var hiddenOk = toggleBtn && toggleBtn.hasAttribute('hidden');
     if(missingTrain.length) fail('Train hub + session builder', 'Missing: ' + missingTrain.join(', '));
     else if(!hub || !picker || !sess || energyCard.length < 7) fail('Train hub + session builder', 'DOM incomplete cards=' + energyCard.length);
-    else if(!toggleOk || !srcOk || !clickOk || !hiddenOk) fail('Train hub + session builder', 'coach toggle gate/target fail');
+    else if(!toggleOk || !srcOk || !clickOk || !hiddenOk || !sameWindowOk) fail('Train hub + session builder', 'coach toggle gate/target fail');
     else {
       openTrainEnergy('strength');
       var active = (document.querySelector('.screen.active')||{}).id;
@@ -13424,6 +13437,64 @@ async function runSEETests(){
         'details=' + !!detailsEl + ' rockOk=' + rockOk + ' discOk=' + discOk + ' outdoor=' + outdoorDisc.join(',') + ' indoor=' + indoorDisc.join(',') + ' boltRangeOk=' + boltRangeOk + ' sixStep=' + sixStep);
     }
   }catch(e){ fail('Indoor/Outdoor details has separate discipline lists + 6-step progress', e.message); }
+
+  // ── SECTION D3: PWA install + same-window coach nav (build 203) ─
+  console.log('%c D3 — PWA install ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
+  try{
+    var manLink = document.querySelector('link[rel="manifest"]');
+    var themeMeta = document.querySelector('meta[name="theme-color"]');
+    var appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    var appleCapable = document.querySelector('meta[name="apple-mobile-web-app-capable"]');
+    var appleBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    var headOk = manLink && /manifest\.json/.test(manLink.getAttribute('href') || '')
+      && themeMeta && themeMeta.getAttribute('content') === '#e8763a'
+      && appleIcon && /apple-touch-icon/.test(appleIcon.getAttribute('href') || '')
+      && appleCapable && appleCapable.getAttribute('content') === 'yes'
+      && appleBar && appleTitle && appleTitle.getAttribute('content') === 'SEE';
+    if(headOk){ pass('PWA head tags (manifest + iOS + theme-color)'); }
+    else { fail('PWA head tags (manifest + iOS + theme-color)', 'manifest=' + !!(manLink) + ' theme=' + (themeMeta && themeMeta.getAttribute('content')) + ' apple=' + !!(appleIcon && appleCapable && appleBar && appleTitle)); }
+  }catch(e){ fail('PWA head tags (manifest + iOS + theme-color)', e.message); }
+
+  try{
+    var man = await fetch('manifest.json', { cache: 'no-store' }).then(function(r){ return r.json(); });
+    var startOk = man.start_url === './' || man.start_url === '/';
+    var scopeOk = man.scope === './' || man.scope === '/';
+    var icons = Array.isArray(man.icons) ? man.icons : [];
+    var has192 = icons.some(function(i){ return i.sizes === '192x192'; });
+    var has512 = icons.some(function(i){ return i.sizes === '512x512' && (!i.purpose || /any/.test(i.purpose)); });
+    var hasMask = icons.some(function(i){ return /maskable/.test(i.purpose || ''); });
+    if(man.name === 'Sharp End Exposure' && man.short_name === 'SEE' && man.display === 'standalone'
+      && man.theme_color === '#e8763a' && man.background_color === '#2a2420'
+      && startOk && scopeOk && has192 && has512 && hasMask){
+      pass('PWA manifest identity + icons');
+    } else {
+      fail('PWA manifest identity + icons', JSON.stringify({name:man.name, short:man.short_name, display:man.display, start:man.start_url, scope:man.scope, theme:man.theme_color, bg:man.background_color, icons:icons.length, has192:has192, has512:has512, hasMask:hasMask}));
+    }
+  }catch(e){ fail('PWA manifest identity + icons', e.message); }
+
+  try{
+    var swText = await fetch('sw.js?v=' + encodeURIComponent(app_version), { cache: 'no-store' }).then(function(r){ return r.text(); });
+    var verMatch = swText.match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+    var swVer = verMatch ? verMatch[1] : '';
+    var cachesShell = /see-shell-/.test(swText) && /index\.html/.test(swText);
+    var skipsApi = /supabase\.co/.test(swText) && /isApiRequest/.test(swText);
+    var noApiCache = !/cache\.put\([^)]*supabase/i.test(swText);
+    if(swVer === app_version && cachesShell && skipsApi && noApiCache && typeof registerSEEServiceWorker === 'function'){
+      pass('PWA service worker versioned shell (no API cache)');
+    } else {
+      fail('PWA service worker versioned shell (no API cache)', 'swVer=' + swVer + ' app=' + app_version + ' shell=' + cachesShell + ' apiSkip=' + skipsApi);
+    }
+  }catch(e){ fail('PWA service worker versioned shell (no API cache)', e.message); }
+
+  try{
+    var coachSrc = String(openCoachDashboard);
+    var athleteSrc = String(openAthleteDashboard);
+    var coachSame = /location\.href/.test(coachSrc) && /coach-dashboard\.html/.test(coachSrc) && !/window\.open/.test(coachSrc) && !/_blank/.test(coachSrc);
+    var athleteSame = /location\.href/.test(athleteSrc) && !/window\.open/.test(athleteSrc) && !/_blank/.test(athleteSrc);
+    if(coachSame && athleteSame){ pass('Coach/athlete toggle stays in-window (PWA standalone)'); }
+    else { fail('Coach/athlete toggle stays in-window (PWA standalone)', 'coachSame=' + coachSame + ' athleteSame=' + athleteSame); }
+  }catch(e){ fail('Coach/athlete toggle stays in-window (PWA standalone)', e.message); }
 
   // ── SECTION E: Screen sweep + isolation ─────────────────
   console.log('%c E — Screen Sweep + Isolation ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
@@ -14184,6 +14255,16 @@ function acknowledgeConsent(){
   }
   routeOnLoad();
 }
+
+function registerSEEServiceWorker(){
+  if(typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+  var proto = (window.location && window.location.protocol) || '';
+  if(proto !== 'https:' && proto !== 'http:') return;
+  var swUrl = 'sw.js?v=' + encodeURIComponent(app_version);
+  navigator.serviceWorker.register(swUrl, { scope: './', updateViaCache: 'none' }).catch(function(){});
+}
+if(document.readyState === 'complete') registerSEEServiceWorker();
+else window.addEventListener('load', registerSEEServiceWorker);
 
 routeOnLoad();
 
