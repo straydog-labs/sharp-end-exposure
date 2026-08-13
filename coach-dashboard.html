@@ -353,6 +353,17 @@
     max-height:min(42vh,320px);overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;
   }
   .aw-lib-empty{font-size:14px;color:var(--text-secondary);padding:8px 2px;}
+  .aw-section-label{
+    font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);margin:18px 0 10px;
+  }
+  .aw-create-chip{
+    width:100%;text-align:left;background:rgba(232,146,82,.08);border:1px solid rgba(232,146,82,.45);
+    border-radius:14px;padding:16px 18px;color:var(--accent);font-family:'Space Grotesk',sans-serif;
+    font-size:16px;font-weight:700;cursor:pointer;margin-bottom:4px;
+  }
+  .aw-create-chip:hover{border-color:var(--accent);background:rgba(232,146,82,.14);}
+  .aw-create-chip .aw-chip-meta{color:rgba(232,146,82,.85);font-weight:500;}
   .aw-next{
     width:100%;background:var(--accent);border:none;border-radius:14px;color:#0d0d0d;
     font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;
@@ -1081,6 +1092,7 @@
       type: null,
       category: null,
       createMode: false,
+      createEntryStep: null,
       libraryItemId: null,
       customWorkoutItemId: null,
       itemSource: null,
@@ -1100,21 +1112,80 @@
     });
   }
 
-  function filterWizardLibraryResults(query){
+  // scope: 'all' (full catalog), 'type' (chosen energy system, all categories),
+  // or 'category' (type + category — step 3 browse). Early search scopes
+  // require a query so we don't dump the whole catalog before typing.
+  function filterWizardLibraryResults(query, scope){
     var q = (query || '').trim().toLowerCase();
-    var rows = drillsForTypeCategory(_assignWizard.type, _assignWizard.category);
-    if(!q) return rows;
+    var rows = _coachLibCache || [];
+    if(scope === 'all'){
+      /* no type/category filter */
+    } else if(scope === 'type'){
+      rows = rows.filter(function(item){
+        return item.type === _assignWizard.type;
+      });
+    } else {
+      rows = drillsForTypeCategory(_assignWizard.type, _assignWizard.category);
+    }
+    if(!q){
+      if(scope === 'all' || scope === 'type') return [];
+      return rows;
+    }
     return rows.filter(function(item){
       var hay = ((item.name || '') + ' ' + (item.description || '')).toLowerCase();
       return hay.indexOf(q) !== -1;
     });
   }
 
-  function renderWizardLibraryResults(){
+  function applyWizardLibraryPick(item){
+    if(!item || !_assignWizard) return;
+    var src = item._source === 'custom' ? 'custom' : 'foundational';
+    _assignWizard.type = item.type || _assignWizard.type;
+    _assignWizard.category = item.category || _assignWizard.category;
+    if(src === 'custom'){
+      _assignWizard.customWorkoutItemId = item.id;
+      _assignWizard.libraryItemId = null;
+      _assignWizard.itemSource = 'custom';
+    } else {
+      _assignWizard.libraryItemId = item.id;
+      _assignWizard.customWorkoutItemId = null;
+      _assignWizard.itemSource = 'foundational';
+    }
+    _coachLibSelectedId = item.id;
+    _assignWizard.drillName = item.name || '';
+    _assignWizard.libraryDescription = item.description || '';
+    _assignWizard.assignDescription = item.description || '';
+    _assignWizard.createMode = false;
+    _assignWizard.createEntryStep = null;
+    goAssignWizardStep(4);
+  }
+
+  function enterCreateCustomWorkout(entryStep){
+    _assignWizard.createMode = true;
+    _assignWizard.createEntryStep = entryStep || 1;
+    _assignWizard.libraryItemId = null;
+    _assignWizard.customWorkoutItemId = null;
+    _assignWizard.itemSource = null;
+    _coachLibSelectedId = null;
+    _assignWizard.drillName = '';
+    _assignWizard.libraryDescription = '';
+    _assignWizard.assignDescription = '';
+    goAssignWizardStep(3);
+  }
+
+  function renderWizardLibraryResults(opts){
+    opts = opts || {};
+    var scope = opts.scope || 'category';
+    var showPathMeta = !!opts.showPathMeta;
     var resultsEl = document.getElementById('new-a-lib-results');
     var searchEl = document.getElementById('new-a-lib-search');
     if(!resultsEl || !_assignWizard) return;
-    var rows = filterWizardLibraryResults(searchEl ? searchEl.value : '');
+    var query = searchEl ? searchEl.value : '';
+    var rows = filterWizardLibraryResults(query, scope);
+    if(!(query || '').trim() && (scope === 'all' || scope === 'type')){
+      resultsEl.innerHTML = '<div class="aw-lib-empty">Type a name to search.</div>';
+      return;
+    }
     if(!rows.length){
       resultsEl.innerHTML = '<div class="aw-lib-empty">No workouts match this search.</div>';
       return;
@@ -1124,20 +1195,55 @@
       var selected = src === 'custom'
         ? (item.id === _assignWizard.customWorkoutItemId ? ' selected' : '')
         : (item.id === _assignWizard.libraryItemId ? ' selected' : '');
-      var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
-      if(snippet.length > 100) snippet = snippet.slice(0, 100) + '…';
+      var meta = '';
+      if(showPathMeta){
+        meta = escapeHtml(coachLibTypeLabel(item.type) || item.type || '') +
+          (item.category ? ' · ' + escapeHtml(item.category) : '');
+      } else {
+        var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
+        if(snippet.length > 100) snippet = snippet.slice(0, 100) + '…';
+        meta = escapeHtml(snippet);
+      }
       return '<button type="button" class="aw-chip' + selected + '" data-id="' + escapeHtml(item.id) +
         '" data-source="' + src + '">' +
         escapeHtml(item.name) + sourceBadgeHtml(item) +
-        (snippet ? '<span class="aw-chip-meta">' + escapeHtml(snippet) + '</span>' : '') +
+        (meta ? '<span class="aw-chip-meta">' + meta + '</span>' : '') +
       '</button>';
     }).join('');
   }
 
+  function wireWizardSearchResults(scope){
+    var resultsEl = document.getElementById('new-a-lib-results');
+    var searchEl = document.getElementById('new-a-lib-search');
+    if(!resultsEl || !searchEl) return;
+    var opts = {
+      scope: scope,
+      showPathMeta: scope === 'all' || scope === 'type'
+    };
+    renderWizardLibraryResults(opts);
+    searchEl.addEventListener('input', function(){
+      renderWizardLibraryResults(opts);
+    });
+    resultsEl.addEventListener('click', function(e){
+      var btn = e.target.closest('.aw-chip');
+      if(!btn) return;
+      var id = btn.getAttribute('data-id');
+      var src = btn.getAttribute('data-source') || 'foundational';
+      var item = _coachLibCache.find(function(r){
+        return r.id === id && (r._source === 'custom' ? 'custom' : 'foundational') === src;
+      });
+      if(!item) return;
+      if(scope === 'type' && item.type !== _assignWizard.type) return;
+      if(scope === 'category' &&
+        (item.type !== _assignWizard.type || item.category !== _assignWizard.category)) return;
+      applyWizardLibraryPick(item);
+    });
+  }
+
   function wizardStepLabel(step){
-    if(step === 1) return 'Energy system';
+    if(step === 1) return 'Find workout';
     if(step === 2) return 'Category';
-    if(step === 3) return 'Workout';
+    if(step === 3) return _assignWizard && _assignWizard.createMode ? 'Create' : 'Workout';
     if(step === 4) return 'Customize';
     if(step === 5) return 'Schedule';
     return '';
@@ -1158,6 +1264,8 @@
     var hintEl = document.getElementById('aw-hint');
     var fill = document.getElementById('aw-prog-fill');
     var heroSub = document.getElementById('aw-hero-sub');
+    // Keep "Step N of 5" even when search shortcuts jump ahead — path summary
+    // under the title shows what was already chosen (type · category · name).
     if(numEl) numEl.textContent = 'Step ' + step + ' of 5 · ' + wizardStepLabel(step);
     if(qEl) qEl.textContent = q || '';
     if(hintEl) hintEl.textContent = hint || '';
@@ -1218,8 +1326,19 @@
 
     var step = _assignWizard.step;
     if(step === 1){
-      setAssignWizardChrome('Which energy system?', 'Strength, Power, Endurance, Capacity, Skill, or Mobility — this filters everything that follows.');
+      setAssignWizardChrome(
+        'Find a workout',
+        'Search the full catalog by name, create a custom workout, or browse by energy system.'
+      );
       body.innerHTML =
+        '<div class="aw-field"><label for="new-a-lib-search">Search all workouts by name</label>' +
+          '<input id="new-a-lib-search" type="text" placeholder="e.g. EMOM, Repeaters, Campus" autocomplete="off"></div>' +
+        '<div id="new-a-lib-results" class="aw-lib-results"></div>' +
+        '<button type="button" class="aw-create-chip" id="wiz-create-custom">' +
+          'Create a custom workout' +
+          '<span class="aw-chip-meta">Add your own drill, then assign it</span>' +
+        '</button>' +
+        '<div class="aw-section-label">Or browse by type</div>' +
         '<div class="aw-choices">' +
           COACH_WORKOUT_TYPES.map(function(t){
             var sel = _assignWizard.type === t ? ' selected' : '';
@@ -1227,11 +1346,16 @@
               escapeHtml(coachLibTypeLabel(t)) + '</button>';
           }).join('') +
         '</div>';
-      Array.prototype.forEach.call(body.querySelectorAll('.aw-chip'), function(btn){
+      wireWizardSearchResults('all');
+      document.getElementById('wiz-create-custom').addEventListener('click', function(){
+        enterCreateCustomWorkout(1);
+      });
+      Array.prototype.forEach.call(body.querySelectorAll('.aw-choices .aw-chip'), function(btn){
         btn.addEventListener('click', function(){
           _assignWizard.type = btn.getAttribute('data-type');
           _assignWizard.category = null;
           _assignWizard.createMode = false;
+          _assignWizard.createEntryStep = null;
           _assignWizard.libraryItemId = null;
           _assignWizard.customWorkoutItemId = null;
           _assignWizard.itemSource = null;
@@ -1246,10 +1370,22 @@
     }
 
     if(step === 2){
-      // Locked taxonomy only — never surface free-text / legacy categories.
-      setAssignWizardChrome('Which category?', 'Only the locked training taxonomy. Empty categories open a create form next.');
+      setAssignWizardChrome(
+        'Search or pick a category',
+        'Search within ' + (coachLibTypeLabel(_assignWizard.type) || 'this type') +
+          ' across all categories, create a custom workout, or browse the taxonomy.'
+      );
       body.innerHTML =
         wizardPathSummaryHtml() +
+        '<div class="aw-field"><label for="new-a-lib-search">Search ' +
+          escapeHtml(coachLibTypeLabel(_assignWizard.type) || '') + ' workouts</label>' +
+          '<input id="new-a-lib-search" type="text" placeholder="e.g. EMOM" autocomplete="off"></div>' +
+        '<div id="new-a-lib-results" class="aw-lib-results"></div>' +
+        '<button type="button" class="aw-create-chip" id="wiz-create-custom">' +
+          'Create a custom workout' +
+          '<span class="aw-chip-meta">Under ' + escapeHtml(coachLibTypeLabel(_assignWizard.type) || 'this type') + '</span>' +
+        '</button>' +
+        '<div class="aw-section-label">Or browse by category</div>' +
         '<div class="aw-choices">' +
           LOCKED_WORKOUT_CATEGORIES.map(function(c){
             var count = drillsForTypeCategory(_assignWizard.type, c).length;
@@ -1262,11 +1398,15 @@
               '<span class="aw-chip-meta">' + meta + '</span></button>';
           }).join('') +
         '</div>';
+      wireWizardSearchResults('type');
+      document.getElementById('wiz-create-custom').addEventListener('click', function(){
+        enterCreateCustomWorkout(2);
+      });
       setAssignWizardFooter('<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>');
       document.getElementById('wiz-back').addEventListener('click', function(){
         goAssignWizardStep(1);
       });
-      Array.prototype.forEach.call(body.querySelectorAll('.aw-chip'), function(btn){
+      Array.prototype.forEach.call(body.querySelectorAll('.aw-choices .aw-chip'), function(btn){
         btn.addEventListener('click', function(){
           var cat = btn.getAttribute('data-category');
           if(!isLockedWorkoutCategory(cat)) return;
@@ -1279,6 +1419,7 @@
           _assignWizard.assignDescription = '';
           _coachLibSelectedId = null;
           _assignWizard.createMode = drillsForTypeCategory(_assignWizard.type, _assignWizard.category).length === 0;
+          _assignWizard.createEntryStep = _assignWizard.createMode ? 2 : null;
           goAssignWizardStep(3);
         });
       });
@@ -1287,9 +1428,22 @@
 
     if(step === 3){
       if(_assignWizard.createMode){
-        setAssignWizardChrome('Create a custom workout', 'Saves to your custom workouts (not the foundational catalog), then assigns it. Visibility is set automatically.');
+        setAssignWizardChrome(
+          'Create a custom workout',
+          'Saves to your custom workouts (not the foundational catalog), then assigns it. Visibility is set automatically.'
+        );
+        var typePicker = !_assignWizard.type
+          ? ('<div class="aw-field"><label>Energy system *</label>' +
+              '<div class="aw-choices" id="new-a-type-chips">' +
+                COACH_WORKOUT_TYPES.map(function(t){
+                  return '<button type="button" class="aw-chip" data-type="' + t + '">' +
+                    escapeHtml(coachLibTypeLabel(t)) + '</button>';
+                }).join('') +
+              '</div></div>')
+          : '';
         body.innerHTML =
           wizardPathSummaryHtml() +
+          typePicker +
           '<div class="aw-field"><label>Category *</label>' +
             '<div class="aw-choices" id="new-a-category-chips">' +
               LOCKED_WORKOUT_CATEGORIES.map(function(c){
@@ -1304,6 +1458,22 @@
           '<div class="aw-field"><label for="new-a-lib-desc">Description</label>' +
             '<textarea id="new-a-lib-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>';
+        Array.prototype.forEach.call(body.querySelectorAll('#new-a-type-chips .aw-chip'), function(btn){
+          btn.addEventListener('click', function(){
+            _assignWizard.type = btn.getAttribute('data-type');
+            Array.prototype.forEach.call(body.querySelectorAll('#new-a-type-chips .aw-chip'), function(b){
+              b.classList.toggle('selected', b === btn);
+            });
+            var pathEl = body.querySelector('.aw-path');
+            if(pathEl){
+              var tmp = document.createElement('div');
+              tmp.innerHTML = wizardPathSummaryHtml();
+              pathEl.replaceWith(tmp.firstChild || tmp);
+            } else {
+              body.insertAdjacentHTML('afterbegin', wizardPathSummaryHtml());
+            }
+          });
+        });
         Array.prototype.forEach.call(body.querySelectorAll('#new-a-category-chips .aw-chip'), function(btn){
           btn.addEventListener('click', function(){
             var cat = btn.getAttribute('data-category');
@@ -1319,18 +1489,27 @@
           '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
         );
         document.getElementById('wiz-back').addEventListener('click', function(){
-          var hasDrills = drillsForTypeCategory(_assignWizard.type, _assignWizard.category).length > 0;
-          if(hasDrills){
+          var entry = _assignWizard.createEntryStep || 2;
+          if(entry === 3){
             _assignWizard.createMode = false;
+            _assignWizard.createEntryStep = null;
             goAssignWizardStep(3);
           } else {
-            goAssignWizardStep(2);
+            _assignWizard.createMode = false;
+            _assignWizard.createEntryStep = null;
+            goAssignWizardStep(entry);
           }
         });
         document.getElementById('wiz-next').addEventListener('click', function(){
+          var type = _assignWizard.type;
           var category = _assignWizard.category;
           var name = (document.getElementById('new-a-name').value || '').trim();
           var libDesc = (document.getElementById('new-a-lib-desc').value || '').trim();
+          if(!type || COACH_WORKOUT_TYPES.indexOf(type) === -1){
+            document.getElementById('new-a-msg').innerHTML =
+              '<div class="form-error">Pick an energy system.</div>';
+            return;
+          }
           if(!isLockedWorkoutCategory(category)){
             document.getElementById('new-a-msg').innerHTML =
               '<div class="form-error">Pick a category from the list.</div>';
@@ -1345,6 +1524,7 @@
           _assignWizard.customWorkoutItemId = null;
           _assignWizard.itemSource = null;
           _coachLibSelectedId = null;
+          _assignWizard.type = type;
           _assignWizard.category = category;
           _assignWizard.drillName = name;
           _assignWizard.libraryDescription = libDesc;
@@ -1359,47 +1539,15 @@
       body.innerHTML =
         wizardPathSummaryHtml() +
         '<div class="aw-field"><label for="new-a-lib-search">Search</label>' +
-          '<input id="new-a-lib-search" type="text" placeholder="Filter by name"></div>' +
+          '<input id="new-a-lib-search" type="text" placeholder="Filter by name" autocomplete="off"></div>' +
         '<div id="new-a-lib-results" class="aw-lib-results"></div>' +
-        '<button type="button" class="aw-linkish" id="wiz-create-instead">Or create a custom workout</button>';
-      renderWizardLibraryResults();
-      document.getElementById('new-a-lib-search').addEventListener('input', renderWizardLibraryResults);
-      document.getElementById('new-a-lib-results').addEventListener('click', function(e){
-        var btn = e.target.closest('.aw-chip');
-        if(!btn) return;
-        var id = btn.getAttribute('data-id');
-        var src = btn.getAttribute('data-source') || 'foundational';
-        var item = _coachLibCache.find(function(r){
-          return r.id === id && (r._source === 'custom' ? 'custom' : 'foundational') === src;
-        });
-        if(!item) return;
-        if(item.type !== _assignWizard.type || item.category !== _assignWizard.category) return;
-        if(src === 'custom'){
-          _assignWizard.customWorkoutItemId = item.id;
-          _assignWizard.libraryItemId = null;
-          _assignWizard.itemSource = 'custom';
-        } else {
-          _assignWizard.libraryItemId = item.id;
-          _assignWizard.customWorkoutItemId = null;
-          _assignWizard.itemSource = 'foundational';
-        }
-        _coachLibSelectedId = item.id;
-        _assignWizard.drillName = item.name || '';
-        _assignWizard.libraryDescription = item.description || '';
-        _assignWizard.assignDescription = item.description || '';
-        _assignWizard.createMode = false;
-        goAssignWizardStep(4);
-      });
+        '<button type="button" class="aw-create-chip" id="wiz-create-instead">' +
+          'Create a custom workout' +
+          '<span class="aw-chip-meta">Under ' + escapeHtml(coachLibTypeLabel(_assignWizard.type) || '') +
+          ' · ' + escapeHtml(_assignWizard.category || '') + '</span></button>';
+      wireWizardSearchResults('category');
       document.getElementById('wiz-create-instead').addEventListener('click', function(){
-        _assignWizard.createMode = true;
-        _assignWizard.libraryItemId = null;
-        _assignWizard.customWorkoutItemId = null;
-        _assignWizard.itemSource = null;
-        _coachLibSelectedId = null;
-        _assignWizard.drillName = '';
-        _assignWizard.libraryDescription = '';
-        _assignWizard.assignDescription = '';
-        goAssignWizardStep(3);
+        enterCreateCustomWorkout(3);
       });
       setAssignWizardFooter('<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>');
       document.getElementById('wiz-back').addEventListener('click', function(){
