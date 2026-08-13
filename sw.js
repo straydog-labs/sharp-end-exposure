@@ -54,6 +54,7 @@ self.addEventListener('fetch', function(event){
   var url;
   try{ url = new URL(req.url); }catch(e){ return; }
   if(isApiRequest(url)) return; // network-only — do not respondWith, do not cache
+  if(/\/sw\.js$/i.test(url.pathname)) return; // let the browser fetch worker updates itself
 
   event.respondWith(
     fetch(req).then(function(res){
