@@ -81,6 +81,13 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .see-tip-card .see-tip-got-it{background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 22px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .see-tip-card .see-tip-off{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:8px 0 0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 #tips-enabled-toggle,#tips-enabled-toggle-anon{min-width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.install-see-lead{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+.install-see-steps{margin:0;padding-left:18px;font-size:14px;color:var(--muted);line-height:1.65;}
+.install-see-steps li{margin-bottom:6px;}
+.install-see-steps li:last-child{margin-bottom:0;}
+.install-see-plat{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.install-see-how{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;font-weight:600;text-decoration:underline;text-underline-offset:3px;margin-top:4px;}
+#install-see-howto{margin-top:12px;}
 #tips-enabled-toggle.on,#tips-enabled-toggle-anon.on{background:var(--accent);border-color:var(--accent);color:#fff;}
 
 
@@ -2498,6 +2505,35 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         </div>
       </div>
 
+      <!-- Install SEE (build 204) — self-serve PWA instructions after Your data -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Install SEE</div>
+      <div id="profile-install-see" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:24px;">
+        <div id="install-see-installed" style="display:none;" class="install-see-lead">SEE is already on your home screen.</div>
+        <div id="install-see-other-note" class="install-see-lead" style="display:none;">On your phone? Open this page in Safari or Chrome to install it as an app.</div>
+        <button type="button" id="install-see-how-btn" class="install-see-how" style="display:none;" onclick="toggleInstallSeeHow()">Show me how</button>
+        <div id="install-see-howto" style="display:none;">
+          <div id="install-see-ios" style="display:none;">
+            <div class="install-see-plat" id="install-see-ios-label" style="display:none;">iPhone / iPad</div>
+            <div class="install-see-lead">Add SEE to your home screen for one-tap access, full-screen, no browser bar.</div>
+            <ol class="install-see-steps">
+              <li>Open this page in Safari (not Chrome - iOS only supports this through Safari)</li>
+              <li>Tap the Share icon (square with an arrow pointing up)</li>
+              <li>Scroll down and tap "Add to Home Screen"</li>
+              <li>Tap "Add"</li>
+            </ol>
+          </div>
+          <div id="install-see-android" style="display:none;">
+            <div class="install-see-plat" id="install-see-android-label" style="display:none;">Android</div>
+            <div class="install-see-lead">Add SEE to your home screen for one-tap access, full-screen, no browser bar.</div>
+            <ol class="install-see-steps">
+              <li>Tap the ⋮ menu (top right of Chrome)</li>
+              <li>Tap "Add to Home screen" or "Install app"</li>
+              <li>Confirm</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
       <!-- Help — helper tips master switch (build 195); also mirrored for anon below -->
       <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Help</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:24px;">
@@ -4072,7 +4108,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index203'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index204'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4685,7 +4721,7 @@ function showScreen(id){
   // Nav voice FAB — hide on sessions (+ FAB is there), show elsewhere
   // First-run helper tips (build 195)
   mountTipForScreen(id);
-  if(id==='screen-profile') syncTipsToggleUI();
+  if(id==='screen-profile'){ syncTipsToggleUI(); initInstallSEEInstructions(); }
 }
 
 // ── HELPER TIPS (build 195) ───────────────────────────
@@ -12675,7 +12711,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow'
   ];
 
   function shouldSkip(onclick){
@@ -13496,6 +13532,39 @@ async function runSEETests(){
     else { fail('Coach/athlete toggle stays in-window (PWA standalone)', 'coachSame=' + coachSame + ' athleteSame=' + athleteSame); }
   }catch(e){ fail('Coach/athlete toggle stays in-window (PWA standalone)', e.message); }
 
+  try{
+    var card = document.getElementById('profile-install-see');
+    var authed = document.getElementById('profile-authed');
+    var inAuthed = !!(authed && card && authed.contains(card));
+    var detectOk = detectInstallPlatform('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)') === 'ios'
+      && detectInstallPlatform('Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X)') === 'ios'
+      && detectInstallPlatform('Mozilla/5.0 (Linux; Android 14; Pixel 8)') === 'android'
+      && detectInstallPlatform('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120') === 'other'
+      && detectInstallPlatform('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', {maxTouchPoints:0}) === 'other'
+      && detectInstallPlatform('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', {maxTouchPoints:5}) === 'ios';
+    function isShown(id){ var el = document.getElementById(id); return !!(el && el.style.display !== 'none' && el.style.display !== ''); }
+    initInstallSEEInstructions('ios', {standalone:false});
+    var iosOnly = isShown('install-see-howto') && isShown('install-see-ios') && !isShown('install-see-android') && !isShown('install-see-other-note') && !isShown('install-see-how-btn');
+    initInstallSEEInstructions('android', {standalone:false});
+    var androidOnly = isShown('install-see-howto') && isShown('install-see-android') && !isShown('install-see-ios') && !isShown('install-see-other-note');
+    initInstallSEEInstructions('other', {standalone:false});
+    var otherStart = isShown('install-see-other-note') && isShown('install-see-how-btn') && !isShown('install-see-howto');
+    toggleInstallSeeHow();
+    var otherOpen = isShown('install-see-howto') && isShown('install-see-ios') && isShown('install-see-android') && isShown('install-see-ios-label');
+    initInstallSEEInstructions('ios', {standalone:true});
+    var installedOk = isShown('install-see-installed') && !isShown('install-see-howto');
+    var copy = (card && card.textContent) || '';
+    var noDash = copy.indexOf('\u2014') === -1 && copy.indexOf('\u2013') === -1;
+    var hasSafari = /Open this page in Safari/.test(copy) && /Add to Home Screen/.test(copy);
+    var hasAndroid = /Add to Home screen/.test(copy) || /Install app/.test(copy);
+    if(inAuthed && detectOk && iosOnly && androidOnly && otherStart && otherOpen && installedOk && noDash && hasSafari && hasAndroid){
+      pass('Profile Install SEE instructions (UA detect + disclosure)');
+    } else {
+      fail('Profile Install SEE instructions (UA detect + disclosure)', 'inAuthed=' + inAuthed + ' detect=' + detectOk + ' ios=' + iosOnly + ' android=' + androidOnly + ' other=' + otherStart + ' open=' + otherOpen + ' installed=' + installedOk + ' dash=' + !noDash);
+    }
+    initInstallSEEInstructions();
+  }catch(e){ fail('Profile Install SEE instructions (UA detect + disclosure)', e.message); }
+
   // ── SECTION E: Screen sweep + isolation ─────────────────
   console.log('%c E — Screen Sweep + Isolation ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
   try{
@@ -13815,7 +13884,70 @@ function openProfile(){
     if(anonEl) anonEl.style.display = 'block';
   }
   loadJournalEntries(); // Fix 6: Journal is visible regardless of auth state
+  initInstallSEEInstructions();
   showScreen('screen-profile');
+}
+
+function detectInstallPlatform(ua, opts){
+  ua = ua == null ? String(navigator.userAgent || '') : String(ua);
+  opts = opts || {};
+  var maxTouch = opts.maxTouchPoints != null ? opts.maxTouchPoints : (navigator.maxTouchPoints || 0);
+  if(/Android/i.test(ua)) return 'android';
+  if(/iPhone|iPod|iPad/.test(ua)) return 'ios';
+  if(/Macintosh/i.test(ua) && maxTouch > 1) return 'ios';
+  return 'other';
+}
+
+function isSEEStandalone(){
+  try{
+    if(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+  }catch(e){}
+  return !!(window.navigator && window.navigator.standalone === true);
+}
+
+function toggleInstallSeeHow(){
+  var howto = document.getElementById('install-see-howto');
+  var btn = document.getElementById('install-see-how-btn');
+  if(!howto) return;
+  var showing = howto.style.display === 'block';
+  howto.style.display = showing ? 'none' : 'block';
+  if(btn) btn.textContent = showing ? 'Show me how' : 'Hide steps';
+}
+
+function initInstallSEEInstructions(platform, opts){
+  opts = opts || {};
+  platform = platform || detectInstallPlatform();
+  var treatStandalone = opts.standalone != null ? !!opts.standalone : isSEEStandalone();
+  var installed = document.getElementById('install-see-installed');
+  var otherNote = document.getElementById('install-see-other-note');
+  var howBtn = document.getElementById('install-see-how-btn');
+  var howto = document.getElementById('install-see-howto');
+  var ios = document.getElementById('install-see-ios');
+  var android = document.getElementById('install-see-android');
+  var iosLabel = document.getElementById('install-see-ios-label');
+  var androidLabel = document.getElementById('install-see-android-label');
+  if(!ios || !android) return platform;
+
+  function hide(el){ if(el) el.style.display = 'none'; }
+  function show(el, display){ if(el) el.style.display = display || 'block'; }
+
+  hide(installed); hide(otherNote); hide(howBtn); hide(howto); hide(ios); hide(android); hide(iosLabel); hide(androidLabel);
+  if(howBtn) howBtn.textContent = 'Show me how';
+
+  if(treatStandalone){
+    show(installed);
+    return 'installed';
+  }
+  if(platform === 'ios'){
+    show(howto); show(ios);
+  } else if(platform === 'android'){
+    show(howto); show(android);
+  } else {
+    show(otherNote);
+    show(howBtn, 'inline');
+    show(ios); show(android); show(iosLabel); show(androidLabel);
+  }
+  return platform;
 }
 
 function updateProfileIdentityHeader(displayName, email){
