@@ -69,7 +69,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .footer-btn.active{color:var(--accent);}
 
 /* ── PAGE HEADER ── */
-.page-header{padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;}
+.page-header{padding:max(16px, env(safe-area-inset-top, 0px)) 20px 0;display:flex;align-items:center;justify-content:space-between;}
 .wordmark{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
 .wordmark span{color:var(--accent);}
 .back-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;-webkit-tap-highlight-color:transparent;}
@@ -243,7 +243,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .screen.active.log-flow-screen{
   display:flex;
 }
-.log-flow-screen .page-header{margin:-16px -16px 0;padding:0 16px;}
+.log-flow-screen .page-header{margin:-16px -16px 0;padding:env(safe-area-inset-top, 0px) 16px 0;}
 .log-flow-body{flex:1;max-width:480px;width:100%;margin:0 auto;}
 .log-flow-footer{
   position:fixed;
@@ -4108,7 +4108,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index204'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index205'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -13531,6 +13531,23 @@ async function runSEETests(){
     if(coachSame && athleteSame){ pass('Coach/athlete toggle stays in-window (PWA standalone)'); }
     else { fail('Coach/athlete toggle stays in-window (PWA standalone)', 'coachSame=' + coachSame + ' athleteSame=' + athleteSame); }
   }catch(e){ fail('Coach/athlete toggle stays in-window (PWA standalone)', e.message); }
+
+  try{
+    var cssBlob = Array.prototype.map.call(document.querySelectorAll('style'), function(s){ return s.textContent || ''; }).join('\n');
+    var headerRule = /\.page-header\{[^}]*env\(safe-area-inset-top/.test(cssBlob);
+    var logFlowRule = /\.log-flow-screen \.page-header\{[^}]*env\(safe-area-inset-top/.test(cssBlob);
+    var normalHeader = document.querySelector('#screen-sessions .page-header');
+    var logHeader = document.querySelector('.log-flow-screen .page-header');
+    var normalPad = normalHeader ? getComputedStyle(normalHeader).paddingTop : '';
+    var logPad = logHeader ? getComputedStyle(logHeader).paddingTop : '';
+    // Desktop/Android: env() is 0, so spacing must match the pre-PWA values.
+    var desktopNoop = normalPad === '16px' && (logPad === '0px' || logPad === '0');
+    if(headerRule && logFlowRule && desktopNoop){
+      pass('PWA header honors safe-area-inset-top (desktop no-op)');
+    } else {
+      fail('PWA header honors safe-area-inset-top (desktop no-op)', 'headerRule=' + headerRule + ' logFlowRule=' + logFlowRule + ' normalPad=' + normalPad + ' logPad=' + logPad);
+    }
+  }catch(e){ fail('PWA header honors safe-area-inset-top (desktop no-op)', e.message); }
 
   try{
     var card = document.getElementById('profile-install-see');
