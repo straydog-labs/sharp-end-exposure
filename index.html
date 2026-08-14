@@ -220,6 +220,19 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 #baseline-q-opts .chip{white-space:normal;word-break:break-word;width:100%;display:block;border-radius:var(--r-lg);text-align:left;}
 .chip:active{transform:scale(.95);}
 .chip.selected{background:transparent;border-color:var(--accent);color:var(--accent);}
+.baseline-terrain-row{margin-bottom:16px;}
+.baseline-terrain-row:last-child{margin-bottom:0;}
+.baseline-terrain-row-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.baseline-terrain-name{font-size:14px;font-weight:700;color:var(--text);}
+.baseline-terrain-skip{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.baseline-terrain-row.skipped .baseline-terrain-name{color:var(--muted);}
+.baseline-compare-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 8px;}
+.baseline-compare-row{padding:10px 0;border-bottom:1px solid var(--border);}
+.baseline-compare-row:last-of-type{border-bottom:none;}
+.baseline-compare-terrain{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.baseline-compare-expect{font-size:13px;color:var(--muted);line-height:1.45;margin-bottom:4px;}
+.baseline-compare-split{font-size:12px;font-family:'Space Mono',monospace;color:var(--text);}
+.baseline-compare-note,.baseline-compare-empty{font-size:12px;color:var(--muted);line-height:1.55;margin-top:10px;}
 
 /* ── LOG TERRAIN PICKER (screen-log, build 186) ── */
 #log-terrain-group .log-terrain-picker{display:flex;flex-direction:column;gap:8px;}
@@ -1357,7 +1370,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <!-- Question area -->
     <div id="baseline-q-wrap" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;margin-bottom:20px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="baseline-q-num">Question 1 of 6</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="baseline-q-num">Question 1 of 5</div>
       <div style="font-size:20px;font-weight:700;line-height:1.3;margin-bottom:6px;color:var(--text);" id="baseline-q-text">—</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:16px;" id="baseline-q-label"></div>
       <div id="baseline-q-opts" style="display:flex;flex-direction:column;gap:8px;width:100%;"></div>
@@ -2492,6 +2505,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:24px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Baseline</div>
         <button onclick="retakeBaseline()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;cursor:pointer;margin-bottom:8px;text-align:left;">Retake baseline questionnaire →</button>
+        <div id="baseline-perception-compare"></div>
         <div id="baseline-history-toggle">
           <button onclick="toggleBaselineHistory(this)" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Show baseline history ›</button>
           <div id="baseline-history-body" style="display:none;margin-top:10px;font-size:12px;color:var(--muted);">Loading...</div>
@@ -4115,7 +4129,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index208'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index209'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4729,7 +4743,7 @@ function showScreen(id){
   // Nav voice FAB — hide on sessions (+ FAB is there), show elsewhere
   // First-run helper tips (build 195)
   mountTipForScreen(id);
-  if(id==='screen-profile'){ syncTipsToggleUI(); initInstallSEEInstructions(); }
+  if(id==='screen-profile'){ syncTipsToggleUI(); initInstallSEEInstructions(); loadBaselinePerceptionCompare(); }
 }
 
 // ── HELPER TIPS (build 195) ───────────────────────────
@@ -5099,6 +5113,7 @@ async function exportDataJSON(){
 
 function retakeBaseline(){
   localStorage.removeItem('see_baseline_complete');
+  baselineState = {qi:0, answers:{}};
   showScreen('screen-baseline');
 }
 
@@ -9407,7 +9422,7 @@ async function loadClimbLog(){
   var sessions=await sbS('sessions',sessQuery);
   // Cache baseline record for signed-in users (used by buildGradeGrid)
   if(window._authUser && window._authUser.id){
-    var baselineRows=await sbS('sessions','select=baseline_grade_range&is_baseline=eq.true&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=1');
+    var baselineRows=await sbS('sessions','select=baseline_grade_range,baseline_terrain_state&is_baseline=eq.true&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=1');
     window._cachedBaseline=(Array.isArray(baselineRows)&&baselineRows.length)?baselineRows[0]:null;
   }
   if(!Array.isArray(sessions))sessions=[];
@@ -9865,15 +9880,7 @@ async function loadHomeInsight(){
   var recentTop = Object.keys(recentDom).sort(function(a,b){return recentDom[b]-recentDom[a];})[0]||dom;
   var zL = {comfort:'Comfort',learning:'Learning',panic:'Panic'};
 
-  var baselinePreClimb = localStorage.getItem('see_baseline_pre_climb')||null;
-  var terrainZones = {};
-  climbs.forEach(function(s){
-    if(s.climbing_type&&s.zone){
-      if(!terrainZones[s.climbing_type]) terrainZones[s.climbing_type]={comfort:0,learning:0,panic:0,total:0};
-      terrainZones[s.climbing_type][s.zone]=(terrainZones[s.climbing_type][s.zone]||0)+1;
-      terrainZones[s.climbing_type].total++;
-    }
-  });
+  var terrainZones = aggregateTerrainZones(climbs);
   var terrainList = Object.keys(terrainZones).filter(function(t){return terrainZones[t].total>=2;});
   var panicTerrain = terrainList.slice().sort(function(a,b){
     return (terrainZones[b].panic/terrainZones[b].total)-(terrainZones[a].panic/terrainZones[a].total);
@@ -11749,6 +11756,15 @@ function launchLogWithClimb(climbId, climbName, grade, terrain, setting){
 // ═══════════════════════════════════════════════════════
 // BASELINE INTAKE QUESTIONNAIRE
 // ═══════════════════════════════════════════════════════
+var BASELINE_TERRAINS = ['Slab','Vertical','Overhang','Roof','Crack'];
+var BASELINE_PRE_CLIMB_OPTS = [
+  'Usually settled — I feel ready',
+  'Usually keyed up — some nerves, manageable',
+  'Usually pretty anxious — it takes effort to commit',
+  'Varies a lot — depends on the route',
+  'I don\'t notice much either way'
+];
+
 var BASELINE_Qs = [
   {
     key: 'baseline_grade_range',
@@ -11765,18 +11781,12 @@ var BASELINE_Qs = [
     opts: ['Mostly indoors','Mostly outdoors','Both equally']
   },
   {
-    key: 'baseline_terrain',
-    text: 'What terrain do you spend most time on?',
-    label: '',
-    multi: false,
-    opts: ['Slab','Vertical','Overhang','Roof','Crack','Mix of everything']
-  },
-  {
-    key: 'baseline_pre_climb_state',
-    text: 'How would you describe your typical experience before a hard climb?',
-    label: 'What you usually notice — not what you think you should notice.',
-    multi: false,
-    opts: ['Usually settled — I feel ready','Usually keyed up — some nerves, manageable','Usually pretty anxious — it takes effort to commit','Varies a lot — depends on the route','I don\'t notice much either way']
+    key: 'baseline_terrain_state',
+    type: 'terrain_grid',
+    text: 'What do you usually notice before you climb each terrain?',
+    label: 'Your expected reaction per terrain - skip any you have not climbed. Self-report only; not a test.',
+    terrains: BASELINE_TERRAINS,
+    opts: BASELINE_PRE_CLIMB_OPTS
   },
   {
     key: 'baseline_experience',
@@ -11834,12 +11844,18 @@ function renderBaselineQ(){
   var optsEl = document.getElementById('baseline-q-opts');
   var nextBtn = document.getElementById('baseline-next-btn');
 
-  if(numEl) numEl.textContent = 'Question ' + (baselineState.qi + 1) + ' of 6';
+  if(numEl) numEl.textContent = 'Question ' + (baselineState.qi + 1) + ' of ' + BASELINE_Qs.length;
   if(textEl) textEl.textContent = q.text;
   if(labelEl) labelEl.textContent = q.label || '';
-  if(nextBtn){ nextBtn.style.opacity = '.25'; nextBtn.style.pointerEvents = 'none'; }
   if(nextBtn) nextBtn.textContent = baselineState.qi === BASELINE_Qs.length - 1 ? 'Finish →' : 'Next →';
 
+  if(q.type === 'terrain_grid'){
+    if(nextBtn){ nextBtn.style.opacity = '1'; nextBtn.style.pointerEvents = 'all'; }
+    renderBaselineTerrainGrid(optsEl, q);
+    return;
+  }
+
+  if(nextBtn){ nextBtn.style.opacity = '.25'; nextBtn.style.pointerEvents = 'none'; }
   if(optsEl){
     optsEl.innerHTML = '';
     q.opts.forEach(function(opt){
@@ -11851,7 +11867,6 @@ function renderBaselineQ(){
           optsEl.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('selected'); });
         }
         b.classList.toggle('selected');
-        // Enable next if at least one selected
         var anySelected = optsEl.querySelectorAll('.chip.selected').length > 0;
         if(nextBtn){ nextBtn.style.opacity = anySelected ? '1' : '.25'; nextBtn.style.pointerEvents = anySelected ? 'all' : 'none'; }
       };
@@ -11860,14 +11875,81 @@ function renderBaselineQ(){
   }
 }
 
+function renderBaselineTerrainGrid(optsEl, q){
+  if(!optsEl) return;
+  var terrains = q.terrains || BASELINE_TERRAINS;
+  var stateOpts = q.opts || BASELINE_PRE_CLIMB_OPTS;
+  var prior = (baselineState.answers && baselineState.answers[q.key]) || {};
+  optsEl.innerHTML = '';
+  terrains.forEach(function(terrain){
+    var row = document.createElement('div');
+    row.className = 'baseline-terrain-row';
+    row.setAttribute('data-terrain', terrain);
+    var head = document.createElement('div');
+    head.className = 'baseline-terrain-row-head';
+    var name = document.createElement('div');
+    name.className = 'baseline-terrain-name';
+    name.textContent = terrain;
+    var skip = document.createElement('button');
+    skip.type = 'button';
+    skip.className = 'baseline-terrain-skip';
+    skip.textContent = 'Skip';
+    skip.addEventListener('click', function(){
+      row.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('selected'); });
+      row.setAttribute('data-skipped', '1');
+      row.classList.add('skipped');
+      skip.textContent = 'Skipped';
+    });
+    head.appendChild(name);
+    head.appendChild(skip);
+    row.appendChild(head);
+    stateOpts.forEach(function(opt){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = opt;
+      if(prior[terrain] === opt){
+        b.classList.add('selected');
+        row.removeAttribute('data-skipped');
+        row.classList.remove('skipped');
+      }
+      b.addEventListener('click', function(){
+        row.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('selected'); });
+        b.classList.add('selected');
+        row.removeAttribute('data-skipped');
+        row.classList.remove('skipped');
+        skip.textContent = 'Skip';
+      });
+      row.appendChild(b);
+    });
+    optsEl.appendChild(row);
+  });
+}
+
+function captureBaselineTerrainGrid(optsEl){
+  var grid = {};
+  if(!optsEl) return grid;
+  Array.prototype.forEach.call(optsEl.querySelectorAll('.baseline-terrain-row'), function(row){
+    if(row.getAttribute('data-skipped') === '1') return;
+    var terrain = row.getAttribute('data-terrain');
+    var sel = row.querySelector('.chip.selected');
+    if(terrain && sel) grid[terrain] = sel.textContent;
+  });
+  return grid;
+}
+
 function baselineNext(){
   var q = BASELINE_Qs[baselineState.qi];
   var optsEl = document.getElementById('baseline-q-opts');
-  var selected = optsEl ? Array.from(optsEl.querySelectorAll('.chip.selected')).map(function(b){ return b.textContent; }) : [];
-  if(q.multi){
-    baselineState.answers[q.key] = selected;
+  if(q && q.type === 'terrain_grid'){
+    baselineState.answers[q.key] = captureBaselineTerrainGrid(optsEl);
   } else {
-    baselineState.answers[q.key] = selected[0] || null;
+    var selected = optsEl ? Array.from(optsEl.querySelectorAll('.chip.selected')).map(function(b){ return b.textContent; }) : [];
+    if(q.multi){
+      baselineState.answers[q.key] = selected;
+    } else {
+      baselineState.answers[q.key] = selected[0] || null;
+    }
   }
   baselineState.qi++;
   if(baselineState.qi >= BASELINE_Qs.length){
@@ -11890,13 +11972,17 @@ function baselineSkipQuestion(){
 
 async function saveBaseline(){
   localStorage.setItem('see_baseline_complete', '1');
-  // Save to localStorage for instant client-side access
   if(baselineState.answers.baseline_grade_range)
     localStorage.setItem('see_baseline_grade_range', baselineState.answers.baseline_grade_range);
-  if(baselineState.answers.baseline_pre_climb_state)
-    localStorage.setItem('see_baseline_pre_climb', baselineState.answers.baseline_pre_climb_state);
+  var terrainState = baselineState.answers.baseline_terrain_state;
+  if(terrainState && typeof terrainState === 'object' && Object.keys(terrainState).length){
+    try{ localStorage.setItem('see_baseline_terrain_state', JSON.stringify(terrainState)); }catch(e){}
+  } else {
+    terrainState = null;
+    try{ localStorage.removeItem('see_baseline_terrain_state'); }catch(e){}
+  }
 
-  // Save to Supabase sessions table with is_baseline=true
+  // baseline_terrain left dormant - do not write. New grid lives in jsonb.
   var payload = {
     device_id: getDeviceId(),
     user_id: window._authUser ? window._authUser.id : null,
@@ -11904,14 +11990,102 @@ async function saveBaseline(){
     is_checkin: true,
     baseline_grade_range: baselineState.answers.baseline_grade_range || null,
     baseline_environment: baselineState.answers.baseline_environment || null,
-    baseline_terrain: baselineState.answers.baseline_terrain || null,
-    baseline_pre_climb_state: baselineState.answers.baseline_pre_climb_state || null,
+    baseline_terrain_state: terrainState,
     baseline_experience: baselineState.answers.baseline_experience || null,
     baseline_goals: baselineState.answers.baseline_goals ? JSON.stringify(baselineState.answers.baseline_goals) : null,
     app_version: app_version
   };
   sbI('sessions', payload);
   showScreen('screen-baseline-done');
+}
+
+function aggregateTerrainZones(climbs){
+  var terrainZones = {};
+  (climbs || []).forEach(function(s){
+    if(s.climbing_type && s.zone){
+      if(!terrainZones[s.climbing_type]) terrainZones[s.climbing_type] = {comfort:0,learning:0,panic:0,total:0};
+      terrainZones[s.climbing_type][s.zone] = (terrainZones[s.climbing_type][s.zone] || 0) + 1;
+      terrainZones[s.climbing_type].total++;
+    }
+  });
+  return terrainZones;
+}
+
+function parseBaselineTerrainState(raw){
+  if(!raw) return null;
+  if(typeof raw === 'object' && !Array.isArray(raw)) return raw;
+  if(typeof raw === 'string'){
+    try{
+      var parsed = JSON.parse(raw);
+      if(parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    }catch(e){}
+  }
+  return null;
+}
+
+function renderBaselinePerceptionCompareHtml(expected, climbs){
+  expected = parseBaselineTerrainState(expected);
+  var keys = expected ? Object.keys(expected) : [];
+  if(!keys.length){
+    return '<div class="baseline-compare-empty">Set per-terrain expectations in the baseline, then log climbs to compare perception with real data.</div>';
+  }
+  var zones = aggregateTerrainZones(climbs);
+  var order = BASELINE_TERRAINS.slice();
+  keys.forEach(function(t){ if(order.indexOf(t) === -1) order.push(t); });
+  var rows = [];
+  order.forEach(function(t){
+    if(!expected[t]) return;
+    var z = zones[t];
+    if(!z || z.total < 2) return;
+    rows.push({
+      terrain: t,
+      expected: expected[t],
+      comfort: Math.round((z.comfort / z.total) * 100),
+      learning: Math.round((z.learning / z.total) * 100),
+      panic: Math.round((z.panic / z.total) * 100),
+      n: z.total
+    });
+  });
+  if(!rows.length){
+    return '<div class="baseline-compare-empty">Need at least 2 logged climbs on a terrain you rated to compare. No comparison until there is enough real data.</div>';
+  }
+  var html = '<div class="baseline-compare-label">Perception vs. logged climbs</div>';
+  html += rows.map(function(r){
+    return '<div class="baseline-compare-row">' +
+      '<div class="baseline-compare-terrain">' + escTrainHtml(r.terrain) + ' · ' + r.n + ' climbs</div>' +
+      '<div class="baseline-compare-expect">You expected: ' + escTrainHtml(r.expected) + '</div>' +
+      '<div class="baseline-compare-split">Logged: ' + r.comfort + '% Comfort / ' + r.learning + '% Learning / ' + r.panic + '% Panic</div>' +
+    '</div>';
+  }).join('');
+  html += '<div class="baseline-compare-note">Descriptive only - no causal claim. SEE is a noticing tool, not a safety system. Panic share is a count of logged sessions, not a fall prediction (the 78% network figure is not personal).</div>';
+  return html;
+}
+
+async function loadBaselinePerceptionCompare(){
+  var host = document.getElementById('baseline-perception-compare');
+  if(!host) return;
+  var expected = null;
+  try{
+    expected = parseBaselineTerrainState(localStorage.getItem('see_baseline_terrain_state'));
+  }catch(e){}
+  var uid = window._authUser && window._authUser.id;
+  var deviceId = getDeviceId();
+  var bQuery = uid
+    ? 'select=baseline_terrain_state&is_baseline=eq.true&user_id=eq.' + uid + '&order=created_at.desc&limit=1'
+    : 'select=baseline_terrain_state&is_baseline=eq.true&device_id=eq.' + deviceId + '&order=created_at.desc&limit=1';
+  var bRows = await sbS('sessions', bQuery);
+  if(Array.isArray(bRows) && bRows[0] && bRows[0].baseline_terrain_state){
+    expected = parseBaselineTerrainState(bRows[0].baseline_terrain_state) || expected;
+  }
+  var climbs = window._cachedArcSessions;
+  if(!Array.isArray(climbs)){
+    var sQuery = uid
+      ? 'select=climbing_type,zone,is_checkin&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=200'
+      : 'select=climbing_type,zone,is_checkin&device_id=eq.' + deviceId + '&deleted_at=is.null&order=created_at.desc&limit=200';
+    var sessions = await sbS('sessions', sQuery);
+    climbs = Array.isArray(sessions) ? sessions.filter(function(s){ return !s.is_checkin; }) : [];
+  }
+  host.innerHTML = renderBaselinePerceptionCompareHtml(expected, climbs);
 }
 
 function baselineDone(){
@@ -12926,7 +13100,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline'
   ];
 
   function shouldSkip(onclick){
@@ -13672,6 +13846,65 @@ async function runSEETests(){
   }catch(e){ fail('Coach chat unread badge + read_at on view only', e.message); }
 
   try{
+    var keys = BASELINE_Qs.map(function(q){ return q.key; });
+    var gridQ = BASELINE_Qs.filter(function(q){ return q.type === 'terrain_grid'; })[0];
+    var noOld = keys.indexOf('baseline_terrain') === -1 && keys.indexOf('baseline_pre_climb_state') === -1;
+    var countOk = BASELINE_Qs.length === 5 && keys.indexOf('baseline_terrain_state') !== -1;
+    var terrainsOk = gridQ && gridQ.terrains.join(',') === 'Slab,Vertical,Overhang,Roof,Crack' && gridQ.terrains.indexOf('Mix of everything') === -1;
+    var optsOk = gridQ && gridQ.opts.length === 5 && gridQ.opts[0].indexOf('Usually settled') === 0;
+    var gridIdx = BASELINE_Qs.indexOf(gridQ);
+    baselineState = {qi: 0, answers: {}};
+    renderBaselineQ();
+    var num0 = (document.getElementById('baseline-q-num') || {}).textContent || '';
+    var chipQ = document.querySelectorAll('#baseline-q-opts > .chip').length > 0 && !document.querySelector('#baseline-q-opts .baseline-terrain-row');
+    baselineState.qi = gridIdx;
+    renderBaselineQ();
+    var numGrid = (document.getElementById('baseline-q-num') || {}).textContent || '';
+    var rows = document.querySelectorAll('#baseline-q-opts .baseline-terrain-row');
+    var rowCount = rows.length;
+    var overhang = document.querySelector('#baseline-q-opts .baseline-terrain-row[data-terrain="Overhang"]');
+    var slab = document.querySelector('#baseline-q-opts .baseline-terrain-row[data-terrain="Slab"]');
+    if(overhang){
+      var chip = overhang.querySelector('.chip');
+      if(chip) chip.click();
+    }
+    if(slab){
+      var skipBtn = slab.querySelector('.baseline-terrain-skip');
+      if(skipBtn) skipBtn.click();
+    }
+    var captured = captureBaselineTerrainGrid(document.getElementById('baseline-q-opts'));
+    var captureOk = captured.Overhang && captured.Overhang.indexOf('Usually settled') === 0 && !captured.Slab;
+    var saveSrc = String(saveBaseline);
+    var writesGrid = /baseline_terrain_state/.test(saveSrc);
+    var dormantOld = !/baseline_terrain:/.test(saveSrc) && !/baseline_pre_climb_state/.test(saveSrc);
+    var usesLen = /BASELINE_Qs\.length/.test(String(renderBaselineQ));
+    var retakeSrc = String(retakeBaseline);
+    var retakeOk = /screen-baseline/.test(retakeSrc) && /answers:\{\}/.test(retakeSrc.replace(/\s/g,''));
+    var expected = { Overhang: 'Usually pretty anxious — it takes effort to commit', Roof: 'Usually settled — I feel ready' };
+    var climbs = [
+      { climbing_type: 'Overhang', zone: 'panic' },
+      { climbing_type: 'Overhang', zone: 'learning' },
+      { climbing_type: 'Overhang', zone: 'panic' },
+      { climbing_type: 'Slab', zone: 'comfort' }
+    ];
+    var html = renderBaselinePerceptionCompareHtml(expected, climbs);
+    var compareOk = /Overhang/.test(html) && /You expected:/.test(html) && /Panic/.test(html) && !/>Slab</.test(html) && /no causal claim/i.test(html) && /noticing tool/.test(html);
+    var insuff = renderBaselinePerceptionCompareHtml({ Slab: 'Usually settled — I feel ready' }, [{climbing_type:'Slab',zone:'comfort'}]);
+    var insuffOk = /at least 2 logged climbs/i.test(insuff) && !/You expected:/.test(insuff);
+    if(noOld && countOk && terrainsOk && optsOk && chipQ && /of 5/.test(num0) && /of 5/.test(numGrid) && rowCount === 5 && captureOk && writesGrid && dormantOld && usesLen && retakeOk && compareOk && insuffOk){
+      pass('Baseline terrain grid + perception compare');
+    } else {
+      fail('Baseline terrain grid + perception compare',
+        'noOld=' + noOld + ' count=' + countOk + ' terrains=' + terrainsOk + ' opts=' + optsOk +
+        ' chipQ=' + chipQ + ' num0=' + num0 + ' numGrid=' + numGrid + ' rows=' + rowCount +
+        ' capture=' + JSON.stringify(captured) + ' write=' + writesGrid + ' dormant=' + dormantOld +
+        ' usesLen=' + usesLen + ' retake=' + retakeOk + ' compare=' + compareOk + ' insuff=' + insuffOk);
+    }
+    baselineState = {qi:0, answers:{}};
+    showScreen('screen-train');
+  }catch(e){ fail('Baseline terrain grid + perception compare', e.message); }
+
+  try{
     var addSub = document.querySelector('#screen-workout-library-add .screen-title .sub');
     var copy = addSub ? (addSub.textContent || '') : '';
     var hasPrivacyCopy = /private to you/i.test(copy) && /shared with everyone/i.test(copy);
@@ -14372,14 +14605,7 @@ function buildDashInsight(climbs){
   var recentDom = recent.reduce(function(a,s){a[s.zone]=(a[s.zone]||0)+1;return a;},{});
   var recentTop = Object.keys(recentDom).sort(function(a,b){return recentDom[b]-recentDom[a];})[0]||dom;
 
-  var terrainZones = {};
-  climbs.forEach(function(s){
-    if(s.climbing_type&&s.zone){
-      if(!terrainZones[s.climbing_type]) terrainZones[s.climbing_type]={comfort:0,learning:0,panic:0,total:0};
-      terrainZones[s.climbing_type][s.zone]=(terrainZones[s.climbing_type][s.zone]||0)+1;
-      terrainZones[s.climbing_type].total++;
-    }
-  });
+  var terrainZones = aggregateTerrainZones(climbs);
   var terrainList = Object.keys(terrainZones).filter(function(t){return terrainZones[t].total>=2;});
   var panicTerrain = terrainList.slice().sort(function(a,b){
     return (terrainZones[b].panic/terrainZones[b].total)-(terrainZones[a].panic/terrainZones[a].total);
