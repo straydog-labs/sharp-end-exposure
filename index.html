@@ -54,7 +54,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .app{max-width:640px;margin:0 auto;padding:0;min-height:100vh;display:flex;flex-direction:column;}
 
 /* ── SCREENS ── */
-.screen{display:none}.screen.active{display:block;width:100%;min-height:calc(100vh - 52px);overflow-y:auto;flex:1;}
+.screen{display:none}.screen.active{display:block;width:100%;min-height:calc(100vh - 52px - env(safe-area-inset-top, 0px));overflow-y:auto;flex:1;}
 .content{max-width:480px;margin-left:auto;margin-right:auto;padding:20px 20px 24px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;}
 #research-sheet{transform:translateY(100%);}
 #research-sheet.open{transform:translateY(0);}
@@ -63,13 +63,13 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .beta-badge{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:rgba(232,118,58,.12);color:var(--accent);border:1px solid rgba(232,118,58,.25);border-radius:4px;padding:2px 6px;margin-left:8px;vertical-align:middle;}
 
 /* ── FOOTER NAV ── */
-.footer-nav{position:static;top:0;left:0;right:0;background:rgba(42,36,32,.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;backdrop-filter:blur(12px);z-index:100;padding:0;min-height:52px;}
+.footer-nav{position:static;top:0;left:0;right:0;background:rgba(42,36,32,.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;backdrop-filter:blur(12px);z-index:100;padding:env(safe-area-inset-top, 0px) 0 0;min-height:calc(52px + env(safe-area-inset-top, 0px));}
 .footer-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:500;letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:8px 10px;-webkit-tap-highlight-color:transparent;transition:color .12s;min-width:56px;}
 .footer-btn svg{width:20px;height:20px;}
 .footer-btn.active{color:var(--accent);}
 
 /* ── PAGE HEADER ── */
-.page-header{padding:max(16px, env(safe-area-inset-top, 0px)) 20px 0;display:flex;align-items:center;justify-content:space-between;}
+.page-header{padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;}
 .wordmark{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
 .wordmark span{color:var(--accent);}
 .back-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;-webkit-tap-highlight-color:transparent;}
@@ -144,7 +144,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .screen-title .sub{display:block;font-size:18px;font-weight:600;color:var(--muted);margin-top:8px;line-height:1.4;}
 
 /* ── HOME ── */
-.home-shell{min-height:calc(100vh - 52px);display:flex;flex-direction:column;justify-content:space-between;padding:36px 20px 24px;}
+.home-shell{min-height:calc(100vh - 52px - env(safe-area-inset-top, 0px));display:flex;flex-direction:column;justify-content:space-between;padding:36px 20px 24px;}
 .home-brand{display:flex;flex-direction:column;gap:14px;}
 .home-wordmark{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
 .home-wordmark span{color:var(--accent);}
@@ -235,7 +235,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 /* ── LOG FLOW WIZARD (activation-first, build 186+) ── */
 .log-flow-screen{
   padding:16px;
-  min-height:calc(100vh - 52px);
+  min-height:calc(100vh - 52px - env(safe-area-inset-top, 0px));
   flex-direction:column;
   box-sizing:border-box;
   padding-bottom:120px;
@@ -243,7 +243,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .screen.active.log-flow-screen{
   display:flex;
 }
-.log-flow-screen .page-header{margin:-16px -16px 0;padding:env(safe-area-inset-top, 0px) 16px 0;}
+.log-flow-screen .page-header{margin:-16px -16px 0;padding:0 16px;}
 .log-flow-body{flex:1;max-width:480px;width:100%;margin:0 auto;}
 .log-flow-footer{
   position:fixed;
@@ -4108,7 +4108,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index205'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index206'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -13534,20 +13534,26 @@ async function runSEETests(){
 
   try{
     var cssBlob = Array.prototype.map.call(document.querySelectorAll('style'), function(s){ return s.textContent || ''; }).join('\n');
-    var headerRule = /\.page-header\{[^}]*env\(safe-area-inset-top/.test(cssBlob);
-    var logFlowRule = /\.log-flow-screen \.page-header\{[^}]*env\(safe-area-inset-top/.test(cssBlob);
+    var navRule = /\.footer-nav\{[^}]*padding:env\(safe-area-inset-top/.test(cssBlob)
+      && /\.footer-nav\{[^}]*min-height:calc\(52px \+ env\(safe-area-inset-top/.test(cssBlob);
+    var headerHasInset = /\.page-header\{[^}]*env\(safe-area-inset-top/.test(cssBlob);
+    var logFlowHasInset = /\.log-flow-screen \.page-header\{[^}]*env\(safe-area-inset-top/.test(cssBlob);
+    var nav = document.querySelector('.footer-nav');
     var normalHeader = document.querySelector('#screen-sessions .page-header');
     var logHeader = document.querySelector('.log-flow-screen .page-header');
+    var navPad = nav ? getComputedStyle(nav).paddingTop : '';
+    var navH = nav ? Math.round(nav.getBoundingClientRect().height) : 0;
     var normalPad = normalHeader ? getComputedStyle(normalHeader).paddingTop : '';
     var logPad = logHeader ? getComputedStyle(logHeader).paddingTop : '';
-    // Desktop/Android: env() is 0, so spacing must match the pre-PWA values.
-    var desktopNoop = normalPad === '16px' && (logPad === '0px' || logPad === '0');
-    if(headerRule && logFlowRule && desktopNoop){
-      pass('PWA header honors safe-area-inset-top (desktop no-op)');
+    // Desktop/Android: env() is 0 — tab bar 52px, headers unchanged, no double gap.
+    var desktopNoop = navPad === '0px' && navH === 52 && normalPad === '16px' && (logPad === '0px' || logPad === '0');
+    var noDoubleGap = !headerHasInset && !logFlowHasInset;
+    if(navRule && noDoubleGap && desktopNoop){
+      pass('PWA tab bar honors safe-area-inset-top (headers not double-padded)');
     } else {
-      fail('PWA header honors safe-area-inset-top (desktop no-op)', 'headerRule=' + headerRule + ' logFlowRule=' + logFlowRule + ' normalPad=' + normalPad + ' logPad=' + logPad);
+      fail('PWA tab bar honors safe-area-inset-top (headers not double-padded)', 'navRule=' + navRule + ' noDouble=' + noDoubleGap + ' navPad=' + navPad + ' navH=' + navH + ' normalPad=' + normalPad + ' logPad=' + logPad);
     }
-  }catch(e){ fail('PWA header honors safe-area-inset-top (desktop no-op)', e.message); }
+  }catch(e){ fail('PWA tab bar honors safe-area-inset-top (headers not double-padded)', e.message); }
 
   try{
     var card = document.getElementById('profile-install-see');
