@@ -31,6 +31,10 @@
     --success:#3B6D11;
     --warning:#BA7517;
     --danger:#ef8575;
+    /* Activation bands — same tokens as athlete app / Foundash zone bars */
+    --comfort:#7ec87a;
+    --learning:#f5a623;
+    --panic:#e84444;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;}
@@ -185,15 +189,51 @@
   .assign-delete-btn:disabled{opacity:.5;cursor:default;}
   .assign-done-tag{font-size:11px;font-weight:700;color:#7fbf3f;}
 
-  .roster-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+  .roster-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .roster-insights{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
   .roster-stat{
     background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 12px;
   }
+  .roster-insights .roster-stat{padding:12px 10px;}
   .roster-stat-val{font-size:22px;font-weight:700;line-height:1;letter-spacing:-.02em;}
+  .roster-insights .roster-stat-val{font-size:18px;}
+  .roster-stat-val.flagged{color:var(--panic);}
   .roster-stat-label{
     font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
     color:var(--text-secondary);margin-top:6px;
   }
+  .team-zone-wrap{margin-bottom:14px;}
+  .team-zone-label{
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);margin-bottom:8px;
+  }
+  .team-zone-note{font-size:11px;color:var(--text-secondary);line-height:1.45;margin-top:8px;}
+  .zone-bar-track{
+    display:flex;height:14px;border-radius:7px;overflow:hidden;
+    background:var(--bg);border:1px solid var(--border);
+  }
+  .zone-bar-seg{height:100%;min-width:0;}
+  .zone-bar-seg.zone-comfort{background:var(--comfort);}
+  .zone-bar-seg.zone-learning{background:var(--learning);}
+  .zone-bar-seg.zone-panic{background:var(--panic);}
+  .zone-bar-empty{font-size:12px;color:var(--text-secondary);padding:4px 0;}
+  .zone-bar-legend{
+    display:flex;flex-wrap:wrap;gap:10px 14px;font-size:11.5px;color:var(--text-secondary);margin-top:8px;
+  }
+  .zone-bar-legend .zone-dot{
+    display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;
+  }
+  .zone-dot.comfort{background:var(--comfort);}
+  .zone-dot.learning{background:var(--learning);}
+  .zone-dot.panic{background:var(--panic);}
+  .roster-row-main{flex:1;min-width:0;}
+  .roster-row-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+  .athlete-zone-mini .zone-bar-track{height:6px;width:56px;border-radius:3px;border:none;}
+  .athlete-panic-flag{
+    font-size:10.5px;font-weight:700;color:var(--panic);line-height:1.3;text-align:right;max-width:120px;
+  }
+  .roster-row.flagged{background:rgba(232,68,68,.06);}
+  .roster-row.flagged.active{background:rgba(232,146,82,.1);}
 
   .form-row{margin-bottom:12px;}
   .form-row label{display:block;font-size:11.5px;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.03em;}
@@ -719,6 +759,16 @@
             '<div class="roster-stat"><div class="roster-stat-val" id="stat-athletes">—</div><div class="roster-stat-label">Athletes</div></div>' +
             '<div class="roster-stat"><div class="roster-stat-val" id="stat-sessions">—</div><div class="roster-stat-label">Sessions</div></div>' +
           '</div>' +
+          '<div class="roster-insights" id="roster-insights">' +
+            '<div class="roster-stat"><div class="roster-stat-val" id="stat-learning">—</div><div class="roster-stat-label">Learning</div></div>' +
+            '<div class="roster-stat"><div class="roster-stat-val" id="stat-send">—</div><div class="roster-stat-label">Send rate</div></div>' +
+            '<div class="roster-stat"><div class="roster-stat-val" id="stat-flagged">—</div><div class="roster-stat-label">Flagged</div></div>' +
+          '</div>' +
+          '<div class="team-zone-wrap" id="team-zone-wrap">' +
+            '<div class="team-zone-label">Team zone mix</div>' +
+            '<div id="team-zone-bar"><div class="zone-bar-empty">Loading···</div></div>' +
+            '<div class="team-zone-note">Share of logged Activation-band sessions (Comfort / Learning / Panic). Descriptive only.</div>' +
+          '</div>' +
           '<div id="roster-list"><div class="roster-empty">Loading···</div></div>' +
           '<div class="link-athlete-box">' +
             '<div class="panel-title" style="margin-bottom:10px;">Link athlete</div>' +
@@ -819,6 +869,7 @@
       renderRoster(token, user, _coachRoster);
       updateRosterStats(token, _coachRoster);
       refreshRosterChatUnread(token, user, _coachRoster);
+      loadRosterInsights(token, _coachRoster);
     }).catch(function(err){
       var isMissingFn = err && (err.code === 'PGRST202' || err.code === '42883');
       listEl.innerHTML =
@@ -828,12 +879,12 @@
             : 'Failed to load roster. ' + escapeHtml((err && err.message) || 'unknown error')) +
         '</div>';
       updateRosterStats(token, []);
+      clearRosterInsights();
     });
   }
 
-  // Athletes tile = roster length. Sessions tile = count of non-deleted
-  // sessions for linked athletes via sessions_select_coach RLS (user_id
-  // is the athlete on public.sessions).
+  // Athletes tile = roster length. Sessions tile = exact count of non-deleted
+  // sessions for linked athletes via sessions_select_coach RLS.
   function updateRosterStats(token, roster){
     var athletesEl = document.getElementById('stat-athletes');
     var sessionsEl = document.getElementById('stat-sessions');
@@ -852,7 +903,7 @@
   function countCoachRosterSessions(token, athleteIds){
     var ids = (athleteIds || []).filter(Boolean);
     if(!ids.length) return Promise.resolve(0);
-    var q = 'select=id&user_id=in.(' + ids.join(',') + ')&deleted_at=is.null';
+    var q = 'select=id&user_id=in.(' + ids.join(',') + ')&is_checkin=eq.false&deleted_at=is.null';
     return fetch(SB_URL + '/rest/v1/sessions?' + q, {
       headers: Object.assign(sbHeaders(token), {
         'Prefer': 'count=exact',
@@ -875,6 +926,189 @@
     });
   }
 
+  // ── Team / per-athlete insight visuals (descriptive only) ──
+  // sessions.zone: comfort|learning|panic
+  // sessions.baseline_zone: sent|fell|dna
+  // Scope: is_checkin=false, deleted_at null. No causal language.
+  var ZONE_KEYS = ['comfort', 'learning', 'panic'];
+  var ZONE_CAP = { comfort: 'Comfort', learning: 'Learning', panic: 'Panic' };
+  // 3+ panic sessions in 7 days: high enough to mean a cluster, low enough
+  // to surface on a typical weekly log volume without waiting for an extreme.
+  var PANIC_WEEK_THRESHOLD = 3;
+  var _rosterInsightsByAthlete = {};
+
+  function normalizeZone(z){
+    var s = String(z || '').toLowerCase().trim();
+    if(s === 'comfort' || s === 'learning' || s === 'panic') return s;
+    return null;
+  }
+
+  function emptyZoneCounts(){
+    return { comfort: 0, learning: 0, panic: 0 };
+  }
+
+  function zoneBarSegsHtml(counts, opts){
+    opts = opts || {};
+    var total = (counts.comfort || 0) + (counts.learning || 0) + (counts.panic || 0);
+    if(!total){
+      if(opts.compact) return '<div class="zone-bar-track" title="No zone-tagged sessions"></div>';
+      return '<div class="zone-bar-empty">No zone-tagged sessions yet</div>';
+    }
+    return '<div class="zone-bar-track">' + ZONE_KEYS.map(function(z){
+      var pct = ((counts[z] || 0) / total) * 100;
+      if(pct <= 0) return '';
+      return '<div class="zone-bar-seg zone-' + z + '" style="width:' + pct + '%" title="' +
+        ZONE_CAP[z] + ' ' + counts[z] + ' (' + Math.round(pct) + '%)"></div>';
+    }).join('') + '</div>';
+  }
+
+  function zoneBarLegendHtml(counts){
+    var total = (counts.comfort || 0) + (counts.learning || 0) + (counts.panic || 0);
+    return '<div class="zone-bar-legend">' + ZONE_KEYS.map(function(z){
+      var pct = total ? Math.round(((counts[z] || 0) / total) * 100) : 0;
+      return '<span><span class="zone-dot ' + z + '"></span>' + ZONE_CAP[z] +
+        ' <span class="mono">' + pct + '%</span></span>';
+    }).join('') + '</div>';
+  }
+
+  function clearRosterInsights(){
+    _rosterInsightsByAthlete = {};
+    var learningEl = document.getElementById('stat-learning');
+    var sendEl = document.getElementById('stat-send');
+    var flaggedEl = document.getElementById('stat-flagged');
+    var barEl = document.getElementById('team-zone-bar');
+    if(learningEl) learningEl.textContent = '—';
+    if(sendEl) sendEl.textContent = '—';
+    if(flaggedEl){
+      flaggedEl.textContent = '—';
+      flaggedEl.classList.remove('flagged');
+    }
+    if(barEl) barEl.innerHTML = '<div class="zone-bar-empty">No athletes linked yet</div>';
+  }
+
+  function loadRosterInsights(token, roster){
+    var ids = (roster || []).map(function(r){ return r.athlete_id; }).filter(Boolean);
+    var learningEl = document.getElementById('stat-learning');
+    var sendEl = document.getElementById('stat-send');
+    var flaggedEl = document.getElementById('stat-flagged');
+    var barEl = document.getElementById('team-zone-bar');
+    if(!ids.length){
+      clearRosterInsights();
+      return Promise.resolve();
+    }
+    if(learningEl) learningEl.textContent = '…';
+    if(sendEl) sendEl.textContent = '…';
+    if(flaggedEl) flaggedEl.textContent = '…';
+    if(barEl) barEl.innerHTML = '<div class="zone-bar-empty">Loading···</div>';
+
+    return sbSelect(
+      token,
+      'sessions',
+      'select=id,user_id,zone,baseline_zone,created_at' +
+        '&user_id=in.(' + ids.join(',') + ')' +
+        '&is_checkin=eq.false&deleted_at=is.null&order=created_at.desc&limit=2000'
+    ).then(function(rows){
+      applyRosterInsights(Array.isArray(rows) ? rows : [], roster);
+    }).catch(function(){
+      if(learningEl) learningEl.textContent = '—';
+      if(sendEl) sendEl.textContent = '—';
+      if(flaggedEl){
+        flaggedEl.textContent = '—';
+        flaggedEl.classList.remove('flagged');
+      }
+      if(barEl) barEl.innerHTML = '<div class="zone-bar-empty">Could not load session insights</div>';
+    });
+  }
+
+  function applyRosterInsights(sessions, roster){
+    var zoneCounts = emptyZoneCounts();
+    var sent = 0;
+    var fell = 0;
+    var sinceMs = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    var byAthlete = {};
+
+    (roster || []).forEach(function(r){
+      if(r.athlete_id){
+        byAthlete[r.athlete_id] = {
+          zones: emptyZoneCounts(),
+          panicWeek: 0
+        };
+      }
+    });
+
+    sessions.forEach(function(s){
+      var aid = s.user_id;
+      if(!aid) return;
+      if(!byAthlete[aid]){
+        byAthlete[aid] = { zones: emptyZoneCounts(), panicWeek: 0 };
+      }
+      var z = normalizeZone(s.zone);
+      if(z){
+        zoneCounts[z]++;
+        byAthlete[aid].zones[z]++;
+      }
+      var bz = String(s.baseline_zone || '').toLowerCase();
+      if(bz === 'sent') sent++;
+      else if(bz === 'fell') fell++;
+      // dna excluded from send-rate denominator
+      if(z === 'panic' && s.created_at){
+        var t = new Date(s.created_at).getTime();
+        if(!isNaN(t) && t >= sinceMs) byAthlete[aid].panicWeek++;
+      }
+    });
+
+    var zoneTotal = zoneCounts.comfort + zoneCounts.learning + zoneCounts.panic;
+    var learningPct = zoneTotal ? Math.round((zoneCounts.learning / zoneTotal) * 100) : null;
+    var attemptTotal = sent + fell;
+    var sendPct = attemptTotal ? Math.round((sent / attemptTotal) * 100) : null;
+
+    var flaggedIds = [];
+    Object.keys(byAthlete).forEach(function(aid){
+      if(byAthlete[aid].panicWeek >= PANIC_WEEK_THRESHOLD) flaggedIds.push(aid);
+    });
+
+    _rosterInsightsByAthlete = byAthlete;
+
+    var learningEl = document.getElementById('stat-learning');
+    var sendEl = document.getElementById('stat-send');
+    var flaggedEl = document.getElementById('stat-flagged');
+    var barEl = document.getElementById('team-zone-bar');
+    if(learningEl) learningEl.textContent = learningPct === null ? '—' : (learningPct + '%');
+    if(sendEl) sendEl.textContent = sendPct === null ? '—' : (sendPct + '%');
+    if(flaggedEl){
+      flaggedEl.textContent = String(flaggedIds.length);
+      if(flaggedIds.length) flaggedEl.classList.add('flagged');
+      else flaggedEl.classList.remove('flagged');
+    }
+    if(barEl){
+      barEl.innerHTML = zoneBarSegsHtml(zoneCounts) + zoneBarLegendHtml(zoneCounts);
+    }
+
+    // Refresh roster rows so panic flags / mini bars appear once data is in.
+    var listEl = document.getElementById('roster-list');
+    if(listEl && roster && roster.length && !listEl.querySelector('.roster-empty')){
+      Array.prototype.forEach.call(listEl.querySelectorAll('.roster-row'), function(row){
+        var aid = row.getAttribute('data-athlete-id');
+        var insight = byAthlete[aid];
+        var side = row.querySelector('.roster-row-side');
+        if(!side || !insight) return;
+        var panicWeek = insight.panicWeek || 0;
+        var crosses = panicWeek >= PANIC_WEEK_THRESHOLD;
+        row.classList.toggle('flagged', crosses);
+        var flagHtml = crosses
+          ? '<div class="athlete-panic-flag">' + panicWeek + ' panic sessions this week</div>'
+          : '';
+        var miniHtml = '<div class="athlete-zone-mini">' + zoneBarSegsHtml(insight.zones, { compact: true }) + '</div>';
+        var unreadOn = row.querySelector('.roster-unread-dot') &&
+          !row.querySelector('.roster-unread-dot').hasAttribute('hidden');
+        side.innerHTML =
+          miniHtml +
+          flagHtml +
+          '<span class="roster-unread-dot"' + (unreadOn ? '' : ' hidden') + ' aria-hidden="true"></span>';
+      });
+    }
+  }
+
   function renderRoster(token, user, roster){
     var listEl = document.getElementById('roster-list');
     if(!roster.length){
@@ -885,15 +1119,28 @@
       var email = String(row.athlete_email || '').trim();
       var label = athleteDisplayLabel(row);
       var unread = !!(_rosterUnreadAthletes && _rosterUnreadAthletes[row.athlete_id]);
-      return '<div class="roster-row" data-idx="' + i + '" data-athlete-id="' + escapeHtml(row.athlete_id) +
+      var insight = _rosterInsightsByAthlete[row.athlete_id];
+      var panicWeek = insight ? (insight.panicWeek || 0) : 0;
+      var crosses = panicWeek >= PANIC_WEEK_THRESHOLD;
+      var zones = insight ? insight.zones : emptyZoneCounts();
+      var flagHtml = crosses
+        ? '<div class="athlete-panic-flag">' + panicWeek + ' panic sessions this week</div>'
+        : '';
+      var miniHtml = '<div class="athlete-zone-mini">' + zoneBarSegsHtml(zones, { compact: true }) + '</div>';
+      return '<div class="roster-row' + (crosses ? ' flagged' : '') + '" data-idx="' + i +
+        '" data-athlete-id="' + escapeHtml(row.athlete_id) +
         '" data-athlete-email="' + escapeHtml(email) +
         '" data-athlete-label="' + escapeHtml(label) + '"' +
         (unread ? ' aria-label="' + escapeHtml(label) + ', unread message"' : '') + '>' +
-        '<div>' +
+        '<div class="roster-row-main">' +
           '<div class="roster-name">' + escapeHtml(label) + '</div>' +
           '<div class="roster-meta mono">Linked ' + fmtDate(row.linked_at) + '</div>' +
         '</div>' +
-        '<span class="roster-unread-dot"' + (unread ? '' : ' hidden') + ' aria-hidden="true"></span>' +
+        '<div class="roster-row-side">' +
+          miniHtml +
+          flagHtml +
+          '<span class="roster-unread-dot"' + (unread ? '' : ' hidden') + ' aria-hidden="true"></span>' +
+        '</div>' +
       '</div>';
     }).join('');
 
