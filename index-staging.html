@@ -132,6 +132,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .saw-field textarea{resize:vertical;min-height:140px;line-height:1.5;}
 .saw-lib-results{max-height:min(42vh,320px);overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
 .saw-lib-empty{font-size:14px;color:var(--muted);padding:8px 2px;}
+.saw-lib-elsewhere-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:4px 0 8px;}
 .saw-next{width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;margin-bottom:10px;-webkit-tap-highlight-color:transparent;}
 .saw-next:disabled{opacity:.35;cursor:default;}
 .saw-secondary-btn{width:100%;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:10px;cursor:pointer;}
@@ -4108,7 +4109,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index206'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index207'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -7184,15 +7185,21 @@ function renderTrainDescriptionHtml(a){
 function trainCardHtml(a){
   var done = !!a.completed_at;
   var fromCoach = a.coach_id ? '<div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">From coach</div>' : '';
+  var hasLinkedItem = !!(a.library_item_id || a.custom_workout_item_id);
+  var btnStyle = 'background:none;border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;';
+  var startBtn = hasLinkedItem
+    ? '<button type="button" onclick="startTrainSessionFromAssignment(\''+a.id+'\')" style="'+btnStyle+'">Start session</button>'
+    : '';
+  var completeEl = done
+    ? '<span style="font-size:11px;font-weight:700;color:var(--comfort);">✓ Completed</span>'
+    : '<button type="button" onclick="trainMarkComplete(\''+a.id+'\')" style="'+btnStyle+'">Mark complete</button>';
   return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:10px;'+(done?'opacity:.6;':'')+'">'
     +fromCoach
     +'<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">'+escTrainHtml(a.title)+'</div>'
     +renderTrainDescriptionHtml(a)
-    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;flex-wrap:wrap;">'
     +'<span style="font-size:11px;color:var(--muted);font-family:\'Space Mono\',monospace;">'+formatTrainDate(a.due_date)+'</span>'
-    +(done
-      ? '<span style="font-size:11px;font-weight:700;color:var(--comfort);">✓ Completed</span>'
-      : '<button onclick="trainMarkComplete(\''+a.id+'\')" style="background:none;border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">Mark complete</button>')
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'+startBtn+completeEl+'</div>'
     +'</div>'
     +'</div>';
 }
@@ -7408,14 +7415,76 @@ function emptyCategoriesForType(type){
   });
 }
 
+function selfAssignQueryHay(item){
+  return ((item.name || '') + ' ' + (item.description || '')).toLowerCase();
+}
+
 function filterSelfAssignLibraryResults(query){
   var q = (query || '').trim().toLowerCase();
   var rows = drillsForTypeCategory(_selfAssignWizard.type, _selfAssignWizard.category);
   if(!q) return rows;
   return rows.filter(function(item){
-    var hay = ((item.name || '') + ' ' + (item.description || '')).toLowerCase();
-    return hay.indexOf(q) !== -1;
+    return selfAssignQueryHay(item).indexOf(q) !== -1;
   });
+}
+
+// Out-of-scope name/description matches across the already-loaded library cache.
+// Used only when the current type+category search returns zero hits.
+function filterSelfAssignLibraryFallback(query){
+  var q = (query || '').trim().toLowerCase();
+  if(!q || !_selfAssignWizard) return [];
+  return _selfAssignLibCache.filter(function(item){
+    if(workoutMatchesTypeCategory(item, _selfAssignWizard.type, _selfAssignWizard.category)) return false;
+    return selfAssignQueryHay(item).indexOf(q) !== -1;
+  });
+}
+
+function selfAssignElsewhereLabel(item){
+  var cat = item._canonicalCategory || item.category || 'another category';
+  var typeLbl = workoutTypeLabel(item.type);
+  var current = _selfAssignWizard.category || 'this category';
+  var where = typeLbl ? (cat + ' · ' + typeLbl) : cat;
+  return 'Found in ' + where + ' - not ' + current;
+}
+
+function selfAssignLibraryChipHtml(item, elsewhere){
+  var selected = '';
+  if(item._source === 'custom'){
+    selected = item.id === _selfAssignWizard.customWorkoutItemId ? ' selected' : '';
+  } else {
+    selected = item.id === _selfAssignWizard.libraryItemId ? ' selected' : '';
+  }
+  var src = item._source === 'custom'
+    ? '<span class="saw-chip-meta">Custom</span>'
+    : (item.type ? '' : '<span class="saw-chip-meta">Untyped legacy</span>');
+  var meta = '';
+  if(elsewhere){
+    meta = '<span class="saw-chip-meta">' + escTrainHtml(selfAssignElsewhereLabel(item)) + '</span>';
+  } else {
+    var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
+    if(snippet.length > 100) snippet = snippet.slice(0, 100) + '...';
+    if(snippet) meta = '<span class="saw-chip-meta">' + escTrainHtml(snippet) + '</span>';
+  }
+  var source = item._source === 'custom' ? 'custom' : 'foundational';
+  return '<button type="button" class="saw-chip' + selected + '" data-id="' + escTrainHtml(item.id) +
+    '" data-source="' + source + '"' + (elsewhere ? ' data-elsewhere="1"' : '') + '>' +
+    escTrainHtml(item.name) + src + meta +
+    '</button>';
+}
+
+function pickSelfAssignLibraryItem(item){
+  if(!item || !_selfAssignWizard) return;
+  var itemCat = item._canonicalCategory || normalizeWorkoutCategory(item.category);
+  if(itemCat) _selfAssignWizard.category = itemCat;
+  if(item.type) _selfAssignWizard.type = item.type;
+  _selfAssignWizard.libraryItemId = item._source === 'custom' ? null : item.id;
+  _selfAssignWizard.customWorkoutItemId = item._source === 'custom' ? item.id : null;
+  _selfAssignWizard.itemSource = item._source || 'foundational';
+  _selfAssignWizard.drillName = item.name || '';
+  _selfAssignWizard.libraryDescription = item.description || '';
+  _selfAssignWizard.assignDescription = item.description || '';
+  _selfAssignWizard.createMode = false;
+  goSelfAssignStep(4);
 }
 
 function renderSelfAssignLibraryResults(){
@@ -7423,26 +7492,30 @@ function renderSelfAssignLibraryResults(){
   var searchEl = document.getElementById('saw-lib-search');
   if(!resultsEl || !_selfAssignWizard) return;
   // Always replace — never append — so prior category lists cannot leak.
-  var rows = filterSelfAssignLibraryResults(searchEl ? searchEl.value : '');
-  if(!rows.length){
-    resultsEl.innerHTML = '<div class="saw-lib-empty">No drills in ' +
+  var query = searchEl ? searchEl.value : '';
+  var rows = filterSelfAssignLibraryResults(query);
+  var elsewhere = (!rows.length && (query || '').trim()) ? filterSelfAssignLibraryFallback(query) : [];
+  if(!rows.length && !elsewhere.length){
+    var empty = 'No drills in ' +
       escTrainHtml(_selfAssignWizard.category || 'this category') +
-      ' for ' + escTrainHtml(workoutTypeLabel(_selfAssignWizard.type) || 'this system') +
-      '.</div>';
+      ' for ' + escTrainHtml(workoutTypeLabel(_selfAssignWizard.type) || 'this system');
+    if((query || '').trim()){
+      empty += ' match that search, and nothing elsewhere in the library.';
+    } else {
+      empty += '.';
+    }
+    resultsEl.innerHTML = '<div class="saw-lib-empty">' + empty + '</div>';
     return;
   }
-  resultsEl.innerHTML = rows.map(function(item){
-    var selected = item.id === _selfAssignWizard.libraryItemId ? ' selected' : '';
-    var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
-    if(snippet.length > 100) snippet = snippet.slice(0, 100) + '...';
-    var src = item._source === 'custom'
-      ? '<span class="saw-chip-meta">Custom</span>'
-      : (item.type ? '' : '<span class="saw-chip-meta">Untyped legacy</span>');
-    return '<button type="button" class="saw-chip' + selected + '" data-id="' + escTrainHtml(item.id) + '">' +
-      escTrainHtml(item.name) + src +
-      (snippet ? '<span class="saw-chip-meta">' + escTrainHtml(snippet) + '</span>' : '') +
-      '</button>';
-  }).join('');
+  var html = '';
+  if(rows.length){
+    html += rows.map(function(item){ return selfAssignLibraryChipHtml(item, false); }).join('');
+  }
+  if(elsewhere.length){
+    html += '<div class="saw-lib-elsewhere-label">Found elsewhere in the library</div>';
+    html += elsewhere.map(function(item){ return selfAssignLibraryChipHtml(item, true); }).join('');
+  }
+  resultsEl.innerHTML = html;
 }
 
 function selfAssignStepLabel(step){
@@ -7660,12 +7733,13 @@ function renderSelfAssignWizardBody(){
       return;
     }
 
-    setSelfAssignChrome('Pick a workout', 'Only workouts matching ' +
-      workoutTypeLabel(_selfAssignWizard.type) + ' · ' + _selfAssignWizard.category + '.');
+    setSelfAssignChrome('Pick a workout', 'Workouts matching ' +
+      workoutTypeLabel(_selfAssignWizard.type) + ' · ' + _selfAssignWizard.category +
+      '. Search looks elsewhere if nothing matches here.');
     body.innerHTML =
       selfAssignPathSummaryHtml() +
       '<div class="saw-field"><label for="saw-lib-search">Search</label>' +
-        '<input id="saw-lib-search" type="text" placeholder="Filter by name" autocomplete="off"></div>' +
+        '<input id="saw-lib-search" type="text" placeholder="e.g. EMOM, Repeaters" autocomplete="off"></div>' +
       '<div id="saw-lib-results" class="saw-lib-results"></div>' +
       '<button type="button" class="saw-linkish" id="saw-create-instead" onclick="selfAssignSwitchToCreate()">Or create a new drill</button>';
     renderSelfAssignLibraryResults();
@@ -7674,17 +7748,13 @@ function renderSelfAssignWizardBody(){
       var btn = e.target.closest('.saw-chip');
       if(!btn) return;
       var id = btn.getAttribute('data-id');
-      var item = _selfAssignLibCache.find(function(r){ return r.id === id; });
+      var src = btn.getAttribute('data-source') || 'foundational';
+      var item = _selfAssignLibCache.find(function(r){
+        return r.id === id && (r._source === 'custom' ? 'custom' : 'foundational') === src;
+      });
+      if(!item) item = _selfAssignLibCache.find(function(r){ return r.id === id; });
       if(!item) return;
-      if(!workoutMatchesTypeCategory(item, _selfAssignWizard.type, _selfAssignWizard.category)) return;
-      _selfAssignWizard.libraryItemId = item._source === 'custom' ? null : item.id;
-      _selfAssignWizard.customWorkoutItemId = item._source === 'custom' ? item.id : null;
-      _selfAssignWizard.itemSource = item._source || 'foundational';
-      _selfAssignWizard.drillName = item.name || '';
-      _selfAssignWizard.libraryDescription = item.description || '';
-      _selfAssignWizard.assignDescription = item.description || '';
-      _selfAssignWizard.createMode = false;
-      goSelfAssignStep(4);
+      pickSelfAssignLibraryItem(item);
     });
     setSelfAssignFooter('<button type="button" class="saw-secondary-btn" id="saw-back" onclick="goSelfAssignStep(2)">← Back</button>');
     return;
@@ -8149,12 +8219,35 @@ function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
     seed_description: seedDesc || '',
     // XOR: at most one library reference (DB constraint on assignments)
     library_item_id: sourceMeta.library_item_id || null,
-    custom_workout_item_id: sourceMeta.custom_workout_item_id || null
+    custom_workout_item_id: sourceMeta.custom_workout_item_id || null,
+    // Set when launching from an existing assignment card so save does not
+    // insert a duplicate assignments row. Completing the assignment stays
+    // a separate Mark complete tap.
+    source_assignment_id: sourceMeta.source_assignment_id || null
   };
 }
 
 function startBlankTrainSession(){
   trainSessionState = newTrainSessionState(_trainPickerType);
+  showScreen('screen-train-session');
+}
+
+function seedTrainSessionFromItem(item, sourceMeta){
+  if(!item) return;
+  sourceMeta = sourceMeta || {};
+  var energyType = item.type || _trainPickerType || 'strength';
+  _trainPickerType = energyType;
+  trainSessionState = newTrainSessionState(energyType, item.name, item.description || '', sourceMeta);
+  trainSessionState.blocks.push({
+    id: uid(),
+    shape: 'circuit',
+    title: item.name || 'Protocol',
+    rest_after_sec: 0,
+    exercises: [],
+    rounds: 1,
+    notes: item.description || '',
+    attempts: []
+  });
   showScreen('screen-train-session');
 }
 
@@ -8167,19 +8260,32 @@ function startTrainSessionFromPicker(idx){
   } else {
     sourceMeta.library_item_id = item.id;
   }
-  trainSessionState = newTrainSessionState(_trainPickerType, item.name, item.description || '', sourceMeta);
-  // Seed one circuit-style block from protocol text as notes carrier
-  trainSessionState.blocks.push({
-    id: uid(),
-    shape: 'circuit',
-    title: item.name || 'Protocol',
-    rest_after_sec: 0,
-    exercises: [],
-    rounds: 1,
-    notes: item.description || '',
-    attempts: []
-  });
-  showScreen('screen-train-session');
+  seedTrainSessionFromItem(item, sourceMeta);
+}
+
+async function startTrainSessionFromAssignment(assignmentId){
+  var a = _trainAssignmentsCache.find(function(x){ return x.id === assignmentId; });
+  if(!a){
+    showToast('Could not find that training entry', true);
+    return;
+  }
+  var isCustom = !!a.custom_workout_item_id;
+  var itemId = isCustom ? a.custom_workout_item_id : a.library_item_id;
+  if(!itemId){
+    showToast('This entry has no linked workout to start', true);
+    return;
+  }
+  var table = isCustom ? 'custom_workouts' : 'workout_library';
+  var rows = await sbS(table, 'select=*&id=eq.' + itemId + '&limit=1');
+  var item = Array.isArray(rows) && rows[0] ? rows[0] : null;
+  if(!item){
+    showToast('Could not load that workout', true);
+    return;
+  }
+  var sourceMeta = { source_assignment_id: a.id };
+  if(isCustom) sourceMeta.custom_workout_item_id = item.id;
+  else sourceMeta.library_item_id = item.id;
+  seedTrainSessionFromItem(item, sourceMeta);
 }
 
 function startCustomWorkoutCreate(){
@@ -8422,15 +8528,18 @@ async function saveTrainSession(){
     return;
   }
 
-  // When the session came from a logged workout, also write an assignments
+  // When the session came from the Train picker, also write an assignments
   // row with XOR library_item_id / custom_workout_item_id (never both).
+  // Sessions launched from an existing assignment already have that row —
+  // do not insert a duplicate. Finishing the session does not auto-mark
+  // the assignment complete: logging reps is not the same signal as "done".
   var libId = trainSessionState.library_item_id || null;
   var customId = trainSessionState.custom_workout_item_id || null;
   if(libId && customId){
     // Safety: prefer foundational library id, clear custom
     customId = null;
   }
-  if(libId || customId){
+  if((libId || customId) && !trainSessionState.source_assignment_id){
     var assignPayload = {
       coach_id: null,
       athlete_id: window._authUser.id,
@@ -12711,7 +12820,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment'
   ];
 
   function shouldSkip(onclick){
@@ -13277,6 +13386,91 @@ async function runSEETests(){
   }catch(e){ fail('Self-assign wizard present', e.message); }
 
   try{
+    resetSelfAssignWizard();
+    _selfAssignLibCache = [
+      canonicalizeWizardItem({ id: 'hang-1', type: 'strength', category: 'Hangboard', name: 'Repeaters', description: '7-3 repeaters' }, 'foundational'),
+      canonicalizeWizardItem({ id: 'emom-1', type: 'endurance', category: 'Boulder Circuits', name: 'EMOM Boulders', description: 'Every minute on the minute' }, 'foundational')
+    ];
+    _selfAssignWizard.type = 'strength';
+    _selfAssignWizard.category = 'Hangboard';
+    _selfAssignWizard.step = 3;
+    _selfAssignWizard.createMode = false;
+    showScreen('screen-self-assign');
+    renderSelfAssignWizardBody();
+    var scopedMiss = filterSelfAssignLibraryResults('EMOM');
+    var fallbackHit = filterSelfAssignLibraryFallback('EMOM');
+    var scopedHit = filterSelfAssignLibraryResults('Repeaters');
+    var noFallbackWhenScoped = filterSelfAssignLibraryFallback('Repeaters');
+    var searchEl = document.getElementById('saw-lib-search');
+    if(searchEl) searchEl.value = 'EMOM';
+    renderSelfAssignLibraryResults();
+    var html = (document.getElementById('saw-lib-results') || {}).innerHTML || '';
+    var foundLabel = /Found in Boulder Circuits/i.test(html) && /Endurance/i.test(html) && /not Hangboard/i.test(html);
+    var chip = document.querySelector('#saw-lib-results .saw-chip[data-id="emom-1"]');
+    if(chip) chip.click();
+    var jumped = _selfAssignWizard.type === 'endurance'
+      && _selfAssignWizard.category === 'Boulder Circuits'
+      && _selfAssignWizard.libraryItemId === 'emom-1'
+      && !_selfAssignWizard.customWorkoutItemId
+      && _selfAssignWizard.step === 4;
+    if(scopedMiss.length === 0
+      && fallbackHit.length === 1 && fallbackHit[0].id === 'emom-1'
+      && scopedHit.length === 1 && scopedHit[0].id === 'hang-1'
+      && noFallbackWhenScoped.length === 0
+      && foundLabel && jumped){
+      pass('Self-assign step-3 search falls back across categories');
+    } else {
+      fail('Self-assign step-3 search falls back across categories',
+        'scopedMiss=' + scopedMiss.length + ' fallback=' + fallbackHit.length +
+        ' label=' + foundLabel + ' jumped=' + jumped + ' step=' + (_selfAssignWizard && _selfAssignWizard.step));
+    }
+    showScreen('screen-train');
+    resetSelfAssignWizard();
+    _selfAssignLibCache = [];
+  }catch(e){ fail('Self-assign step-3 search falls back across categories', e.message); }
+
+  try{
+    var linked = trainCardHtml({
+      id: 'asg-1', title: 'EMOM Boulders', due_date: null, completed_at: null,
+      library_item_id: 'emom-1', custom_workout_item_id: null, description: '', coach_id: null
+    });
+    var customLinked = trainCardHtml({
+      id: 'asg-c', title: 'Custom circuit', due_date: null, completed_at: null,
+      library_item_id: null, custom_workout_item_id: 'cw-1', description: '', coach_id: null
+    });
+    var freeform = trainCardHtml({
+      id: 'asg-2', title: 'Do some core', due_date: null, completed_at: null,
+      library_item_id: null, custom_workout_item_id: null, description: '', coach_id: null
+    });
+    var hasStart = /Start session/.test(linked) && /startTrainSessionFromAssignment\('asg-1'\)/.test(linked) && /Mark complete/.test(linked);
+    var customHasStart = /Start session/.test(customLinked) && /startTrainSessionFromAssignment\('asg-c'\)/.test(customLinked);
+    var noStart = linked.indexOf && !/Start session/.test(freeform) && /Mark complete/.test(freeform);
+    var item = { id: 'emom-1', type: 'endurance', name: 'EMOM Boulders', description: 'Every minute on the minute' };
+    seedTrainSessionFromItem(item, { library_item_id: 'emom-1', source_assignment_id: 'asg-1' });
+    var prefilled = !!(trainSessionState
+      && trainSessionState.title === 'EMOM Boulders'
+      && trainSessionState.energy_type === 'endurance'
+      && trainSessionState.library_item_id === 'emom-1'
+      && !trainSessionState.custom_workout_item_id
+      && trainSessionState.source_assignment_id === 'asg-1'
+      && trainSessionState.blocks.length === 1
+      && trainSessionState.blocks[0].shape === 'circuit'
+      && trainSessionState.blocks[0].notes === 'Every minute on the minute');
+    var activeSess = (document.querySelector('.screen.active')||{}).id === 'screen-train-session';
+    var saveSrc = String(saveTrainSession);
+    var skipDup = /source_assignment_id/.test(saveSrc);
+    if(hasStart && customHasStart && noStart && prefilled && activeSess && skipDup){
+      pass('Assignment Start session launches linked session builder');
+    } else {
+      fail('Assignment Start session launches linked session builder',
+        'start=' + hasStart + ' custom=' + customHasStart + ' freeform=' + noStart +
+        ' prefilled=' + prefilled + ' screen=' + ((document.querySelector('.screen.active')||{}).id) + ' skipDup=' + skipDup);
+    }
+    trainSessionState = null;
+    showScreen('screen-train');
+  }catch(e){ fail('Assignment Start session launches linked session builder', e.message); }
+
+  try{
     showScreen('screen-workout-library-add');
     initWorkoutLibraryAddForm();
     var catChips = document.querySelectorAll('#wl-new-category-chips .wl-cat-chip');
@@ -13346,7 +13540,7 @@ async function runSEETests(){
 
   // Train hub + session builder (build 198)
   try{
-    var trainFns = ['loadTrainHub','openTrainEnergy','renderTrainPicker','startBlankTrainSession','trainAddBlock','trainLogAttempt','saveTrainSession','refreshCoachDashToggle','openCoachDashboard','openAthleteDashboard'];
+    var trainFns = ['loadTrainHub','openTrainEnergy','renderTrainPicker','startBlankTrainSession','trainAddBlock','trainLogAttempt','saveTrainSession','refreshCoachDashToggle','openCoachDashboard','openAthleteDashboard','seedTrainSessionFromItem','startTrainSessionFromAssignment'];
     var missingTrain = trainFns.filter(function(f){ return typeof window[f] !== 'function'; });
     var hub = document.getElementById('train-energy-grid');
     var picker = document.getElementById('screen-train-picker');
