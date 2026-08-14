@@ -67,6 +67,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .footer-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:500;letter-spacing:.04em;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:8px 10px;-webkit-tap-highlight-color:transparent;transition:color .12s;min-width:56px;}
 .footer-btn svg{width:20px;height:20px;}
 .footer-btn.active{color:var(--accent);}
+.fnav-icon-wrap{position:relative;display:block;line-height:0;}
+.fnav-unread-dot{position:absolute;top:-2px;right:-4px;width:8px;height:8px;border-radius:50%;background:var(--accent);border:1px solid var(--bg);pointer-events:none;}
+.fnav-unread-dot[hidden]{display:none;}
 
 /* ── PAGE HEADER ── */
 .page-header{padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;}
@@ -795,7 +798,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     Research
   </button>
   <button class="footer-btn" id="fnav-train" onclick="showScreen('screen-train')">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="18" y2="12"/><rect x="3" y="8" width="3" height="8" rx="1"/><rect x="18" y="8" width="3" height="8" rx="1"/></svg>
+    <span class="fnav-icon-wrap">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="18" y2="12"/><rect x="3" y="8" width="3" height="8" rx="1"/><rect x="18" y="8" width="3" height="8" rx="1"/></svg>
+      <span id="fnav-train-unread" class="fnav-unread-dot" hidden aria-hidden="true"></span>
+    </span>
     Train
   </button>
   <button class="footer-btn" id="fnav-profile" onclick="openProfile()">
@@ -4109,7 +4115,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index207'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index208'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4209,7 +4215,7 @@ function initAuth(){
       // nothing for routeOnLoad() to wait on, resolve immediately
       _authRoutingResolve();
     }
-    if(event === 'SIGNED_OUT'){ _hasRoutedAfterSignIn = false; showScreen('screen-auth'); }
+    if(event === 'SIGNED_OUT'){ _hasRoutedAfterSignIn = false; setTrainChatUnreadBadge(false); showScreen('screen-auth'); }
   });
 }
 
@@ -4707,6 +4713,7 @@ function showScreen(id){
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
   if(id==='screen-train'){ loadTrainAssignments(); loadCoachChat(); loadTrainHub(); refreshCoachDashToggle(); }
+  else if(id!=='screen-consent' && id!=='screen-auth' && id!=='screen-password-recovery'){ refreshCoachChatUnreadBadge(); }
   if(id==='screen-train-picker'){ renderTrainPicker(); }
   if(id==='screen-train-session'){ renderTrainSessionBuilder(); }
   if(id==='screen-profile' || id==='screen-sessions' || id==='screen-drill'){ refreshCoachDashToggle(); }
@@ -7002,6 +7009,98 @@ function hideCoachChatSection(){
   if(list) list.innerHTML = '';
   var err = document.getElementById('coach-chat-err');
   if(err) err.textContent = '';
+  setTrainChatUnreadBadge(false);
+}
+
+function setTrainChatUnreadBadge(on){
+  var dot = document.getElementById('fnav-train-unread');
+  var btn = document.getElementById('fnav-train');
+  if(dot){
+    if(on) dot.removeAttribute('hidden');
+    else dot.setAttribute('hidden', '');
+  }
+  if(btn){
+    if(on) btn.setAttribute('aria-label', 'Train, unread coach message');
+    else btn.removeAttribute('aria-label');
+  }
+}
+
+function coachChatHasUnread(rows, selfId){
+  if(!selfId || !Array.isArray(rows)) return false;
+  return rows.some(function(m){
+    return m && m.sender_id && m.sender_id !== selfId && !m.read_at;
+  });
+}
+
+function coachChatIdsToMarkRead(rows, selfId){
+  if(!selfId || !Array.isArray(rows)) return [];
+  return rows.filter(function(m){
+    return m && m.id && m.sender_id && m.sender_id !== selfId && !m.read_at;
+  }).map(function(m){ return m.id; });
+}
+
+function isAthleteViewingCoachChat(){
+  var screen = document.querySelector('.screen.active');
+  var section = document.getElementById('coach-chat-section');
+  if(!screen || screen.id !== 'screen-train') return false;
+  if(!section || section.style.display === 'none') return false;
+  return true;
+}
+
+function coachChatThreadParams(coachId, athleteId){
+  return 'select=id,coach_id,athlete_id,sender_id,body,link,created_at,read_at&coach_id=eq.' + coachId +
+    '&athlete_id=eq.' + athleteId + '&order=created_at.asc';
+}
+
+async function refreshCoachChatUnreadBadge(){
+  if(!window._authUser){
+    setTrainChatUnreadBadge(false);
+    return;
+  }
+  var selfId = window._authUser.id;
+  var links = await sbS(
+    'coach_athlete_links',
+    'select=coach_id&athlete_id=eq.' + selfId + '&status=eq.active&limit=1'
+  );
+  if(!Array.isArray(links) || !links.length || !links[0].coach_id){
+    setTrainChatUnreadBadge(false);
+    return;
+  }
+  var unread = await sbS(
+    'coach_messages',
+    'select=id&coach_id=eq.' + links[0].coach_id + '&athlete_id=eq.' + selfId +
+      '&sender_id=neq.' + selfId + '&read_at=is.null&limit=1'
+  );
+  setTrainChatUnreadBadge(Array.isArray(unread) && unread.length > 0);
+}
+
+async function markCoachChatReadIfViewing(){
+  if(!isAthleteViewingCoachChat()) return false;
+  var selfId = window._authUser && window._authUser.id;
+  if(!selfId || !_coachChatCoachId) return false;
+  var ids = coachChatIdsToMarkRead(_coachChatMessages, selfId);
+  if(!ids.length){
+    setTrainChatUnreadBadge(false);
+    return true;
+  }
+  var now = new Date().toISOString();
+  var saved = await sbU(
+    'coach_messages',
+    'coach_id=eq.' + _coachChatCoachId +
+      '&athlete_id=eq.' + selfId +
+      '&sender_id=neq.' + selfId +
+      '&read_at=is.null',
+    { read_at: now }
+  );
+  if(saved === null){
+    setTrainChatUnreadBadge(true);
+    return false;
+  }
+  _coachChatMessages.forEach(function(m){
+    if(m.sender_id !== selfId && !m.read_at) m.read_at = now;
+  });
+  setTrainChatUnreadBadge(false);
+  return true;
 }
 
 // Same preference as coach roster / Foundash: First Last, else email, else fallback.
@@ -7126,11 +7225,18 @@ async function loadCoachChat(){
   await resolveChatLabels(_coachChatCoachId);
   var rows = await sbS(
     'coach_messages',
-    'select=id,coach_id,athlete_id,sender_id,body,link,created_at&coach_id=eq.' + _coachChatCoachId +
-      '&athlete_id=eq.' + window._authUser.id + '&order=created_at.asc'
+    coachChatThreadParams(_coachChatCoachId, window._authUser.id)
   );
   _coachChatMessages = Array.isArray(rows) ? rows : [];
+  var unread = coachChatHasUnread(_coachChatMessages, window._authUser.id);
   renderCoachChatMessages();
+  // Mark read only when the athlete is actually looking at the thread.
+  // Background badge refresh never calls this.
+  if(isAthleteViewingCoachChat()){
+    await markCoachChatReadIfViewing();
+  } else {
+    setTrainChatUnreadBadge(unread);
+  }
 }
 
 async function sendCoachChatMessage(){
@@ -7158,11 +7264,11 @@ async function sendCoachChatMessage(){
   // Reload thread so server timestamps / ordering stay authoritative
   var rows = await sbS(
     'coach_messages',
-    'select=id,coach_id,athlete_id,sender_id,body,link,created_at&coach_id=eq.' + _coachChatCoachId +
-      '&athlete_id=eq.' + window._authUser.id + '&order=created_at.asc'
+    coachChatThreadParams(_coachChatCoachId, window._authUser.id)
   );
   _coachChatMessages = Array.isArray(rows) ? rows : _coachChatMessages.concat([saved]);
   renderCoachChatMessages();
+  await markCoachChatReadIfViewing();
 }
 
 // Sanitizes user-generated Markdown before it's ever used as innerHTML (build
@@ -13488,7 +13594,7 @@ async function runSEETests(){
 
   // Coach chat + library privacy (build 197)
   try{
-    var chatFns = ['loadCoachChat','sendCoachChatMessage','safeUrl','formatChatBodyHtml','personDisplayLabel','hideCoachChatSection'];
+    var chatFns = ['loadCoachChat','sendCoachChatMessage','safeUrl','formatChatBodyHtml','personDisplayLabel','hideCoachChatSection','setTrainChatUnreadBadge','refreshCoachChatUnreadBadge','markCoachChatReadIfViewing','coachChatHasUnread','coachChatIdsToMarkRead','isAthleteViewingCoachChat'];
     var missingChat = chatFns.filter(function(f){ return typeof window[f] !== 'function'; });
     var section = document.getElementById('coach-chat-section');
     var input = document.getElementById('coach-chat-input');
@@ -13518,6 +13624,52 @@ async function runSEETests(){
       fail('Coach chat hidden when unlinked', 'display=' + (sec && sec.style.display));
     }
   }catch(e){ fail('Coach chat hidden when unlinked', e.message); }
+
+  try{
+    var selfId = 'athlete-1';
+    var coachId = 'coach-1';
+    var rows = [
+      { id: 'm1', sender_id: coachId, read_at: null, body: 'hi' },
+      { id: 'm2', sender_id: selfId, read_at: null, body: 'hey' },
+      { id: 'm3', sender_id: coachId, read_at: '2026-08-01T00:00:00Z', body: 'old' }
+    ];
+    var unread = coachChatHasUnread(rows, selfId);
+    var toMark = coachChatIdsToMarkRead(rows, selfId);
+    var ownNever = toMark.length === 1 && toMark[0] === 'm1' && toMark.indexOf('m2') === -1;
+    var noneFromSelf = coachChatIdsToMarkRead([{ id: 'own', sender_id: selfId, read_at: null }], selfId).length === 0;
+    showScreen('screen-sessions');
+    setTrainChatUnreadBadge(true);
+    var dot = document.getElementById('fnav-train-unread');
+    var shownOffTrain = !!(dot && !dot.hasAttribute('hidden') && (document.querySelector('.screen.active')||{}).id === 'screen-sessions');
+    var viewingOff = isAthleteViewingCoachChat() === false;
+    showScreen('screen-train');
+    var section = document.getElementById('coach-chat-section');
+    if(section) section.style.display = 'block';
+    var viewingOn = isAthleteViewingCoachChat() === true;
+    setTrainChatUnreadBadge(false);
+    var cleared = !!(dot && dot.hasAttribute('hidden'));
+    var loadSrc = String(loadCoachChat);
+    var threadSrc = String(coachChatThreadParams);
+    var refreshSrc = String(refreshCoachChatUnreadBadge);
+    var markSrc = String(markCoachChatReadIfViewing);
+    var sendSrc = String(sendCoachChatMessage);
+    var loadHasReadAt = /read_at/.test(threadSrc) && /markCoachChatReadIfViewing/.test(loadSrc);
+    var refreshNoMark = refreshSrc.indexOf('markCoachChatReadIfViewing') === -1;
+    var markNeverSelf = /sender_id=neq/.test(markSrc) && /read_at=is\.null/.test(markSrc);
+    var sendViewOnly = sendSrc.indexOf('markCoachChatReadIfViewing') !== -1;
+    var dotOnTab = !!(document.getElementById('fnav-train') && document.getElementById('fnav-train').contains(dot));
+    if(unread && ownNever && noneFromSelf && shownOffTrain && viewingOff && viewingOn && cleared && loadHasReadAt && refreshNoMark && markNeverSelf && sendViewOnly && dotOnTab){
+      pass('Coach chat unread badge + read_at on view only');
+    } else {
+      fail('Coach chat unread badge + read_at on view only',
+        'unread=' + unread + ' ownNever=' + ownNever + ' noneFromSelf=' + noneFromSelf +
+        ' shownOffTrain=' + shownOffTrain + ' viewingOff=' + viewingOff + ' viewingOn=' + viewingOn +
+        ' cleared=' + cleared + ' load=' + loadHasReadAt + ' refreshNoMark=' + refreshNoMark +
+        ' markNeverSelf=' + markNeverSelf + ' sendViewOnly=' + sendViewOnly + ' dotOnTab=' + dotOnTab);
+    }
+    hideCoachChatSection();
+    showScreen('screen-train');
+  }catch(e){ fail('Coach chat unread badge + read_at on view only', e.message); }
 
   try{
     var addSub = document.querySelector('#screen-workout-library-add .screen-title .sub');
