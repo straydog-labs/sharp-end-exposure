@@ -137,6 +137,11 @@
   .roster-name{font-size:13px;font-weight:600;}
   .roster-meta{font-size:11px;color:var(--text-secondary);margin-top:2px;}
   .roster-empty{font-size:13px;color:var(--text-secondary);padding:12px 4px;}
+  .roster-unread-dot{
+    width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;
+    border:1px solid var(--surface);pointer-events:none;
+  }
+  .roster-unread-dot[hidden]{display:none;}
 
   .detail-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
   .detail-title{font-size:16px;font-weight:700;}
@@ -813,6 +818,7 @@
       _coachRoster = Array.isArray(result.roster) ? result.roster : [];
       renderRoster(token, user, _coachRoster);
       updateRosterStats(token, _coachRoster);
+      refreshRosterChatUnread(token, user, _coachRoster);
     }).catch(function(err){
       var isMissingFn = err && (err.code === 'PGRST202' || err.code === '42883');
       listEl.innerHTML =
@@ -878,13 +884,16 @@
     listEl.innerHTML = roster.map(function(row, i){
       var email = String(row.athlete_email || '').trim();
       var label = athleteDisplayLabel(row);
+      var unread = !!(_rosterUnreadAthletes && _rosterUnreadAthletes[row.athlete_id]);
       return '<div class="roster-row" data-idx="' + i + '" data-athlete-id="' + escapeHtml(row.athlete_id) +
         '" data-athlete-email="' + escapeHtml(email) +
-        '" data-athlete-label="' + escapeHtml(label) + '">' +
+        '" data-athlete-label="' + escapeHtml(label) + '"' +
+        (unread ? ' aria-label="' + escapeHtml(label) + ', unread message"' : '') + '>' +
         '<div>' +
           '<div class="roster-name">' + escapeHtml(label) + '</div>' +
           '<div class="roster-meta mono">Linked ' + fmtDate(row.linked_at) + '</div>' +
         '</div>' +
+        '<span class="roster-unread-dot"' + (unread ? '' : ' hidden') + ' aria-hidden="true"></span>' +
       '</div>';
     }).join('');
 
@@ -2135,6 +2144,115 @@
   }
 
   // ── Coach ↔ athlete chat (coach_messages) ────────────────
+  // Unread: athlete → coach messages with read_at null. Roster dots come from
+  // a batched existence check; mark-read only when that athlete's thread is
+  // visibly open (mirrors athlete-side Train badge / mark-on-view).
+  var _coachChatViewingAthleteId = null;
+  var _coachChatMessages = [];
+  var _rosterUnreadAthletes = {};
+
+  function applyRosterUnreadDots(map){
+    map = map || {};
+    Array.prototype.forEach.call(document.querySelectorAll('.roster-row'), function(row){
+      var aid = row.getAttribute('data-athlete-id');
+      var label = row.getAttribute('data-athlete-label') || 'Athlete';
+      var dot = row.querySelector('.roster-unread-dot');
+      if(!dot) return;
+      if(map[aid]){
+        dot.removeAttribute('hidden');
+        row.setAttribute('aria-label', label + ', unread message');
+      } else {
+        dot.setAttribute('hidden', '');
+        row.removeAttribute('aria-label');
+      }
+    });
+  }
+
+  function clearRosterUnreadForAthlete(athleteId){
+    if(!athleteId || !_rosterUnreadAthletes[athleteId]) return;
+    delete _rosterUnreadAthletes[athleteId];
+    applyRosterUnreadDots(_rosterUnreadAthletes);
+  }
+
+  // One query across the roster: any message from the athlete (not the coach)
+  // with read_at null. Does not mark anything read.
+  function refreshRosterChatUnread(token, coachUser, roster){
+    var ids = (roster || []).map(function(r){ return r.athlete_id; }).filter(Boolean);
+    if(!ids.length || !coachUser || !coachUser.id){
+      _rosterUnreadAthletes = {};
+      applyRosterUnreadDots({});
+      return Promise.resolve();
+    }
+    return sbSelect(
+      token,
+      'coach_messages',
+      'select=id,athlete_id,sender_id,read_at' +
+        '&coach_id=eq.' + coachUser.id +
+        '&athlete_id=in.(' + ids.join(',') + ')' +
+        '&sender_id=neq.' + coachUser.id +
+        '&read_at=is.null'
+    ).then(function(rows){
+      var map = {};
+      (Array.isArray(rows) ? rows : []).forEach(function(m){
+        if(m && m.athlete_id && m.sender_id && m.sender_id !== coachUser.id && !m.read_at){
+          map[m.athlete_id] = true;
+        }
+      });
+      _rosterUnreadAthletes = map;
+      applyRosterUnreadDots(map);
+    }).catch(function(){
+      // Non-blocking — missing column/table shouldn't break roster.
+    });
+  }
+
+  function coachChatIdsToMarkRead(rows, selfId){
+    if(!selfId || !Array.isArray(rows)) return [];
+    return rows.filter(function(m){
+      return m && m.id && m.sender_id && m.sender_id !== selfId && !m.read_at;
+    }).map(function(m){ return m.id; });
+  }
+
+  function isCoachViewingAthleteChat(athleteId){
+    if(!athleteId || _coachChatViewingAthleteId !== athleteId) return false;
+    var active = document.querySelector('.roster-row.active');
+    if(!active || active.getAttribute('data-athlete-id') !== athleteId) return false;
+    return !!document.getElementById('chat-thread');
+  }
+
+  // PATCH read_at only for messages from the athlete. Own (coach) messages
+  // excluded at the query level via sender_id=neq.<coachId>.
+  function markCoachChatReadIfViewing(token, coachUser, athleteId){
+    if(!isCoachViewingAthleteChat(athleteId)) return Promise.resolve(false);
+    var selfId = coachUser && coachUser.id;
+    if(!selfId) return Promise.resolve(false);
+    var ids = coachChatIdsToMarkRead(_coachChatMessages, selfId);
+    if(!ids.length){
+      clearRosterUnreadForAthlete(athleteId);
+      return Promise.resolve(true);
+    }
+    var now = new Date().toISOString();
+    return fetch(
+      SB_URL + '/rest/v1/coach_messages?coach_id=eq.' + encodeURIComponent(selfId) +
+        '&athlete_id=eq.' + encodeURIComponent(athleteId) +
+        '&sender_id=neq.' + encodeURIComponent(selfId) +
+        '&read_at=is.null',
+      {
+        method: 'PATCH',
+        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+        body: JSON.stringify({ read_at: now })
+      }
+    ).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      _coachChatMessages.forEach(function(m){
+        if(m.sender_id !== selfId && !m.read_at) m.read_at = now;
+      });
+      clearRosterUnreadForAthlete(athleteId);
+      return true;
+    }).catch(function(){
+      return false;
+    });
+  }
+
   function chatMessageHtml(m, coachUserId, athleteLabel){
     var mine = m.sender_id === coachUserId;
     var who = mine ? 'You' : (athleteLabel || 'Athlete');
@@ -2150,6 +2268,8 @@
   function renderChatSection(token, coachUser, athleteId, athleteLabel){
     var el = document.getElementById('detail-chat');
     if(!el) return;
+    _coachChatViewingAthleteId = athleteId;
+    _coachChatMessages = [];
     el.innerHTML =
       '<div class="panel-title">Chat</div>' +
       '<div id="chat-thread" class="chat-thread"><div class="chat-empty">Loading···</div></div>' +
@@ -2187,6 +2307,7 @@
         if(!res.ok) return res.json().then(function(err){ throw err; });
         input.value = '';
         msgEl.innerHTML = '';
+        // Reload then mark-if-viewing — own rows excluded by sender_id=neq.
         return loadChatMessages(token, coachUser, athleteId, athleteLabel);
       }).catch(function(err){
         sendBtn.disabled = false;
@@ -2214,20 +2335,28 @@
     return sbSelect(
       token,
       'coach_messages',
-      'select=id,coach_id,athlete_id,sender_id,body,link,created_at' +
+      'select=id,coach_id,athlete_id,sender_id,body,link,created_at,read_at' +
         '&athlete_id=eq.' + athleteId +
         '&coach_id=eq.' + coachUser.id +
         '&order=created_at.asc'
     ).then(function(rows){
-      if(!rows.length){
+      // Stale response from a previously selected athlete — do not render or mark.
+      if(_coachChatViewingAthleteId !== athleteId) return;
+      _coachChatMessages = Array.isArray(rows) ? rows : [];
+      if(!_coachChatMessages.length){
         thread.innerHTML = '<div class="chat-empty">No messages yet. Say hello.</div>';
-        return;
+      } else {
+        thread.innerHTML = _coachChatMessages.map(function(m){
+          return chatMessageHtml(m, coachUser.id, athleteLabel);
+        }).join('');
+        thread.scrollTop = thread.scrollHeight;
       }
-      thread.innerHTML = rows.map(function(m){
-        return chatMessageHtml(m, coachUser.id, athleteLabel);
-      }).join('');
-      thread.scrollTop = thread.scrollHeight;
+      // Mark read only when this athlete's thread is actually open on screen.
+      if(isCoachViewingAthleteChat(athleteId)){
+        return markCoachChatReadIfViewing(token, coachUser, athleteId);
+      }
     }).catch(function(err){
+      if(_coachChatViewingAthleteId !== athleteId) return;
       var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
       thread.innerHTML = '<div class="chat-empty" style="color:var(--danger);">' +
         (isMissingTable
