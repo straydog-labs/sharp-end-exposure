@@ -233,6 +233,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .baseline-compare-expect{font-size:13px;color:var(--muted);line-height:1.45;margin-bottom:4px;}
 .baseline-compare-split{font-size:12px;font-family:'Space Mono',monospace;color:var(--text);}
 .baseline-compare-note,.baseline-compare-empty{font-size:12px;color:var(--muted);line-height:1.55;margin-top:10px;}
+.baseline-calibrate-item{font-size:13px;color:var(--text);line-height:1.5;padding:8px 0;border-bottom:1px solid var(--border);}
+.baseline-calibrate-item:last-child{border-bottom:none;}
 
 /* ── LOG TERRAIN PICKER (screen-log, build 186) ── */
 #log-terrain-group .log-terrain-picker{display:flex;flex-direction:column;gap:8px;}
@@ -2005,6 +2007,20 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
 </div>
 
+<!-- Baseline calibration — one-time per rated terrain, Climb Log only -->
+<div class="screen log-flow-screen" id="screen-log-baseline-calibrate">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="log-flow-body log-flow-reveal">
+    <div class="screen-title">Calibrate your baseline<span class="sub" id="baseline-calibrate-sub">Expected vs this climb</span></div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:16px;">Dashed needle is what you expected on this terrain. Solid needle is this climb. Drag to set your final read. Descriptive only - no causal claim.</div>
+    <div id="baseline-calibrate-gauge" style="width:100%;max-width:260px;margin:0 auto;"></div>
+    <button class="log-btn log-flow-cta ready" id="baseline-calibrate-save" onclick="confirmBaselineTerrainCalibration()" style="margin-top:18px;">Save this read</button>
+    <button class="log-flow-skip-link" onclick="skipBaselineTerrainCalibration()">Skip for now</button>
+  </div>
+</div>
+
 <!-- (9) Done -->
 <div class="screen log-flow-screen" id="screen-log-done">
   <div class="page-header">
@@ -2505,6 +2521,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-bottom:24px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Baseline</div>
         <button onclick="retakeBaseline()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;cursor:pointer;margin-bottom:8px;text-align:left;">Retake baseline questionnaire →</button>
+        <div id="baseline-calibrate-checklist"></div>
         <div id="baseline-perception-compare"></div>
         <div id="baseline-history-toggle">
           <button onclick="toggleBaselineHistory(this)" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;">Show baseline history ›</button>
@@ -4129,7 +4146,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index210'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index211'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4722,7 +4739,7 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
+  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-baseline-calibrate':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
@@ -6038,6 +6055,7 @@ async function logFlowSaveSession(){
     }
 
     populateLogDoneScreen();
+    try{ fetchLatestBaselineRow().catch(function(){}); }catch(e){}
 
     if(_drillPostActive){
       _drillPostActive = false;
@@ -6111,8 +6129,7 @@ function applyRevealZoneChoice(score, confidence){
 }
 
 function logFlowSkipDeeper(){
-  populateLogDoneScreen(true);
-  showScreen('screen-log-done');
+  finishLogFlowToDone();
 }
 
 function logFlowStartDeeper(){
@@ -6147,14 +6164,12 @@ function logRevealConfirmOwn(){
   if(score === null || score === undefined) score = logFlowState.activationScore;
   if(score === null || score === undefined) score = 6;
   applyRevealZoneChoice(score, 'manual');
-  populateLogDoneScreen(true);
-  showScreen('screen-log-done');
+  finishLogFlowToDone();
 }
 
 function logRevealAcceptModel(){
   acceptCalculatedZone();
-  populateLogDoneScreen(true);
-  showScreen('screen-log-done');
+  finishLogFlowToDone();
 }
 
 function logRevealAdjustDial(){
@@ -6173,8 +6188,7 @@ function logRevealSaveAdjust(){
     ? logFlowState.adjustScore
     : (window._zcScore !== undefined ? window._zcScore : 6);
   applyRevealZoneChoice(score, 'manual');
-  populateLogDoneScreen(true);
-  showScreen('screen-log-done');
+  finishLogFlowToDone();
 }
 
 async function logFlowLogAnother(){
@@ -9319,8 +9333,7 @@ async function afterQ4(){
   var anyAnswered = deepAnswers.q1 || deepAnswers.q2 || deepAnswers.q3 || deepAnswers.q4;
   if(!anyAnswered){
     showToast('No changes — zone stays as estimated');
-    populateLogDoneScreen(true);
-    showScreen('screen-log-done');
+    finishLogFlowToDone();
     return;
   }
   var zr = resolveZone({
@@ -9422,7 +9435,7 @@ async function loadClimbLog(){
   var sessions=await sbS('sessions',sessQuery);
   // Cache baseline record for signed-in users (used by buildGradeGrid)
   if(window._authUser && window._authUser.id){
-    var baselineRows=await sbS('sessions','select=baseline_grade_range,baseline_terrain_state&is_baseline=eq.true&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=1');
+    var baselineRows=await sbS('sessions','select=id,baseline_grade_range,baseline_terrain_state,baseline_terrain_calibrated&is_baseline=eq.true&user_id=eq.'+window._authUser.id+'&order=created_at.desc&limit=1');
     window._cachedBaseline=(Array.isArray(baselineRows)&&baselineRows.length)?baselineRows[0]:null;
   }
   if(!Array.isArray(sessions))sessions=[];
@@ -11977,9 +11990,11 @@ async function saveBaseline(){
   var terrainState = baselineState.answers.baseline_terrain_state;
   if(terrainState && typeof terrainState === 'object' && Object.keys(terrainState).length){
     try{ localStorage.setItem('see_baseline_terrain_state', JSON.stringify(terrainState)); }catch(e){}
+    try{ localStorage.setItem('see_baseline_terrain_calibrated', JSON.stringify({})); }catch(e){}
   } else {
     terrainState = null;
     try{ localStorage.removeItem('see_baseline_terrain_state'); }catch(e){}
+    try{ localStorage.removeItem('see_baseline_terrain_calibrated'); }catch(e){}
   }
 
   // baseline_terrain left dormant - do not write. New grid lives in jsonb.
@@ -11991,6 +12006,7 @@ async function saveBaseline(){
     baseline_grade_range: baselineState.answers.baseline_grade_range || null,
     baseline_environment: baselineState.answers.baseline_environment || null,
     baseline_terrain_state: terrainState,
+    baseline_terrain_calibrated: {},
     baseline_experience: baselineState.answers.baseline_experience || null,
     baseline_goals: baselineState.answers.baseline_goals ? JSON.stringify(baselineState.answers.baseline_goals) : null,
     app_version: app_version
@@ -12021,6 +12037,179 @@ function parseBaselineTerrainState(raw){
     }catch(e){}
   }
   return null;
+}
+
+function mapBaselineExpectationToScore(opt){
+  var s = String(opt || '');
+  if(/^Usually settled/.test(s)) return 2;
+  if(/^Usually keyed up/.test(s)) return 6.5;
+  if(/^Usually pretty anxious/.test(s)) return 11;
+  if(/^Varies a lot/.test(s)) return 6.5;
+  if(/don'?t notice/i.test(s)) return 6.5;
+  var m = s.match(/(\d+(?:\.\d+)?)\s*$/);
+  if(m) return Math.max(0, Math.min(12, parseFloat(m[1])));
+  return 6.5;
+}
+
+function formatCalibratedTerrainRead(score){
+  var s = Math.max(0, Math.min(12, Number(score)));
+  if(isNaN(s)) s = 6.5;
+  var z = s <= 4 ? 'Comfort' : s <= 9 ? 'Learning' : 'Panic';
+  return 'Calibrated: ' + z + ' ' + s.toFixed(1);
+}
+
+function getBaselineTerrainMaps(){
+  var state = {};
+  var cal = {};
+  if(window._cachedBaseline){
+    state = parseBaselineTerrainState(window._cachedBaseline.baseline_terrain_state) || {};
+    cal = parseBaselineTerrainState(window._cachedBaseline.baseline_terrain_calibrated) || {};
+  }
+  try{
+    var lsState = parseBaselineTerrainState(localStorage.getItem('see_baseline_terrain_state'));
+    if(lsState) state = Object.assign({}, state, lsState);
+  }catch(e){}
+  try{
+    var lsCal = parseBaselineTerrainState(localStorage.getItem('see_baseline_terrain_calibrated'));
+    if(lsCal) cal = Object.assign({}, cal, lsCal);
+  }catch(e){}
+  return { state: state, cal: cal };
+}
+
+function terrainNeedsBaselineCalibration(terrain, state, cal){
+  if(!terrain || !state || !state[terrain]) return false;
+  return !cal || !cal[terrain];
+}
+
+function pendingBaselineCalibrationTerrains(state, cal){
+  state = state || {};
+  cal = cal || {};
+  var order = BASELINE_TERRAINS.slice();
+  Object.keys(state).forEach(function(t){ if(order.indexOf(t) === -1) order.push(t); });
+  return order.filter(function(t){ return !!state[t] && !cal[t]; });
+}
+
+function renderBaselineCalibrateChecklistHtml(state, cal){
+  var pending = pendingBaselineCalibrationTerrains(state, cal);
+  if(!pending.length) return '';
+  var html = '<div class="baseline-compare-label">Calibrate your baseline</div>';
+  html += pending.map(function(t){
+    return '<div class="baseline-calibrate-item">Log a climb on ' + escTrainHtml(t) + ' to compare.</div>';
+  }).join('');
+  return html;
+}
+
+function applyBaselineTerrainCalibration(state, cal, terrain, score){
+  var nextState = Object.assign({}, state || {});
+  var nextCal = Object.assign({}, cal || {});
+  nextState[terrain] = formatCalibratedTerrainRead(score);
+  nextCal[terrain] = true;
+  return { state: nextState, cal: nextCal };
+}
+
+async function fetchLatestBaselineRow(){
+  var uid = window._authUser && window._authUser.id;
+  var q = uid
+    ? 'select=id,baseline_grade_range,baseline_terrain_state,baseline_terrain_calibrated&is_baseline=eq.true&user_id=eq.' + uid + '&order=created_at.desc&limit=1'
+    : 'select=id,baseline_grade_range,baseline_terrain_state,baseline_terrain_calibrated&is_baseline=eq.true&device_id=eq.' + getDeviceId() + '&order=created_at.desc&limit=1';
+  var rows = await sbS('sessions', q);
+  var row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+  if(row){
+    window._cachedBaseline = row;
+    try{
+      if(!localStorage.getItem('see_baseline_terrain_state')){
+        var st = parseBaselineTerrainState(row.baseline_terrain_state);
+        if(st) localStorage.setItem('see_baseline_terrain_state', JSON.stringify(st));
+      }
+      if(!localStorage.getItem('see_baseline_terrain_calibrated')){
+        var c = parseBaselineTerrainState(row.baseline_terrain_calibrated);
+        if(c) localStorage.setItem('see_baseline_terrain_calibrated', JSON.stringify(c));
+      }
+    }catch(e){}
+  }
+  return row;
+}
+
+var _baselineCalibrateTerrain = null;
+var _baselineCalibrateScore = null;
+
+function maybeShowBaselineCalibration(){
+  if(_drillPostActive) return false;
+  var terrain = logState && logState.terrain;
+  var maps = getBaselineTerrainMaps();
+  if(!terrainNeedsBaselineCalibration(terrain, maps.state, maps.cal)) return false;
+  var ghost = mapBaselineExpectationToScore(maps.state[terrain]);
+  var confirmed = window._zcScore;
+  if(confirmed === undefined || confirmed === null){
+    confirmed = logFlowState && logFlowState.modelScore != null ? logFlowState.modelScore : 6.5;
+  }
+  showBaselineTerrainCalibration(terrain, ghost, confirmed);
+  return true;
+}
+
+function showBaselineTerrainCalibration(terrain, ghostScore, confirmedScore){
+  _baselineCalibrateTerrain = terrain;
+  _baselineCalibrateScore = confirmedScore;
+  var sub = document.getElementById('baseline-calibrate-sub');
+  if(sub) sub.textContent = terrain + ' - expected vs this climb';
+  showScreen('screen-log-baseline-calibrate');
+  setTimeout(function(){
+    buildActivationGauge('baseline-calibrate-gauge', confirmedScore, 'manual', true, function(score){
+      _baselineCalibrateScore = score;
+    }, ghostScore, { premium: true, snapHalf: true, flowDial: true });
+  }, 50);
+}
+
+function finishLogFlowToDone(){
+  if(maybeShowBaselineCalibration()) return;
+  populateLogDoneScreen(true);
+  showScreen('screen-log-done');
+}
+
+async function confirmBaselineTerrainCalibration(){
+  var terrain = _baselineCalibrateTerrain;
+  var score = _baselineCalibrateScore;
+  if(!terrain){
+    populateLogDoneScreen(true);
+    showScreen('screen-log-done');
+    return;
+  }
+  var maps = getBaselineTerrainMaps();
+  var next = applyBaselineTerrainCalibration(maps.state, maps.cal, terrain, score);
+  try{
+    localStorage.setItem('see_baseline_terrain_state', JSON.stringify(next.state));
+    localStorage.setItem('see_baseline_terrain_calibrated', JSON.stringify(next.cal));
+  }catch(e){}
+  var row = window._cachedBaseline;
+  if(!row || !row.id){
+    try{ row = await fetchLatestBaselineRow(); }catch(e){ row = null; }
+  }
+  if(row && row.id){
+    var saved = await sbU('sessions', 'id=eq.' + row.id + '&is_baseline=eq.true', {
+      baseline_terrain_state: next.state,
+      baseline_terrain_calibrated: next.cal
+    });
+    if(saved){
+      window._cachedBaseline = Object.assign({}, row, {
+        baseline_terrain_state: next.state,
+        baseline_terrain_calibrated: next.cal
+      });
+    }
+  } else {
+    window._cachedBaseline = Object.assign({}, window._cachedBaseline || {}, {
+      baseline_terrain_state: next.state,
+      baseline_terrain_calibrated: next.cal
+    });
+  }
+  _baselineCalibrateTerrain = null;
+  populateLogDoneScreen(true);
+  showScreen('screen-log-done');
+}
+
+function skipBaselineTerrainCalibration(){
+  _baselineCalibrateTerrain = null;
+  populateLogDoneScreen(true);
+  showScreen('screen-log-done');
 }
 
 function renderBaselinePerceptionCompareHtml(expected, climbs){
@@ -12063,20 +12252,21 @@ function renderBaselinePerceptionCompareHtml(expected, climbs){
 
 async function loadBaselinePerceptionCompare(){
   var host = document.getElementById('baseline-perception-compare');
-  if(!host) return;
-  var expected = null;
-  try{
-    expected = parseBaselineTerrainState(localStorage.getItem('see_baseline_terrain_state'));
-  }catch(e){}
+  var checkEl = document.getElementById('baseline-calibrate-checklist');
+  if(!host && !checkEl) return;
+  var maps = getBaselineTerrainMaps();
   var uid = window._authUser && window._authUser.id;
   var deviceId = getDeviceId();
   var bQuery = uid
-    ? 'select=baseline_terrain_state&is_baseline=eq.true&user_id=eq.' + uid + '&order=created_at.desc&limit=1'
-    : 'select=baseline_terrain_state&is_baseline=eq.true&device_id=eq.' + deviceId + '&order=created_at.desc&limit=1';
+    ? 'select=id,baseline_terrain_state,baseline_terrain_calibrated&is_baseline=eq.true&user_id=eq.' + uid + '&order=created_at.desc&limit=1'
+    : 'select=id,baseline_terrain_state,baseline_terrain_calibrated&is_baseline=eq.true&device_id=eq.' + deviceId + '&order=created_at.desc&limit=1';
   var bRows = await sbS('sessions', bQuery);
-  if(Array.isArray(bRows) && bRows[0] && bRows[0].baseline_terrain_state){
-    expected = parseBaselineTerrainState(bRows[0].baseline_terrain_state) || expected;
+  if(Array.isArray(bRows) && bRows[0]){
+    window._cachedBaseline = bRows[0];
+    maps.state = parseBaselineTerrainState(bRows[0].baseline_terrain_state) || maps.state;
+    maps.cal = parseBaselineTerrainState(bRows[0].baseline_terrain_calibrated) || maps.cal;
   }
+  if(checkEl) checkEl.innerHTML = renderBaselineCalibrateChecklistHtml(maps.state, maps.cal);
   var climbs = window._cachedArcSessions;
   if(!Array.isArray(climbs)){
     var sQuery = uid
@@ -12085,7 +12275,7 @@ async function loadBaselinePerceptionCompare(){
     var sessions = await sbS('sessions', sQuery);
     climbs = Array.isArray(sessions) ? sessions.filter(function(s){ return !s.is_checkin; }) : [];
   }
-  host.innerHTML = renderBaselinePerceptionCompareHtml(expected, climbs);
+  if(host) host.innerHTML = renderBaselinePerceptionCompareHtml(maps.state, climbs);
 }
 
 function baselineDone(){
@@ -13100,7 +13290,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'skipBaselineTerrainCalibration', 'finishLogFlowToDone'
   ];
 
   function shouldSkip(onclick){
@@ -13174,6 +13364,11 @@ function runButtonAudit(options){
     logState.terrain = 'Vertical';
     logState.result = 'sent';
     logFlowState.activationScore = 7;
+    try{
+      localStorage.removeItem('see_baseline_terrain_state');
+      localStorage.removeItem('see_baseline_terrain_calibrated');
+    }catch(eLs){}
+    window._cachedBaseline = null;
     showScreen('screen-log-reveal');
     logRevealConfirmOwn();
     if((document.querySelector('.screen.active')||{}).id === 'screen-log-done'){
@@ -13905,6 +14100,109 @@ async function runSEETests(){
   }catch(e){ fail('Baseline terrain grid + perception compare', e.message); }
 
   try{
+    var settled = mapBaselineExpectationToScore('Usually settled — I feel ready');
+    var keyed = mapBaselineExpectationToScore('Usually keyed up — some nerves, manageable');
+    var anxious = mapBaselineExpectationToScore('Usually pretty anxious — it takes effort to commit');
+    var varies = mapBaselineExpectationToScore('Varies a lot — depends on the route');
+    var notice = mapBaselineExpectationToScore("I don't notice much either way");
+    var calStr = formatCalibratedTerrainRead(6.5);
+    var calMapped = mapBaselineExpectationToScore(calStr);
+    var maps = applyBaselineTerrainCalibration({
+      Overhang: 'Usually settled — I feel ready',
+      Slab: 'Usually keyed up — some nerves, manageable'
+    }, { Overhang: true }, 'Slab', 11);
+    var pending = pendingBaselineCalibrationTerrains({
+      Overhang: 'Usually settled — I feel ready',
+      Slab: 'Usually keyed up — some nerves, manageable',
+      Vertical: "I don't notice much either way"
+    }, { Overhang: true });
+    var checkHtml = renderBaselineCalibrateChecklistHtml({
+      Overhang: 'Usually settled — I feel ready',
+      Slab: 'Usually keyed up — some nerves, manageable'
+    }, { Overhang: true });
+    var emptyCheck = renderBaselineCalibrateChecklistHtml({ Overhang: 'Usually settled — I feel ready' }, { Overhang: true });
+    var calSrc = String(showBaselineTerrainCalibration);
+    var confirmSrc = String(confirmBaselineTerrainCalibration);
+    var adjustSrc = String(logRevealAdjustDial);
+    var gaugeReuse = /buildActivationGauge/.test(calSrc) && /premium:\s*true/.test(calSrc) && /snapHalf:\s*true/.test(calSrc) && /flowDial:\s*true/.test(calSrc);
+    var sameDial = /premium:\s*true/.test(adjustSrc) && /snapHalf:\s*true/.test(adjustSrc) && /flowDial:\s*true/.test(adjustSrc);
+    var patchesBoth = /baseline_terrain_state/.test(confirmSrc) && /baseline_terrain_calibrated/.test(confirmSrc) && /sbU/.test(confirmSrc);
+    var saveWritesCal = /baseline_terrain_calibrated/.test(String(saveBaseline));
+    var drillClean = String(startPostClimbCheckin).indexOf('maybeShowBaselineCalibration') === -1
+      && String(startPostClimbCheckin).indexOf('finishLogFlowToDone') === -1;
+    var logHooked = /finishLogFlowToDone/.test(String(logRevealConfirmOwn))
+      && /finishLogFlowToDone/.test(String(logRevealAcceptModel))
+      && /finishLogFlowToDone/.test(String(logRevealSaveAdjust))
+      && /finishLogFlowToDone/.test(String(logFlowSkipDeeper));
+    var prevCached = window._cachedBaseline;
+    var prevScore = window._zcScore;
+    var prevTerrain = logState.terrain;
+    var prevCalT = _baselineCalibrateTerrain;
+    var prevCalS = _baselineCalibrateScore;
+    var noMapsToDone = false;
+    var intercepts = false;
+    var calScreenOn = false;
+    var remembers = false;
+    var startsAtConfirmed = false;
+    var noRetrigger = false;
+    try{
+      localStorage.removeItem('see_baseline_terrain_state');
+      localStorage.removeItem('see_baseline_terrain_calibrated');
+      window._cachedBaseline = null;
+      logState.terrain = 'Overhang';
+      window._zcScore = 8;
+      noMapsToDone = maybeShowBaselineCalibration() === false;
+      finishLogFlowToDone();
+      noMapsToDone = noMapsToDone && document.getElementById('screen-log-done').classList.contains('active');
+
+      localStorage.setItem('see_baseline_terrain_state', JSON.stringify({ Overhang: 'Usually settled — I feel ready' }));
+      localStorage.setItem('see_baseline_terrain_calibrated', JSON.stringify({}));
+      intercepts = maybeShowBaselineCalibration() === true;
+      calScreenOn = document.getElementById('screen-log-baseline-calibrate').classList.contains('active');
+      remembers = _baselineCalibrateTerrain === 'Overhang';
+      startsAtConfirmed = _baselineCalibrateScore === 8;
+
+      localStorage.setItem('see_baseline_terrain_calibrated', JSON.stringify({ Overhang: true }));
+      noRetrigger = maybeShowBaselineCalibration() === false;
+      finishLogFlowToDone();
+      noRetrigger = noRetrigger && document.getElementById('screen-log-done').classList.contains('active');
+    } finally {
+      try{
+        localStorage.removeItem('see_baseline_terrain_state');
+        localStorage.removeItem('see_baseline_terrain_calibrated');
+      }catch(eLs2){}
+      window._cachedBaseline = prevCached;
+      window._zcScore = prevScore;
+      logState.terrain = prevTerrain;
+      _baselineCalibrateTerrain = prevCalT;
+      _baselineCalibrateScore = prevCalS;
+    }
+    var mapOk = settled === 2 && keyed === 6.5 && anxious === 11 && varies === 6.5 && notice === 6.5 && calMapped === 6.5;
+    var writeOk = maps.state.Overhang === 'Usually settled — I feel ready'
+      && maps.state.Slab === formatCalibratedTerrainRead(11)
+      && maps.cal.Overhang === true && maps.cal.Slab === true;
+    var needOk = !terrainNeedsBaselineCalibration('Overhang', maps.state, maps.cal)
+      && terrainNeedsBaselineCalibration('Slab', { Slab: 'Usually settled — I feel ready' }, {})
+      && !terrainNeedsBaselineCalibration('Vertical', { Slab: 'Usually settled — I feel ready' }, {});
+    var pendingOk = pending.join(',') === 'Slab,Vertical';
+    var htmlOk = /Log a climb on Slab to compare\./.test(checkHtml) && /Calibrate your baseline/.test(checkHtml)
+      && checkHtml.indexOf('Overhang') === -1 && emptyCheck === '';
+    var uiOk = !!document.getElementById('screen-log-baseline-calibrate')
+      && !!document.getElementById('baseline-calibrate-gauge')
+      && !!document.getElementById('baseline-calibrate-checklist');
+    if(mapOk && writeOk && needOk && pendingOk && htmlOk && uiOk && gaugeReuse && sameDial && patchesBoth && saveWritesCal && drillClean && logHooked && noMapsToDone && intercepts && calScreenOn && remembers && startsAtConfirmed && noRetrigger){
+      pass('Baseline terrain calibration (active compare)');
+    } else {
+      fail('Baseline terrain calibration (active compare)',
+        'map=' + mapOk + ' write=' + writeOk + ' need=' + needOk + ' pending=' + pending.join(',') +
+        ' html=' + htmlOk + ' ui=' + uiOk + ' gauge=' + gaugeReuse + ' dial=' + sameDial +
+        ' patch=' + patchesBoth + ' saveCal=' + saveWritesCal + ' drill=' + drillClean + ' hook=' + logHooked +
+        ' done=' + noMapsToDone + ' intercept=' + intercepts + ' screen=' + calScreenOn +
+        ' remember=' + remembers + ' score=' + startsAtConfirmed + ' once=' + noRetrigger);
+    }
+  }catch(e){ fail('Baseline terrain calibration (active compare)', e.message); }
+
+  try{
     var addSub = document.querySelector('#screen-workout-library-add .screen-title .sub');
     var copy = addSub ? (addSub.textContent || '') : '';
     var hasPrivacyCopy = /private to you/i.test(copy) && /shared with everyone/i.test(copy);
@@ -14022,7 +14320,7 @@ async function runSEETests(){
 
   // Activation-first regression guard: library rebase must not drop these screens
   try{
-    var actScreens = ['screen-log-act','screen-log-details','screen-log-reveal','screen-log-done'];
+    var actScreens = ['screen-log-act','screen-log-details','screen-log-reveal','screen-log-baseline-calibrate','screen-log-done'];
     var missingAct = actScreens.filter(function(id){ return !document.getElementById(id); });
     if(missingAct.length === 0 && typeof logState === 'object' && typeof collectLogDetailsPayload === 'function'){
       pass('Activation-first log screens still present');
