@@ -204,6 +204,29 @@
   .assign-delete-btn:disabled{opacity:.5;cursor:default;}
   .assign-done-tag{font-size:11px;font-weight:700;color:#7fbf3f;}
 
+  .goal-block-label{
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);margin:12px 0 4px;
+  }
+  .goal-list .goal-block-label:first-child{margin-top:0;}
+  .goal-row{padding:10px 0;border-bottom:1px solid var(--border);}
+  .goal-list .goal-row:last-child{border-bottom:none;}
+  .goal-row-main{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .goal-text{font-size:13.5px;line-height:1.45;}
+  .goal-caption{font-size:11px;color:var(--text-secondary);margin-top:3px;}
+  .goal-actions{display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+  .goal-pri-toggle{display:flex;gap:8px;margin:8px 0;}
+  .goal-pri-btn{
+    background:transparent;border:1px solid var(--border);border-radius:6px;
+    padding:6px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:11.5px;font-weight:600;cursor:pointer;
+  }
+  .goal-pri-btn.selected{border-color:var(--accent);color:var(--accent);}
+  .goal-add{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+  .goal-add-label{
+    font-size:11.5px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;
+  }
+
   .roster-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
   .roster-insights{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
   .roster-stat{
@@ -1295,11 +1318,13 @@
         '</div>' +
       '</div>' +
       '<div class="detail-section" id="detail-assignments"><div class="panel-title">Assignments</div><div>Loading···</div></div>' +
+      '<div class="detail-section" id="detail-goals"><div class="panel-title">Training Goals</div><div>Loading···</div></div>' +
       '<div class="detail-section" id="detail-new-assignment"></div>' +
       '<div class="detail-section" id="detail-sessions"><div class="panel-title">Journal</div><div>Loading···</div></div>' +
       '<div class="detail-section" id="detail-chat"></div>';
 
     loadAssignments(token, coachUser, athleteId);
+    loadAthleteGoals(token, coachUser, athleteId, title);
     renderNewAssignmentForm(token, coachUser, athleteId, title);
     loadAthleteSessions(token, coachUser, athleteId, title);
     renderChatSection(token, coachUser, athleteId, title);
@@ -1325,6 +1350,255 @@
         _lastCoachAssignments = [];
         el.innerHTML = '<div class="panel-title">Assignments</div><div class="form-error">Failed to load — ' + escapeHtml(err.message || 'unknown error') + '</div>';
       });
+  }
+
+  var _coachGoalsCache = [];
+  var _coachGoalAddPriority = 'primary';
+  var _coachGoalEditingId = null;
+  var _coachGoalsCtx = null;
+
+  function goalPriorityKey(p){
+    var s = String(p == null ? '' : p).toLowerCase();
+    if(s === '1' || s === 'primary') return 'primary';
+    return 'secondary';
+  }
+
+  function coachGoalPriToggleHtml(selected, kind){
+    var pri = goalPriorityKey(selected);
+    return '<div class="goal-pri-toggle" data-goal-pri-kind="' + kind + '">' +
+      '<button type="button" class="goal-pri-btn' + (pri === 'primary' ? ' selected' : '') + '" data-priority="primary">Primary</button>' +
+      '<button type="button" class="goal-pri-btn' + (pri === 'secondary' ? ' selected' : '') + '" data-priority="secondary">Secondary</button>' +
+    '</div>';
+  }
+
+  function coachGoalRowHtml(g, coachUserId, editingId){
+    var id = String(g.id || '');
+    var mine = !!(coachUserId && g.author_id === coachUserId);
+    var caption = mine ? 'Set by you' : 'Set by athlete';
+    if(editingId && id === String(editingId)){
+      return '<div class="goal-row" data-goal-id="' + escapeHtml(id) + '">' +
+        '<input id="goal-edit-text" type="text" value="' + escapeHtml(g.text || '') + '">' +
+        coachGoalPriToggleHtml(g.priority, 'edit') +
+        '<div class="goal-actions">' +
+          '<button type="button" class="assign-edit-btn" data-goal-save="' + escapeHtml(id) + '">Save</button>' +
+          '<button type="button" class="assign-delete-btn" data-goal-cancel="1">Cancel</button>' +
+        '</div>' +
+      '</div>';
+    }
+    return '<div class="goal-row" data-goal-id="' + escapeHtml(id) + '">' +
+      '<div class="goal-row-main">' +
+        '<div>' +
+          '<div class="goal-text">' + escapeHtml(g.text || '') + '</div>' +
+          '<div class="goal-caption">' + caption + '</div>' +
+        '</div>' +
+        '<div class="goal-actions">' +
+          '<button type="button" class="assign-edit-btn" data-goal-edit="' + escapeHtml(id) + '">Edit</button>' +
+          '<button type="button" class="assign-delete-btn" data-goal-delete="' + escapeHtml(id) + '">Delete</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function coachGoalBlockHtml(label, list, coachUserId, editingId){
+    if(!list.length) return '';
+    return '<div class="goal-block-label">' + label + '</div>' +
+      list.map(function(g){ return coachGoalRowHtml(g, coachUserId, editingId); }).join('');
+  }
+
+  function coachGoalAddFormHtml(){
+    return '<div class="goal-add">' +
+      '<div class="goal-add-label">+ Add a goal</div>' +
+      '<div class="form-row"><label for="goal-add-text">Goal</label>' +
+        '<input id="goal-add-text" type="text" placeholder="e.g. Send 5.12 this season"></div>' +
+      coachGoalPriToggleHtml(_coachGoalAddPriority, 'add') +
+      '<div class="form-actions"><button type="button" class="btn-primary" id="goal-add-save">Save</button></div>' +
+    '</div>';
+  }
+
+  function paintCoachGoals(){
+    var el = document.getElementById('detail-goals');
+    if(!el || !_coachGoalsCtx) return;
+    var addText = '';
+    var addInput = document.getElementById('goal-add-text');
+    if(addInput) addText = addInput.value;
+    var coachUserId = _coachGoalsCtx.coachUser && _coachGoalsCtx.coachUser.id;
+    var rows = _coachGoalsCache;
+    var listHtml;
+    if(!rows.length){
+      listHtml = '<div class="form-note">No goals set for this athlete yet.</div>';
+    } else {
+      var primary = rows.filter(function(g){ return goalPriorityKey(g.priority) === 'primary'; });
+      var secondary = rows.filter(function(g){ return goalPriorityKey(g.priority) !== 'primary'; });
+      listHtml = coachGoalBlockHtml('Primary', primary, coachUserId, _coachGoalEditingId) +
+        coachGoalBlockHtml('Secondary', secondary, coachUserId, _coachGoalEditingId);
+    }
+    el.innerHTML =
+      '<div class="panel-title">Training Goals</div>' +
+      '<div class="goal-list">' + listHtml + '</div>' +
+      coachGoalAddFormHtml() +
+      '<div id="goal-msg"></div>';
+    if(addText){
+      var restored = document.getElementById('goal-add-text');
+      if(restored) restored.value = addText;
+    }
+    wireCoachGoals(el);
+  }
+
+  function setCoachGoalMsg(html){
+    var msgEl = document.getElementById('goal-msg');
+    if(msgEl) msgEl.innerHTML = html || '';
+  }
+
+  function wireCoachGoals(rootEl){
+    if(!rootEl || !_coachGoalsCtx) return;
+    Array.prototype.forEach.call(rootEl.querySelectorAll('.goal-pri-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        var wrap = btn.parentNode;
+        var kind = wrap && wrap.getAttribute('data-goal-pri-kind');
+        var pri = goalPriorityKey(btn.getAttribute('data-priority'));
+        if(kind === 'add'){
+          _coachGoalAddPriority = pri;
+          Array.prototype.forEach.call(wrap.querySelectorAll('.goal-pri-btn'), function(b){
+            b.classList.toggle('selected', goalPriorityKey(b.getAttribute('data-priority')) === pri);
+          });
+          return;
+        }
+        var g = _coachGoalsCache.find(function(x){ return String(x.id) === String(_coachGoalEditingId); });
+        if(g) g.priority = pri;
+        paintCoachGoals();
+      });
+    });
+    Array.prototype.forEach.call(rootEl.querySelectorAll('[data-goal-edit]'), function(btn){
+      btn.addEventListener('click', function(){
+        _coachGoalEditingId = btn.getAttribute('data-goal-edit');
+        paintCoachGoals();
+      });
+    });
+    Array.prototype.forEach.call(rootEl.querySelectorAll('[data-goal-cancel]'), function(btn){
+      btn.addEventListener('click', function(){
+        _coachGoalEditingId = null;
+        paintCoachGoals();
+      });
+    });
+    Array.prototype.forEach.call(rootEl.querySelectorAll('[data-goal-save]'), function(btn){
+      btn.addEventListener('click', function(){
+        saveEditCoachGoal(btn.getAttribute('data-goal-save'));
+      });
+    });
+    Array.prototype.forEach.call(rootEl.querySelectorAll('[data-goal-delete]'), function(btn){
+      btn.addEventListener('click', function(){
+        deleteCoachGoal(btn.getAttribute('data-goal-delete'));
+      });
+    });
+    var addBtn = document.getElementById('goal-add-save');
+    if(addBtn) addBtn.addEventListener('click', saveNewCoachGoal);
+  }
+
+  function loadAthleteGoals(token, coachUser, athleteId, athleteLabel){
+    _coachGoalsCtx = {
+      token: token,
+      coachUser: coachUser,
+      athleteId: athleteId,
+      athleteLabel: athleteLabel || ''
+    };
+    var el = document.getElementById('detail-goals');
+    if(!el) return;
+    return sbSelect(
+      token,
+      'athlete_goals',
+      'select=id,text,priority,author_id,created_at&athlete_id=eq.' + athleteId +
+        '&order=priority.asc,created_at.asc'
+    ).then(function(rows){
+      _coachGoalsCache = Array.isArray(rows) ? rows : [];
+      _coachGoalEditingId = null;
+      paintCoachGoals();
+    }).catch(function(err){
+      _coachGoalsCache = [];
+      el.innerHTML = '<div class="panel-title">Training Goals</div><div class="form-error">Failed to load — ' +
+        escapeHtml(err.message || 'unknown error') + '</div>';
+    });
+  }
+
+  function saveNewCoachGoal(){
+    if(!_coachGoalsCtx) return;
+    var token = _coachGoalsCtx.token;
+    var coachUser = _coachGoalsCtx.coachUser;
+    var athleteId = _coachGoalsCtx.athleteId;
+    var input = document.getElementById('goal-add-text');
+    var text = input ? input.value.trim() : '';
+    if(!text){
+      setCoachGoalMsg('<div class="form-error">Goal text is required.</div>');
+      return;
+    }
+    var btn = document.getElementById('goal-add-save');
+    if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+    fetch(SB_URL + '/rest/v1/athlete_goals', {
+      method: 'POST',
+      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({
+        author_id: coachUser.id,
+        athlete_id: athleteId,
+        coach_id: coachUser.id,
+        priority: _coachGoalAddPriority === 'primary' ? 'primary' : 'secondary',
+        text: text
+      })
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      if(input) input.value = '';
+      _coachGoalAddPriority = 'primary';
+      setCoachGoalMsg('');
+      return loadAthleteGoals(token, coachUser, athleteId, _coachGoalsCtx.athleteLabel);
+    }).catch(function(err){
+      setCoachGoalMsg('<div class="form-error">Failed to save. ' +
+        escapeHtml(err.message || 'Unknown error') + '</div>');
+    }).then(function(){
+      if(btn){ btn.disabled = false; btn.textContent = 'Save'; }
+    });
+  }
+
+  function saveEditCoachGoal(id){
+    if(!_coachGoalsCtx || !id) return;
+    var token = _coachGoalsCtx.token;
+    var input = document.getElementById('goal-edit-text');
+    var text = input ? input.value.trim() : '';
+    if(!text){
+      setCoachGoalMsg('<div class="form-error">Goal text is required.</div>');
+      return;
+    }
+    var g = _coachGoalsCache.find(function(x){ return String(x.id) === String(id); });
+    var priority = goalPriorityKey(g && g.priority);
+    var btn = document.querySelector('[data-goal-save="' + id + '"]');
+    if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+    fetch(SB_URL + '/rest/v1/athlete_goals?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ text: text, priority: priority })
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      _coachGoalEditingId = null;
+      return loadAthleteGoals(token, _coachGoalsCtx.coachUser, _coachGoalsCtx.athleteId, _coachGoalsCtx.athleteLabel);
+    }).catch(function(err){
+      if(btn){ btn.disabled = false; btn.textContent = 'Save'; }
+      setCoachGoalMsg('<div class="form-error">Failed to save. ' +
+        escapeHtml(err.message || 'Unknown error') + '</div>');
+    });
+  }
+
+  function deleteCoachGoal(id){
+    if(!_coachGoalsCtx || !id) return;
+    if(!window.confirm('Delete this goal?')) return;
+    var token = _coachGoalsCtx.token;
+    fetch(SB_URL + '/rest/v1/athlete_goals?id=eq.' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: sbHeaders(token)
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      if(String(_coachGoalEditingId) === String(id)) _coachGoalEditingId = null;
+      return loadAthleteGoals(token, _coachGoalsCtx.coachUser, _coachGoalsCtx.athleteId, _coachGoalsCtx.athleteLabel);
+    }).catch(function(err){
+      setCoachGoalMsg('<div class="form-error">Failed to delete. ' +
+        escapeHtml(err.message || 'Unknown error') + '</div>');
+    });
   }
 
   function wireCoachAssignmentActions(token, coachUser, athleteId, rootEl){
