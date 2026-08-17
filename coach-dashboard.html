@@ -150,6 +150,12 @@
     border:1px solid var(--surface);pointer-events:none;
   }
   .roster-unread-dot[hidden]{display:none;}
+  .roster-assign-btn{
+    background:transparent;border:1px solid var(--border);border-radius:6px;
+    padding:4px 8px;color:var(--accent);font-family:'Space Grotesk',sans-serif;
+    font-size:11px;font-weight:700;cursor:pointer;line-height:1.2;
+  }
+  .roster-assign-btn:hover{border-color:var(--accent);background:rgba(232,146,82,.08);}
 
   .detail-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
   .detail-title{font-size:16px;font-weight:700;}
@@ -1178,12 +1184,50 @@
         var miniHtml = '<div class="athlete-zone-mini">' + zoneBarSegsHtml(insight.zones, { compact: true }) + '</div>';
         var unreadOn = row.querySelector('.roster-unread-dot') &&
           !row.querySelector('.roster-unread-dot').hasAttribute('hidden');
-        side.innerHTML =
-          miniHtml +
-          flagHtml +
-          '<span class="roster-unread-dot"' + (unreadOn ? '' : ' hidden') + ' aria-hidden="true"></span>';
+        side.innerHTML = rosterRowSideHtml(miniHtml, flagHtml, unreadOn);
       });
+      wireRosterAssignButtons(listEl);
     }
+  }
+
+  function rosterRowSideHtml(miniHtml, flagHtml, unreadOn){
+    return (miniHtml || '') +
+      (flagHtml || '') +
+      '<span class="roster-unread-dot"' + (unreadOn ? '' : ' hidden') + ' aria-hidden="true"></span>' +
+      '<button type="button" class="roster-assign-btn">Assign</button>';
+  }
+
+  var _rosterAuthCtx = null;
+
+  function wireRosterAssignButtons(listEl, token, user){
+    if(token && user) _rosterAuthCtx = { token: token, user: user };
+    var ctx = _rosterAuthCtx;
+    if(!listEl || !ctx) return;
+    Array.prototype.forEach.call(listEl.querySelectorAll('.roster-assign-btn'), function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        var rowEl = btn.closest('.roster-row');
+        if(!rowEl) return;
+        var athleteId = rowEl.getAttribute('data-athlete-id');
+        var src = null;
+        var idx = parseInt(rowEl.getAttribute('data-idx'), 10);
+        if(!isNaN(idx) && _coachRoster[idx] && _coachRoster[idx].athlete_id === athleteId){
+          src = _coachRoster[idx];
+        } else {
+          for(var i=0;i<_coachRoster.length;i++){
+            if(_coachRoster[i].athlete_id === athleteId){ src = _coachRoster[i]; break; }
+          }
+        }
+        _assignWizardCtx = {
+          token: ctx.token,
+          coachUser: ctx.user,
+          athleteId: athleteId,
+          athleteLabel: src ? athleteDisplayLabel(src) : (rowEl.getAttribute('data-athlete-label') || '')
+        };
+        startAssignWizard();
+      });
+    });
   }
 
   function renderRoster(token, user, roster){
@@ -1214,9 +1258,7 @@
           '<div class="roster-meta mono">Linked ' + fmtDate(row.linked_at) + '</div>' +
         '</div>' +
         '<div class="roster-row-side">' +
-          miniHtml +
-          flagHtml +
-          '<span class="roster-unread-dot"' + (unread ? '' : ' hidden') + ' aria-hidden="true"></span>' +
+          rosterRowSideHtml(miniHtml, flagHtml, unread) +
         '</div>' +
       '</div>';
     }).join('');
@@ -1234,6 +1276,7 @@
         );
       });
     });
+    wireRosterAssignButtons(listEl, token, user);
   }
 
   function renderAthleteDetail(token, coachUser, athleteId, athleteLabel, athleteEmail){
@@ -1266,6 +1309,7 @@
 
   function loadAssignments(token, coachUser, athleteId){
     var el = document.getElementById('detail-assignments');
+    if(!el) return;
     sbSelect(token, 'assignments', 'select=*&athlete_id=eq.' + athleteId + '&coach_id=eq.' + coachUser.id + '&deleted_at=is.null&order=due_date.asc.nullslast')
       .then(function(rows){
         _lastCoachAssignments = Array.isArray(rows) ? rows : [];
