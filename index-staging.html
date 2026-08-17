@@ -2951,6 +2951,21 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <div id="train-signed-in-content" style="display:none;">
+      <div id="train-goals-section" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-top:16px;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Training Goals</div>
+        <div id="train-goals-list"><div style="font-size:13px;color:var(--muted);">Loading...</div></div>
+        <button type="button" id="train-goals-add-toggle" onclick="toggleTrainGoalAddForm()" style="margin-top:10px;background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:0;cursor:pointer;">+ Add a goal</button>
+        <div id="train-goals-add-form" style="display:none;margin-top:12px;">
+          <input id="train-goal-text-input" type="text" placeholder="What are you working toward?"
+            style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;margin-bottom:8px;"/>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button type="button" id="train-goal-pri-primary" onclick="setTrainGoalAddPriority('primary')" class="chip selected">Primary</button>
+            <button type="button" id="train-goal-pri-secondary" onclick="setTrainGoalAddPriority('secondary')" class="chip">Secondary</button>
+          </div>
+          <button type="button" id="train-goal-save" onclick="saveNewTrainGoal()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;">Save goal</button>
+        </div>
+      </div>
+
       <!-- Stats (Climb Log visual parity, build 198) -->
       <div id="train-stats-section" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
         <div class="insight-card" style="padding:16px;">
@@ -4146,7 +4161,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index212'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index213'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4294,7 +4309,19 @@ async function sbU(table,filter,payload){
     }
     const d=await r.json();
     return Array.isArray(d)?d[0]:d;
-  }catch(e){console.error('sbU',e);return null;}
+    }catch(e){console.error('sbU',e);return null;}
+}
+
+async function sbD(table,filter){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'DELETE',headers:getSBHeaders()});
+    if(!r.ok){
+      const err=await r.json().catch(function(){return {};});
+      console.error('sbD HTTP error:',r.status,table,err.message||err);
+      return false;
+    }
+    return true;
+  }catch(e){console.error('sbD',e);return false;}
 }
 
 
@@ -4743,7 +4770,7 @@ function showScreen(id){
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
-  if(id==='screen-train'){ loadTrainAssignments(); loadCoachChat(); loadTrainHub(); refreshCoachDashToggle(); }
+  if(id==='screen-train'){ loadTrainAssignments(); loadCoachChat(); loadTrainHub(); loadTrainGoals(); refreshCoachDashToggle(); }
   else if(id!=='screen-consent' && id!=='screen-auth' && id!=='screen-password-recovery'){ refreshCoachChatUnreadBadge(); }
   if(id==='screen-train-picker'){ renderTrainPicker(); }
   if(id==='screen-train-session'){ renderTrainSessionBuilder(); }
@@ -8270,6 +8297,167 @@ function openAthleteDashboard(){
     : 'index.html';
   if(!/index\.html$/i.test(url)) url = 'index.html';
   window.location.href = url;
+}
+
+var _trainGoalsCache = [];
+var _trainGoalAddPriority = 'primary';
+var _trainGoalEditingId = null;
+
+function goalPriorityKey(p){
+  var s = String(p == null ? '' : p).toLowerCase();
+  if(s === '1' || s === 'primary') return 'primary';
+  return 'secondary';
+}
+
+function goalPriorityLabel(p){
+  return goalPriorityKey(p) === 'primary' ? 'Primary' : 'Secondary';
+}
+
+function renderTrainGoalsHtml(rows, editingId){
+  rows = rows || [];
+  if(!rows.length){
+    return '<div style="font-size:13px;color:var(--muted);line-height:1.5;">No goals set yet - add one, or ask your coach to set one with you.</div>';
+  }
+  var primary = rows.filter(function(g){ return goalPriorityKey(g.priority) === 'primary'; });
+  var secondary = rows.filter(function(g){ return goalPriorityKey(g.priority) !== 'primary'; });
+  function block(label, list){
+    if(!list.length) return '';
+    return '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px;">' + label + '</div>'
+      + list.map(function(g){ return trainGoalRowHtml(g, editingId); }).join('');
+  }
+  return block('Primary', primary) + block('Secondary', secondary);
+}
+
+function trainGoalRowHtml(g, editingId){
+  var id = String(g.id || '');
+  var safeId = id.replace(/'/g, '');
+  if(editingId && id === String(editingId)){
+    var pri = goalPriorityKey(g.priority);
+    return '<div class="train-goal-row" data-goal-id="' + escTrainHtml(id) + '" style="padding:8px 0;border-bottom:1px solid var(--border);">'
+      + '<input id="train-goal-edit-text" type="text" value="' + escTrainHtml(g.text || '').replace(/"/g, '&quot;') + '" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:8px 10px;color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:14px;margin-bottom:8px;"/>'
+      + '<div style="display:flex;gap:8px;margin-bottom:8px;">'
+      + '<button type="button" class="chip' + (pri==='primary'?' selected':'') + '" onclick="setTrainGoalEditPriority(\'primary\')">Primary</button>'
+      + '<button type="button" class="chip' + (pri==='secondary'?' selected':'') + '" onclick="setTrainGoalEditPriority(\'secondary\')">Secondary</button>'
+      + '</div>'
+      + '<div style="display:flex;gap:10px;">'
+      + '<button type="button" onclick="saveEditTrainGoal(\'' + safeId + '\')" style="background:var(--accent);border:none;border-radius:var(--r-sm);color:#fff;font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;">Save</button>'
+      + '<button type="button" onclick="cancelEditTrainGoal()" style="background:none;border:none;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>'
+      + '</div></div>';
+  }
+  return '<div class="train-goal-row" data-goal-id="' + escTrainHtml(id) + '" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">'
+    + '<div style="font-size:14px;color:var(--text);line-height:1.45;">' + escTrainHtml(g.text || '') + '</div>'
+    + '<div style="display:flex;gap:8px;flex-shrink:0;">'
+    + '<button type="button" onclick="startEditTrainGoal(\'' + safeId + '\')" style="background:none;border:none;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Edit</button>'
+    + '<button type="button" onclick="deleteTrainGoal(\'' + safeId + '\')" style="background:none;border:none;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Delete</button>'
+    + '</div></div>';
+}
+
+function paintTrainGoals(){
+  var list = document.getElementById('train-goals-list');
+  if(list) list.innerHTML = renderTrainGoalsHtml(_trainGoalsCache, _trainGoalEditingId);
+}
+
+async function loadTrainGoals(){
+  var list = document.getElementById('train-goals-list');
+  if(!window._authUser){
+    _trainGoalsCache = [];
+    _trainGoalEditingId = null;
+    if(list) list.innerHTML = '';
+    return;
+  }
+  var rows = await sbS(
+    'athlete_goals',
+    'select=id,text,priority,author_id,athlete_id,coach_id,created_at&athlete_id=eq.' + window._authUser.id + '&order=priority.asc,created_at.asc'
+  );
+  _trainGoalsCache = Array.isArray(rows) ? rows : [];
+  paintTrainGoals();
+}
+
+function toggleTrainGoalAddForm(){
+  var form = document.getElementById('train-goals-add-form');
+  if(!form) return;
+  var open = form.style.display !== 'none';
+  form.style.display = open ? 'none' : 'block';
+  if(!open){
+    var input = document.getElementById('train-goal-text-input');
+    if(input){ input.value = ''; input.focus(); }
+    setTrainGoalAddPriority('primary');
+  }
+}
+
+function setTrainGoalAddPriority(p){
+  _trainGoalAddPriority = goalPriorityKey(p);
+  var prim = document.getElementById('train-goal-pri-primary');
+  var sec = document.getElementById('train-goal-pri-secondary');
+  if(prim) prim.classList.toggle('selected', _trainGoalAddPriority === 'primary');
+  if(sec) sec.classList.toggle('selected', _trainGoalAddPriority === 'secondary');
+}
+
+async function saveNewTrainGoal(){
+  var input = document.getElementById('train-goal-text-input');
+  var text = input ? input.value.trim() : '';
+  if(!text){ showToast('Write a goal first'); return; }
+  var selfId = window._authUser && window._authUser.id;
+  if(!selfId){ showToast('Sign in to add a goal', true); return; }
+  var coachId = await fetchActiveLinkedCoachId();
+  var saved = await sbI('athlete_goals', {
+    author_id: selfId,
+    athlete_id: selfId,
+    coach_id: coachId || null,
+    priority: _trainGoalAddPriority === 'primary' ? 'primary' : 'secondary',
+    text: text
+  });
+  if(!saved){
+    showToast('Could not save goal - try again', true);
+    return;
+  }
+  if(input) input.value = '';
+  var form = document.getElementById('train-goals-add-form');
+  if(form) form.style.display = 'none';
+  await loadTrainGoals();
+}
+
+function startEditTrainGoal(id){
+  _trainGoalEditingId = id;
+  paintTrainGoals();
+}
+
+function cancelEditTrainGoal(){
+  _trainGoalEditingId = null;
+  paintTrainGoals();
+}
+
+function setTrainGoalEditPriority(p){
+  var g = _trainGoalsCache.find(function(x){ return String(x.id) === String(_trainGoalEditingId); });
+  if(g) g.priority = goalPriorityKey(p);
+  paintTrainGoals();
+}
+
+async function saveEditTrainGoal(id){
+  var input = document.getElementById('train-goal-edit-text');
+  var text = input ? input.value.trim() : '';
+  if(!text){ showToast('Write a goal first'); return; }
+  var g = _trainGoalsCache.find(function(x){ return String(x.id) === String(id); });
+  var priority = goalPriorityKey(g && g.priority);
+  var saved = await sbU('athlete_goals', 'id=eq.' + id, { text: text, priority: priority });
+  if(!saved){
+    showToast('Could not save goal - try again', true);
+    return;
+  }
+  _trainGoalEditingId = null;
+  await loadTrainGoals();
+}
+
+async function deleteTrainGoal(id){
+  if(!id) return;
+  if(!confirm('Delete this goal?')) return;
+  var ok = await sbD('athlete_goals', 'id=eq.' + id);
+  if(!ok){
+    showToast('Could not delete goal - try again', true);
+    return;
+  }
+  if(String(_trainGoalEditingId) === String(id)) _trainGoalEditingId = null;
+  await loadTrainGoals();
 }
 
 async function loadTrainHub(){
@@ -13400,7 +13588,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'skipBaselineTerrainCalibration', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'skipBaselineTerrainCalibration', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals'
   ];
 
   function shouldSkip(onclick){
@@ -14103,6 +14291,48 @@ async function runSEETests(){
         ' load=' + loadOk + ' preview=' + previewOk + ' link=' + linkOk + ' empty=' + emptyCopy);
     }
   }catch(e){ fail('Checkbox completion badge + coach notes thread', e.message); }
+
+  try{
+    var signed = document.getElementById('train-signed-in-content');
+    var goalsSec = document.getElementById('train-goals-section');
+    var statsSec = document.getElementById('train-stats-section');
+    var titleEl = document.querySelector('#screen-train .screen-title');
+    var placementOk = !!(signed && goalsSec && statsSec && titleEl
+      && signed.contains(goalsSec) && goalsSec.nextElementSibling === statsSec);
+    var emptyHtml = renderTrainGoalsHtml([]);
+    var emptyOk = /No goals set yet - add one, or ask your coach to set one with you\./.test(emptyHtml);
+    var mixedHtml = renderTrainGoalsHtml([
+      { id: 'g2', text: 'Build capacity', priority: 'secondary' },
+      { id: 'g1', text: 'Send 5.12', priority: 'primary' }
+    ]);
+    var groupedOk = mixedHtml.indexOf('Primary') !== -1 && mixedHtml.indexOf('Secondary') !== -1
+      && mixedHtml.indexOf('Send 5.12') < mixedHtml.indexOf('Build capacity')
+      && /Edit/.test(mixedHtml) && /Delete/.test(mixedHtml);
+    var addSrc = String(saveNewTrainGoal);
+    var loadSrc = String(loadTrainGoals);
+    var postOk = /author_id:\s*selfId/.test(addSrc) && /athlete_id:\s*selfId/.test(addSrc)
+      && /coach_id:\s*coachId\s*\|\|\s*null/.test(addSrc) && /sbI\(\s*'athlete_goals'/.test(addSrc)
+      && /fetchActiveLinkedCoachId/.test(addSrc);
+    var queryOk = /athlete_id=eq\./.test(loadSrc) && /order=priority\.asc,created_at\.asc/.test(loadSrc)
+      && /athlete_goals/.test(loadSrc);
+    var hookOk = /loadTrainGoals/.test(String(showScreen));
+    var addToggle = document.getElementById('train-goals-add-toggle');
+    var addForm = document.getElementById('train-goals-add-form');
+    var uiOk = !!(addToggle && /Add a goal/.test(addToggle.textContent || '') && addForm
+      && document.getElementById('train-goal-text-input')
+      && document.getElementById('train-goal-pri-primary')
+      && document.getElementById('train-goal-pri-secondary'));
+    var delOk = /sbD\(\s*'athlete_goals'/.test(String(deleteTrainGoal));
+    var editOk = /sbU\(\s*'athlete_goals'/.test(String(saveEditTrainGoal));
+    if(placementOk && emptyOk && groupedOk && postOk && queryOk && hookOk && uiOk && delOk && editOk){
+      pass('Training Goals on Train screen');
+    } else {
+      fail('Training Goals on Train screen',
+        'place=' + placementOk + ' empty=' + emptyOk + ' group=' + groupedOk +
+        ' post=' + postOk + ' query=' + queryOk + ' hook=' + hookOk +
+        ' ui=' + uiOk + ' del=' + delOk + ' edit=' + editOk);
+    }
+  }catch(e){ fail('Training Goals on Train screen', e.message); }
 
   try{
     showScreen('screen-workout-library-add');
