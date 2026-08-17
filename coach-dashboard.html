@@ -163,7 +163,12 @@
   }
   .assign-card:last-child{margin-bottom:0;}
   .assign-card.done{opacity:.55;}
-  .assign-title{font-size:13.5px;font-weight:600;margin-bottom:4px;}
+  .assign-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .assign-title{font-size:13.5px;font-weight:600;margin-bottom:0;}
+  .assign-progress{
+    font-size:11px;font-weight:700;color:var(--text-secondary);
+    font-family:'Space Mono',monospace;white-space:nowrap;flex-shrink:0;
+  }
   .assign-desc{font-size:12.5px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px;}
   .assign-meta{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;font-size:11.5px;color:var(--text-secondary);}
   .assign-dates{display:flex;flex-direction:column;gap:3px;}
@@ -264,6 +269,51 @@
   .note-card:last-child{margin-bottom:0;}
   .note-meta{font-size:11px;color:var(--text-secondary);margin-bottom:5px;}
   .note-text{font-size:13px;line-height:1.5;}
+
+  .journal-entry{
+    background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    padding:14px 16px;margin-bottom:12px;
+  }
+  .journal-entry:last-child{margin-bottom:0;}
+  .journal-head{
+    display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;
+    margin-bottom:10px;
+  }
+  .journal-route{font-size:13.5px;font-weight:600;}
+  .journal-when{font-family:'Space Mono',monospace;font-size:11.5px;color:var(--text-secondary);}
+  .journal-zone{font-size:11.5px;font-weight:700;}
+  .journal-zone.comfort{color:var(--comfort);}
+  .journal-zone.learning{color:var(--learning);}
+  .journal-zone.panic{color:var(--panic);}
+  .journal-field{margin-bottom:10px;}
+  .journal-field-label{
+    font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--text-secondary);margin-bottom:2px;
+  }
+  .journal-field-body{font-size:13px;line-height:1.5;word-break:break-word;}
+  .journal-somatics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .journal-soma{
+    font-size:11.5px;background:var(--surface);border:1px solid var(--border);
+    border-radius:6px;padding:4px 8px;color:var(--text-secondary);
+  }
+  .journal-soma b{color:var(--text);font-weight:600;}
+  .journal-empty-refl{font-size:12.5px;color:var(--text-secondary);margin-bottom:8px;}
+  .journal-notes{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .journal-notes-label{
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);margin-bottom:10px;
+  }
+  .journal-note{margin-bottom:10px;}
+  .journal-note:last-child{margin-bottom:0;}
+  .journal-note.mine .note-meta .note-who{color:var(--accent);}
+  .journal-note .note-who{font-weight:700;color:var(--text);}
+  .journal-reply{margin-top:10px;}
+  .journal-reply textarea{
+    width:100%;min-height:56px;resize:vertical;background:var(--surface);
+    border:1px solid var(--border);border-radius:6px;padding:9px 11px;color:var(--text);
+    font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none;margin-bottom:8px;
+  }
+  .journal-reply textarea:focus{border-color:var(--accent);}
 
   /* ---------- Coach ↔ athlete chat ---------- */
   .chat-thread{
@@ -612,6 +662,22 @@
       '</div>';
   }
 
+  // Same counter as athlete Train (countMarkdownCheckboxes in index.html).
+  // Read-only here; athletes toggle checkboxes on their side.
+  function countMarkdownCheckboxes(text){
+    var lines = String(text || '').split('\n');
+    var total = 0;
+    var checked = 0;
+    for(var i=0;i<lines.length;i++){
+      var m = lines[i].match(/^(\s*[-*+]\s+)\[( |x|X)\](.*)$/);
+      if(m){
+        total++;
+        if(m[2] === 'x' || m[2] === 'X') checked++;
+      }
+    }
+    return { checked: checked, total: total };
+  }
+
   // Shared card markup for both the coach-side assignment list and the
   // athlete Train tab. Coach cards get Edit / Delete / Repeat; athlete
   // cards get Mark complete.
@@ -631,8 +697,15 @@
       actions += '<button type="button" class="assign-delete-btn" data-id="' + idAttr + '">Delete</button>';
       actions += '<button type="button" class="assign-repeat-btn" data-id="' + idAttr + '">Repeat workout</button>';
     }
+    var checks = countMarkdownCheckboxes(a.description);
+    var checkBadge = checks.total > 0
+      ? '<span class="assign-progress">' + checks.checked + '/' + checks.total + ' done</span>'
+      : '';
     return '<div class="assign-card' + (done ? ' done' : '') + '"' + (withCompleteButton ? ' data-id="' + idAttr + '"' : '') + '>' +
-      '<div class="assign-title">' + escapeHtml(a.title) + '</div>' +
+      '<div class="assign-title-row">' +
+        '<div class="assign-title">' + escapeHtml(a.title) + '</div>' +
+        checkBadge +
+      '</div>' +
       (a.description ? '<div class="assign-desc">' + escapeHtml(a.description) + '</div>' : '') +
       assignResourceHtml(a) +
       '<div class="assign-meta">' +
@@ -1180,18 +1253,12 @@
       '</div>' +
       '<div class="detail-section" id="detail-assignments"><div class="panel-title">Assignments</div><div>Loading···</div></div>' +
       '<div class="detail-section" id="detail-new-assignment"></div>' +
-      '<div class="detail-section" id="detail-sessions"><div class="panel-title">Session &amp; climb data</div><div>Loading···</div></div>' +
-      '<div class="detail-section" id="detail-notes"></div>' +
+      '<div class="detail-section" id="detail-sessions"><div class="panel-title">Journal</div><div>Loading···</div></div>' +
       '<div class="detail-section" id="detail-chat"></div>';
 
     loadAssignments(token, coachUser, athleteId);
     renderNewAssignmentForm(token, coachUser, athleteId, title);
-    // Notes session dropdown depends on the sessions query — load first,
-    // then render notes so the select is populated from real rows.
-    renderNotesSection(token, coachUser, athleteId, true);
-    loadAthleteSessions(token, athleteId).then(function(){
-      populateNotesSessionSelect();
-    });
+    loadAthleteSessions(token, coachUser, athleteId, title);
     renderChatSection(token, coachUser, athleteId, title);
   }
 
@@ -2256,142 +2323,242 @@
     syncWizardShellMode();
   });
 
-  function loadAthleteSessions(token, athleteId){
-    var el = document.getElementById('detail-sessions');
-    return sbSelect(token, 'sessions', 'select=id,created_at,route_name,zone&user_id=eq.' + athleteId + '&deleted_at=is.null&order=created_at.desc&limit=20')
-      .then(function(rows){
-        _lastSessionRows = Array.isArray(rows) ? rows : [];
-        if(!_lastSessionRows.length){
-          el.innerHTML = '<div class="panel-title">Session &amp; climb data</div>' +
-            '<div class="form-note">No sessions logged yet for this athlete.</div>';
-          return _lastSessionRows;
-        }
-        el.innerHTML = '<div class="panel-title">Session &amp; climb data — last ' + _lastSessionRows.length + '</div>' +
-          _lastSessionRows.map(function(s){
-            return '<div class="assign-card">' +
-              '<div class="assign-meta">' +
-                '<span class="assign-due">' + fmtDate(s.created_at) + '</span>' +
-                '<span>' + escapeHtml(s.route_name || '—') + ' · ' + escapeHtml(s.zone || '—') + '</span>' +
-              '</div>' +
-            '</div>';
-          }).join('');
-        return _lastSessionRows;
-      })
-      .catch(function(err){
-        _lastSessionRows = [];
-        el.innerHTML = '<div class="panel-title">Session &amp; climb data</div>' +
-          '<div class="stub">Unable to load sessions — ' + escapeHtml(err.message || 'unknown error') + '</div>';
-        return [];
-      });
-  }
-
   var _lastSessionRows = [];
+  var _journalNotesBySession = {};
+  var _journalNotesError = null;
+  var _journalCtx = null;
 
-  function populateNotesSessionSelect(){
-    var sessionSelect = document.getElementById('new-note-session');
-    if(!sessionSelect) return;
-    if(_lastSessionRows.length){
-      sessionSelect.disabled = false;
-      sessionSelect.innerHTML = '<option value="">Select a session···</option>' +
-        _lastSessionRows.map(function(s){
-          return '<option value="' + escapeHtml(s.id) + '">' +
-            fmtDate(s.created_at) + ' — ' + escapeHtml(s.route_name || 'unnamed') +
-          '</option>';
-        }).join('');
-    } else {
-      sessionSelect.innerHTML = '<option value="">No sessions logged yet</option>';
-      sessionSelect.disabled = true;
-    }
+  function journalFieldHtml(label, value){
+    if(value == null || !String(value).trim()) return '';
+    return '<div class="journal-field">' +
+      '<div class="journal-field-label">' + escapeHtml(label) + '</div>' +
+      '<div class="journal-field-body">' + escapeHtml(value) + '</div>' +
+    '</div>';
   }
 
-  function renderNotesSection(token, coachUser, athleteId, waitingForSessions){
-    var el = document.getElementById('detail-notes');
-    el.innerHTML =
-      '<div class="panel-title">Coach notes</div>' +
-      '<div id="notes-list"><div class="form-note">Loading···</div></div>' +
-      '<div class="form-row" style="margin-top:14px;"><label for="new-note-session">Session</label>' +
-        '<select id="new-note-session"' + (waitingForSessions ? ' disabled' : '') + '>' +
-          '<option value="">' + (waitingForSessions ? 'Loading sessions···' : 'Select a session···') + '</option>' +
-        '</select></div>' +
-      '<div class="form-row"><label for="new-note-text">Note</label><textarea id="new-note-text" placeholder="Free-text note attached to the session above"></textarea></div>' +
-      '<div class="form-actions"><button class="btn-primary" id="new-note-submit">Save note</button></div>' +
-      '<div id="new-note-msg"></div>';
+  function journalSomaHtml(label, value){
+    if(value == null || !String(value).trim()) return '';
+    return '<span class="journal-soma"><b>' + escapeHtml(label) + '</b> ' + escapeHtml(value) + '</span>';
+  }
 
-    if(!waitingForSessions) populateNotesSessionSelect();
+  function groupNotesBySession(rows){
+    var map = {};
+    (Array.isArray(rows) ? rows : []).forEach(function(n){
+      if(!n || !n.session_id) return;
+      if(!map[n.session_id]) map[n.session_id] = [];
+      map[n.session_id].push(n);
+    });
+    return map;
+  }
 
-    loadNotes(token, coachUser, athleteId);
+  function journalNoteHtml(n, coachUserId, athleteLabel){
+    var authorId = n.author_id || n.coach_id;
+    var mine = !!(coachUserId && authorId === coachUserId);
+    var who = mine ? 'You' : (athleteLabel || 'Athlete');
+    return '<div class="journal-note' + (mine ? ' mine' : '') + '">' +
+      '<div class="note-meta">' +
+        '<span class="note-who">' + escapeHtml(who) + '</span>' +
+        '<span class="mono"> · ' + fmtChatTime(n.created_at) + '</span>' +
+      '</div>' +
+      '<div class="note-text">' + escapeHtml(n.note || '') + '</div>' +
+    '</div>';
+  }
 
-    var sessionSelect = document.getElementById('new-note-session');
-    document.getElementById('new-note-submit').addEventListener('click', function(){
-      var msgEl = document.getElementById('new-note-msg');
-      var noteText = document.getElementById('new-note-text').value.trim();
-      var sessionId = sessionSelect.value;
-      if(!sessionId){
-        msgEl.innerHTML = '<div class="form-error">Pick a session first.</div>';
-        return;
-      }
-      if(!noteText){
-        msgEl.innerHTML = '<div class="form-error">Note text is required.</div>';
-        return;
-      }
-      var payload = {
-        coach_id: coachUser.id,
-        athlete_id: athleteId,
-        session_id: sessionId,
-        note: noteText
-      };
-      var btn = document.getElementById('new-note-submit');
-      btn.disabled = true;
-      btn.textContent = 'Saving...';
-      fetch(SB_URL + '/rest/v1/coach_notes', {
-        method: 'POST',
-        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
-        body: JSON.stringify(payload)
-      }).then(function(res){
-        btn.disabled = false;
-        btn.textContent = 'Save note';
-        if(!res.ok){
-          return res.json().then(function(err){ throw err; });
-        }
-        document.getElementById('new-note-text').value = '';
-        msgEl.innerHTML = '<div class="form-success">Note saved.</div>';
-        loadNotes(token, coachUser, athleteId);
-      }).catch(function(err){
-        btn.disabled = false;
-        btn.textContent = 'Save note';
-        var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
-        msgEl.innerHTML = '<div class="form-error">' +
-          (isMissingTable
-            ? 'The <code>coach_notes</code> table doesn\'t exist yet — run coach-layer-additions.sql (section 2) first.'
-            : 'Failed — ' + escapeHtml(err.message || 'unknown error')) +
-          '</div>';
+  function journalNotesThreadHtml(sessionId, notes, notesError, coachUserId, athleteLabel){
+    var sid = escapeHtml(sessionId);
+    var body;
+    if(notesError){
+      var isMissingTable = notesError.code === 'PGRST205' || notesError.code === '42P01';
+      body = '<div class="form-note">' +
+        (isMissingTable
+          ? 'Notes are unavailable until the coach_notes table is in place.'
+          : 'Could not load notes. ' + escapeHtml(notesError.message || 'Unknown error')) +
+        '</div>';
+    } else if(!notes || !notes.length){
+      body = '<div class="form-note">No notes yet.</div>';
+    } else {
+      body = notes.map(function(n){
+        return journalNoteHtml(n, coachUserId, athleteLabel);
+      }).join('');
+    }
+    return '<div class="journal-notes">' +
+      '<div class="journal-notes-label">Notes</div>' +
+      '<div class="journal-notes-list" id="journal-notes-' + sid + '">' + body + '</div>' +
+      '<div class="journal-reply">' +
+        '<textarea id="journal-reply-' + sid + '" rows="2" placeholder="Reply on this climb"></textarea>' +
+        '<button type="button" class="btn-primary journal-reply-btn" data-session-id="' + sid + '">Reply</button>' +
+        '<div class="journal-reply-msg" id="journal-reply-msg-' + sid + '"></div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function journalEntryHtml(s, notes, notesError, coachUserId, athleteLabel){
+    var zone = (s.zone || '').toLowerCase();
+    var zoneClass = (zone === 'comfort' || zone === 'learning' || zone === 'panic') ? zone : '';
+    var refl =
+      journalFieldHtml('What went well', s.went_well) +
+      journalFieldHtml('What to work on', s.still_learning) +
+      journalFieldHtml('Surprised by', s.surprised_by);
+    var somas =
+      journalSomaHtml('Breath', s.breathing_post) +
+      journalSomaHtml('Gut', s.gut_post) +
+      journalSomaHtml('Crux', s.crux_response) +
+      journalSomaHtml('Body', s.body_state);
+    var emptyRefl = !refl && !somas
+      ? '<div class="journal-empty-refl">No reflections on this climb.</div>'
+      : '';
+    return '<div class="journal-entry" data-session-id="' + escapeHtml(s.id) + '">' +
+      '<div class="journal-head">' +
+        '<div>' +
+          '<div class="journal-route">' + escapeHtml(s.route_name || 'Unnamed climb') + '</div>' +
+          '<div class="journal-when">' + fmtChatTime(s.created_at) + '</div>' +
+        '</div>' +
+        '<span class="journal-zone' + (zoneClass ? ' ' + zoneClass : '') + '">' +
+          escapeHtml(s.zone || 'No zone') +
+        '</span>' +
+      '</div>' +
+      refl +
+      (somas ? '<div class="journal-somatics">' + somas + '</div>' : '') +
+      emptyRefl +
+      journalNotesThreadHtml(s.id, notes, notesError, coachUserId, athleteLabel) +
+    '</div>';
+  }
+
+  function renderJournalFeed(el){
+    if(!el || !_journalCtx) return;
+    var coachUser = _journalCtx.coachUser;
+    var athleteLabel = _journalCtx.athleteLabel || 'Athlete';
+    if(!_lastSessionRows.length){
+      el.innerHTML = '<div class="panel-title">Journal</div>' +
+        '<div class="form-note">No sessions logged yet for this athlete.</div>';
+      return;
+    }
+    var feed = _lastSessionRows.slice().sort(function(a, b){
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+    el.innerHTML = '<div class="panel-title">Journal · last ' + feed.length + '</div>' +
+      feed.map(function(s){
+        return journalEntryHtml(
+          s,
+          _journalNotesBySession[s.id] || [],
+          _journalNotesError,
+          coachUser && coachUser.id,
+          athleteLabel
+        );
+      }).join('');
+    wireJournalReplies(el);
+  }
+
+  function wireJournalReplies(rootEl){
+    if(!rootEl) return;
+    Array.prototype.forEach.call(rootEl.querySelectorAll('.journal-reply-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        postJournalNote(btn.getAttribute('data-session-id'));
       });
     });
   }
 
-  function loadNotes(token, coachUser, athleteId){
-    var listEl = document.getElementById('notes-list');
-    sbSelect(token, 'coach_notes', 'select=*&athlete_id=eq.' + athleteId + '&coach_id=eq.' + coachUser.id + '&order=created_at.desc')
-      .then(function(rows){
-        if(!rows.length){
-          listEl.innerHTML = '<div class="form-note">No notes yet.</div>';
-          return;
-        }
-        listEl.innerHTML = rows.map(function(n){
-          return '<div class="note-card">' +
-            '<div class="note-meta mono">' + fmtDate(n.created_at) + ' — session ' + shortId(n.session_id) + '</div>' +
-            '<div class="note-text">' + escapeHtml(n.note) + '</div>' +
-          '</div>';
-        }).join('');
-      })
-      .catch(function(err){
-        var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
-        listEl.innerHTML = '<div class="form-note">' +
-          (isMissingTable
-            ? 'The <code>coach_notes</code> table doesn\'t exist yet — see coach-layer-additions.sql.'
-            : 'Failed to load notes — ' + escapeHtml(err.message || 'unknown error')) +
-          '</div>';
+  function loadJournalNotes(token, coachUser, athleteId){
+    return sbSelect(
+      token,
+      'coach_notes',
+      'select=id,note,author_id,coach_id,athlete_id,session_id,created_at' +
+        '&athlete_id=eq.' + athleteId +
+        '&coach_id=eq.' + coachUser.id +
+        '&order=created_at.asc'
+    ).then(function(rows){
+      _journalNotesBySession = groupNotesBySession(rows);
+      _journalNotesError = null;
+    }).catch(function(err){
+      _journalNotesBySession = {};
+      _journalNotesError = err || { message: 'unknown error' };
+    });
+  }
+
+  function loadAthleteSessions(token, coachUser, athleteId, athleteLabel){
+    var el = document.getElementById('detail-sessions');
+    _journalCtx = {
+      token: token,
+      coachUser: coachUser,
+      athleteId: athleteId,
+      athleteLabel: athleteLabel || ''
+    };
+    var cols = 'id,created_at,route_name,zone,went_well,still_learning,surprised_by,' +
+      'breathing_post,gut_post,crux_response,body_state';
+    return sbSelect(
+      token,
+      'sessions',
+      'select=' + cols +
+        '&user_id=eq.' + athleteId +
+        '&deleted_at=is.null&order=created_at.desc&limit=20'
+    ).then(function(rows){
+      _lastSessionRows = Array.isArray(rows) ? rows : [];
+      return loadJournalNotes(token, coachUser, athleteId).then(function(){
+        renderJournalFeed(el);
+        return _lastSessionRows;
       });
+    }).catch(function(err){
+      _lastSessionRows = [];
+      _journalNotesBySession = {};
+      el.innerHTML = '<div class="panel-title">Journal</div>' +
+        '<div class="stub">Unable to load sessions. ' + escapeHtml(err.message || 'Unknown error') + '</div>';
+      return [];
+    });
+  }
+
+  function postJournalNote(sessionId){
+    if(!_journalCtx || !sessionId) return;
+    var token = _journalCtx.token;
+    var coachUser = _journalCtx.coachUser;
+    var athleteId = _journalCtx.athleteId;
+    var ta = document.getElementById('journal-reply-' + sessionId);
+    var msgEl = document.getElementById('journal-reply-msg-' + sessionId);
+    var btn = document.querySelector('.journal-reply-btn[data-session-id="' + sessionId + '"]');
+    var noteText = ta ? ta.value.trim() : '';
+    if(!noteText){
+      if(msgEl) msgEl.innerHTML = '<div class="form-error">Note text is required.</div>';
+      return;
+    }
+    if(btn){
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+    }
+    fetch(SB_URL + '/rest/v1/coach_notes', {
+      method: 'POST',
+      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({
+        author_id: coachUser.id,
+        coach_id: coachUser.id,
+        athlete_id: athleteId,
+        session_id: sessionId,
+        note: noteText
+      })
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      if(ta) ta.value = '';
+      if(msgEl) msgEl.innerHTML = '';
+      return loadJournalNotes(token, coachUser, athleteId).then(function(){
+        var listEl = document.getElementById('journal-notes-' + sessionId);
+        if(listEl){
+          var notes = _journalNotesBySession[sessionId] || [];
+          listEl.innerHTML = notes.length
+            ? notes.map(function(n){
+                return journalNoteHtml(n, coachUser.id, _journalCtx.athleteLabel);
+              }).join('')
+            : '<div class="form-note">No notes yet.</div>';
+        }
+      });
+    }).catch(function(err){
+      if(msgEl){
+        msgEl.innerHTML = '<div class="form-error">Failed to save. ' +
+          escapeHtml(err.message || 'Unknown error') + '</div>';
+      }
+    }).then(function(){
+      if(btn){
+        btn.disabled = false;
+        btn.textContent = 'Reply';
+      }
+    });
   }
 
   // ── Coach ↔ athlete chat (coach_messages) ────────────────
