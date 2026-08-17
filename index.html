@@ -6378,13 +6378,15 @@ function logRevealConfirmOwn(){
   if(score === null || score === undefined) score = logFlowState.activationScore;
   if(score === null || score === undefined) score = 6;
   applyRevealZoneChoice(score, 'manual');
-  persistRevealCalibrationIfNeeded(score).then(function(){ finishLogFlowToDone(); });
+  persistRevealCalibrationIfNeeded(score);
+  finishLogFlowToDone();
 }
 
 function logRevealAcceptModel(){
   acceptCalculatedZone();
   var score = logFlowState.modelScore != null ? logFlowState.modelScore : (window._zcScore !== undefined ? window._zcScore : 6.5);
-  persistRevealCalibrationIfNeeded(score).then(function(){ finishLogFlowToDone(); });
+  persistRevealCalibrationIfNeeded(score);
+  finishLogFlowToDone();
 }
 
 function logRevealAdjustDial(){
@@ -6403,7 +6405,8 @@ function logRevealSaveAdjust(){
     ? logFlowState.adjustScore
     : (window._zcScore !== undefined ? window._zcScore : 6);
   applyRevealZoneChoice(score, 'manual');
-  persistRevealCalibrationIfNeeded(score).then(function(){ finishLogFlowToDone(); });
+  persistRevealCalibrationIfNeeded(score);
+  finishLogFlowToDone();
 }
 
 function logRevealKeepBaseline(){
@@ -6411,7 +6414,8 @@ function logRevealKeepBaseline(){
   var terrain = logState && logState.terrain;
   var expectedScore = mapBaselineExpectationToScore(maps.state[terrain]);
   applyRevealZoneChoice(expectedScore, 'manual');
-  persistRevealCalibrationIfNeeded(expectedScore).then(function(){ finishLogFlowToDone(); });
+  persistRevealCalibrationIfNeeded(expectedScore);
+  finishLogFlowToDone();
 }
 
 async function logFlowLogAnother(){
@@ -13712,7 +13716,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'expandTrainBlockNote', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals'
   ];
 
   function shouldSkip(onclick){
@@ -14712,7 +14716,8 @@ async function runSEETests(){
         buildActivationGauge('log-reveal-gauge', 8, 'confirmed', false, null, 4, null, { score: 2, label: 'Baseline expected' });
         extraNeedleOk = /stroke-dasharray="8 4"/.test(gaugeHost.innerHTML) && /#c4b8ae/.test(gaugeHost.innerHTML);
         buildActivationGauge('log-reveal-gauge', 8, 'confirmed', false, null, 4);
-        noExtraOnPlain = gaugeHost.innerHTML.indexOf('8 4') === -1 && /stroke-dasharray="3 3"/.test(gaugeHost.innerHTML);
+        noExtraOnPlain = gaugeHost.innerHTML.indexOf('stroke-dasharray="8 4"') === -1
+          && /stroke-dasharray="3 3"/.test(gaugeHost.innerHTML);
       }
 
       persistRevealCalibrationIfNeeded(8);
