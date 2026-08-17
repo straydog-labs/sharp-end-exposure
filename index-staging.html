@@ -1390,15 +1390,30 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 </div>
 
 
-<!-- Baseline transition card — shown after completion -->
+<!-- Baseline transition — 3-card choice after first-time complete -->
 <div class="screen" id="screen-baseline-done">
-  <div class="content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;">
-    <div style="font-size:40px;margin-bottom:20px;">✓</div>
-    <div style="font-size:24px;font-weight:700;margin-bottom:8px;">Your baseline is set.</div>
-    <div style="font-size:15px;color:var(--muted);line-height:1.65;max-width:280px;margin-bottom:32px;">Every climb you log builds on this.</div>
-    <button onclick="baselineDone()" style="background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px 40px;cursor:pointer;-webkit-tap-highlight-color:transparent;" id="baseline-done-btn">
-      Log your first climb →
-    </button>
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="content">
+    <div class="screen-title">Your baseline is set<span class="sub">Every climb you log builds on this. Pick what you want to do next.</span></div>
+    <div class="train-energy-grid" id="baseline-done-choices" style="margin-top:16px;">
+      <button type="button" class="train-energy-card" id="baseline-done-log" onclick="startLogFlow()">
+        <div class="te-label">Climb Log</div>
+        <div class="te-title">Log a climb</div>
+        <div class="te-sub">Activation dial, then result, terrain, and grade</div>
+      </button>
+      <button type="button" class="train-energy-card" id="baseline-done-train" onclick="showScreen('screen-train')">
+        <div class="te-label">Train</div>
+        <div class="te-title">Log a training session</div>
+        <div class="te-sub">Energy systems, assignments, and goals</div>
+      </button>
+      <button type="button" class="train-energy-card" id="baseline-done-profile" onclick="openProfile()" style="grid-column:1 / -1;">
+        <div class="te-label">Profile</div>
+        <div class="te-title">View profile</div>
+        <div class="te-sub">Baseline, account, and your data</div>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1994,30 +2009,18 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="screen-title">Compare your reads<span class="sub">Your first read vs what your body reported</span></div>
     <div class="log-flow-reveal-intro" id="log-reveal-intro"></div>
     <div id="log-reveal-gauge"></div>
+    <div id="log-reveal-legend" style="display:none;font-size:12px;color:var(--muted);line-height:1.5;margin:8px 0 4px;text-align:center;"></div>
     <div class="log-flow-reveal-options">
       <button id="log-reveal-own" onclick="logRevealConfirmOwn()">Confirm your own reading</button>
       <button id="log-reveal-model" class="primary-choice" onclick="logRevealAcceptModel()">Accept the model's suggestion</button>
       <button id="log-reveal-adjust" onclick="logRevealAdjustDial()">Set it yourself on the dial</button>
+      <button id="log-reveal-keep-baseline" onclick="logRevealKeepBaseline()" style="display:none;">Keep my baseline expectation</button>
     </div>
     <div id="log-reveal-dial-wrap" style="display:none;">
       <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Drag to set your final read</div>
       <div id="log-reveal-adjust-gauge"></div>
       <button class="log-btn log-flow-cta ready" id="log-reveal-adjust-save" onclick="logRevealSaveAdjust()" style="margin-top:16px;">Save and finish</button>
     </div>
-  </div>
-</div>
-
-<!-- Baseline calibration — one-time per rated terrain, Climb Log only -->
-<div class="screen log-flow-screen" id="screen-log-baseline-calibrate">
-  <div class="page-header">
-    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-  </div>
-  <div class="log-flow-body log-flow-reveal">
-    <div class="screen-title">Calibrate your baseline<span class="sub" id="baseline-calibrate-sub">Expected vs this climb</span></div>
-    <div style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:16px;">Dashed needle is what you expected on this terrain. Solid needle is this climb. Drag to set your final read. Descriptive only - no causal claim.</div>
-    <div id="baseline-calibrate-gauge" style="width:100%;max-width:260px;margin:0 auto;"></div>
-    <button class="log-btn log-flow-cta ready" id="baseline-calibrate-save" onclick="confirmBaselineTerrainCalibration()" style="margin-top:18px;">Save this read</button>
-    <button class="log-flow-skip-link" onclick="skipBaselineTerrainCalibration()">Skip for now</button>
   </div>
 </div>
 
@@ -2951,91 +2954,156 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <div id="train-signed-in-content" style="display:none;">
-      <div id="train-goals-section" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-top:16px;">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Training Goals</div>
-        <div id="train-goals-list"><div style="font-size:13px;color:var(--muted);">Loading...</div></div>
-        <button type="button" id="train-goals-add-toggle" onclick="toggleTrainGoalAddForm()" style="margin-top:10px;background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:0;cursor:pointer;">+ Add a goal</button>
-        <div id="train-goals-add-form" style="display:none;margin-top:12px;">
-          <input id="train-goal-text-input" type="text" placeholder="What are you working toward?"
-            style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;margin-bottom:8px;"/>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <button type="button" id="train-goal-pri-primary" onclick="setTrainGoalAddPriority('primary')" class="chip selected">Primary</button>
-            <button type="button" id="train-goal-pri-secondary" onclick="setTrainGoalAddPriority('secondary')" class="chip">Secondary</button>
-          </div>
-          <button type="button" id="train-goal-save" onclick="saveNewTrainGoal()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;">Save goal</button>
-        </div>
+      <div class="train-energy-grid" id="train-hub-cards" style="margin-top:16px;">
+        <button type="button" class="train-energy-card" id="train-hub-card-start" onclick="showScreen('screen-train-start')">
+          <div class="te-label">Session</div>
+          <div class="te-title">Start a session</div>
+          <div class="te-sub">Energy systems, library, and plans</div>
+        </button>
+        <button type="button" class="train-energy-card" id="train-hub-card-recent" onclick="showScreen('screen-train-recent')">
+          <div class="te-label">History</div>
+          <div class="te-title">Recent sessions</div>
+          <div class="te-sub">What you have logged this week</div>
+        </button>
+        <button type="button" class="train-energy-card" id="train-hub-card-assign" onclick="showScreen('screen-train-assignments')">
+          <div class="te-label">Coach</div>
+          <div class="te-title">Assignments from coach</div>
+          <div class="te-sub">Open plans and self-assigned work</div>
+        </button>
+        <button type="button" class="train-energy-card" id="train-hub-card-goals" onclick="showScreen('screen-train-goals')">
+          <div class="te-label">Focus</div>
+          <div class="te-title">Training goals</div>
+          <div class="te-sub">Primary and secondary aims</div>
+        </button>
+        <button type="button" class="train-energy-card" id="train-hub-card-chat" onclick="showScreen('screen-train-chat')" style="grid-column:1 / -1;">
+          <div class="te-label">Coach</div>
+          <div class="te-title">Coach chat</div>
+          <div class="te-sub">Message your linked coach</div>
+        </button>
       </div>
+    </div>
+  </div>
+</div>
 
-      <!-- Stats (Climb Log visual parity, build 198) -->
-      <div id="train-stats-section" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
-        <div class="insight-card" style="padding:16px;">
-          <div class="insight-label" style="margin-bottom:6px;">Sessions logged</div>
-          <div id="train-stat-total" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">training sessions</div>
-        </div>
-        <div class="insight-card" style="padding:16px;">
-          <div class="insight-label" style="margin-bottom:6px;">This week</div>
-          <div id="train-stat-week" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">sessions</div>
-        </div>
+<div class="screen" id="screen-train-start">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Start a session<span class="sub">Pick an energy system, or open the library.</span></div>
+    <div class="insight-card" style="margin-top:8px;">
+      <div class="insight-label" style="margin-bottom:6px;">Energy mix</div>
+      <svg id="train-arc-svg" width="100%" viewBox="0 0 320 72" style="display:block;overflow:visible;">
+        <rect x="0" y="0" width="320" height="24" fill="rgba(232,118,58,.06)"/>
+        <rect x="0" y="24" width="320" height="24" fill="rgba(61,184,201,.05)"/>
+        <rect x="0" y="48" width="320" height="24" fill="rgba(126,200,122,.05)"/>
+        <text x="6" y="14" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(232,118,58,.45)" letter-spacing=".06em">STR/PWR</text>
+        <text x="6" y="38" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(61,184,201,.5)" letter-spacing=".06em">END/CAP</text>
+        <text x="6" y="62" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.5)" letter-spacing=".06em">SKL/MOB</text>
+        <g id="train-arc-dots"></g>
+      </svg>
+    </div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-top:8px;">Start a session</div>
+    <div class="train-energy-grid" id="train-energy-grid">
+      <button type="button" class="train-energy-card" onclick="openTrainEnergy('strength')"><div class="te-label">Energy</div><div class="te-title">Strength</div><div class="te-sub">Max force · phosphagen</div></button>
+      <button type="button" class="train-energy-card" onclick="openTrainEnergy('power')"><div class="te-label">Energy</div><div class="te-title">Power</div><div class="te-sub">Force fast · phosphagen</div></button>
+      <button type="button" class="train-energy-card" onclick="openTrainEnergy('capacity')"><div class="te-label">Energy</div><div class="te-title">Capacity</div><div class="te-sub">Aerobic power · oxidative</div></button>
+      <button type="button" class="train-energy-card" onclick="openTrainEnergy('endurance')"><div class="te-label">Energy</div><div class="te-title">Endurance</div><div class="te-sub">Sustained work · glycolytic</div></button>
+      <button type="button" class="train-energy-card" onclick="openTrainEnergy('skill_development')"><div class="te-label">Skill</div><div class="te-title">Skill Development</div><div class="te-sub">Movement quality</div></button>
+      <button type="button" class="train-energy-card mental" onclick="openTrainEnergy('mental')"><div class="te-label">Mental</div><div class="te-title">Mental Training</div><div class="te-sub">Opens Drill practices</div></button>
+      <button type="button" class="train-energy-card" onclick="openTrainEnergy('mobility')" style="grid-column:1 / -1;"><div class="te-label">Recovery</div><div class="te-title">Mobility</div><div class="te-sub">Range, tissue quality, prep</div></button>
+    </div>
+    <button type="button" onclick="showScreen('screen-workout-library')"
+      style="width:100%;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+      <span>Browse workout library</span><span style="color:var(--accent);">→</span>
+    </button>
+    <button type="button" class="saw-launch" id="self-assign-launch" onclick="startSelfAssignWizard()" style="margin-top:4px;">
+      <span><span>Plan / assignments</span><span class="saw-launch-sub">Self-assign wizard + coach plans</span></span>
+      <span class="saw-launch-arrow">→</span>
+    </button>
+    <div id="train-new-msg" style="font-size:12px;color:var(--muted);margin:-6px 0 8px;"></div>
+  </div>
+</div>
+
+<div class="screen" id="screen-train-recent">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Recent sessions<span class="sub">What you have logged.</span></div>
+    <div id="train-stats-section" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+      <div class="insight-card" style="padding:16px;">
+        <div class="insight-label" style="margin-bottom:6px;">Sessions logged</div>
+        <div id="train-stat-total" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">training sessions</div>
       </div>
-
-      <div class="insight-card" style="margin-top:4px;">
-        <div class="insight-label" style="margin-bottom:6px;">Energy mix</div>
-        <svg id="train-arc-svg" width="100%" viewBox="0 0 320 72" style="display:block;overflow:visible;">
-          <rect x="0" y="0" width="320" height="24" fill="rgba(232,118,58,.06)"/>
-          <rect x="0" y="24" width="320" height="24" fill="rgba(61,184,201,.05)"/>
-          <rect x="0" y="48" width="320" height="24" fill="rgba(126,200,122,.05)"/>
-          <text x="6" y="14" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(232,118,58,.45)" letter-spacing=".06em">STR/PWR</text>
-          <text x="6" y="38" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(61,184,201,.5)" letter-spacing=".06em">END/CAP</text>
-          <text x="6" y="62" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.5)" letter-spacing=".06em">SKL/MOB</text>
-          <g id="train-arc-dots"></g>
-        </svg>
+      <div class="insight-card" style="padding:16px;">
+        <div class="insight-label" style="margin-bottom:6px;">This week</div>
+        <div id="train-stat-week" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">sessions</div>
       </div>
+    </div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:16px 0 8px;">Recent sessions</div>
+    <div id="train-session-list"><div style="text-align:center;padding:12px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
+  </div>
+</div>
 
-      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-top:8px;">Start a session</div>
-      <div class="train-energy-grid" id="train-energy-grid">
-        <button type="button" class="train-energy-card" onclick="openTrainEnergy('strength')"><div class="te-label">Energy</div><div class="te-title">Strength</div><div class="te-sub">Max force · phosphagen</div></button>
-        <button type="button" class="train-energy-card" onclick="openTrainEnergy('power')"><div class="te-label">Energy</div><div class="te-title">Power</div><div class="te-sub">Force fast · phosphagen</div></button>
-        <button type="button" class="train-energy-card" onclick="openTrainEnergy('capacity')"><div class="te-label">Energy</div><div class="te-title">Capacity</div><div class="te-sub">Aerobic power · oxidative</div></button>
-        <button type="button" class="train-energy-card" onclick="openTrainEnergy('endurance')"><div class="te-label">Energy</div><div class="te-title">Endurance</div><div class="te-sub">Sustained work · glycolytic</div></button>
-        <button type="button" class="train-energy-card" onclick="openTrainEnergy('skill_development')"><div class="te-label">Skill</div><div class="te-title">Skill Development</div><div class="te-sub">Movement quality</div></button>
-        <button type="button" class="train-energy-card mental" onclick="openTrainEnergy('mental')"><div class="te-label">Mental</div><div class="te-title">Mental Training</div><div class="te-sub">Opens Drill practices</div></button>
-        <button type="button" class="train-energy-card" onclick="openTrainEnergy('mobility')" style="grid-column:1 / -1;"><div class="te-label">Recovery</div><div class="te-title">Mobility</div><div class="te-sub">Range, tissue quality, prep</div></button>
-      </div>
+<div class="screen" id="screen-train-assignments">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Assignments from coach<span class="sub">Open plans and self-assigned work.</span></div>
+    <div id="train-list"><div style="text-align:center;padding:12px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
+  </div>
+</div>
 
-      <button type="button" onclick="showScreen('screen-workout-library')"
-        style="width:100%;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-        <span>Browse workout library</span><span style="color:var(--accent);">→</span>
-      </button>
-
-      <button type="button" class="saw-launch" id="self-assign-launch" onclick="startSelfAssignWizard()" style="margin-top:4px;">
-        <span><span>Plan / assignments</span><span class="saw-launch-sub">Self-assign wizard + coach plans</span></span>
-        <span class="saw-launch-arrow">→</span>
-      </button>
-      <div id="train-new-msg" style="font-size:12px;color:var(--muted);margin:-6px 0 8px;"></div>
-
-      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Recent sessions</div>
-      <div id="train-session-list"><div style="text-align:center;padding:12px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
-
-      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:16px 0 8px;">Open assignments</div>
-      <div id="train-list"><div style="text-align:center;padding:12px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
-
-      <!-- Coach chat (build 197) -->
-      <div id="coach-chat-section" style="display:none;margin-top:24px;">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Coach chat</div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
-          <div id="coach-chat-list" style="max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div>
-          <div style="display:flex;gap:8px;align-items:flex-end;">
-            <input id="coach-chat-input" type="text" placeholder="Message your coach..."
-              autocomplete="off"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();sendCoachChatMessage();}"
-              style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;box-sizing:border-box;">
-            <button type="button" id="coach-chat-send" onclick="sendCoachChatMessage()"
-              style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;flex-shrink:0;">Send</button>
-          </div>
-          <div id="coach-chat-err" style="font-size:12px;color:var(--panic);margin-top:8px;min-height:16px;"></div>
+<div class="screen" id="screen-train-goals">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Training goals<span class="sub">Primary first, then secondary.</span></div>
+    <div id="train-goals-section" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-top:8px;">
+      <div id="train-goals-list"><div style="font-size:13px;color:var(--muted);">Loading...</div></div>
+      <button type="button" id="train-goals-add-toggle" onclick="toggleTrainGoalAddForm()" style="margin-top:10px;background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:0;cursor:pointer;">+ Add a goal</button>
+      <div id="train-goals-add-form" style="display:none;margin-top:12px;">
+        <input id="train-goal-text-input" type="text" placeholder="What are you working toward?"
+          style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;margin-bottom:8px;"/>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button type="button" id="train-goal-pri-primary" onclick="setTrainGoalAddPriority('primary')" class="chip selected">Primary</button>
+          <button type="button" id="train-goal-pri-secondary" onclick="setTrainGoalAddPriority('secondary')" class="chip">Secondary</button>
         </div>
+        <button type="button" id="train-goal-save" onclick="saveNewTrainGoal()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;">Save goal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-train-chat">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Coach chat<span class="sub">Message your linked coach.</span></div>
+    <div id="train-chat-empty" style="display:none;font-size:13px;color:var(--muted);line-height:1.5;margin-top:12px;">No linked coach yet.</div>
+    <div id="coach-chat-section" style="display:none;margin-top:8px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;">
+        <div id="coach-chat-list" style="max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <input id="coach-chat-input" type="text" placeholder="Message your coach..."
+            autocomplete="off"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();sendCoachChatMessage();}"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;box-sizing:border-box;">
+          <button type="button" id="coach-chat-send" onclick="sendCoachChatMessage()"
+            style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;flex-shrink:0;">Send</button>
+        </div>
+        <div id="coach-chat-err" style="font-size:12px;color:var(--panic);margin-top:8px;min-height:16px;"></div>
       </div>
     </div>
   </div>
@@ -4161,7 +4229,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index213'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index214'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4392,11 +4460,13 @@ function resolveZone(data){
 function zoneColor(z){return z==='comfort'?'#7ec87a':z==='panic'?'#e84444':'#f5a623';}
 function zoneName(z){return z==='comfort'?'Comfort zone':z==='panic'?'Panic zone':'Learning zone';}
 // ── ACTIVATION GAUGE — continuous semi-circle, replaces concentric rings ──
-function buildActivationGauge(containerId, score, confidence, draggable, onScoreChange, ghostScore, dialOptions){
+function buildActivationGauge(containerId, score, confidence, draggable, onScoreChange, ghostScore, dialOptions, extraGhost){
   var container=document.getElementById(containerId);
   if(!container) return;
   score=Math.max(0,Math.min(12,score||0));
   var isEstimated=confidence==='estimated';
+  dialOptions = dialOptions || {};
+  if(!extraGhost && dialOptions.extraGhost) extraGhost = dialOptions.extraGhost;
 
   var W=220,H=130,cx=110,cy=115,r=95;
   // Semi-circle spans 180deg: angle -180 (left, score 0) to 0 (right, score 12)
@@ -4449,6 +4519,14 @@ function buildActivationGauge(containerId, score, confidence, draggable, onScore
     var offBy=Math.abs(score-ghostClamped).toFixed(1);
     offByReadout='<div style="font-size:12px;color:var(--muted);margin-top:6px;">Predicted '+ghostClamped.toFixed(1)+' · off by '+offBy+'</div>';
   }
+  var extraNeedle='';
+  if(extraGhost && extraGhost.score!==undefined && extraGhost.score!==null){
+    var extraClamped=Math.max(0,Math.min(12,Number(extraGhost.score)));
+    var extraAngle=angleForScore(extraClamped);
+    var extraTip=toXY(extraAngle, needleLen-8);
+    extraNeedle='<line x1="'+cx+'" y1="'+cy+'" x2="'+extraTip.x.toFixed(1)+'" y2="'+extraTip.y.toFixed(1)+'" stroke="#c4b8ae" stroke-width="2" stroke-linecap="round" stroke-dasharray="8 4" opacity="0.7"/>'
+      + '<rect x="'+(extraTip.x-3.5).toFixed(1)+'" y="'+(extraTip.y-3.5).toFixed(1)+'" width="7" height="7" fill="none" stroke="#c4b8ae" stroke-width="1.4" opacity="0.75"/>';
+  }
 
   // Score readout + label
   var zoneName_=score<=4?'Comfort':score<=9?'Learning':'Panic';
@@ -4464,6 +4542,7 @@ function buildActivationGauge(containerId, score, confidence, draggable, onScore
     +'<svg width="100%" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;display:block;">'
     +segments.join('')
     +sweetBand
+    +extraNeedle
     +ghostNeedle
     +needle
     +needleHub
@@ -4766,11 +4845,16 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-baseline-calibrate':'fnav-sessions'};
+  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
-  if(id==='screen-train'){ loadTrainAssignments(); loadCoachChat(); loadTrainHub(); loadTrainGoals(); refreshCoachDashToggle(); }
+  if(id==='screen-train'){ loadTrainAssignments(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
+  else if(id==='screen-train-start'){ loadTrainHub(); }
+  else if(id==='screen-train-recent'){ loadTrainHub(); }
+  else if(id==='screen-train-assignments'){ loadTrainAssignments(); }
+  else if(id==='screen-train-goals'){ loadTrainGoals(); }
+  else if(id==='screen-train-chat'){ loadCoachChat(); }
   else if(id!=='screen-consent' && id!=='screen-auth' && id!=='screen-password-recovery'){ refreshCoachChatUnreadBadge(); }
   if(id==='screen-train-picker'){ renderTrainPicker(); }
   if(id==='screen-train-session'){ renderTrainSessionBuilder(); }
@@ -6267,11 +6351,25 @@ function showLogReveal(){
   if(intro){
     intro.textContent = 'You read ' + userScore.toFixed(1) + ' (' + zoneName(scoreToZone(userScore)) + '). Your body data suggests ' + modelScore.toFixed(1) + ' (' + zoneName(logFlowState.modelZone || scoreToZone(modelScore)) + ').';
   }
+  var maps = getBaselineTerrainMaps();
+  var terrain = logState && logState.terrain;
+  var needsCal = terrainNeedsBaselineCalibration(terrain, maps.state, maps.cal);
+  var expectedScore = needsCal ? mapBaselineExpectationToScore(maps.state[terrain]) : null;
+  var keepBtn = document.getElementById('log-reveal-keep-baseline');
+  if(keepBtn) keepBtn.style.display = needsCal ? '' : 'none';
+  var legend = document.getElementById('log-reveal-legend');
+  if(legend){
+    var bits = ['Your pick', "Model's read"];
+    if(needsCal) bits.push('Baseline expected');
+    legend.textContent = bits.join(' / ');
+    legend.style.display = 'block';
+  }
   var dialWrap = document.getElementById('log-reveal-dial-wrap');
   if(dialWrap) dialWrap.style.display = 'none';
   showScreen('screen-log-reveal');
+  var extraGhost = needsCal ? { score: expectedScore, label: 'Baseline expected' } : null;
   setTimeout(function(){
-    buildActivationGauge('log-reveal-gauge', modelScore, 'confirmed', false, null, userScore);
+    buildActivationGauge('log-reveal-gauge', modelScore, 'confirmed', false, null, userScore, null, extraGhost);
   }, 50);
 }
 
@@ -6280,12 +6378,13 @@ function logRevealConfirmOwn(){
   if(score === null || score === undefined) score = logFlowState.activationScore;
   if(score === null || score === undefined) score = 6;
   applyRevealZoneChoice(score, 'manual');
-  finishLogFlowToDone();
+  persistRevealCalibrationIfNeeded(score).then(function(){ finishLogFlowToDone(); });
 }
 
 function logRevealAcceptModel(){
   acceptCalculatedZone();
-  finishLogFlowToDone();
+  var score = logFlowState.modelScore != null ? logFlowState.modelScore : (window._zcScore !== undefined ? window._zcScore : 6.5);
+  persistRevealCalibrationIfNeeded(score).then(function(){ finishLogFlowToDone(); });
 }
 
 function logRevealAdjustDial(){
@@ -6304,7 +6403,15 @@ function logRevealSaveAdjust(){
     ? logFlowState.adjustScore
     : (window._zcScore !== undefined ? window._zcScore : 6);
   applyRevealZoneChoice(score, 'manual');
-  finishLogFlowToDone();
+  persistRevealCalibrationIfNeeded(score).then(function(){ finishLogFlowToDone(); });
+}
+
+function logRevealKeepBaseline(){
+  var maps = getBaselineTerrainMaps();
+  var terrain = logState && logState.terrain;
+  var expectedScore = mapBaselineExpectationToScore(maps.state[terrain]);
+  applyRevealZoneChoice(expectedScore, 'manual');
+  persistRevealCalibrationIfNeeded(expectedScore).then(function(){ finishLogFlowToDone(); });
 }
 
 async function logFlowLogAnother(){
@@ -7150,6 +7257,8 @@ function hideCoachChatSection(){
   _coachChatMessages = [];
   var section = document.getElementById('coach-chat-section');
   if(section) section.style.display = 'none';
+  var empty = document.getElementById('train-chat-empty');
+  if(empty) empty.style.display = 'block';
   var list = document.getElementById('coach-chat-list');
   if(list) list.innerHTML = '';
   var err = document.getElementById('coach-chat-err');
@@ -7187,7 +7296,7 @@ function coachChatIdsToMarkRead(rows, selfId){
 function isAthleteViewingCoachChat(){
   var screen = document.querySelector('.screen.active');
   var section = document.getElementById('coach-chat-section');
-  if(!screen || screen.id !== 'screen-train') return false;
+  if(!screen || screen.id !== 'screen-train-chat') return false;
   if(!section || section.style.display === 'none') return false;
   return true;
 }
@@ -7364,6 +7473,8 @@ async function loadCoachChat(){
     return;
   }
   _coachChatCoachId = links[0].coach_id;
+  var empty = document.getElementById('train-chat-empty');
+  if(empty) empty.style.display = 'none';
   section.style.display = 'block';
   var list = document.getElementById('coach-chat-list');
   if(list) list.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 2px;">Loading...</div>';
@@ -8829,7 +8940,7 @@ function renderTrainBlockHtml(b, bi){
       + (round.boulders||[]).map(function(bo, i){
         return '<input id="tb-'+b.id+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
       }).join('')
-      + '<textarea id="tb-'+b.id+'-notes" placeholder="Round notes" style="width:100%;min-height:56px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;box-sizing:border-box;">'+escTrainHtml(round.notes||'')+'</textarea>'
+      + trainBlockNoteField('tb-'+b.id+'-notes', 'Round notes', round.notes||'')
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
   } else if(b.shape === 'circuit'){
@@ -8841,7 +8952,7 @@ function renderTrainBlockHtml(b, bi){
           + '<input id="tb-'+b.id+'-ex'+i+'-reps" value="'+escTrainHtml(ex.reps||'')+'" placeholder="Reps" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
           + '</div>';
       }).join('')
-      + '<textarea id="tb-'+b.id+'-cnotes" placeholder="Block notes" style="width:100%;margin-top:8px;min-height:56px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;box-sizing:border-box;">'+escTrainHtml(b.notes||'')+'</textarea>'
+      + trainBlockNoteField('tb-'+b.id+'-cnotes', 'Block notes', b.notes||'')
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
   } else if(b.shape === 'rep_pass_fail'){
@@ -8854,11 +8965,53 @@ function renderTrainBlockHtml(b, bi){
         var col = rp.ok === true ? 'var(--comfort)' : (rp.ok === false ? 'var(--panic)' : 'var(--muted)');
         return '<button type="button" onclick="trainToggleRep(\''+b.id+'\','+i+')" style="width:36px;height:36px;border-radius:8px;border:1px solid '+col+';background:var(--bg);color:'+col+';font-weight:700;cursor:pointer;">'+(i+1)+'</button>';
       }).join('')
-      + '</div><textarea id="tb-'+b.id+'-prog" placeholder="Progression rule" style="width:100%;min-height:56px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;box-sizing:border-box;">'+escTrainHtml(b.progression_note||'')+'</textarea>'
+      + '</div>' + trainBlockNoteField('tb-'+b.id+'-prog', 'Progression rule', b.progression_note||'')
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
   }
   return head + body + '</div>';
+}
+
+function trainBlockNoteField(id, placeholder, value){
+  return '<div style="margin-top:8px;">'
+    + '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;">'
+    + '<button type="button" onclick="expandTrainBlockNote(\''+id+'\')" style="background:none;border:none;color:var(--accent);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;padding:0;">Expand</button>'
+    + '</div>'
+    + '<textarea id="'+id+'" placeholder="'+escTrainHtml(placeholder)+'" style="width:100%;min-height:120px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;box-sizing:border-box;resize:vertical;">'+escTrainHtml(value||'')+'</textarea>'
+    + '</div>';
+}
+
+function expandTrainBlockNote(textareaId){
+  var ta = document.getElementById(textareaId);
+  if(!ta) return;
+  var existing = document.getElementById('train-note-expand-overlay');
+  if(existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'train-note-expand-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:220;display:flex;align-items:flex-end;justify-content:center;';
+  overlay.onclick = function(e){ if(e.target===overlay) closeTrainBlockNoteExpand(); };
+  overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;box-sizing:border-box;max-height:90vh;display:flex;flex-direction:column;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+    + '<div style="font-size:13px;font-weight:700;color:var(--muted);">Edit notes</div>'
+    + '<button type="button" onclick="closeTrainBlockNoteExpand()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>'
+    + '</div>'
+    + '<textarea id="train-note-expand-ta" style="width:100%;min-height:50vh;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);padding:12px;font-family:inherit;font-size:15px;line-height:1.5;box-sizing:border-box;resize:vertical;"></textarea>'
+    + '<button type="button" onclick="closeTrainBlockNoteExpand()" style="margin-top:12px;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:\'Space Grotesk\',sans-serif;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;">Done</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  overlay.dataset.targetId = textareaId;
+  var big = document.getElementById('train-note-expand-ta');
+  if(big){ big.value = ta.value; setTimeout(function(){ big.focus(); }, 50); }
+}
+
+function closeTrainBlockNoteExpand(){
+  var overlay = document.getElementById('train-note-expand-overlay');
+  if(!overlay) return;
+  var targetId = overlay.dataset.targetId;
+  var big = document.getElementById('train-note-expand-ta');
+  var ta = targetId ? document.getElementById(targetId) : null;
+  if(ta && big) ta.value = big.value;
+  overlay.remove();
 }
 
 function fieldHtml(label, id, val){
@@ -12428,50 +12581,8 @@ async function fetchLatestBaselineRow(){
   return row;
 }
 
-var _baselineCalibrateTerrain = null;
-var _baselineCalibrateScore = null;
-
-function maybeShowBaselineCalibration(){
-  if(_drillPostActive) return false;
-  var terrain = logState && logState.terrain;
-  var maps = getBaselineTerrainMaps();
-  if(!terrainNeedsBaselineCalibration(terrain, maps.state, maps.cal)) return false;
-  var ghost = mapBaselineExpectationToScore(maps.state[terrain]);
-  var confirmed = window._zcScore;
-  if(confirmed === undefined || confirmed === null){
-    confirmed = logFlowState && logFlowState.modelScore != null ? logFlowState.modelScore : 6.5;
-  }
-  showBaselineTerrainCalibration(terrain, ghost, confirmed);
-  return true;
-}
-
-function showBaselineTerrainCalibration(terrain, ghostScore, confirmedScore){
-  _baselineCalibrateTerrain = terrain;
-  _baselineCalibrateScore = confirmedScore;
-  var sub = document.getElementById('baseline-calibrate-sub');
-  if(sub) sub.textContent = terrain + ' - expected vs this climb';
-  showScreen('screen-log-baseline-calibrate');
-  setTimeout(function(){
-    buildActivationGauge('baseline-calibrate-gauge', confirmedScore, 'manual', true, function(score){
-      _baselineCalibrateScore = score;
-    }, ghostScore, { premium: true, snapHalf: true, flowDial: true });
-  }, 50);
-}
-
-function finishLogFlowToDone(){
-  if(maybeShowBaselineCalibration()) return;
-  populateLogDoneScreen(true);
-  showScreen('screen-log-done');
-}
-
-async function confirmBaselineTerrainCalibration(){
-  var terrain = _baselineCalibrateTerrain;
-  var score = _baselineCalibrateScore;
-  if(!terrain){
-    populateLogDoneScreen(true);
-    showScreen('screen-log-done');
-    return;
-  }
+async function persistBaselineTerrainCalibration(terrain, score){
+  if(!terrain) return false;
   var maps = getBaselineTerrainMaps();
   var next = applyBaselineTerrainCalibration(maps.state, maps.cal, terrain, score);
   try{
@@ -12499,15 +12610,28 @@ async function confirmBaselineTerrainCalibration(){
       baseline_terrain_calibrated: next.cal
     });
   }
-  _baselineCalibrateTerrain = null;
+  return true;
+}
+
+async function persistRevealCalibrationIfNeeded(score){
+  var maps = getBaselineTerrainMaps();
+  var terrain = logState && logState.terrain;
+  if(!terrainNeedsBaselineCalibration(terrain, maps.state, maps.cal)) return false;
+  return persistBaselineTerrainCalibration(terrain, score);
+}
+
+function finishLogFlowToDone(){
   populateLogDoneScreen(true);
   showScreen('screen-log-done');
 }
 
-function skipBaselineTerrainCalibration(){
-  _baselineCalibrateTerrain = null;
-  populateLogDoneScreen(true);
-  showScreen('screen-log-done');
+async function confirmBaselineTerrainCalibration(){
+  var maps = getBaselineTerrainMaps();
+  var terrain = logState && logState.terrain;
+  var score = window._zcScore;
+  if(score === undefined || score === null) score = 6.5;
+  if(!terrainNeedsBaselineCalibration(terrain, maps.state, maps.cal)) return false;
+  return persistBaselineTerrainCalibration(terrain, score);
 }
 
 function renderBaselinePerceptionCompareHtml(expected, climbs){
@@ -12580,7 +12704,7 @@ function baselineDone(){
   localStorage.setItem('see_baseline_complete','1');
   var count = window._userClimbCount || 0;
   if(count === 0){
-    startLogFlow();
+    showScreen('screen-baseline-done');
   } else {
     showScreen('screen-sessions');
     loadClimbLog();
@@ -13588,7 +13712,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'skipBaselineTerrainCalibration', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'expandTrainBlockNote', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals'
   ];
 
   function shouldSkip(onclick){
@@ -14295,10 +14419,12 @@ async function runSEETests(){
   try{
     var signed = document.getElementById('train-signed-in-content');
     var goalsSec = document.getElementById('train-goals-section');
-    var statsSec = document.getElementById('train-stats-section');
-    var titleEl = document.querySelector('#screen-train .screen-title');
-    var placementOk = !!(signed && goalsSec && statsSec && titleEl
-      && signed.contains(goalsSec) && goalsSec.nextElementSibling === statsSec);
+    var goalsScreen = document.getElementById('screen-train-goals');
+    var hubCard = document.getElementById('train-hub-card-goals');
+    var titleEl = document.querySelector('#screen-train-goals .screen-title');
+    var placementOk = !!(signed && goalsSec && goalsScreen && hubCard && titleEl
+      && goalsScreen.contains(goalsSec)
+      && /screen-train-goals/.test(hubCard.getAttribute('onclick') || ''));
     var emptyHtml = renderTrainGoalsHtml([]);
     var emptyOk = /No goals set yet - add one, or ask your coach to set one with you\./.test(emptyHtml);
     var mixedHtml = renderTrainGoalsHtml([
@@ -14400,7 +14526,7 @@ async function runSEETests(){
     var dot = document.getElementById('fnav-train-unread');
     var shownOffTrain = !!(dot && !dot.hasAttribute('hidden') && (document.querySelector('.screen.active')||{}).id === 'screen-sessions');
     var viewingOff = isAthleteViewingCoachChat() === false;
-    showScreen('screen-train');
+    showScreen('screen-train-chat');
     var section = document.getElementById('coach-chat-section');
     if(section) section.style.display = 'block';
     var viewingOn = isAthleteViewingCoachChat() === true;
@@ -14510,51 +14636,98 @@ async function runSEETests(){
       Slab: 'Usually keyed up — some nerves, manageable'
     }, { Overhang: true });
     var emptyCheck = renderBaselineCalibrateChecklistHtml({ Overhang: 'Usually settled — I feel ready' }, { Overhang: true });
-    var calSrc = String(showBaselineTerrainCalibration);
+    var persistSrc = String(persistBaselineTerrainCalibration);
+    var persistIfSrc = String(persistRevealCalibrationIfNeeded);
+    var revealSrc = String(showLogReveal);
     var confirmSrc = String(confirmBaselineTerrainCalibration);
     var adjustSrc = String(logRevealAdjustDial);
-    var gaugeReuse = /buildActivationGauge/.test(calSrc) && /premium:\s*true/.test(calSrc) && /snapHalf:\s*true/.test(calSrc) && /flowDial:\s*true/.test(calSrc);
-    var sameDial = /premium:\s*true/.test(adjustSrc) && /snapHalf:\s*true/.test(adjustSrc) && /flowDial:\s*true/.test(adjustSrc);
-    var patchesBoth = /baseline_terrain_state/.test(confirmSrc) && /baseline_terrain_calibrated/.test(confirmSrc) && /sbU/.test(confirmSrc);
+    var finishSrc = String(finishLogFlowToDone);
+    var extraGhostFn = /extraGhost/.test(String(buildActivationGauge)) && /8 4/.test(String(buildActivationGauge));
+    var sameDial = /premium:\s*true/.test(adjustSrc) && /snapHalf:\s*true/.test(adjustSrc) && /flowDial:\s*true/.test(adjustSrc)
+      && adjustSrc.indexOf('extraGhost') === -1;
+    var patchesBoth = /baseline_terrain_state/.test(persistSrc) && /baseline_terrain_calibrated/.test(persistSrc) && /sbU/.test(persistSrc);
     var saveWritesCal = /baseline_terrain_calibrated/.test(String(saveBaseline));
     var drillClean = String(startPostClimbCheckin).indexOf('maybeShowBaselineCalibration') === -1
-      && String(startPostClimbCheckin).indexOf('finishLogFlowToDone') === -1;
+      && String(startPostClimbCheckin).indexOf('finishLogFlowToDone') === -1
+      && String(startPostClimbCheckin).indexOf('persistRevealCalibrationIfNeeded') === -1;
+    var fourPersist = /persistRevealCalibrationIfNeeded/.test(String(logRevealConfirmOwn))
+      && /persistRevealCalibrationIfNeeded/.test(String(logRevealAcceptModel))
+      && /persistRevealCalibrationIfNeeded/.test(String(logRevealSaveAdjust))
+      && /persistRevealCalibrationIfNeeded/.test(String(logRevealKeepBaseline));
+    var keepUsesExpected = /applyRevealZoneChoice/.test(String(logRevealKeepBaseline))
+      && /mapBaselineExpectationToScore/.test(String(logRevealKeepBaseline));
     var logHooked = /finishLogFlowToDone/.test(String(logRevealConfirmOwn))
       && /finishLogFlowToDone/.test(String(logRevealAcceptModel))
       && /finishLogFlowToDone/.test(String(logRevealSaveAdjust))
+      && /finishLogFlowToDone/.test(String(logRevealKeepBaseline))
       && /finishLogFlowToDone/.test(String(logFlowSkipDeeper));
+    var noSecondScreen = typeof maybeShowBaselineCalibration === 'undefined'
+      && typeof showBaselineTerrainCalibration === 'undefined'
+      && typeof skipBaselineTerrainCalibration === 'undefined'
+      && !document.getElementById('screen-log-baseline-calibrate')
+      && finishSrc.indexOf('maybeShowBaselineCalibration') === -1
+      && /screen-log-done/.test(finishSrc);
+    var inlineReveal = /extraGhost/.test(revealSrc) && /Baseline expected/.test(revealSrc)
+      && /terrainNeedsBaselineCalibration/.test(revealSrc)
+      && /log-reveal-keep-baseline/.test(revealSrc)
+      && /persistRevealCalibrationIfNeeded/.test(persistIfSrc);
     var prevCached = window._cachedBaseline;
     var prevScore = window._zcScore;
     var prevTerrain = logState.terrain;
-    var prevCalT = _baselineCalibrateTerrain;
-    var prevCalS = _baselineCalibrateScore;
+    var prevUser = logState.userActivationEstimate;
     var noMapsToDone = false;
-    var intercepts = false;
-    var calScreenOn = false;
-    var remembers = false;
-    var startsAtConfirmed = false;
+    var inlineWhenPending = false;
+    var keepShown = false;
+    var legendOk = false;
+    var extraNeedleOk = false;
+    var noExtraOnPlain = false;
+    var persisted = false;
     var noRetrigger = false;
     try{
       localStorage.removeItem('see_baseline_terrain_state');
       localStorage.removeItem('see_baseline_terrain_calibrated');
-      window._cachedBaseline = null;
+      window._cachedBaseline = { id: 'test-cal' };
       logState.terrain = 'Overhang';
+      logState.userActivationEstimate = 4;
       window._zcScore = 8;
-      noMapsToDone = maybeShowBaselineCalibration() === false;
       finishLogFlowToDone();
-      noMapsToDone = noMapsToDone && document.getElementById('screen-log-done').classList.contains('active');
+      noMapsToDone = document.getElementById('screen-log-done').classList.contains('active')
+        && !document.getElementById('screen-log-baseline-calibrate');
 
       localStorage.setItem('see_baseline_terrain_state', JSON.stringify({ Overhang: 'Usually settled — I feel ready' }));
       localStorage.setItem('see_baseline_terrain_calibrated', JSON.stringify({}));
-      intercepts = maybeShowBaselineCalibration() === true;
-      calScreenOn = document.getElementById('screen-log-baseline-calibrate').classList.contains('active');
-      remembers = _baselineCalibrateTerrain === 'Overhang';
-      startsAtConfirmed = _baselineCalibrateScore === 8;
+      showLogReveal();
+      var keepBtn = document.getElementById('log-reveal-keep-baseline');
+      var legend = document.getElementById('log-reveal-legend');
+      keepShown = !!(keepBtn && keepBtn.style.display !== 'none');
+      legendOk = !!(legend && /Your pick/.test(legend.textContent || '')
+        && /Model's read/.test(legend.textContent || '')
+        && /Baseline expected/.test(legend.textContent || ''));
+      finishLogFlowToDone();
+      inlineWhenPending = document.getElementById('screen-log-done').classList.contains('active')
+        && !document.getElementById('screen-log-baseline-calibrate');
+
+      var gaugeHost = document.getElementById('log-reveal-gauge');
+      if(gaugeHost){
+        buildActivationGauge('log-reveal-gauge', 8, 'confirmed', false, null, 4, null, { score: 2, label: 'Baseline expected' });
+        extraNeedleOk = /stroke-dasharray="8 4"/.test(gaugeHost.innerHTML) && /#c4b8ae/.test(gaugeHost.innerHTML);
+        buildActivationGauge('log-reveal-gauge', 8, 'confirmed', false, null, 4);
+        noExtraOnPlain = gaugeHost.innerHTML.indexOf('8 4') === -1 && /stroke-dasharray="3 3"/.test(gaugeHost.innerHTML);
+      }
+
+      persistRevealCalibrationIfNeeded(8);
+      var calAfter = {};
+      try{ calAfter = JSON.parse(localStorage.getItem('see_baseline_terrain_calibrated') || '{}'); }catch(eCal){}
+      persisted = calAfter.Overhang === true;
 
       localStorage.setItem('see_baseline_terrain_calibrated', JSON.stringify({ Overhang: true }));
-      noRetrigger = maybeShowBaselineCalibration() === false;
+      showLogReveal();
+      keepBtn = document.getElementById('log-reveal-keep-baseline');
+      var keepHiddenAfter = !!(keepBtn && keepBtn.style.display === 'none');
       finishLogFlowToDone();
-      noRetrigger = noRetrigger && document.getElementById('screen-log-done').classList.contains('active');
+      noRetrigger = keepHiddenAfter
+        && document.getElementById('screen-log-done').classList.contains('active')
+        && !terrainNeedsBaselineCalibration('Overhang', { Overhang: 'Usually settled — I feel ready' }, { Overhang: true });
     } finally {
       try{
         localStorage.removeItem('see_baseline_terrain_state');
@@ -14563,8 +14736,7 @@ async function runSEETests(){
       window._cachedBaseline = prevCached;
       window._zcScore = prevScore;
       logState.terrain = prevTerrain;
-      _baselineCalibrateTerrain = prevCalT;
-      _baselineCalibrateScore = prevCalS;
+      logState.userActivationEstimate = prevUser;
     }
     var mapOk = settled === 2 && keyed === 6.5 && anxious === 11 && varies === 6.5 && notice === 6.5 && calMapped === 6.5;
     var writeOk = maps.state.Overhang === 'Usually settled — I feel ready'
@@ -14576,20 +14748,60 @@ async function runSEETests(){
     var pendingOk = pending.join(',') === 'Slab,Vertical';
     var htmlOk = /Log a climb on Slab to compare\./.test(checkHtml) && /Calibrate your baseline/.test(checkHtml)
       && checkHtml.indexOf('Overhang') === -1 && emptyCheck === '';
-    var uiOk = !!document.getElementById('screen-log-baseline-calibrate')
-      && !!document.getElementById('baseline-calibrate-gauge')
-      && !!document.getElementById('baseline-calibrate-checklist');
-    if(mapOk && writeOk && needOk && pendingOk && htmlOk && uiOk && gaugeReuse && sameDial && patchesBoth && saveWritesCal && drillClean && logHooked && noMapsToDone && intercepts && calScreenOn && remembers && startsAtConfirmed && noRetrigger){
-      pass('Baseline terrain calibration (active compare)');
+    var uiOk = !document.getElementById('screen-log-baseline-calibrate')
+      && !document.getElementById('baseline-calibrate-gauge')
+      && !!document.getElementById('baseline-calibrate-checklist')
+      && !!document.getElementById('log-reveal-keep-baseline')
+      && !!document.getElementById('log-reveal-legend');
+    var confirmDelegates = /persistBaselineTerrainCalibration/.test(confirmSrc);
+    if(mapOk && writeOk && needOk && pendingOk && htmlOk && uiOk && extraGhostFn && sameDial && patchesBoth && saveWritesCal && drillClean && logHooked && fourPersist && keepUsesExpected && noSecondScreen && inlineReveal && noMapsToDone && inlineWhenPending && keepShown && legendOk && extraNeedleOk && noExtraOnPlain && persisted && noRetrigger && confirmDelegates){
+      pass('Baseline terrain calibration (inline reveal)');
     } else {
-      fail('Baseline terrain calibration (active compare)',
+      fail('Baseline terrain calibration (inline reveal)',
         'map=' + mapOk + ' write=' + writeOk + ' need=' + needOk + ' pending=' + pending.join(',') +
-        ' html=' + htmlOk + ' ui=' + uiOk + ' gauge=' + gaugeReuse + ' dial=' + sameDial +
+        ' html=' + htmlOk + ' ui=' + uiOk + ' extraFn=' + extraGhostFn + ' dial=' + sameDial +
         ' patch=' + patchesBoth + ' saveCal=' + saveWritesCal + ' drill=' + drillClean + ' hook=' + logHooked +
-        ' done=' + noMapsToDone + ' intercept=' + intercepts + ' screen=' + calScreenOn +
-        ' remember=' + remembers + ' score=' + startsAtConfirmed + ' once=' + noRetrigger);
+        ' four=' + fourPersist + ' keepFn=' + keepUsesExpected + ' gone=' + noSecondScreen +
+        ' inline=' + inlineReveal + ' done=' + noMapsToDone + ' pendingDone=' + inlineWhenPending +
+        ' keep=' + keepShown + ' legend=' + legendOk + ' needle=' + extraNeedleOk +
+        ' plain=' + noExtraOnPlain + ' persist=' + persisted + ' once=' + noRetrigger +
+        ' confirm=' + confirmDelegates);
     }
-  }catch(e){ fail('Baseline terrain calibration (active compare)', e.message); }
+  }catch(e){ fail('Baseline terrain calibration (inline reveal)', e.message); }
+
+  try{
+    var doneSrc = String(baselineDone);
+    var cards = document.querySelectorAll('#baseline-done-choices .train-energy-card');
+    var logBtn = document.getElementById('baseline-done-log');
+    var trainBtn = document.getElementById('baseline-done-train');
+    var profileBtn = document.getElementById('baseline-done-profile');
+    var firstTimeShowsChoice = /screen-baseline-done/.test(doneSrc) && doneSrc.indexOf('startLogFlow') === -1;
+    var returningUntouched = /screen-sessions/.test(doneSrc) && /loadClimbLog/.test(doneSrc);
+    var cardOk = cards.length === 3
+      && logBtn && /startLogFlow/.test(logBtn.getAttribute('onclick') || '')
+      && trainBtn && /showScreen\('screen-train'\)/.test(trainBtn.getAttribute('onclick') || '')
+      && profileBtn && /openProfile/.test(profileBtn.getAttribute('onclick') || '');
+    var prevCount = window._userClimbCount;
+    var firstActive = false;
+    var returnActive = false;
+    try{
+      window._userClimbCount = 0;
+      baselineDone();
+      firstActive = document.getElementById('screen-baseline-done').classList.contains('active');
+      window._userClimbCount = 3;
+      baselineDone();
+      returnActive = document.getElementById('screen-sessions').classList.contains('active');
+    } finally {
+      window._userClimbCount = prevCount;
+    }
+    if(firstTimeShowsChoice && returningUntouched && cardOk && firstActive && returnActive){
+      pass('Post-baseline 3-card choice');
+    } else {
+      fail('Post-baseline 3-card choice',
+        'src=' + firstTimeShowsChoice + ' retake=' + returningUntouched + ' cards=' + cards.length +
+        ' first=' + firstActive + ' return=' + returnActive);
+    }
+  }catch(e){ fail('Post-baseline 3-card choice', e.message); }
 
   try{
     var addSub = document.querySelector('#screen-workout-library-add .screen-title .sub');
@@ -14652,6 +14864,63 @@ async function runSEETests(){
   }catch(e){ fail('Train hub + session builder', e.message); }
 
   try{
+    var hubIds = ['train-hub-card-start','train-hub-card-recent','train-hub-card-assign','train-hub-card-goals','train-hub-card-chat'];
+    var subIds = ['screen-train-start','screen-train-recent','screen-train-assignments','screen-train-goals','screen-train-chat'];
+    var showSrc = String(showScreen);
+    var cardsOk = hubIds.every(function(id){ return !!document.getElementById(id); });
+    var screensOk = subIds.every(function(id){ return !!document.getElementById(id); });
+    var hooksOk = /screen-train-start/.test(showSrc) && /loadTrainHub/.test(showSrc)
+      && /screen-train-recent/.test(showSrc)
+      && /screen-train-assignments/.test(showSrc) && /loadTrainAssignments/.test(showSrc)
+      && /screen-train-goals/.test(showSrc) && /loadTrainGoals/.test(showSrc)
+      && /screen-train-chat/.test(showSrc) && /loadCoachChat/.test(showSrc);
+    var energyOnStart = !!document.querySelector('#screen-train-start #train-energy-grid')
+      && document.querySelectorAll('#train-energy-grid .train-energy-card').length === 7;
+    var goalsOnSub = !!document.querySelector('#screen-train-goals #train-goals-section');
+    var chatOnSub = !!document.querySelector('#screen-train-chat #coach-chat-section');
+    var listOnRecent = !!document.querySelector('#screen-train-recent #train-session-list');
+    var listOnAssign = !!document.querySelector('#screen-train-assignments #train-list');
+    var landingLean = !document.querySelector('#screen-train #train-energy-grid')
+      && !document.querySelector('#screen-train #train-goals-section')
+      && !document.querySelector('#screen-train #coach-chat-section');
+    if(cardsOk && screensOk && hooksOk && energyOnStart && goalsOnSub && chatOnSub && listOnRecent && listOnAssign && landingLean){
+      pass('Train hub 5-card landing + drill-downs');
+    } else {
+      fail('Train hub 5-card landing + drill-downs',
+        'cards=' + cardsOk + ' screens=' + screensOk + ' hooks=' + hooksOk +
+        ' energy=' + energyOnStart + ' goals=' + goalsOnSub + ' chat=' + chatOnSub +
+        ' recent=' + listOnRecent + ' assign=' + listOnAssign + ' lean=' + landingLean);
+    }
+  }catch(e){ fail('Train hub 5-card landing + drill-downs', e.message); }
+
+  try{
+    var field = trainBlockNoteField('tb-test-notes', 'Round notes', 'hello **md**');
+    var fieldOk = /min-height:120px/.test(field) && /expandTrainBlockNote\('tb-test-notes'\)/.test(field)
+      && />Expand</.test(field) && /resize:vertical/.test(field);
+    var usesField = /trainBlockNoteField\('tb-'\+b\.id\+'-notes'/.test(String(renderTrainBlockHtml))
+      && /trainBlockNoteField\('tb-'\+b\.id\+'-cnotes'/.test(String(renderTrainBlockHtml))
+      && /trainBlockNoteField\('tb-'\+b\.id\+'-prog'/.test(String(renderTrainBlockHtml));
+    var host = document.createElement('div');
+    host.innerHTML = field;
+    document.body.appendChild(host);
+    expandTrainBlockNote('tb-test-notes');
+    var overlay = document.getElementById('train-note-expand-overlay');
+    var big = document.getElementById('train-note-expand-ta');
+    var opened = !!(overlay && big && big.value === 'hello **md**');
+    if(big) big.value = 'updated notes';
+    closeTrainBlockNoteExpand();
+    var srcTa = document.getElementById('tb-test-notes');
+    var wroteBack = !!(srcTa && srcTa.value === 'updated notes' && !document.getElementById('train-note-expand-overlay'));
+    host.remove();
+    if(fieldOk && usesField && opened && wroteBack){
+      pass('Train block-notes expand modal');
+    } else {
+      fail('Train block-notes expand modal',
+        'field=' + fieldOk + ' uses=' + usesField + ' open=' + opened + ' write=' + wroteBack);
+    }
+  }catch(e){ fail('Train block-notes expand modal', e.message); }
+
+  try{
     var resCards = document.querySelectorAll('#screen-research .res-card');
     var labels = Array.prototype.map.call(resCards, function(c){
       var el = c.querySelector('.res-card-label');
@@ -14709,7 +14978,7 @@ async function runSEETests(){
 
   // Activation-first regression guard: library rebase must not drop these screens
   try{
-    var actScreens = ['screen-log-act','screen-log-details','screen-log-reveal','screen-log-baseline-calibrate','screen-log-done'];
+    var actScreens = ['screen-log-act','screen-log-details','screen-log-reveal','screen-log-done'];
     var missingAct = actScreens.filter(function(id){ return !document.getElementById(id); });
     if(missingAct.length === 0 && typeof logState === 'object' && typeof collectLogDetailsPayload === 'function'){
       pass('Activation-first log screens still present');
