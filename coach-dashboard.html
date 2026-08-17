@@ -1482,9 +1482,9 @@
     });
   }
 
-  // scope: 'all' (full catalog), 'type' (chosen energy system, all categories),
-  // or 'category' (type + category — step 3 browse). Early search scopes
-  // require a query so we don't dump the whole catalog before typing.
+  // scope: 'all' (full catalog — step 1 shows everything when the query is
+  // empty), 'type' (chosen energy system, all categories; still requires a
+  // query), or 'category' (type + category — step 3 browse).
   function filterWizardLibraryResults(query, scope){
     var q = (query || '').trim().toLowerCase();
     var rows = _coachLibCache || [];
@@ -1498,7 +1498,7 @@
       rows = drillsForTypeCategory(_assignWizard.type, _assignWizard.category);
     }
     if(!q){
-      if(scope === 'all' || scope === 'type') return [];
+      if(scope === 'type') return [];
       return rows;
     }
     return rows.filter(function(item){
@@ -1552,7 +1552,7 @@
     if(!resultsEl || !_assignWizard) return;
     var query = searchEl ? searchEl.value : '';
     var rows = filterWizardLibraryResults(query, scope);
-    if(!(query || '').trim() && (scope === 'all' || scope === 'type')){
+    if(!(query || '').trim() && scope === 'type'){
       resultsEl.innerHTML = '<div class="aw-lib-empty">Type a name to search.</div>';
       return;
     }
@@ -1698,7 +1698,7 @@
     if(step === 1){
       setAssignWizardChrome(
         'Find a workout',
-        'Search the full catalog by name, create a custom workout, or browse by energy system.'
+        'Browse the full catalog, search by name, create a custom workout, or pick an energy system.'
       );
       body.innerHTML =
         '<div class="aw-field"><label for="new-a-lib-search">Search all workouts by name</label>' +
