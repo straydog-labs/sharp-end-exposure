@@ -1813,8 +1813,12 @@
         'select=id,category,name,description,type,created_at&order=category.asc,name.asc'
       ).catch(function(){ return []; }),
       sbSelect(token, 'custom_workouts',
-        'select=id,category,name,description,type,visibility,created_by,created_at&order=category.asc,name.asc'
-      ).catch(function(){ return []; })
+        'select=id,category,name,description,type,visibility,created_by,created_at,sections&order=category.asc,name.asc'
+      ).catch(function(){
+        return sbSelect(token, 'custom_workouts',
+          'select=id,category,name,description,type,visibility,created_by,created_at&order=category.asc,name.asc'
+        ).catch(function(){ return []; });
+      })
     ]).then(function(parts){
       var foundational = Array.isArray(parts[0]) ? parts[0] : [];
       var customs = Array.isArray(parts[1]) ? parts[1] : [];
@@ -1913,7 +1917,8 @@
       dueDate: '',
       resourceLink: '',
       libLoadError: null,
-      sections: []
+      sections: [],
+      editingCustomWorkoutId: null
     };
     _coachLibSelectedId = null;
   }
@@ -1970,6 +1975,76 @@
         _assignWizard.sections.splice(i, 1);
         renderAssignWizardSectionsList();
       });
+    });
+  }
+
+  function renderEditCustomWorkoutSectionsList(){
+    var wrap = document.getElementById('edit-cw-sections-list');
+    if(!wrap) return;
+    var sections = _assignWizard.sections || [];
+    if(!sections.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = sections.map(function(s, i){
+      return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">' +
+        '<input type="text" data-section-id="' + s.id + '" class="edit-cw-section-label" value="' + escapeHtml(s.label || '') + '" placeholder="e.g. Round 1 — 12 boulders (EMOM)" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;">' +
+        '<button type="button" class="edit-cw-section-up" data-i="' + i + '" ' + (i === 0 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↑</button>' +
+        '<button type="button" class="edit-cw-section-down" data-i="' + i + '" ' + (i === sections.length - 1 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↓</button>' +
+        '<button type="button" class="edit-cw-section-remove" data-i="' + i + '" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 4px;">Remove</button>' +
+        '</div>';
+    }).join('');
+    Array.prototype.forEach.call(wrap.querySelectorAll('.edit-cw-section-label'), function(input){
+      input.addEventListener('input', function(){
+        var s = _assignWizard.sections.find(function(x){ return x.id === input.getAttribute('data-section-id'); });
+        if(s) s.label = input.value;
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.edit-cw-section-up'), function(btn){
+      btn.addEventListener('click', function(){
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        if(i > 0){ var a = _assignWizard.sections; var t = a[i-1]; a[i-1] = a[i]; a[i] = t; renderEditCustomWorkoutSectionsList(); }
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.edit-cw-section-down'), function(btn){
+      btn.addEventListener('click', function(){
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        var a = _assignWizard.sections;
+        if(i < a.length - 1){ var t = a[i+1]; a[i+1] = a[i]; a[i] = t; renderEditCustomWorkoutSectionsList(); }
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.edit-cw-section-remove'), function(btn){
+      btn.addEventListener('click', function(){
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        _assignWizard.sections.splice(i, 1);
+        renderEditCustomWorkoutSectionsList();
+      });
+    });
+  }
+
+  function saveEditCustomWorkout(){
+    var nameEl = document.getElementById('edit-cw-name');
+    var descEl = document.getElementById('edit-cw-desc');
+    var name = nameEl ? (nameEl.value || '').trim() : '';
+    if(!name){
+      document.getElementById('new-a-msg').innerHTML = '<div class="form-error">Name is required.</div>';
+      return;
+    }
+    var sections = cleanedAssignWizardSections();
+    var btn = document.getElementById('edit-cw-save');
+    if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+    fetch(SB_URL + '/rest/v1/custom_workouts?id=eq.' + _assignWizard.editingCustomWorkoutId, {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(_assignWizardCtx.token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ name: name, description: (descEl ? descEl.value : '').trim() || null, sections: sections })
+    }).then(function(res){
+      if(btn){ btn.disabled = false; btn.textContent = 'Save changes'; }
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      _assignWizard.editingCustomWorkoutId = null;
+      loadCoachWorkoutLibrary(_assignWizardCtx.token).then(function(rows){ _coachLibCache = Array.isArray(rows) ? rows : []; });
+      closeAssignWizardOverlay();
+      resetAssignWizard();
+      showAssignSavedBanner('Workout updated.');
+    }).catch(function(err){
+      if(btn){ btn.disabled = false; btn.textContent = 'Save changes'; }
+      document.getElementById('new-a-msg').innerHTML = '<div class="form-error">Failed. ' + escapeHtml((err && err.message) || 'unknown error') + '</div>';
     });
   }
 
@@ -2069,12 +2144,14 @@
     _assignWizard.assignDescription = item.description || '';
     _assignWizard.createMode = false;
     _assignWizard.createEntryStep = null;
+    _assignWizard.editingCustomWorkoutId = null;
     goAssignWizardStep(4);
   }
 
   function enterCreateCustomWorkout(entryStep){
     _assignWizard.createMode = true;
     _assignWizard.createEntryStep = entryStep || 1;
+    _assignWizard.editingCustomWorkoutId = null;
     _assignWizard.libraryItemId = null;
     _assignWizard.customWorkoutItemId = null;
     _assignWizard.itemSource = null;
@@ -2082,6 +2159,23 @@
     _assignWizard.drillName = '';
     _assignWizard.libraryDescription = '';
     _assignWizard.assignDescription = '';
+    goAssignWizardStep(3);
+  }
+
+  function enterEditCustomWorkout(item){
+    _assignWizard.editingCustomWorkoutId = item.id;
+    _assignWizard.createMode = false;
+    _assignWizard.type = item.type;
+    _assignWizard.category = item.category;
+    _assignWizard.drillName = item.name || '';
+    _assignWizard.libraryDescription = item.description || '';
+    var raw = item.sections;
+    if(typeof raw === 'string'){
+      try{ raw = JSON.parse(raw); }catch(e){ raw = []; }
+    }
+    _assignWizard.sections = Array.isArray(raw)
+      ? raw.map(function(s, i){ return { id: 'sec-' + i + '-' + Date.now(), label: (s && s.label) || '' }; })
+      : [];
     goAssignWizardStep(3);
   }
 
@@ -2116,11 +2210,13 @@
         if(snippet.length > 100) snippet = snippet.slice(0, 100) + '…';
         meta = escapeHtml(snippet);
       }
+      var canEdit = src === 'custom' && _assignWizardCtx && item.created_by === _assignWizardCtx.coachUser.id;
       return '<button type="button" class="aw-chip' + selected + '" data-id="' + escapeHtml(item.id) +
         '" data-source="' + src + '">' +
         escapeHtml(item.name) + sourceBadgeHtml(item) +
         (meta ? '<span class="aw-chip-meta">' + meta + '</span>' : '') +
-      '</button>';
+      '</button>' +
+      (canEdit ? '<button type="button" class="aw-edit-custom-link" data-edit-id="' + escapeHtml(item.id) + '" style="background:none;border:none;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:2px 0 10px;display:block;">Edit this workout</button>' : '');
     }).join('');
   }
 
@@ -2137,6 +2233,13 @@
       renderWizardLibraryResults(opts);
     });
     resultsEl.addEventListener('click', function(e){
+      var editBtn = e.target.closest('.aw-edit-custom-link');
+      if(editBtn){
+        var editId = editBtn.getAttribute('data-edit-id');
+        var item = _coachLibCache.find(function(r){ return r.id === editId && r._source === 'custom'; });
+        if(item) enterEditCustomWorkout(item);
+        return;
+      }
       var btn = e.target.closest('.aw-chip');
       if(!btn) return;
       var id = btn.getAttribute('data-id');
@@ -2339,6 +2442,40 @@
     }
 
     if(step === 3){
+      if(_assignWizard.editingCustomWorkoutId){
+        setAssignWizardChrome('Edit custom workout', 'Updates this workout everywhere it\'s used.');
+        body.innerHTML =
+          '<div class="aw-field"><label>Type · Category</label>' +
+            '<div style="font-size:14px;color:var(--text-secondary);padding:8px 0;">' +
+              escapeHtml(coachLibTypeLabel(_assignWizard.type)) + ' · ' + escapeHtml(_assignWizard.category) +
+            '</div></div>' +
+          '<div class="aw-field"><label for="edit-cw-name">Name *</label>' +
+            '<input id="edit-cw-name" type="text" value="' + escapeHtml(_assignWizard.drillName) + '"></div>' +
+          '<div class="aw-field"><label for="edit-cw-desc">Description</label>' +
+            '<textarea id="edit-cw-desc" placeholder="Optional protocol details">' +
+            escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
+          '<div class="aw-field"><label>Session sections (optional)</label>' +
+            '<div id="edit-cw-sections-list"></div>' +
+            '<button type="button" id="edit-cw-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
+          '</div>';
+        renderEditCustomWorkoutSectionsList();
+        document.getElementById('edit-cw-section-add').addEventListener('click', function(){
+          _assignWizard.sections = _assignWizard.sections || [];
+          _assignWizard.sections.push({ id: 'sec-' + Date.now() + '-' + _assignWizard.sections.length, label: '' });
+          renderEditCustomWorkoutSectionsList();
+        });
+        setAssignWizardFooter(
+          '<button type="button" class="aw-next" id="edit-cw-save">Save changes</button>' +
+          '<button type="button" class="aw-secondary-btn" id="wiz-cancel-edit">Cancel</button>'
+        );
+        document.getElementById('wiz-cancel-edit').addEventListener('click', function(){
+          _assignWizard.editingCustomWorkoutId = null;
+          goAssignWizardStep(1);
+        });
+        document.getElementById('edit-cw-save').addEventListener('click', saveEditCustomWorkout);
+        return;
+      }
+
       if(_assignWizard.createMode){
         setAssignWizardChrome(
           'Create a custom workout',
@@ -2812,6 +2949,7 @@
   var _journalNotesBySession = {};
   var _journalNotesError = null;
   var _journalCtx = null;
+  var _editingJournalNoteId = null;
 
   function journalFieldHtml(label, value){
     if(value == null || !String(value).trim()) return '';
@@ -2840,13 +2978,44 @@
     var authorId = n.author_id || n.coach_id;
     var mine = !!(coachUserId && authorId === coachUserId);
     var who = mine ? 'You' : (athleteLabel || 'Athlete');
+    if(_editingJournalNoteId === n.id){
+      return '<div class="journal-note' + (mine ? ' mine' : '') + '">' +
+        '<textarea id="journal-note-edit-ta-' + n.id + '" rows="2" style="width:100%;box-sizing:border-box;">' + escapeHtml(n.note || '') + '</textarea>' +
+        '<div style="display:flex;gap:8px;margin-top:6px;">' +
+          '<button type="button" class="btn-primary" onclick="saveEditJournalNote(\'' + n.id + '\')">Save</button>' +
+          '<button type="button" onclick="cancelEditJournalNote()">Cancel</button>' +
+        '</div></div>';
+    }
     return '<div class="journal-note' + (mine ? ' mine' : '') + '">' +
       '<div class="note-meta">' +
         '<span class="note-who">' + escapeHtml(who) + '</span>' +
         '<span class="mono"> · ' + fmtChatTime(n.created_at) + '</span>' +
+        (n.edited_at ? ' <span style="font-style:italic;">(edited)</span>' : '') +
       '</div>' +
       '<div class="note-text">' + escapeHtml(n.note || '') + '</div>' +
+      (mine ? '<button type="button" onclick="startEditJournalNote(\'' + n.id + '\')" style="background:none;border:none;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:2px 0;">Edit</button>' : '') +
     '</div>';
+  }
+
+  function startEditJournalNote(id){ _editingJournalNoteId = id; refreshJournalAfterEdit(); }
+  function cancelEditJournalNote(){ _editingJournalNoteId = null; refreshJournalAfterEdit(); }
+  function refreshJournalAfterEdit(){
+    var el = document.getElementById('detail-sessions');
+    if(el) renderJournalFeed(el);
+  }
+  async function saveEditJournalNote(id){
+    var ta = document.getElementById('journal-note-edit-ta-' + id);
+    var text = ta ? ta.value.trim() : '';
+    if(!text || !_journalCtx) return;
+    var res = await fetch(SB_URL + '/rest/v1/coach_notes?id=eq.' + id, {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(_journalCtx.token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ note: text, edited_at: new Date().toISOString() })
+    });
+    if(!res.ok) return;
+    _editingJournalNoteId = null;
+    await loadJournalNotes(_journalCtx.token, _journalCtx.coachUser, _journalCtx.athleteId);
+    refreshJournalAfterEdit();
   }
 
   function journalNotesThreadHtml(sessionId, notes, notesError, coachUserId, athleteLabel){
@@ -2947,7 +3116,7 @@
     return sbSelect(
       token,
       'coach_notes',
-      'select=id,note,author_id,coach_id,athlete_id,session_id,created_at' +
+      'select=id,note,author_id,coach_id,athlete_id,session_id,created_at,edited_at' +
         '&athlete_id=eq.' + athleteId +
         '&coach_id=eq.' + coachUser.id +
         '&order=created_at.asc'
@@ -3053,6 +3222,8 @@
   var _coachChatViewingAthleteId = null;
   var _coachChatMessages = [];
   var _rosterUnreadAthletes = {};
+  var _editingCoachChatMessageId = null;
+  var _coachChatToken = null, _coachChatCoachUser = null, _coachChatAthleteLabel = '';
 
   function applyRosterUnreadDots(map){
     map = map || {};
@@ -3156,15 +3327,19 @@
     });
   }
 
+  var _editingCoachAthleteNoteId = null;
+  var _coachAthleteNotesCtx = null;
+
   function loadAthleteCoachNotes(token, coachUser, athleteId){
     var el = document.getElementById('detail-coach-notes');
     if(!el) return;
+    _coachAthleteNotesCtx = { token: token, coachUser: coachUser, athleteId: athleteId };
     el.innerHTML = '<div class="panel-title">Coach\'s Notes (private)</div><div>Loading···</div>';
     sbSelect(token, 'coach_athlete_notes',
-      'select=id,title,body,created_at&coach_id=eq.' + coachUser.id +
+      'select=id,title,body,created_at,edited_at&coach_id=eq.' + coachUser.id +
       '&athlete_id=eq.' + athleteId + '&order=created_at.desc'
     ).then(function(rows){
-      renderCoachAthleteNotes(el, rows || [], token, coachUser, athleteId);
+      renderCoachAthleteNotes(el, rows || []);
     }).catch(function(err){
       var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
       el.innerHTML = '<div class="panel-title">Coach\'s Notes (private)</div><div class="form-error">' +
@@ -3173,13 +3348,26 @@
     });
   }
 
-  function renderCoachAthleteNotes(el, notes, token, coachUser, athleteId){
+  function renderCoachAthleteNotes(el, notes){
     var list = notes.length
       ? notes.map(function(n){
+          if(_editingCoachAthleteNoteId === n.id){
+            return '<div class="coach-note-item">' +
+              '<input type="text" id="coach-note-edit-title-' + n.id + '" value="' + escapeHtml(n.title || '') + '" placeholder="Title" style="width:100%;box-sizing:border-box;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;">' +
+              '<textarea id="coach-note-edit-body-' + n.id + '" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;">' + escapeHtml(n.body || '') + '</textarea>' +
+              '<div style="display:flex;gap:8px;margin-top:6px;">' +
+                '<button type="button" class="btn-primary" onclick="saveEditCoachAthleteNote(\'' + n.id + '\')">Save</button>' +
+                '<button type="button" onclick="cancelEditCoachAthleteNote()">Cancel</button>' +
+              '</div></div>';
+          }
           return '<div class="coach-note-item">' +
             '<div class="coach-note-meta"><span class="coach-note-title">' + escapeHtml(n.title || 'Untitled') + '</span>' +
-            '<span class="coach-note-time mono">' + fmtChatTime(n.created_at) + '</span></div>' +
+            '<span class="coach-note-time mono">' + fmtChatTime(n.created_at) + (n.edited_at ? ' · edited' : '') + '</span></div>' +
             '<div class="coach-note-body">' + escapeHtml(n.body || '') + '</div>' +
+            '<div style="display:flex;gap:10px;margin-top:6px;">' +
+              '<button type="button" onclick="startEditCoachAthleteNote(\'' + n.id + '\')" style="background:none;border:none;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:0;">Edit</button>' +
+              '<button type="button" onclick="deleteCoachAthleteNote(\'' + n.id + '\')" style="background:none;border:none;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:0;">Delete</button>' +
+            '</div>' +
           '</div>';
         }).join('')
       : '<div class="form-note">No notes yet — private to you, never visible to the athlete.</div>';
@@ -3202,38 +3390,103 @@
       if(!body){ msgEl.innerHTML = '<div class="form-error">Note text is required.</div>'; return; }
       fetch(SB_URL + '/rest/v1/coach_athlete_notes', {
         method: 'POST',
-        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+        headers: Object.assign(sbHeaders(_coachAthleteNotesCtx.token), { 'Prefer': 'return=representation' }),
         body: JSON.stringify({
-          coach_id: coachUser.id,
-          athlete_id: athleteId,
+          coach_id: _coachAthleteNotesCtx.coachUser.id,
+          athlete_id: _coachAthleteNotesCtx.athleteId,
           title: (titleEl.value || '').trim() || null,
           body: body
         })
       }).then(function(res){
         if(!res.ok) return res.json().then(function(err){ throw err; });
-        return loadAthleteCoachNotes(token, coachUser, athleteId);
+        return reloadCoachAthleteNotes();
       }).catch(function(err){
         msgEl.innerHTML = '<div class="form-error">Failed to save — ' + escapeHtml((err && err.message) || 'unknown error') + '</div>';
       });
     });
   }
 
+  function reloadCoachAthleteNotes(){
+    if(!_coachAthleteNotesCtx) return;
+    return loadAthleteCoachNotes(_coachAthleteNotesCtx.token, _coachAthleteNotesCtx.coachUser, _coachAthleteNotesCtx.athleteId);
+  }
+  function startEditCoachAthleteNote(id){ _editingCoachAthleteNoteId = id; reloadCoachAthleteNotes(); }
+  function cancelEditCoachAthleteNote(){ _editingCoachAthleteNoteId = null; reloadCoachAthleteNotes(); }
+  async function saveEditCoachAthleteNote(id){
+    var titleEl = document.getElementById('coach-note-edit-title-' + id);
+    var bodyEl = document.getElementById('coach-note-edit-body-' + id);
+    var text = bodyEl ? bodyEl.value.trim() : '';
+    if(!text || !_coachAthleteNotesCtx) return;
+    var res = await fetch(SB_URL + '/rest/v1/coach_athlete_notes?id=eq.' + id, {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(_coachAthleteNotesCtx.token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ title: (titleEl ? titleEl.value : '').trim() || null, body: text, edited_at: new Date().toISOString() })
+    });
+    if(!res.ok) return;
+    _editingCoachAthleteNoteId = null;
+    reloadCoachAthleteNotes();
+  }
+  async function deleteCoachAthleteNote(id){
+    if(!_coachAthleteNotesCtx || !confirm('Delete this note?')) return;
+    var res = await fetch(SB_URL + '/rest/v1/coach_athlete_notes?id=eq.' + id, {
+      method: 'DELETE',
+      headers: sbHeaders(_coachAthleteNotesCtx.token)
+    });
+    if(!res.ok) return;
+    reloadCoachAthleteNotes();
+  }
+
   function chatMessageHtml(m, coachUserId, athleteLabel, grouped){
     var mine = m.sender_id === coachUserId;
     var who = mine ? 'You' : (athleteLabel || 'Athlete');
+    if(_editingCoachChatMessageId === m.id){
+      return '<div class="chat-msg' + (mine ? ' mine' : '') + (grouped ? ' grouped' : '') + '">' +
+        '<textarea id="chat-edit-ta-' + m.id + '" rows="2" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--accent);border-radius:14px;padding:9px 12px;color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:13.5px;">' + escapeHtml(m.body || '') + '</textarea>' +
+        '<div style="display:flex;gap:8px;margin-top:6px;">' +
+          '<button type="button" onclick="saveEditCoachChatMessage(\'' + m.id + '\')" style="background:var(--accent);border:none;border-radius:6px;color:#fff;font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;">Save</button>' +
+          '<button type="button" onclick="cancelEditCoachChatMessage()" style="background:none;border:none;color:var(--text-secondary);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>' +
+        '</div></div>';
+    }
     return '<div class="chat-msg' + (mine ? ' mine' : '') + (grouped ? ' grouped' : '') + '">' +
       '<div class="chat-msg-meta">' +
         '<span class="chat-msg-who">' + escapeHtml(who) + '</span>' +
         '<span class="chat-msg-time mono">' + fmtChatTime(m.created_at) + '</span>' +
+        (m.edited_at ? ' <span style="font-style:italic;">(edited)</span>' : '') +
       '</div>' +
       '<div class="chat-msg-bubble">' + linkifyHttpText(m.body || '') + '</div>' +
+      (mine ? '<button type="button" onclick="startEditCoachChatMessage(\'' + m.id + '\')" style="background:none;border:none;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:2px 0;">Edit</button>' : '') +
     '</div>';
+  }
+
+  function startEditCoachChatMessage(id){
+    _editingCoachChatMessageId = id;
+    loadChatMessages(_coachChatToken, _coachChatCoachUser, _coachChatViewingAthleteId, _coachChatAthleteLabel);
+  }
+  function cancelEditCoachChatMessage(){
+    _editingCoachChatMessageId = null;
+    loadChatMessages(_coachChatToken, _coachChatCoachUser, _coachChatViewingAthleteId, _coachChatAthleteLabel);
+  }
+  async function saveEditCoachChatMessage(id){
+    var ta = document.getElementById('chat-edit-ta-' + id);
+    var text = ta ? ta.value.trim() : '';
+    if(!text) return;
+    var res = await fetch(SB_URL + '/rest/v1/coach_messages?id=eq.' + id, {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(_coachChatToken), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ body: text, edited_at: new Date().toISOString() })
+    });
+    if(!res.ok) return;
+    _editingCoachChatMessageId = null;
+    loadChatMessages(_coachChatToken, _coachChatCoachUser, _coachChatViewingAthleteId, _coachChatAthleteLabel);
   }
 
   function renderChatSection(token, coachUser, athleteId, athleteLabel){
     var el = document.getElementById('detail-chat');
     if(!el) return;
     _coachChatViewingAthleteId = athleteId;
+    _coachChatToken = token;
+    _coachChatCoachUser = coachUser;
+    _coachChatAthleteLabel = athleteLabel;
     _coachChatMessages = [];
     el.innerHTML =
       '<div class="panel-title">Chat</div>' +
@@ -3300,7 +3553,7 @@
     return sbSelect(
       token,
       'coach_messages',
-      'select=id,coach_id,athlete_id,sender_id,body,link,created_at,read_at' +
+      'select=id,coach_id,athlete_id,sender_id,body,link,created_at,read_at,edited_at' +
         '&athlete_id=eq.' + athleteId +
         '&coach_id=eq.' + coachUser.id +
         '&order=created_at.asc'
@@ -3397,6 +3650,17 @@
   }
   if(document.readyState === 'complete') registerSEEServiceWorker();
   else window.addEventListener('load', registerSEEServiceWorker);
+
+  window.startEditCoachChatMessage = startEditCoachChatMessage;
+  window.cancelEditCoachChatMessage = cancelEditCoachChatMessage;
+  window.saveEditCoachChatMessage = saveEditCoachChatMessage;
+  window.startEditJournalNote = startEditJournalNote;
+  window.cancelEditJournalNote = cancelEditJournalNote;
+  window.saveEditJournalNote = saveEditJournalNote;
+  window.startEditCoachAthleteNote = startEditCoachAthleteNote;
+  window.cancelEditCoachAthleteNote = cancelEditCoachAthleteNote;
+  window.saveEditCoachAthleteNote = saveEditCoachAthleteNote;
+  window.deleteCoachAthleteNote = deleteCoachAthleteNote;
 
 })();
 </script>
