@@ -4351,7 +4351,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index216'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index217'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -8930,17 +8930,31 @@ function seedTrainSessionFromItem(item, sourceMeta){
   var energyType = item.type || _trainPickerType || 'strength';
   _trainPickerType = energyType;
   trainSessionState = newTrainSessionState(energyType, item.name, item.description || '', sourceMeta);
-  trainSessionState.blocks.push({
-    id: uid(),
-    shape: 'circuit',
-    title: item.name || 'Protocol',
-    rest_after_sec: 0,
-    exercises: [],
-    rounds: 1,
-    notes: item.description || '',
-    complete: false,
-    attempts: []
-  });
+  var sections = Array.isArray(item.sections) ? item.sections : null;
+  if(sections && sections.length){
+    trainSessionState.blocks = sections.map(function(s){
+      return {
+        id: uid(),
+        shape: 'section',
+        title: (s && s.label) || '',
+        notes: '',
+        complete: false,
+        attempts: []
+      };
+    });
+  } else {
+    trainSessionState.blocks.push({
+      id: uid(),
+      shape: 'circuit',
+      title: item.name || 'Protocol',
+      rest_after_sec: 0,
+      exercises: [],
+      rounds: 1,
+      notes: item.description || '',
+      complete: false,
+      attempts: []
+    });
+  }
   showScreen('screen-train-session');
 }
 
@@ -9072,9 +9086,10 @@ function renderTrainSessionBuilder(){
 
 function renderTrainBlockHtml(b, bi){
   var done = !!b.complete;
+  var shapeLabel = (b.shape === 'section' && b.title) ? escTrainHtml(b.title) : escTrainHtml(b.shape.replace(/_/g,' '));
   var head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">'
-    + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+escTrainHtml(b.shape.replace(/_/g,' '))+'</div>'
+    + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+shapeLabel+'</div>'
     + '<div style="display:flex;align-items:center;gap:8px;">'
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
     + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div></div>';
@@ -9122,6 +9137,8 @@ function renderTrainBlockHtml(b, bi){
       + '</div>' + trainBlockNoteField('tb-'+b.id+'-prog', 'Progression rule', b.progression_note||'')
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+  } else if(b.shape === 'section'){
+    body = b.notes ? renderTrainNotePreview(b.notes) : '';
   }
   return head + body + '</div>';
 }
@@ -14690,6 +14707,39 @@ async function runSEETests(){
     trainSessionState = null;
     showScreen('screen-train');
   }catch(e){ fail('Assignment Start session launches linked session builder', e.message); }
+
+  try{
+    var withSections = {
+      id: 'cw-sec', type: 'strength', name: 'Session A', description: 'Coach notes',
+      sections: [{ label: 'Warm up' }, { label: 'Round 1 - 12 boulders (EMOM)' }]
+    };
+    seedTrainSessionFromItem(withSections, { custom_workout_item_id: 'cw-sec' });
+    var secBlocks = trainSessionState && trainSessionState.blocks;
+    var seeded = !!(secBlocks && secBlocks.length === 2
+      && secBlocks[0].shape === 'section' && secBlocks[0].title === 'Warm up'
+      && secBlocks[1].shape === 'section' && secBlocks[1].title === 'Round 1 - 12 boulders (EMOM)'
+      && secBlocks[0].notes === '' && secBlocks[1].complete === false);
+    var html0 = renderTrainBlockHtml(secBlocks[0], 0);
+    var html1 = renderTrainBlockHtml(secBlocks[1], 1);
+    var headerUsesTitle = html0.indexOf('Warm up') !== -1
+      && html1.indexOf('Round 1 - 12 boulders (EMOM)') !== -1
+      && html0.indexOf(' · section') === -1;
+    var notesBody = html0.indexOf('Coach notes') === -1;
+    seedTrainSessionFromItem({ id: 'lib-1', type: 'strength', name: 'Lib', description: 'desc' });
+    var missing = trainSessionState.blocks.length === 1 && trainSessionState.blocks[0].shape === 'circuit'
+      && trainSessionState.blocks[0].notes === 'desc';
+    seedTrainSessionFromItem({ id: 'lib-2', type: 'strength', name: 'Lib', description: 'desc', sections: [] });
+    var emptyArr = trainSessionState.blocks.length === 1 && trainSessionState.blocks[0].shape === 'circuit';
+    if(seeded && headerUsesTitle && notesBody && missing && emptyArr){
+      pass('Train session seeds section-shape blocks from workout template');
+    } else {
+      fail('Train session seeds section-shape blocks from workout template',
+        'seeded=' + seeded + ' header=' + headerUsesTitle + ' notesBody=' + notesBody +
+        ' missing=' + missing + ' emptyArr=' + emptyArr);
+    }
+    trainSessionState = null;
+    showScreen('screen-train');
+  }catch(e){ fail('Train session seeds section-shape blocks from workout template', e.message); }
 
   try{
     var empty = countMarkdownCheckboxes('');
