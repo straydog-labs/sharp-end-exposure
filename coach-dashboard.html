@@ -1835,7 +1835,8 @@
       name: fields.name,
       description: fields.description || null,
       created_by: coachUser.id,
-      type: fields.type
+      type: fields.type,
+      sections: fields.sections || null
     };
     return fetch(SB_URL + '/rest/v1/custom_workouts', {
       method: 'POST',
@@ -1911,9 +1912,65 @@
       assignDescription: '',
       dueDate: '',
       resourceLink: '',
-      libLoadError: null
+      libLoadError: null,
+      sections: []
     };
     _coachLibSelectedId = null;
+  }
+
+  function cleanedAssignWizardSections(){
+    var clean = (_assignWizard.sections || [])
+      .map(function(s){ return (s.label || '').trim(); })
+      .filter(Boolean);
+    return clean.length ? clean.map(function(label, i){ return { label: label, order: i }; }) : null;
+  }
+
+  function renderAssignWizardSectionsList(){
+    var wrap = document.getElementById('new-a-sections-list');
+    if(!wrap) return;
+    var sections = _assignWizard.sections || [];
+    if(!sections.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = sections.map(function(s, i){
+      return '<div class="aw-section-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">' +
+        '<input type="text" data-section-id="' + s.id + '" class="aw-section-label" value="' + escapeHtml(s.label || '') + '" placeholder="e.g. Round 1 — 12 boulders (EMOM)" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;">' +
+        '<button type="button" class="aw-section-up" data-i="' + i + '" ' + (i === 0 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↑</button>' +
+        '<button type="button" class="aw-section-down" data-i="' + i + '" ' + (i === sections.length - 1 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↓</button>' +
+        '<button type="button" class="aw-section-remove" data-i="' + i + '" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 4px;">Remove</button>' +
+        '</div>';
+    }).join('');
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-label'), function(input){
+      input.addEventListener('input', function(){
+        var s = _assignWizard.sections.find(function(x){ return x.id === input.getAttribute('data-section-id'); });
+        if(s) s.label = input.value;
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-up'), function(btn){
+      btn.addEventListener('click', function(){
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        if(i > 0){
+          var arr = _assignWizard.sections;
+          var tmp = arr[i - 1]; arr[i - 1] = arr[i]; arr[i] = tmp;
+          renderAssignWizardSectionsList();
+        }
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-down'), function(btn){
+      btn.addEventListener('click', function(){
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        var arr = _assignWizard.sections;
+        if(i < arr.length - 1){
+          var tmp = arr[i + 1]; arr[i + 1] = arr[i]; arr[i] = tmp;
+          renderAssignWizardSectionsList();
+        }
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-remove'), function(btn){
+      btn.addEventListener('click', function(){
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        _assignWizard.sections.splice(i, 1);
+        renderAssignWizardSectionsList();
+      });
+    });
   }
 
   function dueDateInputValue(d){
@@ -2312,7 +2369,12 @@
             escapeHtml(_assignWizard.drillName) + '"></div>' +
           '<div class="aw-field"><label for="new-a-lib-desc">Description</label>' +
             '<textarea id="new-a-lib-desc" placeholder="Optional protocol details">' +
-            escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>';
+            escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
+          '<div class="aw-field"><label>Session sections (optional)</label>' +
+            '<div class="form-note" style="margin:0 0 8px;">Build the checklist the athlete sees and checks off during the session — e.g. "Warm up", "Round 1 — 12 boulders (EMOM)", "Rest", "Round 2". Leave empty to fall back to a single free-text block, same as today.</div>' +
+            '<div id="new-a-sections-list"></div>' +
+            '<button type="button" id="new-a-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
+          '</div>';
         Array.prototype.forEach.call(body.querySelectorAll('#new-a-type-chips .aw-chip'), function(btn){
           btn.addEventListener('click', function(){
             _assignWizard.type = btn.getAttribute('data-type');
@@ -2339,6 +2401,15 @@
             });
           });
         });
+        renderAssignWizardSectionsList();
+        var addSecBtn = document.getElementById('new-a-section-add');
+        if(addSecBtn){
+          addSecBtn.addEventListener('click', function(){
+            _assignWizard.sections = _assignWizard.sections || [];
+            _assignWizard.sections.push({ id: 'sec-' + Date.now() + '-' + _assignWizard.sections.length, label: '' });
+            renderAssignWizardSectionsList();
+          });
+        }
         setAssignWizardFooter(
           '<button type="button" class="aw-next" id="wiz-next">Next →</button>' +
           '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
@@ -2576,7 +2647,8 @@
           category: _assignWizard.category,
           name: _assignWizard.drillName,
           description: (_assignWizard.libraryDescription || '').trim() || null,
-          type: _assignWizard.type
+          type: _assignWizard.type,
+          sections: cleanedAssignWizardSections()
         }).then(function(customRow){
           if(!customRow || !customRow.id) throw { message: 'Custom workout insert returned no id' };
           return applyEditPatch({ custom_workout_item_id: customRow.id });
@@ -2616,7 +2688,8 @@
       category: _assignWizard.category,
       name: _assignWizard.drillName,
       description: (_assignWizard.libraryDescription || '').trim() || null,
-      type: _assignWizard.type
+      type: _assignWizard.type,
+      sections: cleanedAssignWizardSections()
     }).then(function(customRow){
       if(!customRow || !customRow.id) throw { message: 'Custom workout insert returned no id' };
       var payload = {
