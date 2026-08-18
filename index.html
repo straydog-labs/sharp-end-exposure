@@ -434,6 +434,42 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   padding-top:14px;
   border-top:1px solid var(--border);
 }
+.train-section-complete{
+  background:none;
+  border:1px solid var(--border);
+  border-radius:99px;
+  color:var(--muted);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  padding:6px 10px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  flex-shrink:0;
+}
+.train-section-complete.on{
+  border-color:var(--comfort);
+  color:var(--comfort);
+}
+.train-note-preview{
+  min-height:120px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  padding:10px 12px;
+  font-size:13px;
+  line-height:1.5;
+  box-sizing:border-box;
+  pointer-events:none;
+}
+.train-note-preview p{margin:0 0 8px;}
+.train-note-preview p:last-child{margin-bottom:0;}
+.train-note-preview ul,.train-note-preview ol{margin:0 0 8px;padding-left:1.2em;}
+.train-note-preview input[type="checkbox"]{margin-right:6px;vertical-align:middle;}
+.train-block-card.is-complete,.train-section-card.is-complete{
+  border-color:rgba(126,200,122,.45);
+}
 .zone-arc-link-wrap{margin-top:10px;}
 .zone-arc-link{
   background:none;
@@ -2958,27 +2994,27 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <button type="button" class="train-energy-card" id="train-hub-card-start" onclick="showScreen('screen-train-start')">
           <div class="te-label">Session</div>
           <div class="te-title">Start a session</div>
-          <div class="te-sub">Energy systems, library, and plans</div>
+          <div class="te-sub">Browse or search</div>
         </button>
         <button type="button" class="train-energy-card" id="train-hub-card-recent" onclick="showScreen('screen-train-recent')">
           <div class="te-label">History</div>
           <div class="te-title">Recent sessions</div>
-          <div class="te-sub">What you have logged this week</div>
+          <div class="te-sub">This week's log</div>
         </button>
         <button type="button" class="train-energy-card" id="train-hub-card-assign" onclick="showScreen('screen-train-assignments')">
           <div class="te-label">Coach</div>
           <div class="te-title">Assignments from coach</div>
-          <div class="te-sub">Open plans and self-assigned work</div>
+          <div class="te-sub">Open plans</div>
         </button>
         <button type="button" class="train-energy-card" id="train-hub-card-goals" onclick="showScreen('screen-train-goals')">
           <div class="te-label">Focus</div>
           <div class="te-title">Training goals</div>
-          <div class="te-sub">Primary and secondary aims</div>
+          <div class="te-sub">Primary and secondary</div>
         </button>
         <button type="button" class="train-energy-card" id="train-hub-card-chat" onclick="showScreen('screen-train-chat')" style="grid-column:1 / -1;">
           <div class="te-label">Coach</div>
           <div class="te-title">Coach chat</div>
-          <div class="te-sub">Message your linked coach</div>
+          <div class="te-sub">Message your coach</div>
         </button>
       </div>
     </div>
@@ -2991,7 +3027,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
   </div>
   <div class="content">
-    <div class="screen-title">Start a session<span class="sub">Pick an energy system, or open the library.</span></div>
+    <div class="screen-title">Start a session<span class="sub">Pick a workout, or search.</span></div>
     <div class="insight-card" style="margin-top:8px;">
       <div class="insight-label" style="margin-bottom:6px;">Energy mix</div>
       <svg id="train-arc-svg" width="100%" viewBox="0 0 320 72" style="display:block;overflow:visible;">
@@ -3148,8 +3184,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
     </div>
 
-    <div class="insight-card" style="margin-bottom:12px;">
-      <div class="insight-label" style="margin-bottom:8px;">Warm up</div>
+    <div class="insight-card train-section-card" id="train-warmup-card" style="margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+        <div class="insight-label" style="margin:0;">Warm up</div>
+        <button type="button" class="train-section-complete" id="train-warmup-complete-btn" onclick="toggleTrainSectionComplete('warm_up')">Mark complete</button>
+      </div>
       <textarea id="train-sess-warmup" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
     </div>
 
@@ -3165,13 +3204,81 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
     <div id="train-blocks-wrap"></div>
 
-    <div class="insight-card" style="margin:12px 0;">
-      <div class="insight-label" style="margin-bottom:8px;">Cool down</div>
+    <div class="insight-card train-section-card" id="train-cooldown-card" style="margin:12px 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+        <div class="insight-label" style="margin:0;">Cool down</div>
+        <button type="button" class="train-section-complete" id="train-cooldown-complete-btn" onclick="toggleTrainSectionComplete('cool_down')">Mark complete</button>
+      </div>
       <textarea id="train-sess-cooldown" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
     </div>
 
     <div id="train-sess-msg" style="font-size:13px;color:var(--panic);min-height:18px;margin-bottom:8px;"></div>
     <button type="button" id="train-sess-save" onclick="saveTrainSession()" class="saw-next">Save session</button>
+  </div>
+</div>
+
+<div class="screen log-flow-screen" id="screen-train-done">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+  </div>
+  <div class="log-flow-body log-flow-done-body">
+    <div class="log-flow-done-header">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7ec87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" opacity=".25"/><polyline points="8 12 11 15 16 9"/></svg>
+      <div class="screen-title">Session logged</div>
+    </div>
+
+    <div class="insight-card log-done-summary-card">
+      <div class="log-done-summary-grade" id="train-done-title">—</div>
+      <div class="log-done-summary-meta" id="train-done-meta">Saved to your history</div>
+      <button class="log-done-add-note" id="train-done-add-note" type="button" onclick="trainFlowToggleReflection()">+ Add a note</button>
+      <div class="log-done-reflection-inline" id="train-reflection-panel" style="display:none;">
+      <div class="field-group" id="train-reflection-group">
+        <div id="train-refl-body" style="margin-top:0;">
+
+          <div style="margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What went well</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'went-well')">stayed present</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'went-well')">quality work</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'went-well')">finished the plan</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'went-well')">controlled breathing</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'went-well')">recovered well</button>
+            </div>
+            <textarea id="train-went-well-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+          </div>
+
+          <div style="margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">What to work on</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'still-learning')">pacing</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'still-learning')">rest between sets</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'still-learning')">form at the end</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'still-learning')">choosing loads</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'still-learning')">body tension</button>
+            </div>
+            <textarea id="train-still-learning-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything surprise you</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'surprised')">felt easier than expected</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'surprised')">faded sooner than I thought</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'surprised')">recovered differently</button>
+              <button class="chip refl-chip" onclick="toggleTrainReflChip(this,'surprised')">nothing surprised me</button>
+            </div>
+            <textarea id="train-surprised-text" placeholder="Anything else..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
+          </div>
+
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="log-flow-done-actions">
+      <button class="log-btn log-flow-cta ready" onclick="trainDoneAnother()">Log another session</button>
+      <button class="log-flow-skip-link" onclick="trainDoneHome()">Train</button>
+    </div>
   </div>
 </div>
 
@@ -4229,7 +4336,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index214'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index215'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4845,7 +4952,7 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
+  var navMap={'screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   // Load screen data
   if(id==='screen-sessions')loadClimbLog();
@@ -5777,7 +5884,7 @@ function checkLogReady(){
 // Insert BEFORE async function logClimb()
 // ═══════════════════════════════════════════════════════
 
-var logFlowState = { step: 1, activationTouched: false, activationScore: 6, modelZone: null, modelScore: null, adjustScore: null };
+var logFlowState = { step: 1, activationTouched: false, activationScore: 6, modelZone: null, modelScore: null, adjustScore: null, revealNeedsCal: false, revealExpectedScore: null, revealModelScore: null };
 
 function scoreToZone(score){
   return score <= 4 ? 'comfort' : score <= 9 ? 'learning' : 'panic';
@@ -5785,7 +5892,7 @@ function scoreToZone(score){
 
 function startLogFlow(){
   resetLogScreen();
-  logFlowState = { step: 1, activationTouched: false, activationScore: 6, modelZone: null, modelScore: null, adjustScore: null };
+  logFlowState = { step: 1, activationTouched: false, activationScore: 6, modelZone: null, modelScore: null, adjustScore: null, revealNeedsCal: false, revealExpectedScore: null, revealModelScore: null };
   logState.userActivationEstimate = null;
   window._sessionStartTime = Date.now();
   _resetLogFlowContinueButtons();
@@ -6366,8 +6473,13 @@ function showLogReveal(){
   }
   var dialWrap = document.getElementById('log-reveal-dial-wrap');
   if(dialWrap) dialWrap.style.display = 'none';
+  var staticG = document.getElementById('log-reveal-gauge');
+  if(staticG) staticG.style.display = '';
   showScreen('screen-log-reveal');
   var extraGhost = needsCal ? { score: expectedScore, label: 'Baseline expected' } : null;
+  logFlowState.revealNeedsCal = needsCal;
+  logFlowState.revealExpectedScore = expectedScore;
+  logFlowState.revealModelScore = modelScore;
   setTimeout(function(){
     buildActivationGauge('log-reveal-gauge', modelScore, 'confirmed', false, null, userScore, null, extraGhost);
   }, 50);
@@ -6392,11 +6504,24 @@ function logRevealAcceptModel(){
 function logRevealAdjustDial(){
   var wrap = document.getElementById('log-reveal-dial-wrap');
   if(wrap) wrap.style.display = 'block';
+  var staticG = document.getElementById('log-reveal-gauge');
+  if(staticG) staticG.style.display = 'none';
   var startScore = logFlowState.modelScore !== null ? logFlowState.modelScore : (window._zcScore !== undefined ? window._zcScore : 6);
+  var modelScore = logFlowState.revealModelScore != null ? logFlowState.revealModelScore : startScore;
+  var extraGhost = null;
+  if(logFlowState.revealNeedsCal && logFlowState.revealExpectedScore != null){
+    extraGhost = { score: logFlowState.revealExpectedScore, label: 'Baseline expected' };
+  } else {
+    var maps = getBaselineTerrainMaps();
+    var terrain = logState && logState.terrain;
+    if(terrainNeedsBaselineCalibration(terrain, maps.state, maps.cal)){
+      extraGhost = { score: mapBaselineExpectationToScore(maps.state[terrain]), label: 'Baseline expected' };
+    }
+  }
   setTimeout(function(){
     buildActivationGauge('log-reveal-adjust-gauge', startScore, 'manual', true, function(score){
       logFlowState.adjustScore = score;
-    }, null, { premium: true, snapHalf: true, flowDial: true });
+    }, modelScore, { premium: true, snapHalf: true, flowDial: true }, extraGhost);
   }, 50);
 }
 
@@ -8343,6 +8468,8 @@ var _trainPickerItems = [];
 var _trainPickerCategory = 'all';
 var _isCoachUser = false;
 var trainSessionState = null;
+var _lastTrainSessionId = null;
+var _trainDoneSnapshot = null;
 
 function uid(){
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
@@ -8763,6 +8890,8 @@ function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
     ended_at: null,
     warm_up: '',
     cool_down: '',
+    warm_up_complete: false,
+    cool_down_complete: false,
     blocks: [],
     seed_description: seedDesc || '',
     // XOR: at most one library reference (DB constraint on assignments)
@@ -8794,6 +8923,7 @@ function seedTrainSessionFromItem(item, sourceMeta){
     exercises: [],
     rounds: 1,
     notes: item.description || '',
+    complete: false,
     attempts: []
   });
   showScreen('screen-train-session');
@@ -8857,7 +8987,7 @@ function trainAddBlockMenu(){
 
 function trainAddBlock(shape){
   if(!trainSessionState) return;
-  var block = { id: uid(), shape: shape, title: '', rest_after_sec: 120, attempts: [] };
+  var block = { id: uid(), shape: shape, title: '', rest_after_sec: 120, complete: false, attempts: [] };
   if(shape === 'interval'){
     block.work_sec = 120; block.rest_sec = 120; block.target_sets = 12;
     block.groups = [{ sets: 6, rest_after_sec: 300 }, { sets: 6, rest_after_sec: 0 }];
@@ -8912,6 +9042,8 @@ function renderTrainSessionBuilder(){
   if(e && trainSessionState.ended_at && !e.value) e.value = toLocalInputValue(trainSessionState.ended_at);
   if(w) w.value = trainSessionState.warm_up || '';
   if(c) c.value = trainSessionState.cool_down || '';
+  paintTrainSectionComplete('train-warmup-complete-btn', 'train-warmup-card', !!trainSessionState.warm_up_complete);
+  paintTrainSectionComplete('train-cooldown-complete-btn', 'train-cooldown-card', !!trainSessionState.cool_down_complete);
   var wrap = document.getElementById('train-blocks-wrap');
   if(!wrap) return;
   if(!trainSessionState.blocks.length){
@@ -8924,10 +9056,13 @@ function renderTrainSessionBuilder(){
 }
 
 function renderTrainBlockHtml(b, bi){
-  var head = '<div class="train-block-card" data-block-id="'+b.id+'">'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+  var done = !!b.complete;
+  var head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">'
     + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+escTrainHtml(b.shape.replace(/_/g,' '))+'</div>'
-    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div>';
+    + '<div style="display:flex;align-items:center;gap:8px;">'
+    + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
+    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div></div>';
   var body = '';
   if(b.shape === 'interval'){
     body = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
@@ -8976,12 +9111,25 @@ function renderTrainBlockHtml(b, bi){
   return head + body + '</div>';
 }
 
+function renderTrainNotePreview(text){
+  if(!text) return '<div style="font-size:13px;color:var(--muted);">Notes</div>';
+  if(typeof renderLibraryMarkdown === 'function'){
+    return renderLibraryMarkdown(text);
+  }
+  var esc = escTrainHtml(String(text));
+  esc = esc.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  esc = esc.replace(/^(?:-\s+\[ \]\s+)(.*)$/gm, '<div><input type="checkbox" disabled> $1</div>');
+  esc = esc.replace(/^(?:-\s+\[[xX]\]\s+)(.*)$/gm, '<div><input type="checkbox" checked disabled> $1</div>');
+  return esc.replace(/\n/g, '<br>');
+}
+
 function trainBlockNoteField(id, placeholder, value){
   return '<div style="margin-top:8px;">'
     + '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;">'
     + '<button type="button" onclick="expandTrainBlockNote(\''+id+'\')" style="background:none;border:none;color:var(--accent);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;padding:0;">Expand</button>'
     + '</div>'
-    + '<textarea id="'+id+'" placeholder="'+escTrainHtml(placeholder)+'" style="width:100%;min-height:120px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;box-sizing:border-box;resize:vertical;">'+escTrainHtml(value||'')+'</textarea>'
+    + '<div class="train-note-preview" id="'+id+'-preview">'+renderTrainNotePreview(value||'')+'</div>'
+    + '<textarea id="'+id+'" placeholder="'+escTrainHtml(placeholder)+'" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">'+escTrainHtml(value||'')+'</textarea>'
     + '</div>';
 }
 
@@ -8996,16 +9144,25 @@ function expandTrainBlockNote(textareaId){
   overlay.onclick = function(e){ if(e.target===overlay) closeTrainBlockNoteExpand(); };
   overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;box-sizing:border-box;max-height:90vh;display:flex;flex-direction:column;">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
-    + '<div style="font-size:13px;font-weight:700;color:var(--muted);">Edit notes</div>'
+    + '<div style="font-size:13px;font-weight:700;color:var(--muted);">Notes</div>'
     + '<button type="button" onclick="closeTrainBlockNoteExpand()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>'
     + '</div>'
-    + '<textarea id="train-note-expand-ta" style="width:100%;min-height:50vh;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);padding:12px;font-family:inherit;font-size:15px;line-height:1.5;box-sizing:border-box;resize:vertical;"></textarea>'
+    + '<div id="train-note-expand-preview" class="train-note-preview" style="min-height:28vh;max-height:36vh;overflow:auto;margin-bottom:12px;pointer-events:none;"></div>'
+    + '<textarea id="train-note-expand-ta" style="width:100%;min-height:22vh;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);padding:12px;font-family:inherit;font-size:15px;line-height:1.5;box-sizing:border-box;resize:vertical;"></textarea>'
     + '<button type="button" onclick="closeTrainBlockNoteExpand()" style="margin-top:12px;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:\'Space Grotesk\',sans-serif;font-size:14px;font-weight:700;padding:12px 16px;cursor:pointer;">Done</button>'
     + '</div>';
   document.body.appendChild(overlay);
   overlay.dataset.targetId = textareaId;
   var big = document.getElementById('train-note-expand-ta');
-  if(big){ big.value = ta.value; setTimeout(function(){ big.focus(); }, 50); }
+  var prev = document.getElementById('train-note-expand-preview');
+  if(big){
+    big.value = ta.value;
+    if(prev) prev.innerHTML = renderTrainNotePreview(big.value);
+    big.addEventListener('input', function(){
+      if(prev) prev.innerHTML = renderTrainNotePreview(big.value);
+    });
+    setTimeout(function(){ big.focus(); }, 50);
+  }
 }
 
 function closeTrainBlockNoteExpand(){
@@ -9014,8 +9171,37 @@ function closeTrainBlockNoteExpand(){
   var targetId = overlay.dataset.targetId;
   var big = document.getElementById('train-note-expand-ta');
   var ta = targetId ? document.getElementById(targetId) : null;
-  if(ta && big) ta.value = big.value;
+  if(ta && big){
+    ta.value = big.value;
+    var compact = document.getElementById(targetId + '-preview');
+    if(compact) compact.innerHTML = renderTrainNotePreview(big.value);
+  }
   overlay.remove();
+}
+
+function paintTrainSectionComplete(btnId, cardId, on){
+  var btn = document.getElementById(btnId);
+  if(btn){
+    btn.classList.toggle('on', !!on);
+    btn.textContent = on ? 'Complete' : 'Mark complete';
+  }
+  var card = document.getElementById(cardId);
+  if(card) card.classList.toggle('is-complete', !!on);
+}
+
+function toggleTrainSectionComplete(key){
+  if(!trainSessionState) return;
+  syncTrainSessionFieldsFromDom();
+  collectTrainBlockFields();
+  if(key === 'warm_up'){
+    trainSessionState.warm_up_complete = !trainSessionState.warm_up_complete;
+  } else if(key === 'cool_down'){
+    trainSessionState.cool_down_complete = !trainSessionState.cool_down_complete;
+  } else {
+    var b = trainSessionState.blocks.find(function(x){ return x.id === key; });
+    if(b) b.complete = !b.complete;
+  }
+  renderTrainSessionBuilder();
 }
 
 function fieldHtml(label, id, val){
@@ -9146,8 +9332,124 @@ async function saveTrainSession(){
 
   if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
   if(msg) msg.textContent = '';
-  showToast('Session saved ✓');
+  var endedAt = payload.ended_at;
+  _lastTrainSessionId = trainSessionState.id;
+  _trainDoneSnapshot = {
+    id: trainSessionState.id,
+    title: trainSessionState.title,
+    energy_type: trainSessionState.energy_type,
+    started_at: trainSessionState.started_at,
+    ended_at: endedAt,
+    blockCount: (trainSessionState.blocks || []).length,
+    warm_up_complete: !!trainSessionState.warm_up_complete,
+    cool_down_complete: !!trainSessionState.cool_down_complete
+  };
   trainSessionState = null;
+  populateTrainDoneScreen(_trainDoneSnapshot, true);
+  showScreen('screen-train-done');
+}
+
+function formatTrainDuration(start, end){
+  var ms = new Date(end) - new Date(start);
+  if(!(ms > 0) || isNaN(ms)) return null;
+  var min = Math.round(ms / 60000);
+  if(min < 1) return 'under a minute';
+  if(min < 60) return min + ' min';
+  var h = Math.floor(min / 60);
+  var m = min % 60;
+  return m ? (h + 'h ' + m + ' min') : (h + 'h');
+}
+
+function populateTrainDoneScreen(snap, resetReflection){
+  snap = snap || _trainDoneSnapshot || {};
+  var titleEl = document.getElementById('train-done-title');
+  var metaEl = document.getElementById('train-done-meta');
+  var noteBtn = document.getElementById('train-done-add-note');
+  var panel = document.getElementById('train-reflection-panel');
+  var energy = workoutTypeLabel(snap.energy_type) || snap.title || 'Session';
+  if(titleEl) titleEl.textContent = energy;
+  if(metaEl){
+    var bits = [];
+    var dur = formatTrainDuration(snap.started_at, snap.ended_at);
+    if(dur) bits.push(dur);
+    var n = snap.blockCount || 0;
+    bits.push(n + ' block' + (n === 1 ? '' : 's'));
+    metaEl.textContent = bits.join(' · ');
+  }
+  if(resetReflection){
+    if(panel) panel.style.display = 'none';
+    if(noteBtn) noteBtn.style.display = '';
+    var body = document.getElementById('train-refl-body');
+    if(body) body.style.display = 'none';
+    ['train-went-well-text','train-still-learning-text','train-surprised-text'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+    document.querySelectorAll('#train-reflection-group .refl-chip.selected').forEach(function(b){
+      b.classList.remove('selected');
+    });
+  }
+}
+
+function trainFlowToggleReflection(){
+  var panel = document.getElementById('train-reflection-panel');
+  var noteBtn = document.getElementById('train-done-add-note');
+  var body = document.getElementById('train-refl-body');
+  if(!panel) return;
+  var opening = panel.style.display === 'none' || !panel.style.display;
+  panel.style.display = opening ? 'block' : 'none';
+  if(body) body.style.display = opening ? 'block' : 'none';
+  if(noteBtn) noteBtn.style.display = opening ? 'none' : '';
+  if(opening){
+    var firstInput = document.getElementById('train-went-well-text');
+    if(firstInput) setTimeout(function(){ firstInput.focus(); }, 100);
+  }
+}
+
+function toggleTrainReflChip(btn, group){
+  btn.classList.toggle('selected');
+  var textareaId = 'train-' + group + '-text';
+  var ta = document.getElementById(textareaId);
+  if(!ta) return;
+  var selectedChips = Array.from(document.querySelectorAll('#train-reflection-group .refl-chip.selected[onclick*="'+group+'"]'))
+    .map(function(b){ return b.textContent.trim(); });
+  var extra = ta.dataset.extra || '';
+  ta.value = selectedChips.concat(extra ? [extra] : []).filter(Boolean).join(', ');
+}
+
+function _trainFlowReflectionFields(){
+  function chips(group){
+    return Array.from(document.querySelectorAll('#train-reflection-group .refl-chip.selected[onclick*="'+group+'"]'))
+      .map(function(b){ return b.textContent.trim(); }).join(', ');
+  }
+  return {
+    went_well: ((document.getElementById('train-went-well-text') || {}).value || '').trim() || chips('went-well') || '',
+    still_learning: ((document.getElementById('train-still-learning-text') || {}).value || '').trim() || chips('still-learning') || '',
+    surprised_by: ((document.getElementById('train-surprised-text') || {}).value || '').trim() || chips('surprised') || ''
+  };
+}
+
+async function trainFlowSaveReflectionIfFilled(){
+  if(!_lastTrainSessionId) return;
+  var refl = _trainFlowReflectionFields();
+  var hasAny = refl.went_well || refl.still_learning || refl.surprised_by;
+  if(!hasAny) return;
+  var snap = _trainDoneSnapshot || {};
+  var title = snap.title || workoutTypeLabel(snap.energy_type) || 'Session';
+  var parts = [title];
+  if(refl.went_well) parts.push('What went well: ' + refl.went_well);
+  if(refl.still_learning) parts.push('What to work on: ' + refl.still_learning);
+  if(refl.surprised_by) parts.push('Anything surprise you: ' + refl.surprised_by);
+  await sbU('training_sessions', 'id=eq.' + _lastTrainSessionId, { notes: parts.join('\n\n') });
+}
+
+async function trainDoneAnother(){
+  await trainFlowSaveReflectionIfFilled();
+  startBlankTrainSession();
+}
+
+async function trainDoneHome(){
+  await trainFlowSaveReflectionIfFilled();
   showScreen('screen-train');
 }
 
@@ -13678,6 +13980,9 @@ function seedAuditScreenState(screenId){
     var body = document.getElementById('refl-body');
     if(body) body.style.display = 'none';
   }
+  if(screenId === 'screen-train-done'){
+    populateTrainDoneScreen(_trainDoneSnapshot || { energy_type: 'strength', blockCount: 1 }, true);
+  }
   if(screenId === 'screen-log-terrain'){
     var terrainChip = document.querySelector('#screen-log-terrain .terrain-chips .chip');
     if(terrainChip && !logState.terrain) selectTerrain(terrainChip, terrainChip.textContent.trim());
@@ -13716,7 +14021,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals'
   ];
 
   function shouldSkip(onclick){
@@ -14648,7 +14953,7 @@ async function runSEETests(){
     var finishSrc = String(finishLogFlowToDone);
     var extraGhostFn = /extraGhost/.test(String(buildActivationGauge)) && /8 4/.test(String(buildActivationGauge));
     var sameDial = /premium:\s*true/.test(adjustSrc) && /snapHalf:\s*true/.test(adjustSrc) && /flowDial:\s*true/.test(adjustSrc)
-      && adjustSrc.indexOf('extraGhost') === -1;
+      && /extraGhost/.test(adjustSrc) && /revealModelScore|modelScore/.test(adjustSrc);
     var patchesBoth = /baseline_terrain_state/.test(persistSrc) && /baseline_terrain_calibrated/.test(persistSrc) && /sbU/.test(persistSrc);
     var saveWritesCal = /baseline_terrain_calibrated/.test(String(saveBaseline));
     var drillClean = String(startPostClimbCheckin).indexOf('maybeShowBaselineCalibration') === -1
@@ -14888,42 +15193,91 @@ async function runSEETests(){
     var landingLean = !document.querySelector('#screen-train #train-energy-grid')
       && !document.querySelector('#screen-train #train-goals-section')
       && !document.querySelector('#screen-train #coach-chat-section');
-    if(cardsOk && screensOk && hooksOk && energyOnStart && goalsOnSub && chatOnSub && listOnRecent && listOnAssign && landingLean){
+    var startSub = ((document.querySelector('#screen-train-start .screen-title .sub') || {}).textContent || '').trim();
+    var startCopyOk = startSub === 'Pick a workout, or search.';
+    var hubSubs = hubIds.map(function(id){
+      var el = document.querySelector('#' + id + ' .te-sub');
+      return el ? (el.textContent || '').trim() : '';
+    });
+    var terseOk = hubSubs.every(function(t){ return t && t.split(/\s+/).length <= 5; })
+      && hubSubs[0] === 'Browse or search'
+      && hubSubs[2] === 'Open plans';
+    if(cardsOk && screensOk && hooksOk && energyOnStart && goalsOnSub && chatOnSub && listOnRecent && listOnAssign && landingLean && startCopyOk && terseOk){
       pass('Train hub 5-card landing + drill-downs');
     } else {
       fail('Train hub 5-card landing + drill-downs',
         'cards=' + cardsOk + ' screens=' + screensOk + ' hooks=' + hooksOk +
         ' energy=' + energyOnStart + ' goals=' + goalsOnSub + ' chat=' + chatOnSub +
-        ' recent=' + listOnRecent + ' assign=' + listOnAssign + ' lean=' + landingLean);
+        ' recent=' + listOnRecent + ' assign=' + listOnAssign + ' lean=' + landingLean +
+        ' startCopy=' + startCopyOk + ' terse=' + terseOk + ' subs=' + hubSubs.join('|'));
     }
   }catch(e){ fail('Train hub 5-card landing + drill-downs', e.message); }
 
   try{
     var field = trainBlockNoteField('tb-test-notes', 'Round notes', 'hello **md**');
-    var fieldOk = /min-height:120px/.test(field) && /expandTrainBlockNote\('tb-test-notes'\)/.test(field)
-      && />Expand</.test(field) && /resize:vertical/.test(field);
+    var fieldOk = /train-note-preview/.test(field) && /expandTrainBlockNote\('tb-test-notes'\)/.test(field)
+      && />Expand</.test(field) && /<strong>md<\/strong>|<b>md<\/b>/.test(field);
     var usesField = /trainBlockNoteField\('tb-'\+b\.id\+'-notes'/.test(String(renderTrainBlockHtml))
       && /trainBlockNoteField\('tb-'\+b\.id\+'-cnotes'/.test(String(renderTrainBlockHtml))
       && /trainBlockNoteField\('tb-'\+b\.id\+'-prog'/.test(String(renderTrainBlockHtml));
+    var mdPrev = renderTrainNotePreview('**Density hangs for max force.**\n\n- [ ] Grip 1 complete');
+    var mdOk = /<(strong|b)>Density hangs/.test(mdPrev) && /type="checkbox"/.test(mdPrev)
+      && mdPrev.indexOf('**') === -1 && mdPrev.indexOf('- [ ]') === -1;
     var host = document.createElement('div');
     host.innerHTML = field;
     document.body.appendChild(host);
     expandTrainBlockNote('tb-test-notes');
     var overlay = document.getElementById('train-note-expand-overlay');
     var big = document.getElementById('train-note-expand-ta');
-    var opened = !!(overlay && big && big.value === 'hello **md**');
+    var expPrev = document.getElementById('train-note-expand-preview');
+    var opened = !!(overlay && big && big.value === 'hello **md**' && expPrev && /<(strong|b)>md</.test(expPrev.innerHTML));
     if(big) big.value = 'updated notes';
     closeTrainBlockNoteExpand();
     var srcTa = document.getElementById('tb-test-notes');
-    var wroteBack = !!(srcTa && srcTa.value === 'updated notes' && !document.getElementById('train-note-expand-overlay'));
+    var compact = document.getElementById('tb-test-notes-preview');
+    var wroteBack = !!(srcTa && srcTa.value === 'updated notes' && compact && compact.textContent.indexOf('updated notes') !== -1 && !document.getElementById('train-note-expand-overlay'));
     host.remove();
-    if(fieldOk && usesField && opened && wroteBack){
+    if(fieldOk && usesField && mdOk && opened && wroteBack){
       pass('Train block-notes expand modal');
     } else {
       fail('Train block-notes expand modal',
-        'field=' + fieldOk + ' uses=' + usesField + ' open=' + opened + ' write=' + wroteBack);
+        'field=' + fieldOk + ' uses=' + usesField + ' md=' + mdOk + ' open=' + opened + ' write=' + wroteBack);
     }
   }catch(e){ fail('Train block-notes expand modal', e.message); }
+
+  try{
+    var doneScreen = document.getElementById('screen-train-done');
+    var doneOk = !!(doneScreen && document.querySelector('#screen-train-done .log-flow-done-header')
+      && document.getElementById('train-done-add-note')
+      && document.getElementById('train-reflection-panel')
+      && document.getElementById('train-went-well-text')
+      && document.getElementById('train-still-learning-text')
+      && document.getElementById('train-surprised-text'));
+    var saveSrc = String(saveTrainSession);
+    var navOk = /screen-train-done/.test(saveSrc) && /populateTrainDoneScreen/.test(saveSrc)
+      && saveSrc.indexOf("showToast('Session saved") === -1;
+    var prevSess = trainSessionState;
+    var st = newTrainSessionState('strength');
+    var flagsOk = st.warm_up_complete === false && st.cool_down_complete === false;
+    trainSessionState = st;
+    trainAddBlock('circuit');
+    var blockFlag = trainSessionState.blocks[0] && trainSessionState.blocks[0].complete === false;
+    toggleTrainSectionComplete('warm_up');
+    var warmOn = trainSessionState.warm_up_complete === true;
+    toggleTrainSectionComplete(trainSessionState.blocks[0].id);
+    var blockOn = trainSessionState.blocks[0].complete === true;
+    var htmlHasToggle = /toggleTrainSectionComplete/.test(renderTrainBlockHtml(trainSessionState.blocks[0], 0));
+    var toggleSrc = String(toggleTrainSectionComplete);
+    var noGate = toggleSrc.indexOf('saveTrainSession') === -1;
+    trainSessionState = prevSess;
+    if(doneOk && navOk && flagsOk && blockFlag && warmOn && blockOn && htmlHasToggle && noGate){
+      pass('Train session complete + section toggles');
+    } else {
+      fail('Train session complete + section toggles',
+        'done=' + doneOk + ' nav=' + navOk + ' flags=' + flagsOk + ' blockFlag=' + blockFlag +
+        ' warm=' + warmOn + ' blockOn=' + blockOn + ' html=' + htmlHasToggle + ' noGate=' + noGate);
+    }
+  }catch(e){ fail('Train session complete + section toggles', e.message); }
 
   try{
     var resCards = document.querySelectorAll('#screen-research .res-card');
