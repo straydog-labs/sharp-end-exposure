@@ -358,22 +358,33 @@
 
   /* ---------- Coach ↔ athlete chat ---------- */
   .chat-thread{
-    max-height:320px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);
-    border-radius:8px;padding:12px;margin-bottom:12px;
+    max-height:360px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);
+    border-radius:8px;padding:14px;margin-bottom:12px;
+    display:flex;flex-direction:column;
   }
   .chat-empty{font-size:12.5px;color:var(--text-secondary);padding:8px 2px;}
-  .chat-msg{margin-bottom:12px;}
+  .chat-msg{display:flex;flex-direction:column;max-width:78%;margin-bottom:10px;}
   .chat-msg:last-child{margin-bottom:0;}
+  .chat-msg.mine{align-self:flex-end;align-items:flex-end;}
+  .chat-msg:not(.mine){align-self:flex-start;align-items:flex-start;}
+  .chat-msg.grouped{margin-top:-6px;}
+  .chat-msg.grouped .chat-msg-meta{display:none;}
   .chat-msg-meta{
-    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
-    font-size:11px;color:var(--text-secondary);margin-bottom:4px;
+    display:flex;align-items:baseline;gap:8px;
+    font-size:10.5px;color:var(--text-secondary);margin-bottom:3px;padding:0 3px;
   }
   .chat-msg-who{font-weight:700;color:var(--text);}
   .chat-msg.mine .chat-msg-who{color:var(--accent);}
-  .chat-msg-time{font-size:10.5px;}
-  .chat-msg-body{font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
-  .chat-msg-body a{color:var(--accent);text-decoration:none;}
-  .chat-msg-body a:hover{text-decoration:underline;}
+  .chat-msg-time{font-size:10px;}
+  .chat-msg-bubble{
+    font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+    padding:9px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--border);
+  }
+  .chat-msg.mine .chat-msg-bubble{
+    background:rgba(232,146,82,.16);border-color:rgba(232,146,82,.35);
+  }
+  .chat-msg-bubble a{color:var(--accent);text-decoration:none;}
+  .chat-msg-bubble a:hover{text-decoration:underline;}
   .chat-compose{display:flex;gap:8px;align-items:flex-end;}
   .chat-compose textarea{
     flex:1;min-height:44px;max-height:120px;resize:vertical;background:var(--bg);
@@ -382,6 +393,24 @@
   }
   .chat-compose textarea:focus{border-color:var(--accent);}
   .chat-compose .btn-primary{flex-shrink:0;}
+
+  .coach-note-hint{font-size:11.5px;color:var(--text-secondary);margin-bottom:10px;}
+  .coach-note-list{margin-bottom:14px;}
+  .coach-note-item{
+    background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    padding:10px 12px;margin-bottom:8px;
+  }
+  .coach-note-item:last-child{margin-bottom:0;}
+  .coach-note-meta{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px;}
+  .coach-note-title{font-weight:700;font-size:13px;color:var(--text);}
+  .coach-note-time{font-size:10.5px;color:var(--text-secondary);}
+  .coach-note-body{font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;color:var(--text);}
+  .coach-note-form input,.coach-note-form textarea{
+    width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+    padding:9px 11px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;
+    outline:none;margin-bottom:8px;box-sizing:border-box;
+  }
+  .coach-note-form input:focus,.coach-note-form textarea:focus{border-color:var(--accent);}
 
   .assign-resource{margin-bottom:8px;}
   .assign-resource a{font-size:12px;color:var(--accent);text-decoration:none;}
@@ -1334,6 +1363,7 @@
       '<div class="detail-section" id="detail-baseline"><div class="panel-title">Baseline</div><div>Loading···</div></div>' +
       '<div class="detail-section" id="detail-new-assignment"></div>' +
       '<div class="detail-section" id="detail-sessions"><div class="panel-title">Journal</div><div>Loading···</div></div>' +
+      '<div class="detail-section" id="detail-coach-notes"><div class="panel-title">Coach\'s Notes (private)</div><div>Loading···</div></div>' +
       '<div class="detail-section" id="detail-chat"></div>';
 
     loadAssignments(token, coachUser, athleteId);
@@ -1341,6 +1371,7 @@
     loadAthleteBaseline(token, coachUser, athleteId);
     renderNewAssignmentForm(token, coachUser, athleteId, title);
     loadAthleteSessions(token, coachUser, athleteId, title);
+    loadAthleteCoachNotes(token, coachUser, athleteId);
     renderChatSection(token, coachUser, athleteId, title);
   }
 
@@ -3052,15 +3083,77 @@
     });
   }
 
-  function chatMessageHtml(m, coachUserId, athleteLabel){
+  function loadAthleteCoachNotes(token, coachUser, athleteId){
+    var el = document.getElementById('detail-coach-notes');
+    if(!el) return;
+    el.innerHTML = '<div class="panel-title">Coach\'s Notes (private)</div><div>Loading···</div>';
+    sbSelect(token, 'coach_athlete_notes',
+      'select=id,title,body,created_at&coach_id=eq.' + coachUser.id +
+      '&athlete_id=eq.' + athleteId + '&order=created_at.desc'
+    ).then(function(rows){
+      renderCoachAthleteNotes(el, rows || [], token, coachUser, athleteId);
+    }).catch(function(err){
+      var isMissingTable = err && (err.code === 'PGRST205' || err.code === '42P01');
+      el.innerHTML = '<div class="panel-title">Coach\'s Notes (private)</div><div class="form-error">' +
+        (isMissingTable ? 'The <code>coach_athlete_notes</code> table isn\'t available yet.' :
+        'Failed to load — ' + escapeHtml((err && err.message) || 'unknown error')) + '</div>';
+    });
+  }
+
+  function renderCoachAthleteNotes(el, notes, token, coachUser, athleteId){
+    var list = notes.length
+      ? notes.map(function(n){
+          return '<div class="coach-note-item">' +
+            '<div class="coach-note-meta"><span class="coach-note-title">' + escapeHtml(n.title || 'Untitled') + '</span>' +
+            '<span class="coach-note-time mono">' + fmtChatTime(n.created_at) + '</span></div>' +
+            '<div class="coach-note-body">' + escapeHtml(n.body || '') + '</div>' +
+          '</div>';
+        }).join('')
+      : '<div class="form-note">No notes yet — private to you, never visible to the athlete.</div>';
+
+    el.innerHTML = '<div class="panel-title">Coach\'s Notes (private)</div>' +
+      '<div class="coach-note-hint">Only you can see this — use it for call recaps, anything you don\'t want the athlete seeing.</div>' +
+      '<div class="coach-note-list">' + list + '</div>' +
+      '<div class="coach-note-form">' +
+        '<input type="text" id="coach-note-title" placeholder="Title (e.g. \'Aug PC call\')" />' +
+        '<textarea id="coach-note-body" rows="3" placeholder="Notes..."></textarea>' +
+        '<button type="button" class="btn-primary" id="coach-note-save">Save note</button>' +
+        '<div id="coach-note-msg"></div>' +
+      '</div>';
+
+    document.getElementById('coach-note-save').addEventListener('click', function(){
+      var titleEl = document.getElementById('coach-note-title');
+      var bodyEl = document.getElementById('coach-note-body');
+      var msgEl = document.getElementById('coach-note-msg');
+      var body = (bodyEl.value || '').trim();
+      if(!body){ msgEl.innerHTML = '<div class="form-error">Note text is required.</div>'; return; }
+      fetch(SB_URL + '/rest/v1/coach_athlete_notes', {
+        method: 'POST',
+        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+        body: JSON.stringify({
+          coach_id: coachUser.id,
+          athlete_id: athleteId,
+          title: (titleEl.value || '').trim() || null,
+          body: body
+        })
+      }).then(function(res){
+        if(!res.ok) return res.json().then(function(err){ throw err; });
+        return loadAthleteCoachNotes(token, coachUser, athleteId);
+      }).catch(function(err){
+        msgEl.innerHTML = '<div class="form-error">Failed to save — ' + escapeHtml((err && err.message) || 'unknown error') + '</div>';
+      });
+    });
+  }
+
+  function chatMessageHtml(m, coachUserId, athleteLabel, grouped){
     var mine = m.sender_id === coachUserId;
     var who = mine ? 'You' : (athleteLabel || 'Athlete');
-    return '<div class="chat-msg' + (mine ? ' mine' : '') + '">' +
+    return '<div class="chat-msg' + (mine ? ' mine' : '') + (grouped ? ' grouped' : '') + '">' +
       '<div class="chat-msg-meta">' +
         '<span class="chat-msg-who">' + escapeHtml(who) + '</span>' +
         '<span class="chat-msg-time mono">' + fmtChatTime(m.created_at) + '</span>' +
       '</div>' +
-      '<div class="chat-msg-body">' + linkifyHttpText(m.body || '') + '</div>' +
+      '<div class="chat-msg-bubble">' + linkifyHttpText(m.body || '') + '</div>' +
     '</div>';
   }
 
@@ -3145,8 +3238,10 @@
       if(!_coachChatMessages.length){
         thread.innerHTML = '<div class="chat-empty">No messages yet. Say hello.</div>';
       } else {
-        thread.innerHTML = _coachChatMessages.map(function(m){
-          return chatMessageHtml(m, coachUser.id, athleteLabel);
+        thread.innerHTML = _coachChatMessages.map(function(m, i){
+          var prev = _coachChatMessages[i - 1];
+          var grouped = !!(prev && prev.sender_id === m.sender_id);
+          return chatMessageHtml(m, coachUser.id, athleteLabel, grouped);
         }).join('');
         thread.scrollTop = thread.scrollHeight;
       }
