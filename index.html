@@ -3516,7 +3516,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="screen-title">Add a protocol<span class="sub">Coaches' protocols are shared with everyone. If you're not a coach, what you add here is private to you.</span></div>
     <div class="insight-card" style="margin-top:16px;">
       <div class="field-group">
-        <!-- Locked training_focus taxonomy (build 219) — one field, 9 values -->
+        <!-- Locked training_focus taxonomy (build 220) — one field, 10 values -->
         <div class="field-label">Training focus</div>
         <div id="wl-new-focus-chips" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
         <input type="hidden" id="wl-new-focus" value="">
@@ -4480,7 +4480,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index219'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index220'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -8141,7 +8141,7 @@ function countMarkdownCheckboxes(text){
 // ═══════════════════════════════════════════════════════
 // SELF-ASSIGN WIZARD — athlete port of coach New assignment.
 // 4 steps: focus -> item/create -> customize -> schedule.
-// Locked taxonomy is TRAINING_FOCUS_VALUES (9). Old type/category columns
+// Locked taxonomy is TRAINING_FOCUS_VALUES (10). Old type/category columns
 // stay on disk but new code reads/writes training_focus.
 // ═══════════════════════════════════════════════════════
 var TRAINING_FOCUS_VALUES = [
@@ -8153,7 +8153,8 @@ var TRAINING_FOCUS_VALUES = [
   'Mobility & Flexibility',
   'Technique & Footwork',
   'Cardio & Capacity',
-  'Mental/Other'
+  'Mental/Other',
+  'Warm-Ups'
 ];
 
 var TRAINING_FOCUS_META = {
@@ -8165,7 +8166,8 @@ var TRAINING_FOCUS_META = {
   'Mobility & Flexibility': { label: 'Prep', sub: 'Range and tissue' },
   'Technique & Footwork': { label: 'Skill', sub: 'Movement quality' },
   'Cardio & Capacity': { label: 'Engine', sub: 'Sustained work' },
-  'Mental/Other': { label: 'Other', sub: 'Mental and off-wall' }
+  'Mental/Other': { label: 'Other', sub: 'Mental and off-wall' },
+  'Warm-Ups': { label: 'Warm', sub: 'Pre-session activation' }
 };
 
 function normalizeTrainingFocus(value){
@@ -14883,9 +14885,13 @@ async function runSEETests(){
   try{
     var wizFns = ['startSelfAssignWizard','closeSelfAssignWizard','submitSelfAssignWizard','renderSelfAssignWizardBody','isLockedTrainingFocus','normalizeTrainingFocus','drillsForFocus','pickSelfAssignFocus','isLockedWorkoutCategory','normalizeWorkoutCategory','categoriesWithDrillsForType','pickSelfAssignCategory'];
     var missingWiz = wizFns.filter(function(f){ return typeof window[f] !== 'function'; });
-    var lockedOk = Array.isArray(TRAINING_FOCUS_VALUES) && TRAINING_FOCUS_VALUES.length === 9 &&
+    var lockedOk = Array.isArray(TRAINING_FOCUS_VALUES) && TRAINING_FOCUS_VALUES.length === 10 &&
       isLockedTrainingFocus('Hangboard') && isLockedTrainingFocus('Cardio & Capacity') &&
-      isLockedTrainingFocus('Mental/Other') && normalizeTrainingFocus('boulders') === 'Boulders' &&
+      isLockedTrainingFocus('Mental/Other') && isLockedTrainingFocus('Warm-Ups') &&
+      TRAINING_FOCUS_VALUES.indexOf('Warm-Ups') !== -1 &&
+      TRAINING_FOCUS_VALUES[TRAINING_FOCUS_VALUES.length - 1] === 'Warm-Ups' &&
+      TRAINING_FOCUS_META['Warm-Ups'] && TRAINING_FOCUS_META['Warm-Ups'].label === 'Warm' &&
+      normalizeTrainingFocus('boulders') === 'Boulders' &&
       !isLockedTrainingFocus('Aerobic Base/Capacity') && !isLockedTrainingFocus('Strength') &&
       normalizeTrainingFocus('Strength') === '';
     var wizScreen = document.getElementById('screen-self-assign');
@@ -14908,7 +14914,7 @@ async function runSEETests(){
       renderSelfAssignWizardBody();
       var focusChips = document.querySelectorAll('#saw-body .saw-chip[data-focus]');
       var focusLabels = Array.prototype.map.call(focusChips, function(b){ return b.getAttribute('data-focus'); });
-      var nineFocus = focusChips.length === 9 && focusLabels.indexOf('Hangboard') !== -1 && focusLabels.indexOf('Mental/Other') !== -1;
+      var tenFocus = focusChips.length === 10 && focusLabels.indexOf('Hangboard') !== -1 && focusLabels.indexOf('Mental/Other') !== -1 && focusLabels.indexOf('Warm-Ups') !== -1;
       pickSelfAssignFocus('Hangboard');
       var drillChips = document.querySelectorAll('#saw-lib-results .saw-chip[data-id]');
       var drillIds = Array.prototype.map.call(drillChips, function(b){ return b.getAttribute('data-id'); });
@@ -14916,7 +14922,7 @@ async function runSEETests(){
       var noCampusBleed = (document.getElementById('saw-body').textContent || '').indexOf('Campus') === -1;
       var stepCopy = ((document.getElementById('saw-step-num') || {}).textContent || '');
       var fourStep = /Step 2 of 4/.test(stepCopy);
-      if(nineFocus && drillOk && noCampusBleed && fourStep){
+      if(tenFocus && drillOk && noCampusBleed && fourStep){
         pass('Self-assign wizard present (4-step + training_focus filter)');
       } else {
         fail('Self-assign wizard present', 'focus=' + focusLabels.join(',') + ' drills=' + drillIds.join(',') + ' bleed=' + !noCampusBleed + ' step=' + stepCopy);
@@ -15223,10 +15229,11 @@ async function runSEETests(){
     var catChips = document.querySelectorAll('#wl-new-focus-chips .wl-cat-chip');
     selectWlNewFocus('Hangboard');
     var focusVal = (document.getElementById('wl-new-focus') || {}).value;
-    if(catChips.length === 9 && focusVal === 'Hangboard'){
+    var chipFocuses = Array.prototype.map.call(catChips, function(b){ return b.getAttribute('data-focus'); });
+    if(catChips.length === 10 && focusVal === 'Hangboard' && chipFocuses.indexOf('Warm-Ups') !== -1){
       pass('Library add uses locked training_focus');
     } else {
-      fail('Library add uses locked training_focus', 'chips=' + catChips.length + ' focus=' + focusVal);
+      fail('Library add uses locked training_focus', 'chips=' + catChips.length + ' focus=' + focusVal + ' labels=' + chipFocuses.join(','));
     }
     showScreen('screen-train');
   }catch(e){ fail('Library add uses locked category + type', e.message); }
@@ -15664,7 +15671,8 @@ async function runSEETests(){
       && /screen-train-goals/.test(showSrc) && /loadTrainGoals/.test(showSrc)
       && /screen-train-chat/.test(showSrc) && /loadCoachChat/.test(showSrc);
     var energyOnStart = !!document.querySelector('#screen-train-start #train-energy-grid')
-      && document.querySelectorAll('#train-energy-grid .train-energy-card').length === 9;
+      && document.querySelectorAll('#train-energy-grid .train-energy-card').length === 10
+      && !!document.querySelector('#train-energy-grid .train-energy-card[data-focus="Warm-Ups"]');
     var hubIcons = hubIds.every(function(id){
       return !!document.querySelector('#' + id + ' .te-icon');
     });
