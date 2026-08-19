@@ -459,6 +459,33 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   border-color:var(--comfort);
   color:var(--comfort);
 }
+.train-block-timer{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 10px;
+}
+.train-block-timer-btn{
+  background:none;
+  border:1px solid var(--border);
+  border-radius:99px;
+  color:var(--muted);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  padding:6px 10px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  flex-shrink:0;
+}
+.train-block-timer-elapsed{
+  font-family:'Space Mono',monospace;
+  font-size:16px;
+  font-weight:700;
+  color:var(--text);
+  letter-spacing:.04em;
+  min-width:4.5em;
+}
 .train-note-preview{
   min-height:120px;
   background:var(--bg);
@@ -4480,7 +4507,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index219'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index220'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -5098,6 +5125,9 @@ function showScreen(id){
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
   var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-profile-journal':'fnav-profile','screen-profile-account':'fnav-profile','screen-profile-data':'fnav-profile','screen-profile-install':'fnav-profile','screen-profile-help':'fnav-profile','screen-profile-feedback':'fnav-profile','screen-journal-entry':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
+  if(_prevScreen==='screen-train-session' && id!=='screen-train-session'){
+    clearAllTrainBlockTimerIntervals();
+  }
   // Load screen data
   if(id==='screen-home'){ loadHomeScreen(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
   if(id==='screen-sessions')loadClimbLog();
@@ -8771,6 +8801,9 @@ var _isCoachUser = false;
 var trainSessionState = null;
 var _lastTrainSessionId = null;
 var _trainDoneSnapshot = null;
+// Per-block stopwatch ticks. Keyed by block id; never stored on the block
+// object (intervals are not serializable / not part of the blocks jsonb).
+var _trainBlockTimerIntervals = {};
 
 function uid(){
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
@@ -9288,6 +9321,7 @@ function startCustomWorkoutCreate(){
 }
 
 function cancelTrainSession(){
+  clearAllTrainBlockTimerIntervals();
   trainSessionState = null;
   showScreen('screen-train');
 }
@@ -9299,7 +9333,7 @@ function trainAddBlockMenu(){
 
 function trainAddBlock(shape){
   if(!trainSessionState) return;
-  var block = { id: uid(), shape: shape, title: '', rest_after_sec: 120, complete: false, attempts: [] };
+  var block = { id: uid(), shape: shape, title: '', rest_after_sec: 120, complete: false, attempts: [], timer_enabled: false, timer_started_at: null, timer_ended_at: null };
   if(shape === 'interval'){
     block.work_sec = 120; block.rest_sec = 120; block.target_sets = 12;
     block.groups = [{ sets: 6, rest_after_sec: 300 }, { sets: 6, rest_after_sec: 0 }];
@@ -9321,6 +9355,7 @@ function trainAddBlock(shape){
 
 function trainRemoveBlock(id){
   if(!trainSessionState) return;
+  clearTrainBlockTimerInterval(id);
   trainSessionState.blocks = trainSessionState.blocks.filter(function(b){ return b.id !== id; });
   renderTrainSessionBuilder();
 }
@@ -9360,22 +9395,156 @@ function renderTrainSessionBuilder(){
   if(!wrap) return;
   if(!trainSessionState.blocks.length){
     wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No blocks yet. Add an interval, EMOM, circuit, or pass/fail block.</div>';
+    clearAllTrainBlockTimerIntervals();
     return;
   }
   wrap.innerHTML = trainSessionState.blocks.map(function(b, bi){
     return renderTrainBlockHtml(b, bi);
   }).join('');
+  syncTrainBlockTimerIntervals();
+}
+
+function formatTrainBlockTimerElapsed(ms){
+  if(!(ms > 0)) ms = 0;
+  var totalSec = Math.floor(ms / 1000);
+  var m = Math.floor(totalSec / 60);
+  var s = totalSec % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function trainBlockTimerIsRunning(b){
+  return !!(b && b.timer_started_at && !b.timer_ended_at);
+}
+
+function trainBlockTimerElapsedMs(b){
+  if(!b || !b.timer_started_at) return 0;
+  var start = new Date(b.timer_started_at).getTime();
+  if(isNaN(start)) return 0;
+  var ms;
+  if(b.timer_ended_at){
+    var end = new Date(b.timer_ended_at).getTime();
+    if(isNaN(end)) end = Date.now();
+    ms = end - start;
+  } else {
+    // Wall-clock diff on every read so a backgrounded tab / locked screen
+    // does not freeze or drift the way an incrementing counter would.
+    ms = Date.now() - new Date(b.timer_started_at).getTime();
+  }
+  return ms < 0 ? 0 : ms;
+}
+
+function clearTrainBlockTimerInterval(id){
+  if(!_trainBlockTimerIntervals || !id) return;
+  if(_trainBlockTimerIntervals[id]){
+    clearInterval(_trainBlockTimerIntervals[id]);
+    delete _trainBlockTimerIntervals[id];
+  }
+}
+
+function clearAllTrainBlockTimerIntervals(){
+  if(!_trainBlockTimerIntervals) return;
+  Object.keys(_trainBlockTimerIntervals).forEach(function(id){
+    clearTrainBlockTimerInterval(id);
+  });
+}
+
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState !== 'visible') return;
+  var sess = document.getElementById('screen-train-session');
+  if(sess && sess.classList.contains('active')) syncTrainBlockTimerIntervals();
+});
+
+function paintTrainBlockTimerElapsed(id){
+  var el = document.querySelector('[data-block-timer-elapsed="'+id+'"]');
+  if(!el || !trainSessionState || !trainSessionState.blocks) return;
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  el.textContent = formatTrainBlockTimerElapsed(trainBlockTimerElapsedMs(b));
+}
+
+function ensureTrainBlockTimerInterval(id){
+  if(!id) return;
+  if(_trainBlockTimerIntervals[id]) return;
+  _trainBlockTimerIntervals[id] = setInterval(function(){
+    paintTrainBlockTimerElapsed(id);
+  }, 1000);
+}
+
+function syncTrainBlockTimerIntervals(){
+  if(!trainSessionState || !trainSessionState.blocks || !trainSessionState.blocks.length){
+    clearAllTrainBlockTimerIntervals();
+    return;
+  }
+  var running = {};
+  trainSessionState.blocks.forEach(function(b){
+    if(b.timer_enabled && trainBlockTimerIsRunning(b)){
+      running[b.id] = true;
+      paintTrainBlockTimerElapsed(b.id);
+      ensureTrainBlockTimerInterval(b.id);
+    } else {
+      clearTrainBlockTimerInterval(b.id);
+    }
+  });
+  Object.keys(_trainBlockTimerIntervals).forEach(function(id){
+    if(!running[id]) clearTrainBlockTimerInterval(id);
+  });
+}
+
+function toggleTrainBlockTimerEnabled(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  b.timer_enabled = !b.timer_enabled;
+  if(!b.timer_enabled) clearTrainBlockTimerInterval(id);
+  renderTrainSessionBuilder();
+}
+
+function startTrainBlockTimer(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  // Fresh start from zero when never started, or after a previous Stop.
+  // Tapping Start while already running does not reset.
+  if(!b.timer_started_at || b.timer_ended_at){
+    b.timer_started_at = new Date().toISOString();
+    b.timer_ended_at = null;
+  }
+  renderTrainSessionBuilder();
+}
+
+function stopTrainBlockTimer(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  if(b.timer_started_at && !b.timer_ended_at){
+    b.timer_ended_at = new Date().toISOString();
+  }
+  clearTrainBlockTimerInterval(id);
+  renderTrainSessionBuilder();
 }
 
 function renderTrainBlockHtml(b, bi){
   var done = !!b.complete;
+  var timerOn = !!b.timer_enabled;
   var shapeLabel = (b.shape === 'section' && b.title) ? escTrainHtml(b.title) : escTrainHtml(b.shape.replace(/_/g,' '));
   var head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
     + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+shapeLabel+'</div>'
-    + '<div style="display:flex;align-items:center;gap:8px;">'
+    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+    + '<button type="button" class="train-section-complete'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>'
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
     + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div></div>';
+  var timerRow = '';
+  if(timerOn){
+    timerRow = '<div class="train-block-timer">'
+      + '<button type="button" class="train-block-timer-btn" onclick="startTrainBlockTimer(\''+b.id+'\')">Start</button>'
+      + '<button type="button" class="train-block-timer-btn" onclick="stopTrainBlockTimer(\''+b.id+'\')">Stop</button>'
+      + '<span class="train-block-timer-elapsed" data-block-timer-elapsed="'+escTrainHtml(b.id)+'">'+formatTrainBlockTimerElapsed(trainBlockTimerElapsedMs(b))+'</span>'
+      + '</div>';
+  }
   var body = '';
   if(b.shape === 'interval'){
     body = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
@@ -9423,7 +9592,7 @@ function renderTrainBlockHtml(b, bi){
   } else if(b.shape === 'section'){
     body = b.notes ? renderTrainNotePreview(b.notes) : '';
   }
-  return head + body + '</div>';
+  return head + timerRow + body + '</div>';
 }
 
 function renderTrainNotePreview(text){
@@ -14332,7 +14501,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread', 'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer'
   ];
 
   function shouldSkip(onclick){
@@ -15763,6 +15932,81 @@ async function runSEETests(){
         ' warm=' + warmOn + ' blockOn=' + blockOn + ' html=' + htmlHasToggle + ' noGate=' + noGate);
     }
   }catch(e){ fail('Train session complete + section toggles', e.message); }
+
+  try{
+    var prevSess = trainSessionState;
+    trainSessionState = newTrainSessionState('strength');
+    var shapes = ['interval', 'emom', 'circuit', 'rep_pass_fail', 'section'];
+    shapes.forEach(function(sh){ trainAddBlock(sh); });
+    var markupOk = trainSessionState.blocks.length === 5 && trainSessionState.blocks.every(function(b, i){
+      var html = renderTrainBlockHtml(b, i);
+      return /toggleTrainBlockTimerEnabled/.test(html) && />Timer</.test(html)
+        && /toggleTrainSectionComplete/.test(html) && html.indexOf('startTrainBlockTimer') === -1;
+    });
+    var defaultsOk = trainSessionState.blocks.every(function(b){
+      return b.timer_enabled === false && b.timer_started_at === null && b.timer_ended_at === null;
+    });
+    var seedLike = { id: uid(), shape: 'section', title: 'Warm notes', notes: 'x', complete: false, attempts: [] };
+    var seedHtml = renderTrainBlockHtml(seedLike, 0);
+    var missingOk = /toggleTrainBlockTimerEnabled/.test(seedHtml) && seedHtml.indexOf('startTrainBlockTimer') === -1
+      && seedHtml.indexOf('data-block-timer-elapsed') === -1;
+
+    var b0 = trainSessionState.blocks[0];
+    toggleTrainBlockTimerEnabled(b0.id);
+    var enabled = b0.timer_enabled === true && b0.complete === false;
+    var htmlOn = renderTrainBlockHtml(b0, 0);
+    var controlsOk = /startTrainBlockTimer/.test(htmlOn) && /stopTrainBlockTimer/.test(htmlOn)
+      && /data-block-timer-elapsed/.test(htmlOn) && /00:00/.test(htmlOn);
+
+    startTrainBlockTimer(b0.id);
+    var startedOk = !!b0.timer_started_at && b0.timer_ended_at === null && b0.complete === false;
+    var firstStart = b0.timer_started_at;
+    var mapWhileRun = !!_trainBlockTimerIntervals[b0.id];
+    var notOnBlock = b0.timer_interval === undefined && !('intervalId' in b0);
+
+    stopTrainBlockTimer(b0.id);
+    var stoppedOk = !!b0.timer_ended_at && b0.complete === false && !_trainBlockTimerIntervals[b0.id];
+
+    startTrainBlockTimer(b0.id);
+    var resetOk = b0.timer_started_at !== firstStart && b0.timer_ended_at === null;
+
+    b0.timer_started_at = new Date(Date.now() - 65000).toISOString();
+    b0.timer_ended_at = null;
+    var liveMs = trainBlockTimerElapsedMs(b0);
+    var liveFmt = formatTrainBlockTimerElapsed(liveMs);
+    var wallLive = liveMs >= 64000 && liveMs < 72000 && /^01:0[4-7]$/.test(liveFmt);
+    b0.timer_started_at = '2026-08-19T12:00:00.000Z';
+    b0.timer_ended_at = '2026-08-19T12:02:30.000Z';
+    var frozenOk = formatTrainBlockTimerElapsed(trainBlockTimerElapsedMs(b0)) === '02:30';
+    var unboundedOk = formatTrainBlockTimerElapsed(90 * 60 * 1000) === '90:00';
+    var elapsedSrc = String(trainBlockTimerElapsedMs) + String(paintTrainBlockTimerElapsed) + String(ensureTrainBlockTimerInterval);
+    var wallSrc = elapsedSrc.indexOf('Date.now() - new Date(b.timer_started_at).getTime()') !== -1
+      && elapsedSrc.indexOf('+= 1000') === -1 && elapsedSrc.indexOf('+=1000') === -1
+      && String(ensureTrainBlockTimerInterval).indexOf('_trainBlockTimerIntervals') !== -1;
+    var saveSrc = String(saveTrainSession);
+    var blocksAsIs = /blocks:\s*trainSessionState\.blocks/.test(saveSrc);
+    var stopSrc = String(stopTrainBlockTimer);
+    var noAutoComplete = stopSrc.indexOf('.complete') === -1;
+
+    clearAllTrainBlockTimerIntervals();
+    trainSessionState = prevSess;
+    if(markupOk && defaultsOk && missingOk && enabled && controlsOk && startedOk && mapWhileRun
+      && notOnBlock && stoppedOk && resetOk && wallLive && frozenOk && unboundedOk && wallSrc
+      && blocksAsIs && noAutoComplete){
+      pass('Train per-block stopwatch');
+    } else {
+      fail('Train per-block stopwatch',
+        'markup=' + markupOk + ' defaults=' + defaultsOk + ' missing=' + missingOk
+        + ' enabled=' + enabled + ' controls=' + controlsOk + ' started=' + startedOk
+        + ' map=' + mapWhileRun + ' notOnBlock=' + notOnBlock + ' stopped=' + stoppedOk
+        + ' reset=' + resetOk + ' wallLive=' + wallLive + ' frozen=' + frozenOk
+        + ' unbounded=' + unboundedOk + ' wallSrc=' + wallSrc + ' blocks=' + blocksAsIs
+        + ' noAuto=' + noAutoComplete);
+    }
+  }catch(e){
+    try{ clearAllTrainBlockTimerIntervals(); }catch(e2){}
+    fail('Train per-block stopwatch', e.message);
+  }
 
   try{
     var resCards = document.querySelectorAll('#screen-research .res-card');
