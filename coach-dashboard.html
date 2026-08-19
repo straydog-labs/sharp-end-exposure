@@ -2076,6 +2076,8 @@
     return '';
   }
 
+  // Prefer the live training_focus column (John backfilled existing rows).
+  // category/type shims only apply if that column is still empty.
   function itemTrainingFocus(item){
     if(!item) return '';
     return normalizeTrainingFocus(item.training_focus)
@@ -2124,9 +2126,11 @@
   // trigger decide shared vs private.
   function createCoachCustomWorkout(token, coachUser, fields){
     var focus = normalizeTrainingFocus(fields.trainingFocus || fields.category);
+    // category is nullable now — do not mirror training_focus into it.
+    // New rows write training_focus only so old-style category strings
+    // ("Boulder Circuits") and new-style focus strings ("Boulders") stay apart.
     var payload = {
       training_focus: focus || null,
-      category: focus || fields.category,
       name: fields.name,
       description: fields.description || null,
       created_by: coachUser.id,
