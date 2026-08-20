@@ -599,6 +599,45 @@
     padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;
   }
   .aw-section-duration:focus{border-color:var(--accent);}
+  .aw-section-exercises{
+    flex:1 1 100%;margin:2px 0 4px;padding:8px 10px 10px;
+    border:1px dashed var(--border);border-radius:8px;
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .aw-ex-empty{margin:0;font-size:12px;color:var(--text-secondary);}
+  .aw-ex-row{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;
+    padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  }
+  .aw-ex-title{
+    flex:1 1 160px;min-width:140px;background:var(--surface);border:1px solid var(--border);
+    border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;
+  }
+  .aw-ex-title:focus{border-color:var(--accent);}
+  .aw-ex-kind{display:flex;gap:4px;flex-shrink:0;}
+  .aw-ex-kind-btn{
+    font-family:inherit;font-size:12px;font-weight:600;padding:7px 10px;border-radius:6px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);cursor:pointer;
+  }
+  .aw-ex-kind-btn.is-on{
+    border-color:var(--accent);background:rgba(232,146,82,.14);color:var(--accent);
+  }
+  .aw-ex-interval{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;}
+  .aw-ex-mini{display:flex;flex-direction:column;gap:2px;}
+  .aw-ex-mini span{
+    font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--text-secondary);
+  }
+  .aw-ex-mini input{
+    width:88px;background:var(--surface);border:1px solid var(--border);border-radius:6px;
+    padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;
+  }
+  .aw-ex-mini input:focus{border-color:var(--accent);}
+  .aw-ex-remove,.aw-section-add-ex{
+    background:none;border:none;color:var(--text-secondary);cursor:pointer;
+    font-family:inherit;font-size:13px;font-weight:600;padding:6px 4px;
+  }
+  .aw-section-add-ex{color:var(--accent);font-weight:700;align-self:flex-start;padding:4px 0;}
   .aw-create-chip{
     width:100%;text-align:left;background:rgba(232,146,82,.08);border:1px solid rgba(232,146,82,.45);
     border-radius:14px;padding:16px 18px;color:var(--accent);font-family:'Space Grotesk',sans-serif;
@@ -2235,14 +2274,99 @@
     return n;
   }
 
+  function parseAssignWizardNonNegInt(raw){
+    if(raw == null || raw === '') return null;
+    var n = parseInt(String(raw).trim(), 10);
+    if(!isFinite(n) || n < 0) return null;
+    return n;
+  }
+
+  function normalizeAssignWizardExerciseKind(raw){
+    return String(raw || '').toLowerCase() === 'check' ? 'check' : 'interval';
+  }
+
+  function newAssignWizardExercise(){
+    return {
+      id: 'ex-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+      title: '',
+      kind: 'interval',
+      work_sec: '',
+      rest_sec: '',
+      target_sets: ''
+    };
+  }
+
+  function newAssignWizardSection(i){
+    return {
+      id: 'sec-' + Date.now() + '-' + (i == null ? Math.random().toString(36).slice(2, 6) : i),
+      label: '',
+      duration_sec: null,
+      exercises: []
+    };
+  }
+
+  function hydrateAssignWizardExercises(raw){
+    if(!Array.isArray(raw)) return [];
+    return raw.map(function(ex, i){
+      var kind = normalizeAssignWizardExerciseKind(ex && ex.kind);
+      var row = {
+        id: 'ex-h-' + Date.now() + '-' + i,
+        title: String((ex && ex.title) || '').trim(),
+        kind: kind,
+        work_sec: '',
+        rest_sec: '',
+        target_sets: ''
+      };
+      if(kind === 'interval'){
+        var work = parseAssignWizardNonNegInt(ex && ex.work_sec);
+        var rest = parseAssignWizardNonNegInt(ex && ex.rest_sec);
+        var sets = parseAssignWizardNonNegInt(ex && ex.target_sets);
+        if(work != null) row.work_sec = String(work);
+        if(rest != null) row.rest_sec = String(rest);
+        if(sets != null) row.target_sets = String(sets);
+      }
+      return row;
+    });
+  }
+
+  function cleanedAssignWizardExercises(rawList){
+    if(!Array.isArray(rawList)) return [];
+    var out = [];
+    rawList.forEach(function(ex){
+      var title = String((ex && ex.title) || '').trim();
+      if(!title) return;
+      var kind = normalizeAssignWizardExerciseKind(ex && ex.kind);
+      if(kind === 'check'){
+        out.push({ title: title, kind: 'check' });
+        return;
+      }
+      var row = { title: title, kind: 'interval' };
+      var work = parseAssignWizardNonNegInt(ex && ex.work_sec);
+      var rest = parseAssignWizardNonNegInt(ex && ex.rest_sec);
+      var sets = parseAssignWizardNonNegInt(ex && ex.target_sets);
+      if(work != null) row.work_sec = work;
+      if(rest != null) row.rest_sec = rest;
+      if(sets != null) row.target_sets = sets;
+      out.push(row);
+    });
+    return out;
+  }
+
   function cleanedAssignWizardSections(){
     var clean = (_assignWizard.sections || []).map(function(s){
       var label = (s.label || '').trim();
       if(!label) return null;
-      return { label: label, duration_sec: parseAssignWizardDurationSec(s.duration_sec) };
+      var row = { label: label, duration_sec: parseAssignWizardDurationSec(s.duration_sec) };
+      var exercises = cleanedAssignWizardExercises(s.exercises);
+      if(exercises.length) row.exercises = exercises;
+      return row;
     }).filter(Boolean);
     return clean.length
-      ? clean.map(function(s, i){ return { label: s.label, order: i, duration_sec: s.duration_sec }; })
+      ? clean.map(function(s, i){
+          var out = { label: s.label, order: i, duration_sec: s.duration_sec };
+          if(s.exercises && s.exercises.length) out.exercises = s.exercises;
+          return out;
+        })
       : null;
   }
 
@@ -2254,6 +2378,124 @@
         '" class="aw-section-duration ' + inputClass + '" value="' + (val != null ? val : '') +
         '" placeholder="" title="Optional countdown in seconds. Leave blank for no countdown.">' +
     '</div>';
+  }
+
+  function assignWizardExerciseRowHtml(ex, ei){
+    var kind = normalizeAssignWizardExerciseKind(ex && ex.kind);
+    var intervalHidden = kind === 'check' ? ' style="display:none"' : '';
+    var exId = escapeHtml((ex && ex.id) || '');
+    return '<div class="aw-ex-row" data-ex-idx="' + ei + '" data-ex-id="' + exId + '">' +
+      '<input type="text" class="aw-ex-title" data-ex-id="' + exId + '" placeholder="Exercise title" value="' +
+        escapeHtml((ex && ex.title) || '') + '">' +
+      '<div class="aw-ex-kind" role="group" aria-label="Exercise kind">' +
+        '<button type="button" class="aw-ex-kind-btn' + (kind === 'interval' ? ' is-on' : '') + '" data-kind="interval">Interval timer</button>' +
+        '<button type="button" class="aw-ex-kind-btn' + (kind === 'check' ? ' is-on' : '') + '" data-kind="check">Checkmark</button>' +
+      '</div>' +
+      '<div class="aw-ex-interval"' + intervalHidden + '>' +
+        '<label class="aw-ex-mini"><span>Work (sec)</span><input type="number" min="0" step="1" inputmode="numeric" class="aw-ex-work" value="' +
+          escapeHtml(ex && ex.work_sec != null && ex.work_sec !== '' ? String(ex.work_sec) : '') + '"></label>' +
+        '<label class="aw-ex-mini"><span>Rest (sec)</span><input type="number" min="0" step="1" inputmode="numeric" class="aw-ex-rest" value="' +
+          escapeHtml(ex && ex.rest_sec != null && ex.rest_sec !== '' ? String(ex.rest_sec) : '') + '"></label>' +
+        '<label class="aw-ex-mini"><span>Sets</span><input type="number" min="0" step="1" inputmode="numeric" class="aw-ex-sets" value="' +
+          escapeHtml(ex && ex.target_sets != null && ex.target_sets !== '' ? String(ex.target_sets) : '') + '"></label>' +
+      '</div>' +
+      '<button type="button" class="aw-ex-remove">Remove</button>' +
+    '</div>';
+  }
+
+  function assignWizardSectionExercisesHtml(s){
+    var exercises = Array.isArray(s && s.exercises) ? s.exercises : [];
+    var rows = exercises.map(function(ex, ei){ return assignWizardExerciseRowHtml(ex, ei); }).join('');
+    var secId = escapeHtml((s && s.id) || '');
+    return '<div class="aw-section-exercises" data-section-id="' + secId + '">' +
+      (rows || '<p class="aw-ex-empty">No exercises yet. Add interval timers or check-off items.</p>') +
+      '<button type="button" class="aw-section-add-ex" data-section-id="' + secId + '">+ Add exercise</button>' +
+    '</div>';
+  }
+
+  function findAssignWizardSectionById(id){
+    return (_assignWizard.sections || []).find(function(x){ return x.id === id; }) || null;
+  }
+
+  function findAssignWizardExercise(s, exId, exIdx){
+    if(!s) return null;
+    if(!Array.isArray(s.exercises)) s.exercises = [];
+    if(exId){
+      var found = s.exercises.find(function(x){ return x.id === exId; });
+      if(found) return found;
+    }
+    if(exIdx >= 0 && s.exercises[exIdx]) return s.exercises[exIdx];
+    return null;
+  }
+
+  function wireAssignWizardExerciseUi(wrap, rerender){
+    if(!wrap) return;
+    function sectionFromEl(el){
+      var block = el && el.closest ? el.closest('.aw-section-exercises') : null;
+      return findAssignWizardSectionById(block && block.getAttribute('data-section-id'));
+    }
+    function exerciseFromEl(el){
+      var row = el && el.closest ? el.closest('.aw-ex-row') : null;
+      var s = sectionFromEl(el);
+      return findAssignWizardExercise(
+        s,
+        (el && el.getAttribute && el.getAttribute('data-ex-id')) || (row && row.getAttribute('data-ex-id')),
+        row ? parseInt(row.getAttribute('data-ex-idx'), 10) : -1
+      );
+    }
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-title'), function(input){
+      input.addEventListener('input', function(){
+        var ex = exerciseFromEl(input);
+        if(ex) ex.title = input.value;
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-work'), function(input){
+      input.addEventListener('input', function(){
+        var ex = exerciseFromEl(input);
+        if(ex) ex.work_sec = input.value;
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-rest'), function(input){
+      input.addEventListener('input', function(){
+        var ex = exerciseFromEl(input);
+        if(ex) ex.rest_sec = input.value;
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-sets'), function(input){
+      input.addEventListener('input', function(){
+        var ex = exerciseFromEl(input);
+        if(ex) ex.target_sets = input.value;
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-kind-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        var ex = exerciseFromEl(btn);
+        if(!ex) return;
+        ex.kind = normalizeAssignWizardExerciseKind(btn.getAttribute('data-kind'));
+        if(typeof rerender === 'function') rerender();
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-add-ex'), function(btn){
+      btn.addEventListener('click', function(){
+        var s = findAssignWizardSectionById(btn.getAttribute('data-section-id'));
+        if(!s) return;
+        if(!Array.isArray(s.exercises)) s.exercises = [];
+        s.exercises.push(newAssignWizardExercise());
+        if(typeof rerender === 'function') rerender();
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-remove'), function(btn){
+      btn.addEventListener('click', function(){
+        var row = btn.closest('.aw-ex-row');
+        var s = sectionFromEl(btn);
+        if(!s || !Array.isArray(s.exercises)) return;
+        var exId = row && row.getAttribute('data-ex-id');
+        var idx = s.exercises.findIndex(function(x){ return x.id === exId; });
+        if(idx < 0 && row) idx = parseInt(row.getAttribute('data-ex-idx'), 10);
+        if(idx >= 0) s.exercises.splice(idx, 1);
+        if(typeof rerender === 'function') rerender();
+      });
+    });
   }
 
   function wireAssignWizardSectionDurationInputs(wrap, inputClass){
@@ -2278,6 +2520,7 @@
         '<button type="button" class="aw-section-up" data-i="' + i + '" ' + (i === 0 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↑</button>' +
         '<button type="button" class="aw-section-down" data-i="' + i + '" ' + (i === sections.length - 1 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↓</button>' +
         '<button type="button" class="aw-section-remove" data-i="' + i + '" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 4px;">Remove</button>' +
+        assignWizardSectionExercisesHtml(s) +
         '</div>';
     }).join('');
     Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-label-input'), function(input){
@@ -2287,6 +2530,7 @@
       });
     });
     wireAssignWizardSectionDurationInputs(wrap, 'aw-section-duration-input');
+    wireAssignWizardExerciseUi(wrap, renderAssignWizardSectionsList);
     Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-up'), function(btn){
       btn.addEventListener('click', function(){
         var i = parseInt(btn.getAttribute('data-i'), 10);
@@ -2328,6 +2572,7 @@
         '<button type="button" class="edit-cw-section-up" data-i="' + i + '" ' + (i === 0 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↑</button>' +
         '<button type="button" class="edit-cw-section-down" data-i="' + i + '" ' + (i === sections.length - 1 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↓</button>' +
         '<button type="button" class="edit-cw-section-remove" data-i="' + i + '" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 4px;">Remove</button>' +
+        assignWizardSectionExercisesHtml(s) +
         '</div>';
     }).join('');
     Array.prototype.forEach.call(wrap.querySelectorAll('.edit-cw-section-label'), function(input){
@@ -2337,6 +2582,7 @@
       });
     });
     wireAssignWizardSectionDurationInputs(wrap, 'edit-cw-section-duration');
+    wireAssignWizardExerciseUi(wrap, renderEditCustomWorkoutSectionsList);
     Array.prototype.forEach.call(wrap.querySelectorAll('.edit-cw-section-up'), function(btn){
       btn.addEventListener('click', function(){
         var i = parseInt(btn.getAttribute('data-i'), 10);
@@ -2508,7 +2754,8 @@
           return {
             id: 'sec-' + i + '-' + Date.now(),
             label: (s && s.label) || '',
-            duration_sec: parseAssignWizardDurationSec(s && s.duration_sec)
+            duration_sec: parseAssignWizardDurationSec(s && s.duration_sec),
+            exercises: hydrateAssignWizardExercises(s && s.exercises)
           };
         })
       : [];
@@ -2734,13 +2981,14 @@
             '<textarea id="edit-cw-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
           '<div class="aw-field"><label>Session sections (optional)</label>' +
+            '<div class="form-note" style="margin:0 0 8px;">Optional Duration (sec) turns a section into a countdown. Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Leave exercises empty to keep the section as a label only, same as today.</div>' +
             '<div id="edit-cw-sections-list"></div>' +
             '<button type="button" id="edit-cw-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
           '</div>';
         renderEditCustomWorkoutSectionsList();
         document.getElementById('edit-cw-section-add').addEventListener('click', function(){
           _assignWizard.sections = _assignWizard.sections || [];
-          _assignWizard.sections.push({ id: 'sec-' + Date.now() + '-' + _assignWizard.sections.length, label: '', duration_sec: null });
+          _assignWizard.sections.push(newAssignWizardSection(_assignWizard.sections.length));
           renderEditCustomWorkoutSectionsList();
         });
         setAssignWizardFooter(
@@ -2779,7 +3027,7 @@
             '<textarea id="new-a-lib-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
           '<div class="aw-field"><label>Session sections (optional)</label>' +
-            '<div class="form-note" style="margin:0 0 8px;">Build the checklist the athlete sees and checks off during the session — e.g. "Warm up", "Round 1 — 12 boulders (EMOM)", "Rest 5 min". Optional Duration (sec) turns a section into a countdown (300 = 5 min rest). Leave duration blank for open-ended work. Leave the list empty to fall back to a single free-text block, same as today.</div>' +
+            '<div class="form-note" style="margin:0 0 8px;">Build the checklist the athlete sees and checks off during the session — e.g. "Warm up", "Round 1 — 12 boulders (EMOM)", "Rest 5 min". Optional Duration (sec) turns a section into a countdown (300 = 5 min rest). Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Leave duration and exercises blank for a label-only section. Leave the list empty to fall back to a single free-text block, same as today.</div>' +
             '<div id="new-a-sections-list"></div>' +
             '<button type="button" id="new-a-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
           '</div>';
@@ -2806,7 +3054,7 @@
         if(addSecBtn){
           addSecBtn.addEventListener('click', function(){
             _assignWizard.sections = _assignWizard.sections || [];
-            _assignWizard.sections.push({ id: 'sec-' + Date.now() + '-' + _assignWizard.sections.length, label: '', duration_sec: null });
+            _assignWizard.sections.push(newAssignWizardSection(_assignWizard.sections.length));
             renderAssignWizardSectionsList();
           });
         }
