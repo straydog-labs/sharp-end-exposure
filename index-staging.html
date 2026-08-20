@@ -3432,11 +3432,16 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <div class="insight-card train-section-card" id="train-warmup-card" style="margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
-        <div class="insight-label" style="margin:0;">Warm up</div>
+        <button type="button" onclick="toggleTrainWarmupSection()" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;color:inherit;-webkit-tap-highlight-color:transparent;">
+          <span class="insight-label" style="margin:0;">Warm up</span>
+          <span id="train-warmup-chevron" style="font-size:18px;transition:transform .2s;transform:rotate(90deg);">›</span>
+        </button>
         <button type="button" class="train-section-complete" id="train-warmup-complete-btn" onclick="toggleTrainSectionComplete('warm_up')">Mark complete</button>
       </div>
-      <textarea id="train-sess-warmup" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
-      <div id="train-warmup-blocks-wrap"></div>
+      <div id="train-warmup-body">
+        <textarea id="train-sess-warmup" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
+        <div id="train-warmup-blocks-wrap"></div>
+      </div>
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -4573,7 +4578,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index225'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index226'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -9460,6 +9465,7 @@ function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
     cool_down: '',
     warm_up_complete: false,
     cool_down_complete: false,
+    warm_up_expanded: true,
     blocks: [],
     seed_description: seedDesc || '',
     // XOR: at most one library reference (DB constraint on assignments)
@@ -9694,6 +9700,7 @@ function renderTrainSessionBuilder(){
   if(c) c.value = trainSessionState.cool_down || '';
   paintTrainSectionComplete('train-warmup-complete-btn', 'train-warmup-card', !!trainSessionState.warm_up_complete);
   paintTrainSectionComplete('train-cooldown-complete-btn', 'train-cooldown-card', !!trainSessionState.cool_down_complete);
+  paintTrainWarmupSection();
   var allBlocks = trainSessionState.blocks || [];
   var split = splitTrainBlocksByWarmup(allBlocks);
   var warmupWrap = document.getElementById('train-warmup-blocks-wrap');
@@ -10293,12 +10300,33 @@ function paintTrainSectionComplete(btnId, cardId, on){
   if(card) card.classList.toggle('is-complete', !!on);
 }
 
+function trainWarmupSectionIsOpen(){
+  return !trainSessionState || trainSessionState.warm_up_expanded !== false;
+}
+
+function paintTrainWarmupSection(){
+  var body = document.getElementById('train-warmup-body');
+  var chevron = document.getElementById('train-warmup-chevron');
+  var open = trainWarmupSectionIsOpen();
+  if(body) body.style.display = open ? 'block' : 'none';
+  if(chevron) chevron.style.transform = open ? 'rotate(90deg)' : '';
+}
+
+function toggleTrainWarmupSection(){
+  if(!trainSessionState){
+    trainSessionState = newTrainSessionState(_trainPickerType || 'strength');
+  }
+  trainSessionState.warm_up_expanded = !trainWarmupSectionIsOpen();
+  paintTrainWarmupSection();
+}
+
 function toggleTrainSectionComplete(key){
   if(!trainSessionState) return;
   syncTrainSessionFieldsFromDom();
   collectTrainBlockFields();
   if(key === 'warm_up'){
     trainSessionState.warm_up_complete = !trainSessionState.warm_up_complete;
+    if(trainSessionState.warm_up_complete) trainSessionState.warm_up_expanded = false;
   } else if(key === 'cool_down'){
     trainSessionState.cool_down_complete = !trainSessionState.cool_down_complete;
   } else {
@@ -16069,6 +16097,67 @@ async function runSEETests(){
     trainSessionState = null;
     showScreen('screen-train');
   }catch(e){ fail('Train session prepends warmup-item blocks into the Warm up card', e.message); }
+
+  try{
+    var prevSess = trainSessionState;
+    startBlankTrainSession();
+    var card = document.getElementById('train-warmup-card');
+    var body = document.getElementById('train-warmup-body');
+    var chev = document.getElementById('train-warmup-chevron');
+    var notes = document.getElementById('train-sess-warmup');
+    var wuWrap = document.getElementById('train-warmup-blocks-wrap');
+    var markupOk = !!(card && body && chev && notes && wuWrap
+      && body.contains(notes) && body.contains(wuWrap)
+      && /toggleTrainWarmupSection/.test(card.innerHTML)
+      && chev.textContent.indexOf('›') !== -1);
+    var defaultOpen = trainSessionState.warm_up_expanded === true
+      && body.style.display !== 'none'
+      && /rotate\(90deg\)/.test(chev.style.transform);
+
+    toggleTrainWarmupSection();
+    var manualClose = trainSessionState.warm_up_expanded === false
+      && body.style.display === 'none'
+      && chev.style.transform === '';
+    toggleTrainWarmupSection();
+    var manualOpen = trainSessionState.warm_up_expanded === true
+      && body.style.display !== 'none'
+      && /rotate\(90deg\)/.test(chev.style.transform);
+
+    toggleTrainSectionComplete('warm_up');
+    var autoClose = trainSessionState.warm_up_complete === true
+      && trainSessionState.warm_up_expanded === false
+      && body.style.display === 'none'
+      && chev.style.transform === '';
+
+    toggleTrainWarmupSection();
+    var reexpand = trainSessionState.warm_up_complete === true
+      && trainSessionState.warm_up_expanded === true
+      && body.style.display !== 'none'
+      && /rotate\(90deg\)/.test(chev.style.transform);
+
+    var expandedBeforeCool = trainSessionState.warm_up_expanded;
+    toggleTrainSectionComplete('cool_down');
+    var coolLeaves = expandedBeforeCool === true
+      && trainSessionState.warm_up_expanded === true
+      && body.style.display !== 'none';
+
+    var saveClean = String(saveTrainSession).indexOf('warm_up_expanded') === -1
+      && /blocks:\s*trainSessionState\.blocks/.test(String(saveTrainSession));
+    var samePattern = String(toggleTrainWarmupSection).indexOf('paintTrainWarmupSection') !== -1
+      && String(paintTrainWarmupSection).indexOf("rotate(90deg)") !== -1
+      && String(toggleFallSection).indexOf("rotate(90deg)") !== -1;
+
+    if(markupOk && defaultOpen && manualClose && manualOpen && autoClose && reexpand && coolLeaves && saveClean && samePattern){
+      pass('Train warm-up card collapses with the existing chevron pattern');
+    } else {
+      fail('Train warm-up card collapses with the existing chevron pattern',
+        'markup=' + markupOk + ' default=' + defaultOpen + ' close=' + manualClose +
+        ' open=' + manualOpen + ' auto=' + autoClose + ' reexpand=' + reexpand +
+        ' cool=' + coolLeaves + ' save=' + saveClean + ' pattern=' + samePattern);
+    }
+    trainSessionState = prevSess;
+    showScreen('screen-train');
+  }catch(e){ fail('Train warm-up card collapses with the existing chevron pattern', e.message); }
 
   try{
     var empty = countMarkdownCheckboxes('');
