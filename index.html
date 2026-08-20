@@ -4572,7 +4572,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index223'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index224'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -9265,7 +9265,9 @@ function renderTrainSessionDetailHtml(row){
 function renderTrainSessionBlockDetailHtml(b, bi){
   b = b || {};
   var done = !!b.complete;
-  var shapeLabel = (b.shape === 'section' && b.title) ? b.title : String(b.shape || 'block').replace(/_/g, ' ');
+  var shapeLabel = ((b.shape === 'section' || b.shape === 'check' || b.shape === 'interval') && b.title)
+    ? b.title
+    : String(b.shape || 'block').replace(/_/g, ' ');
   var head = '<div class="train-block-card'+(done?' is-complete':'')+'">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
     + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+escTrainHtml(shapeLabel)+'</div>'
@@ -9318,7 +9320,7 @@ function renderTrainSessionBlockDetailHtml(b, bi){
       body += '<div class="train-note-preview">'+renderTrainNotePreview(b.progression_note)+'</div>';
     }
     body += attemptSummary(b);
-  } else if(b.shape === 'section'){
+  } else if(b.shape === 'section' || b.shape === 'check'){
     body = trainTextNonEmpty(b.notes) ? renderTrainNotePreview(b.notes) : '';
   }
   return head + timed + body + '</div>';
@@ -9456,6 +9458,58 @@ function startBlankTrainSession(){
   showScreen('screen-train-session');
 }
 
+function seedTrainBlocksFromSections(sections){
+  // Always emit the section-title block first (title + optional duration_sec).
+  // Expand authored child exercises only when the field is a non-empty array so
+  // older templates (missing exercises, or []) keep today's one-block output.
+  var blocks = [];
+  (sections || []).forEach(function(s){
+    blocks.push({
+      id: uid(),
+      shape: 'section',
+      title: (s && s.label) || '',
+      notes: '',
+      complete: false,
+      attempts: [],
+      duration_sec: (s && s.duration_sec) || null
+    });
+    if(!(s && Array.isArray(s.exercises) && s.exercises.length)) return;
+    s.exercises.forEach(function(ex){
+      if(!ex || typeof ex !== 'object') return;
+      var kind = String(ex.kind || '').toLowerCase().trim();
+      if(kind === 'interval'){
+        blocks.push({
+          id: uid(),
+          shape: 'interval',
+          title: (ex.title || ex.name || ''),
+          rest_after_sec: 120,
+          complete: false,
+          attempts: [],
+          timer_enabled: false,
+          timer_started_at: null,
+          timer_ended_at: null,
+          interval_started_at: null,
+          duration_sec: null,
+          work_sec: ex.work_sec,
+          rest_sec: ex.rest_sec,
+          target_sets: ex.target_sets,
+          groups: []
+        });
+      } else if(kind === 'check'){
+        blocks.push({
+          id: uid(),
+          shape: 'check',
+          title: (ex.title || ex.name || ''),
+          notes: ex.notes || '',
+          complete: false,
+          attempts: []
+        });
+      }
+    });
+  });
+  return blocks;
+}
+
 function seedTrainSessionFromItem(item, sourceMeta){
   if(!item) return;
   sourceMeta = sourceMeta || {};
@@ -9464,17 +9518,7 @@ function seedTrainSessionFromItem(item, sourceMeta){
   trainSessionState = newTrainSessionState(energyType, item.name, item.description || '', sourceMeta);
   var sections = Array.isArray(item.sections) ? item.sections : null;
   if(sections && sections.length){
-    trainSessionState.blocks = sections.map(function(s){
-      return {
-        id: uid(),
-        shape: 'section',
-        title: (s && s.label) || '',
-        notes: '',
-        complete: false,
-        attempts: [],
-        duration_sec: (s && s.duration_sec) || null
-      };
-    });
+    trainSessionState.blocks = seedTrainBlocksFromSections(sections);
   } else {
     trainSessionState.blocks.push({
       id: uid(),
@@ -10024,16 +10068,19 @@ function stopTrainBlockTimer(id){
 function renderTrainBlockHtml(b, bi){
   var done = !!b.complete;
   var timerOn = !!b.timer_enabled;
-  var shapeLabel = (b.shape === 'section' && b.title) ? escTrainHtml(b.title) : escTrainHtml(b.shape.replace(/_/g,' '));
+  var isCheck = b.shape === 'check';
+  var shapeLabel = ((b.shape === 'section' || isCheck || b.shape === 'interval') && b.title)
+    ? escTrainHtml(b.title)
+    : escTrainHtml((b.shape || 'block').replace(/_/g,' '));
   var head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
     + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+shapeLabel+'</div>'
     + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-    + '<button type="button" class="train-section-complete'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>'
+    + (isCheck ? '' : '<button type="button" class="train-section-complete'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
     + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div></div>';
   var timerRow = '';
-  if(timerOn){
+  if(timerOn && !isCheck){
     if(b.shape === 'interval'){
       var startMs = b.interval_started_at ? new Date(b.interval_started_at).getTime() : NaN;
       var st = computeIntervalState(isNaN(startMs) ? null : startMs, b.work_sec, b.rest_sec, b.target_sets, Date.now());
@@ -10112,6 +10159,8 @@ function renderTrainBlockHtml(b, bi){
   } else if(b.shape === 'section'){
     body = fieldHtml('Duration (sec)', 'tb-'+b.id+'-dur', b.duration_sec)
       + (b.notes ? renderTrainNotePreview(b.notes) : '');
+  } else if(b.shape === 'check'){
+    body = b.notes ? renderTrainNotePreview(b.notes) : '';
   }
   return head + timerRow + body + '</div>';
 }
@@ -15797,6 +15846,74 @@ async function runSEETests(){
     trainSessionState = null;
     showScreen('screen-train');
   }catch(e){ fail('Train session seeds section-shape blocks from workout template', e.message); }
+
+  try{
+    var withEx = {
+      id: 'cw-ex', type: 'strength', name: 'Session B',
+      sections: [{
+        label: 'ROUND 1',
+        duration_sec: 180,
+        exercises: [
+          { kind: 'interval', title: '7on 3off', work_sec: 7, rest_sec: 3, target_sets: 6 },
+          { kind: 'interval', name: 'Lock-off', work_sec: 10, rest_sec: 5, target_sets: 4 },
+          { kind: 'check', title: 'Shakes out', notes: 'Shake both arms' }
+        ]
+      }]
+    };
+    seedTrainSessionFromItem(withEx, { custom_workout_item_id: 'cw-ex' });
+    var xb = trainSessionState && trainSessionState.blocks;
+    var orderOk = !!(xb && xb.length === 4
+      && xb[0].shape === 'section' && xb[0].title === 'ROUND 1' && xb[0].duration_sec === 180
+      && xb[1].shape === 'interval' && xb[1].title === '7on 3off'
+      && xb[1].work_sec === 7 && xb[1].rest_sec === 3 && xb[1].target_sets === 6
+      && xb[1].timer_enabled === false
+      && xb[2].shape === 'interval' && xb[2].title === 'Lock-off'
+      && xb[2].work_sec === 10 && xb[2].rest_sec === 5 && xb[2].target_sets === 4
+      && xb[2].timer_enabled === false
+      && xb[3].shape === 'check' && xb[3].title === 'Shakes out' && xb[3].notes === 'Shake both arms');
+    var ivHtml = renderTrainBlockHtml(xb[1], 1);
+    var ivUi = /toggleTrainBlockTimerEnabled/.test(ivHtml) && />Timer</.test(ivHtml)
+      && ivHtml.indexOf('startTrainBlockTimer') === -1
+      && /7on 3off/.test(ivHtml);
+    var checkHtml = renderTrainBlockHtml(xb[3], 3);
+    var checkNoTimer = checkHtml.indexOf('toggleTrainBlockTimerEnabled') === -1
+      && checkHtml.indexOf('startTrainBlockTimer') === -1
+      && checkHtml.indexOf('>Timer<') === -1
+      && /toggleTrainSectionComplete/.test(checkHtml)
+      && /Shakes out/.test(checkHtml)
+      && /Shake both arms/.test(checkHtml);
+    var checkHist = renderTrainSessionBlockDetailHtml(xb[3], 3);
+    var histOk = /Shakes out/.test(checkHist) && /Shake both arms/.test(checkHist)
+      && checkHist.indexOf('toggleTrainBlockTimerEnabled') === -1;
+    seedTrainSessionFromItem({
+      id: 'cw-empty-ex', type: 'strength', name: 'Session C',
+      sections: [{ label: 'ROUND 1', exercises: [] }]
+    });
+    var emptyEx = trainSessionState.blocks.length === 1
+      && trainSessionState.blocks[0].shape === 'section'
+      && trainSessionState.blocks[0].title === 'ROUND 1';
+    seedTrainSessionFromItem({
+      id: 'cw-no-ex', type: 'strength', name: 'Session D',
+      sections: [{ label: 'ROUND 1' }]
+    });
+    var noEx = trainSessionState.blocks.length === 1
+      && trainSessionState.blocks[0].shape === 'section';
+    seedTrainSessionFromItem({
+      id: 'cw-str-ex', type: 'strength', name: 'Session E',
+      sections: [{ label: 'ROUND 1', exercises: 'not-an-array' }]
+    });
+    var strEx = trainSessionState.blocks.length === 1
+      && trainSessionState.blocks[0].shape === 'section';
+    if(orderOk && ivUi && checkNoTimer && histOk && emptyEx && noEx && strEx){
+      pass('Train session expands authored section exercises into child blocks');
+    } else {
+      fail('Train session expands authored section exercises into child blocks',
+        'order=' + orderOk + ' ivUi=' + ivUi + ' checkNoTimer=' + checkNoTimer +
+        ' hist=' + histOk + ' emptyEx=' + emptyEx + ' noEx=' + noEx + ' strEx=' + strEx);
+    }
+    trainSessionState = null;
+    showScreen('screen-train');
+  }catch(e){ fail('Train session expands authored section exercises into child blocks', e.message); }
 
   try{
     var empty = countMarkdownCheckboxes('');
