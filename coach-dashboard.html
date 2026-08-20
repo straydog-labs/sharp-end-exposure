@@ -633,11 +633,25 @@
     padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;
   }
   .aw-ex-mini input:focus{border-color:var(--accent);}
-  .aw-ex-remove,.aw-section-add-ex{
+  .aw-ex-remove,.aw-section-add-ex,.aw-section-add-n{
     background:none;border:none;color:var(--text-secondary);cursor:pointer;
     font-family:inherit;font-size:13px;font-weight:600;padding:6px 4px;
   }
-  .aw-section-add-ex{color:var(--accent);font-weight:700;align-self:flex-start;padding:4px 0;}
+  .aw-section-add-ex,.aw-section-add-n{color:var(--accent);font-weight:700;align-self:flex-start;padding:4px 0;}
+  .aw-ex-add-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+  .aw-ex-bulk{
+    display:none;flex-wrap:wrap;gap:8px;align-items:flex-end;
+    padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  }
+  .aw-ex-bulk.is-open{display:flex;}
+  .aw-ex-bulk-go{
+    background:var(--accent);border:none;border-radius:6px;color:#0d0d0d;
+    font-family:inherit;font-size:12px;font-weight:700;padding:8px 10px;cursor:pointer;
+  }
+  .aw-ex-bulk-cancel{
+    background:none;border:none;color:var(--text-secondary);cursor:pointer;
+    font-family:inherit;font-size:12px;font-weight:600;padding:8px 4px;
+  }
   .aw-create-chip{
     width:100%;text-align:left;background:rgba(232,146,82,.08);border:1px solid rgba(232,146,82,.45);
     border-radius:14px;padding:16px 18px;color:var(--accent);font-family:'Space Grotesk',sans-serif;
@@ -2369,8 +2383,8 @@
     return String(raw || '').toLowerCase() === 'check' ? 'check' : 'interval';
   }
 
-  function newAssignWizardExercise(){
-    return {
+  function newAssignWizardExercise(fields){
+    var ex = {
       id: 'ex-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
       title: '',
       kind: 'interval',
@@ -2378,6 +2392,39 @@
       rest_sec: '',
       target_sets: ''
     };
+    if(fields){
+      if(fields.title != null) ex.title = String(fields.title);
+      if(fields.kind != null) ex.kind = normalizeAssignWizardExerciseKind(fields.kind);
+      if(fields.work_sec != null && fields.work_sec !== '') ex.work_sec = String(fields.work_sec);
+      if(fields.rest_sec != null && fields.rest_sec !== '') ex.rest_sec = String(fields.rest_sec);
+      if(fields.target_sets != null && fields.target_sets !== '') ex.target_sets = String(fields.target_sets);
+      if(fields.id) ex.id = fields.id;
+    }
+    return ex;
+  }
+
+  function buildAssignWizardBulkExercises(opts){
+    opts = opts || {};
+    var n = parseInt(opts.count, 10);
+    if(!isFinite(n) || n < 1) return [];
+    if(n > 40) n = 40;
+    var stem = String(opts.stem || '').trim() || 'Round';
+    var kind = normalizeAssignWizardExerciseKind(opts.kind);
+    var out = [];
+    var stamp = Date.now();
+    for(var i = 1; i <= n; i++){
+      var row = newAssignWizardExercise({
+        id: 'ex-' + stamp + '-' + i + '-' + Math.random().toString(36).slice(2, 5),
+        title: stem + ' ' + i,
+        kind: kind
+      });
+      if(kind === 'interval'){
+        if(opts.work_sec != null && opts.work_sec !== '') row.work_sec = String(opts.work_sec);
+        if(opts.rest_sec != null && opts.rest_sec !== '') row.rest_sec = String(opts.rest_sec);
+      }
+      out.push(row);
+    }
+    return out;
   }
 
   function newAssignWizardSection(i){
@@ -2493,7 +2540,24 @@
     var secId = escapeHtml((s && s.id) || '');
     return '<div class="aw-section-exercises" data-section-id="' + secId + '">' +
       (rows || '<p class="aw-ex-empty">No exercises yet. Add interval timers or check-off items.</p>') +
-      '<button type="button" class="aw-section-add-ex" data-section-id="' + secId + '">+ Add exercise</button>' +
+      '<div class="aw-ex-add-row">' +
+        '<button type="button" class="aw-section-add-ex" data-section-id="' + secId + '">+ Add exercise</button>' +
+        '<button type="button" class="aw-section-add-n" data-section-id="' + secId + '">+ Add N rounds</button>' +
+      '</div>' +
+      '<div class="aw-ex-bulk" data-section-id="' + secId + '">' +
+        '<label class="aw-ex-mini"><span>How many</span><input type="number" min="1" max="40" step="1" inputmode="numeric" class="aw-ex-bulk-count" value="12"></label>' +
+        '<label class="aw-ex-mini" style="min-width:120px;"><span>Title</span><input type="text" class="aw-ex-bulk-stem" placeholder="Boulder"></label>' +
+        '<div class="aw-ex-kind" role="group" aria-label="Round kind">' +
+          '<button type="button" class="aw-ex-kind-btn aw-ex-bulk-kind is-on" data-kind="interval">Interval timer</button>' +
+          '<button type="button" class="aw-ex-kind-btn aw-ex-bulk-kind" data-kind="check">Checkmark</button>' +
+        '</div>' +
+        '<div class="aw-ex-interval aw-ex-bulk-interval">' +
+          '<label class="aw-ex-mini"><span>Work (sec)</span><input type="number" min="0" step="1" inputmode="numeric" class="aw-ex-bulk-work" placeholder="60"></label>' +
+          '<label class="aw-ex-mini"><span>Rest (sec)</span><input type="number" min="0" step="1" inputmode="numeric" class="aw-ex-bulk-rest" placeholder="0"></label>' +
+        '</div>' +
+        '<button type="button" class="aw-ex-bulk-go" data-section-id="' + secId + '">Add rounds</button>' +
+        '<button type="button" class="aw-ex-bulk-cancel">Cancel</button>' +
+      '</div>' +
     '</div>';
   }
 
@@ -2565,6 +2629,55 @@
         if(!s) return;
         if(!Array.isArray(s.exercises)) s.exercises = [];
         s.exercises.push(newAssignWizardExercise());
+        if(typeof rerender === 'function') rerender();
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-add-n'), function(btn){
+      btn.addEventListener('click', function(){
+        var block = btn.closest('.aw-section-exercises');
+        var form = block && block.querySelector('.aw-ex-bulk');
+        if(!form) return;
+        form.classList.toggle('is-open');
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-bulk-kind'), function(btn){
+      btn.addEventListener('click', function(){
+        var form = btn.closest('.aw-ex-bulk');
+        if(!form) return;
+        Array.prototype.forEach.call(form.querySelectorAll('.aw-ex-bulk-kind'), function(b){
+          b.classList.toggle('is-on', b === btn);
+        });
+        var interval = form.querySelector('.aw-ex-bulk-interval');
+        if(interval) interval.style.display = btn.getAttribute('data-kind') === 'check' ? 'none' : '';
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-bulk-cancel'), function(btn){
+      btn.addEventListener('click', function(){
+        var form = btn.closest('.aw-ex-bulk');
+        if(form) form.classList.remove('is-open');
+      });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-ex-bulk-go'), function(btn){
+      btn.addEventListener('click', function(){
+        var form = btn.closest('.aw-ex-bulk');
+        var s = findAssignWizardSectionById(btn.getAttribute('data-section-id'));
+        if(!form || !s) return;
+        var kindBtn = form.querySelector('.aw-ex-bulk-kind.is-on');
+        var kind = kindBtn ? kindBtn.getAttribute('data-kind') : 'interval';
+        var countEl = form.querySelector('.aw-ex-bulk-count');
+        var stemEl = form.querySelector('.aw-ex-bulk-stem');
+        var workEl = form.querySelector('.aw-ex-bulk-work');
+        var restEl = form.querySelector('.aw-ex-bulk-rest');
+        var rows = buildAssignWizardBulkExercises({
+          count: countEl ? countEl.value : 0,
+          stem: stemEl ? stemEl.value : '',
+          kind: kind,
+          work_sec: kind === 'interval' && workEl ? workEl.value : '',
+          rest_sec: kind === 'interval' && restEl ? restEl.value : ''
+        });
+        if(!rows.length) return;
+        if(!Array.isArray(s.exercises)) s.exercises = [];
+        s.exercises = s.exercises.concat(rows);
         if(typeof rerender === 'function') rerender();
       });
     });
@@ -3072,7 +3185,7 @@
             '<textarea id="edit-cw-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
           '<div class="aw-field"><label>Session sections (optional)</label>' +
-            '<div class="form-note" style="margin:0 0 8px;">Optional Duration (sec) turns a section into a countdown. Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Leave exercises empty to keep the section as a label only, same as today.</div>' +
+            '<div class="form-note" style="margin:0 0 8px;">Optional Duration (sec) turns a section into a countdown. Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Use + Add N rounds for EMOMs or repeated boulders. Leave exercises empty to keep the section as a label only, same as today.</div>' +
             '<div id="edit-cw-sections-list"></div>' +
             '<button type="button" id="edit-cw-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
           '</div>';
@@ -3118,7 +3231,7 @@
             '<textarea id="new-a-lib-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
           '<div class="aw-field"><label>Session sections (optional)</label>' +
-            '<div class="form-note" style="margin:0 0 8px;">Build the checklist the athlete sees and checks off during the session — e.g. "Warm up", "Round 1 — 12 boulders (EMOM)", "Rest 5 min". Optional Duration (sec) turns a section into a countdown (300 = 5 min rest). Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Leave duration and exercises blank for a label-only section. Leave the list empty to fall back to a single free-text block, same as today.</div>' +
+            '<div class="form-note" style="margin:0 0 8px;">Build the checklist the athlete sees and checks off during the session — e.g. "Warm up", "Round 1 — 12 boulders (EMOM)", "Rest 5 min". Optional Duration (sec) turns a section into a countdown (300 = 5 min rest). Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Use + Add N rounds to generate numbered repeats (Boulder 1 … Boulder 12). Leave duration and exercises blank for a label-only section. Leave the list empty to fall back to a single free-text block, same as today.</div>' +
             '<div id="new-a-sections-list"></div>' +
             '<button type="button" id="new-a-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
           '</div>';
