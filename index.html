@@ -3449,8 +3449,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <button type="button" onclick="trainAddBlockMenu()" style="background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">+ Add block</button>
     </div>
     <div id="train-block-menu" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:8px;margin-bottom:10px;">
+      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('section')">+ Add section</button>
       <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('interval')">Interval</button>
-      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('emom')">EMOM boulder list</button>
       <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('circuit')">Weighted circuit</button>
       <button type="button" class="saw-chip" onclick="trainAddBlock('rep_pass_fail')">Rep-level pass/fail</button>
     </div>
@@ -4578,7 +4578,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index226'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index227'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -9638,8 +9638,7 @@ function trainAddBlockMenu(){
   if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
 }
 
-function trainAddBlock(shape){
-  if(!trainSessionState) return;
+function newTrainBlock(shape){
   var block = { id: uid(), shape: shape, title: '', rest_after_sec: 120, complete: false, attempts: [], timer_enabled: false, timer_started_at: null, timer_ended_at: null, interval_started_at: null, duration_sec: null };
   if(shape === 'interval'){
     block.work_sec = 120; block.rest_sec = 120; block.target_sets = 12;
@@ -9653,10 +9652,52 @@ function trainAddBlock(shape){
     block.grip = ''; block.assistance = '';
     block.sets = [{ reps: [{ ok: null }, { ok: null }, { ok: null }, { ok: null }, { ok: null }] }];
     block.progression_note = '';
+  } else if(shape === 'section'){
+    block.notes = '';
+  } else if(shape === 'check'){
+    block.notes = '';
   }
-  trainSessionState.blocks.push(block);
+  return block;
+}
+
+function trainAddBlock(shape){
+  if(!trainSessionState) return;
+  trainSessionState.blocks.push(newTrainBlock(shape));
   var m = document.getElementById('train-block-menu');
   if(m) m.style.display = 'none';
+  renderTrainSessionBuilder();
+}
+
+function trainSectionChildInsertIndex(sectionId){
+  var blocks = (trainSessionState && trainSessionState.blocks) || [];
+  var start = -1;
+  var i;
+  for(i = 0; i < blocks.length; i++){
+    if(blocks[i] && blocks[i].id === sectionId){ start = i; break; }
+  }
+  if(start < 0) return blocks.length;
+  var parentWarm = !!(blocks[start] && blocks[start].is_warmup);
+  var insertAt = start + 1;
+  while(insertAt < blocks.length){
+    var b = blocks[insertAt];
+    if(!b) break;
+    if(b.shape !== 'interval' && b.shape !== 'check') break;
+    if(!!b.is_warmup !== parentWarm) break;
+    insertAt++;
+  }
+  return insertAt;
+}
+
+function trainAddSectionChild(sectionId, kind){
+  if(!trainSessionState) return;
+  syncTrainSessionFieldsFromDom();
+  collectTrainBlockFields();
+  var parent = trainSessionState.blocks.find(function(x){ return x.id === sectionId; });
+  if(!parent || parent.shape !== 'section') return;
+  var shape = String(kind || '').toLowerCase() === 'check' ? 'check' : 'interval';
+  var child = newTrainBlock(shape);
+  if(parent.is_warmup) child.is_warmup = true;
+  trainSessionState.blocks.splice(trainSectionChildInsertIndex(sectionId), 0, child);
   renderTrainSessionBuilder();
 }
 
@@ -9712,7 +9753,7 @@ function renderTrainSessionBuilder(){
   var wrap = document.getElementById('train-blocks-wrap');
   if(!wrap) return;
   if(!split.main.length){
-    wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No blocks yet. Add an interval, EMOM, circuit, or pass/fail block.</div>';
+    wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No blocks yet. Add a section, interval, circuit, or pass/fail block.</div>';
     if(!allBlocks.length){
       clearAllTrainBlockTimerIntervals();
       return;
@@ -10214,10 +10255,16 @@ function renderTrainBlockHtml(b, bi){
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
   } else if(b.shape === 'section'){
-    body = fieldHtml('Duration (sec)', 'tb-'+b.id+'-dur', b.duration_sec)
-      + (b.notes ? renderTrainNotePreview(b.notes) : '');
+    body = fieldHtml('Title', 'tb-'+b.id+'-title', b.title)
+      + fieldHtml('Duration (sec)', 'tb-'+b.id+'-dur', b.duration_sec)
+      + (b.notes ? renderTrainNotePreview(b.notes) : '')
+      + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
+      + '<button type="button" class="saw-chip" onclick="trainAddSectionChild(\''+b.id+'\',\'interval\')">+ Interval</button>'
+      + '<button type="button" class="saw-chip" onclick="trainAddSectionChild(\''+b.id+'\',\'check\')">+ Check</button>'
+      + '</div>';
   } else if(b.shape === 'check'){
-    body = b.notes ? renderTrainNotePreview(b.notes) : '';
+    body = fieldHtml('Title', 'tb-'+b.id+'-title', b.title)
+      + trainBlockNoteField('tb-'+b.id+'-chknotes', 'Notes', b.notes||'');
   }
   return head + timerRow + body + '</div>';
 }
@@ -10387,6 +10434,8 @@ function collectTrainBlockFields(){
       var p = document.getElementById('tb-'+b.id+'-prog');
       if(g) b.grip = g.value; if(a) b.assistance = a.value; if(p) b.progression_note = p.value;
     } else if(b.shape === 'section'){
+      var st = document.getElementById('tb-'+b.id+'-title');
+      if(st) b.title = st.value;
       var d = document.getElementById('tb-'+b.id+'-dur');
       if(d){
         if(!String(d.value).trim()) b.duration_sec = null;
@@ -10395,6 +10444,11 @@ function collectTrainBlockFields(){
           b.duration_sec = isNaN(dn) ? null : dn;
         }
       }
+    } else if(b.shape === 'check'){
+      var ct = document.getElementById('tb-'+b.id+'-title');
+      if(ct) b.title = ct.value;
+      var chkNotes = document.getElementById('tb-'+b.id+'-chknotes');
+      if(chkNotes) b.notes = chkNotes.value;
     }
   });
 }
@@ -16158,6 +16212,62 @@ async function runSEETests(){
     trainSessionState = prevSess;
     showScreen('screen-train');
   }catch(e){ fail('Train warm-up card collapses with the existing chevron pattern', e.message); }
+
+  try{
+    var menu = document.getElementById('train-block-menu');
+    var menuOk = !!(menu
+      && /trainAddBlock\('section'\)/.test(menu.innerHTML)
+      && /\+ Add section/.test(menu.innerHTML)
+      && /trainAddBlock\('interval'\)/.test(menu.innerHTML)
+      && menu.innerHTML.indexOf("trainAddBlock('emom')") === -1
+      && menu.innerHTML.indexOf('EMOM boulder list') === -1);
+
+    var prevSess = trainSessionState;
+    trainSessionState = newTrainSessionState('strength');
+    trainAddBlock('section');
+    var sec = trainSessionState.blocks[0];
+    var secHtml = renderTrainBlockHtml(sec, 0);
+    var sectionOk = sec.shape === 'section'
+      && /trainAddSectionChild/.test(secHtml)
+      && /Duration \(sec\)/.test(secHtml)
+      && /toggleTrainBlockTimerEnabled/.test(secHtml);
+
+    trainAddSectionChild(sec.id, 'interval');
+    trainAddSectionChild(sec.id, 'check');
+    var kids = trainSessionState.blocks;
+    var childOk = kids.length === 3
+      && kids[0].shape === 'section'
+      && kids[1].shape === 'interval' && kids[1].timer_enabled === false
+      && kids[1].work_sec === 120 && kids[1].rest_sec === 120 && kids[1].target_sets === 12
+      && kids[2].shape === 'check' && !kids[2].is_warmup;
+    var checkHtml = renderTrainBlockHtml(kids[2], 2);
+    var checkNoTimer = checkHtml.indexOf('toggleTrainBlockTimerEnabled') === -1
+      && checkHtml.indexOf('startTrainBlockTimer') === -1
+      && /toggleTrainSectionComplete/.test(checkHtml);
+
+    trainAddBlock('emom');
+    var emom = trainSessionState.blocks[3];
+    var emomHtml = renderTrainBlockHtml(emom, 3);
+    var emomKept = emom.shape === 'emom'
+      && emom.rounds && emom.rounds[0] && (emom.rounds[0].boulders||[]).length === 4
+      && /Round 1 boulders/.test(emomHtml)
+      && /toggleTrainBlockTimerEnabled/.test(emomHtml)
+      && /toggleTrainSectionComplete/.test(emomHtml);
+
+    var srcOk = String(newTrainBlock).indexOf("shape === 'emom'") !== -1
+      && String(renderTrainBlockHtml).indexOf("b.shape === 'emom'") !== -1
+      && document.getElementById('train-block-menu').innerHTML.indexOf("trainAddBlock('emom')") === -1;
+
+    if(menuOk && sectionOk && childOk && checkNoTimer && emomKept && srcOk){
+      pass('Train add-block menu uses section/interval/check instead of EMOM');
+    } else {
+      fail('Train add-block menu uses section/interval/check instead of EMOM',
+        'menu=' + menuOk + ' section=' + sectionOk + ' child=' + childOk +
+        ' check=' + checkNoTimer + ' emom=' + emomKept + ' src=' + srcOk);
+    }
+    trainSessionState = prevSess;
+    showScreen('screen-train');
+  }catch(e){ fail('Train add-block menu uses section/interval/check instead of EMOM', e.message); }
 
   try{
     var empty = countMarkdownCheckboxes('');
