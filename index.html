@@ -3436,6 +3436,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <button type="button" class="train-section-complete" id="train-warmup-complete-btn" onclick="toggleTrainSectionComplete('warm_up')">Mark complete</button>
       </div>
       <textarea id="train-sess-warmup" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
+      <div id="train-warmup-blocks-wrap"></div>
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -4572,7 +4573,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index224'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index225'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -9242,19 +9243,37 @@ function trainBlockRecordedDurationMs(b){
   return 0;
 }
 
+function splitTrainBlocksByWarmup(blocks){
+  var list = blocks || [];
+  return {
+    warmup: list.filter(function(b){ return !!(b && b.is_warmup); }),
+    main: list.filter(function(b){ return !(b && b.is_warmup); })
+  };
+}
+
 function renderTrainSessionDetailHtml(row){
   row = row || {};
   var html = '';
-  if(trainTextNonEmpty(row.warm_up)){
-    html += '<div class="train-session-detail-section"><div class="train-session-detail-label">Warm-up</div>'
-      + '<div class="train-note-preview">'+renderTrainNotePreview(row.warm_up)+'</div></div>';
+  var blocks = parseTrainSessionBlocks(row);
+  var split = splitTrainBlocksByWarmup(blocks);
+  var hasWarmupNotes = trainTextNonEmpty(row.warm_up);
+  if(hasWarmupNotes || split.warmup.length){
+    html += '<div class="train-session-detail-section"><div class="train-session-detail-label">Warm-up</div>';
+    if(hasWarmupNotes){
+      html += '<div class="train-note-preview">'+renderTrainNotePreview(row.warm_up)+'</div>';
+    }
+    html += split.warmup.map(function(b){
+      return renderTrainSessionBlockDetailHtml(b, blocks.indexOf(b));
+    }).join('');
+    html += '</div>';
   }
   if(trainTextNonEmpty(row.cool_down)){
     html += '<div class="train-session-detail-section"><div class="train-session-detail-label">Cool-down</div>'
       + '<div class="train-note-preview">'+renderTrainNotePreview(row.cool_down)+'</div></div>';
   }
-  var blocks = parseTrainSessionBlocks(row);
-  html += blocks.map(function(b, i){ return renderTrainSessionBlockDetailHtml(b, i); }).join('');
+  html += split.main.map(function(b){
+    return renderTrainSessionBlockDetailHtml(b, blocks.indexOf(b));
+  }).join('');
   if(trainTextNonEmpty(row.notes)){
     html += '<div class="train-session-detail-section"><div class="train-session-detail-label">Reflection</div>'
       + '<div class="train-note-preview">'+renderTrainNotePreview(row.notes)+'</div></div>';
@@ -9510,7 +9529,17 @@ function seedTrainBlocksFromSections(sections){
   return blocks;
 }
 
-function seedTrainSessionFromItem(item, sourceMeta){
+function seedWarmupBlocksFromItem(warmupItem){
+  if(!warmupItem) return [];
+  var sections = Array.isArray(warmupItem.sections) ? warmupItem.sections : null;
+  if(!sections || !sections.length) return [];
+  return seedTrainBlocksFromSections(sections).map(function(b){
+    b.is_warmup = true;
+    return b;
+  });
+}
+
+function seedTrainSessionFromItem(item, sourceMeta, warmupItem){
   if(!item) return;
   sourceMeta = sourceMeta || {};
   var energyType = itemTrainingFocus(item) || _trainPickerType || 'Hangboard';
@@ -9531,6 +9560,10 @@ function seedTrainSessionFromItem(item, sourceMeta){
       complete: false,
       attempts: []
     });
+  }
+  var warmupBlocks = seedWarmupBlocksFromItem(warmupItem);
+  if(warmupBlocks.length){
+    trainSessionState.blocks = warmupBlocks.concat(trainSessionState.blocks);
   }
   showScreen('screen-train-session');
 }
@@ -9569,7 +9602,13 @@ async function startTrainSessionFromAssignment(assignmentId){
   var sourceMeta = { source_assignment_id: a.id };
   if(isCustom) sourceMeta.custom_workout_item_id = item.id;
   else sourceMeta.library_item_id = item.id;
-  seedTrainSessionFromItem(item, sourceMeta);
+  var warmupItem = null;
+  var warmupId = a.warmup_custom_workout_item_id;
+  if(warmupId){
+    var wrows = await sbS('custom_workouts', 'select=*&id=eq.' + warmupId + '&limit=1');
+    warmupItem = Array.isArray(wrows) && wrows[0] ? wrows[0] : null;
+  }
+  seedTrainSessionFromItem(item, sourceMeta, warmupItem);
 }
 
 function startCustomWorkoutCreate(){
@@ -9655,16 +9694,27 @@ function renderTrainSessionBuilder(){
   if(c) c.value = trainSessionState.cool_down || '';
   paintTrainSectionComplete('train-warmup-complete-btn', 'train-warmup-card', !!trainSessionState.warm_up_complete);
   paintTrainSectionComplete('train-cooldown-complete-btn', 'train-cooldown-card', !!trainSessionState.cool_down_complete);
+  var allBlocks = trainSessionState.blocks || [];
+  var split = splitTrainBlocksByWarmup(allBlocks);
+  var warmupWrap = document.getElementById('train-warmup-blocks-wrap');
+  if(warmupWrap){
+    warmupWrap.innerHTML = split.warmup.map(function(b){
+      return renderTrainBlockHtml(b, allBlocks.indexOf(b));
+    }).join('');
+  }
   var wrap = document.getElementById('train-blocks-wrap');
   if(!wrap) return;
-  if(!trainSessionState.blocks.length){
+  if(!split.main.length){
     wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No blocks yet. Add an interval, EMOM, circuit, or pass/fail block.</div>';
-    clearAllTrainBlockTimerIntervals();
-    return;
+    if(!allBlocks.length){
+      clearAllTrainBlockTimerIntervals();
+      return;
+    }
+  } else {
+    wrap.innerHTML = split.main.map(function(b){
+      return renderTrainBlockHtml(b, allBlocks.indexOf(b));
+    }).join('');
   }
-  wrap.innerHTML = trainSessionState.blocks.map(function(b, bi){
-    return renderTrainBlockHtml(b, bi);
-  }).join('');
   syncTrainBlockTimerIntervals();
 }
 
@@ -15914,6 +15964,111 @@ async function runSEETests(){
     trainSessionState = null;
     showScreen('screen-train');
   }catch(e){ fail('Train session expands authored section exercises into child blocks', e.message); }
+
+  try{
+    var mainItem = {
+      id: 'cw-main', type: 'strength', name: 'Main hangboard',
+      sections: [{
+        label: 'ROUND 1',
+        exercises: [{ kind: 'interval', title: '7on 3off', work_sec: 7, rest_sec: 3, target_sets: 6 }]
+      }]
+    };
+    var warmupItem = {
+      id: 'cw-wu', name: 'Warmup for Climbing',
+      sections: [{
+        label: 'Warm up',
+        exercises: [{ kind: 'interval', title: 'Easy hangs', work_sec: 10, rest_sec: 5, target_sets: 3 }]
+      }]
+    };
+    seedTrainSessionFromItem(mainItem, { custom_workout_item_id: 'cw-main' }, warmupItem);
+    var bs = trainSessionState && trainSessionState.blocks;
+    var orderOk = !!(bs && bs.length === 4
+      && bs[0].is_warmup === true && bs[0].shape === 'section' && bs[0].title === 'Warm up'
+      && bs[1].is_warmup === true && bs[1].shape === 'interval' && bs[1].title === 'Easy hangs'
+      && bs[1].work_sec === 10 && bs[1].rest_sec === 5 && bs[1].target_sets === 3
+      && bs[1].timer_enabled === false
+      && !bs[2].is_warmup && bs[2].shape === 'section' && bs[2].title === 'ROUND 1'
+      && !bs[3].is_warmup && bs[3].shape === 'interval' && bs[3].title === '7on 3off'
+      && bs[3].work_sec === 7);
+    renderTrainSessionBuilder();
+    var wuWrap = document.getElementById('train-warmup-blocks-wrap');
+    var mainWrap = document.getElementById('train-blocks-wrap');
+    var card = document.getElementById('train-warmup-card');
+    var splitOk = !!(wuWrap && mainWrap && card
+      && card.contains(wuWrap)
+      && /Easy hangs/.test(wuWrap.innerHTML)
+      && wuWrap.innerHTML.indexOf('7on 3off') === -1
+      && /7on 3off/.test(mainWrap.innerHTML)
+      && mainWrap.innerHTML.indexOf('Easy hangs') === -1
+      && /toggleTrainBlockTimerEnabled/.test(wuWrap.innerHTML)
+      && document.getElementById('train-sess-warmup'));
+    var detail = renderTrainSessionDetailHtml({
+      warm_up: 'band pulls', cool_down: '', notes: '', blocks: bs
+    });
+    var warmIdx = detail.indexOf('Warm-up');
+    var easyIdx = detail.indexOf('Easy hangs');
+    var roundIdx = detail.indexOf('ROUND 1');
+    var detailOk = warmIdx !== -1 && easyIdx !== -1 && roundIdx !== -1
+      && warmIdx < easyIdx && easyIdx < roundIdx && /band pulls/.test(detail);
+
+    seedTrainSessionFromItem(mainItem, { custom_workout_item_id: 'cw-main' });
+    var noWuFlag = trainSessionState.blocks.every(function(b){ return !b.is_warmup; })
+      && trainSessionState.blocks.length === 2;
+    renderTrainSessionBuilder();
+    var emptyWu = document.getElementById('train-warmup-blocks-wrap');
+    var backCompat = !!(emptyWu && emptyWu.innerHTML === ''
+      && /ROUND 1/.test(document.getElementById('train-blocks-wrap').innerHTML)
+      && document.getElementById('train-sess-warmup'));
+
+    seedTrainSessionFromItem(mainItem, { custom_workout_item_id: 'cw-main' }, { id: 'wu-empty', name: 'Empty wu' });
+    var noSectionsWu = trainSessionState.blocks.length === 2
+      && trainSessionState.blocks.every(function(b){ return !b.is_warmup; });
+
+    var origSbS = sbS;
+    var origCache = _trainAssignmentsCache;
+    var fetches = [];
+    var asgOk = false;
+    try{
+      sbS = async function(table, params){
+        fetches.push(String(table) + '?' + String(params || ''));
+        if(table === 'custom_workouts' && /id=eq\.wu-1/.test(String(params || ''))){
+          return [warmupItem];
+        }
+        if(table === 'workout_library' && /id=eq\.emom-1/.test(String(params || ''))){
+          return [{ id: 'emom-1', training_focus: 'Boulders', name: 'EMOM Boulders', description: 'desc' }];
+        }
+        return [];
+      };
+      _trainAssignmentsCache = [{
+        id: 'asg-wu', library_item_id: 'emom-1', custom_workout_item_id: null,
+        warmup_custom_workout_item_id: 'wu-1'
+      }];
+      await startTrainSessionFromAssignment('asg-wu');
+      var fetchedWu = fetches.some(function(f){ return /^custom_workouts\?/.test(f) && /wu-1/.test(f); });
+      var fetchedMain = fetches.some(function(f){ return /^workout_library\?/.test(f) && /emom-1/.test(f); });
+      asgOk = !!(fetchedWu && fetchedMain && trainSessionState
+        && trainSessionState.blocks[0] && trainSessionState.blocks[0].is_warmup === true
+        && trainSessionState.blocks[0].title === 'Warm up'
+        && trainSessionState.blocks.some(function(b){ return !b.is_warmup && b.shape === 'circuit'; }));
+    }finally{
+      sbS = origSbS;
+      _trainAssignmentsCache = origCache;
+    }
+    var srcOk = /warmup_custom_workout_item_id/.test(String(startTrainSessionFromAssignment))
+      && /seedTrainSessionFromItem/.test(String(startTrainSessionFromAssignment));
+    var saveUntouched = /blocks:\s*trainSessionState\.blocks/.test(String(saveTrainSession));
+
+    if(orderOk && splitOk && detailOk && noWuFlag && backCompat && noSectionsWu && asgOk && srcOk && saveUntouched){
+      pass('Train session prepends warmup-item blocks into the Warm up card');
+    } else {
+      fail('Train session prepends warmup-item blocks into the Warm up card',
+        'order=' + orderOk + ' split=' + splitOk + ' detail=' + detailOk +
+        ' noWu=' + noWuFlag + ' backCompat=' + backCompat + ' noSections=' + noSectionsWu +
+        ' asg=' + asgOk + ' src=' + srcOk + ' save=' + saveUntouched);
+    }
+    trainSessionState = null;
+    showScreen('screen-train');
+  }catch(e){ fail('Train session prepends warmup-item blocks into the Warm up card', e.message); }
 
   try{
     var empty = countMarkdownCheckboxes('');
