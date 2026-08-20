@@ -2026,16 +2026,30 @@
     });
   }
 
+  function isMissingColumnErr(err){
+    return !!(err && (err.code === 'PGRST204' || err.code === '42703'));
+  }
+
   function patchCoachAssignment(token, assignmentId, fields){
-    return fetch(SB_URL + '/rest/v1/assignments?id=eq.' + encodeURIComponent(assignmentId), {
-      method: 'PATCH',
-      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
-      body: JSON.stringify(fields)
-    }).then(function(res){
-      if(!res.ok) return res.json().then(function(err){ throw err; });
-      return res.json().then(function(rows){
-        return Array.isArray(rows) ? rows[0] : rows;
+    function send(body){
+      return fetch(SB_URL + '/rest/v1/assignments?id=eq.' + encodeURIComponent(assignmentId), {
+        method: 'PATCH',
+        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+        body: JSON.stringify(body)
+      }).then(function(res){
+        if(!res.ok) return res.json().then(function(err){ throw err; });
+        return res.json().then(function(rows){
+          return Array.isArray(rows) ? rows[0] : rows;
+        });
       });
+    }
+    return send(fields).catch(function(err){
+      if(isMissingColumnErr(err) && Object.prototype.hasOwnProperty.call(fields, 'warmup_custom_workout_item_id')){
+        var retry = Object.assign({}, fields);
+        delete retry.warmup_custom_workout_item_id;
+        return send(retry);
+      }
+      throw err;
     });
   }
 
@@ -2055,6 +2069,9 @@
       payload.library_item_id = source.library_item_id;
     }
     if(source.resource_link) payload.resource_link = source.resource_link;
+    if(source.warmup_custom_workout_item_id){
+      payload.warmup_custom_workout_item_id = source.warmup_custom_workout_item_id;
+    }
     return createCoachLibraryAssignment(token, payload);
   }
 
@@ -2062,6 +2079,7 @@
   // Foundational rows live in workout_library (read-only for coaches).
   // Coach/athlete customs live in custom_workouts. Assignments reference
   // one or the other via library_item_id XOR custom_workout_item_id.
+  // Optional warmup_custom_workout_item_id is independent of that XOR.
   var _coachLibCache = [];
   var _coachLibSelectedId = null;
 
@@ -2146,6 +2164,61 @@
       || '';
   }
 
+  function isWarmUpFocusValue(value){
+    return normalizeTrainingFocus(value) === 'Warm-Ups';
+  }
+
+  function isWarmUpLibraryItem(item){
+    return itemTrainingFocus(item) === 'Warm-Ups';
+  }
+
+  // Warm-Ups templates are attached on the assignment, not picked as the session.
+  function sessionAssignableFocusValues(){
+    return LOCKED_WORKOUT_CATEGORIES.filter(function(c){ return c !== 'Warm-Ups'; });
+  }
+
+  function warmupCustomWorkoutRows(){
+    return (_coachLibCache || []).filter(function(item){
+      return item && item._source === 'custom' && isWarmUpLibraryItem(item);
+    });
+  }
+
+  function assignmentWarmupId(){
+    var id = _assignWizard && _assignWizard.warmupCustomWorkoutItemId;
+    return id ? id : null;
+  }
+
+  function applyAssignmentWarmupField(payload){
+    payload.warmup_custom_workout_item_id = assignmentWarmupId();
+    return payload;
+  }
+
+  function readAssignWizardWarmupPicker(){
+    var sel = document.getElementById('new-a-warmup');
+    if(!sel || !_assignWizard) return;
+    _assignWizard.warmupCustomWorkoutItemId = sel.value || null;
+  }
+
+  function assignWizardWarmupPickerHtml(){
+    var rows = warmupCustomWorkoutRows();
+    var selected = assignmentWarmupId() || '';
+    var hasSelected = rows.some(function(r){ return r.id === selected; });
+    var opts = '<option value="">None</option>';
+    if(selected && !hasSelected){
+      opts += '<option value="' + escapeHtml(selected) + '" selected>Saved warm-up (not in catalog)</option>';
+    }
+    opts += rows.map(function(item){
+      var sel = item.id === selected ? ' selected' : '';
+      return '<option value="' + escapeHtml(item.id) + '"' + sel + '>' + escapeHtml(item.name || 'Warm-up') + '</option>';
+    }).join('');
+    var emptyNote = rows.length
+      ? 'Attached to this session, not assigned as its own workout.'
+      : 'No Warm-Ups custom workouts yet. Create one with training focus Warm-Ups, then pick it here.';
+    return '<div class="aw-field"><label for="new-a-warmup">Warm-up (optional)</label>' +
+      '<select id="new-a-warmup">' + opts + '</select>' +
+      '<div class="form-note" style="margin:6px 0 0;">' + emptyNote + '</div></div>';
+  }
+
   function coachLibFocusLabel(focus){
     return normalizeTrainingFocus(focus) || (focus || '');
   }
@@ -2222,15 +2295,25 @@
   // Coach-side assignment insert. Same library_item_id / custom_workout_item_id
   // link shape athlete Train uses, with coach_id set.
   function createCoachLibraryAssignment(token, payload){
-    return fetch(SB_URL + '/rest/v1/assignments', {
-      method: 'POST',
-      headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
-      body: JSON.stringify(payload)
-    }).then(function(res){
-      if(!res.ok) return res.json().then(function(err){ throw err; });
-      return res.json().then(function(rows){
-        return Array.isArray(rows) ? rows[0] : rows;
+    function post(body){
+      return fetch(SB_URL + '/rest/v1/assignments', {
+        method: 'POST',
+        headers: Object.assign(sbHeaders(token), { 'Prefer': 'return=representation' }),
+        body: JSON.stringify(body)
+      }).then(function(res){
+        if(!res.ok) return res.json().then(function(err){ throw err; });
+        return res.json().then(function(rows){
+          return Array.isArray(rows) ? rows[0] : rows;
+        });
       });
+    }
+    return post(payload).catch(function(err){
+      if(isMissingColumnErr(err) && Object.prototype.hasOwnProperty.call(payload, 'warmup_custom_workout_item_id')){
+        var retry = Object.assign({}, payload);
+        delete retry.warmup_custom_workout_item_id;
+        return post(retry);
+      }
+      throw err;
     });
   }
 
@@ -2262,7 +2345,8 @@
       resourceLink: '',
       libLoadError: null,
       sections: [],
-      editingCustomWorkoutId: null
+      editingCustomWorkoutId: null,
+      warmupCustomWorkoutItemId: null
     };
     _coachLibSelectedId = null;
   }
@@ -2695,6 +2779,7 @@
     if(scope === 'focus'){
       rows = drillsForTrainingFocus(_assignWizard.trainingFocus);
     }
+    rows = rows.filter(function(item){ return !isWarmUpLibraryItem(item); });
     if(!q) return rows;
     return rows.filter(function(item){
       var hay = ((item.name || '') + ' ' + (item.description || '') + ' ' + (item._focus || '')).toLowerCase();
@@ -2704,6 +2789,7 @@
 
   function applyWizardLibraryPick(item){
     if(!item || !_assignWizard) return;
+    if(isWarmUpLibraryItem(item)) return;
     var src = item._source === 'custom' ? 'custom' : 'foundational';
     _assignWizard.trainingFocus = item._focus || itemTrainingFocus(item) || _assignWizard.trainingFocus;
     if(src === 'custom'){
@@ -2843,6 +2929,11 @@
     var parts = [];
     if(_assignWizard.trainingFocus) parts.push('<b>' + escapeHtml(coachLibFocusLabel(_assignWizard.trainingFocus)) + '</b>');
     if(_assignWizard.drillName) parts.push('<b>' + escapeHtml(_assignWizard.drillName) + '</b>');
+    var warmupId = assignmentWarmupId();
+    if(warmupId){
+      var wu = warmupCustomWorkoutRows().find(function(r){ return r.id === warmupId; });
+      parts.push('Warm-up <b>' + escapeHtml((wu && wu.name) || 'attached') + '</b>');
+    }
     return parts.length ? '<div class="aw-path">' + parts.join(' · ') + '</div>' : '';
   }
 
@@ -2932,7 +3023,7 @@
         '</button>' +
         '<div class="aw-section-label">Or browse by training focus</div>' +
         '<div class="aw-choices">' +
-          LOCKED_WORKOUT_CATEGORIES.map(function(c){
+          sessionAssignableFocusValues().map(function(c){
             var count = drillsForTrainingFocus(c).length;
             var meta = count
               ? count + (count === 1 ? ' workout' : ' workouts')
@@ -2950,7 +3041,7 @@
       Array.prototype.forEach.call(body.querySelectorAll('.aw-choices .aw-chip'), function(btn){
         btn.addEventListener('click', function(){
           var focus = normalizeTrainingFocus(btn.getAttribute('data-focus'));
-          if(!focus) return;
+          if(!focus || isWarmUpFocusValue(focus)) return;
           _assignWizard.trainingFocus = focus;
           _assignWizard.createMode = false;
           _assignWizard.createEntryStep = null;
@@ -3130,7 +3221,10 @@
           escapeHtml(_assignWizard.drillName || '') + '"></div>' +
         '<div class="aw-field"><label for="new-a-desc">Description</label>' +
           '<textarea id="new-a-desc" placeholder="Optional — tailor the protocol for this athlete">' +
-          escapeHtml(_assignWizard.assignDescription) + '</textarea></div>';
+          escapeHtml(_assignWizard.assignDescription) + '</textarea></div>' +
+        assignWizardWarmupPickerHtml();
+      var warmupSel = document.getElementById('new-a-warmup');
+      if(warmupSel) warmupSel.addEventListener('change', readAssignWizardWarmupPicker);
       setAssignWizardFooter(
         '<button type="button" class="aw-next" id="wiz-next">Next →</button>' +
         '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
@@ -3139,7 +3233,8 @@
         var nameEl = document.getElementById('new-a-name-edit');
         if(nameEl) _assignWizard.drillName = (nameEl.value || '').trim() || _assignWizard.drillName;
         _assignWizard.assignDescription = document.getElementById('new-a-desc').value || '';
-        if(_assignWizard.trainingFocus) goAssignWizardStep(2);
+        readAssignWizardWarmupPicker();
+        if(_assignWizard.trainingFocus && !isWarmUpFocusValue(_assignWizard.trainingFocus)) goAssignWizardStep(2);
         else goAssignWizardStep(1);
       });
       document.getElementById('wiz-next').addEventListener('click', function(){
@@ -3152,6 +3247,7 @@
         }
         _assignWizard.drillName = name;
         _assignWizard.assignDescription = document.getElementById('new-a-desc').value || '';
+        readAssignWizardWarmupPicker();
         goAssignWizardStep(4);
       });
       return;
@@ -3236,11 +3332,11 @@
         btn.disabled = false;
         btn.textContent = wizardSubmitLabel();
       }
-      var isMissingColumn = err && (err.code === 'PGRST204' || err.code === '42703');
+      var isMissingColumn = isMissingColumnErr(err);
       var msg = (err && err.message) || 'unknown error';
       msgEl.innerHTML = '<div class="form-error">' +
         (isMissingColumn
-          ? 'A required column is missing in Supabase (resource_link, library_item_id, or custom_workout_item_id). Check recent migrations.'
+          ? 'A required column is missing in Supabase (resource_link, library_item_id, custom_workout_item_id, or warmup_custom_workout_item_id). Check recent migrations.'
           : 'Failed. ' + escapeHtml(msg)) +
         '</div>';
     }
@@ -3276,6 +3372,7 @@
             patch.custom_workout_item_id = null;
           }
         }
+        applyAssignmentWarmupField(patch);
         return patchCoachAssignment(token, _assignWizard.editAssignmentId, patch);
       }
 
@@ -3317,6 +3414,7 @@
         assignPayload.library_item_id = _assignWizard.libraryItemId;
       }
       if(link) assignPayload.resource_link = link;
+      applyAssignmentWarmupField(assignPayload);
       createCoachLibraryAssignment(token, assignPayload).then(finishSuccess).catch(failCreate);
       return;
     }
@@ -3340,6 +3438,7 @@
         custom_workout_item_id: customRow.id
       };
       if(link) payload.resource_link = link;
+      applyAssignmentWarmupField(payload);
       return createCoachLibraryAssignment(token, payload);
     }).then(finishSuccess).catch(failCreate);
   }
@@ -3393,6 +3492,7 @@
       _assignWizard.customWorkoutItemId = null;
       _assignWizard.itemSource = 'foundational';
     }
+    _assignWizard.warmupCustomWorkoutItemId = assignment.warmup_custom_workout_item_id || null;
     syncWizardShellMode();
     openAssignWizardOverlay();
     var body = document.getElementById('wiz-body');
