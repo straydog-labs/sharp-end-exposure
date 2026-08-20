@@ -584,6 +584,21 @@
     font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
     color:var(--text-secondary);margin:18px 0 10px;
   }
+  .aw-section-row{
+    display:flex;gap:6px;align-items:flex-end;margin-bottom:6px;flex-wrap:wrap;
+  }
+  .aw-section-duration-wrap{
+    display:flex;flex-direction:column;gap:2px;flex-shrink:0;
+  }
+  .aw-section-duration-label{
+    font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--text-secondary);
+  }
+  .aw-section-duration{
+    width:88px;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+    padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;
+  }
+  .aw-section-duration:focus{border-color:var(--accent);}
   .aw-create-chip{
     width:100%;text-align:left;background:rgba(232,146,82,.08);border:1px solid rgba(232,146,82,.45);
     border-radius:14px;padding:16px 18px;color:var(--accent);font-family:'Space Grotesk',sans-serif;
@@ -2213,11 +2228,42 @@
     _coachLibSelectedId = null;
   }
 
+  function parseAssignWizardDurationSec(raw){
+    if(raw == null || raw === '') return null;
+    var n = parseInt(raw, 10);
+    if(!isFinite(n) || n <= 0) return null;
+    return n;
+  }
+
   function cleanedAssignWizardSections(){
-    var clean = (_assignWizard.sections || [])
-      .map(function(s){ return (s.label || '').trim(); })
-      .filter(Boolean);
-    return clean.length ? clean.map(function(label, i){ return { label: label, order: i }; }) : null;
+    var clean = (_assignWizard.sections || []).map(function(s){
+      var label = (s.label || '').trim();
+      if(!label) return null;
+      return { label: label, duration_sec: parseAssignWizardDurationSec(s.duration_sec) };
+    }).filter(Boolean);
+    return clean.length
+      ? clean.map(function(s, i){ return { label: s.label, order: i, duration_sec: s.duration_sec }; })
+      : null;
+  }
+
+  function assignWizardSectionDurationHtml(s, inputClass){
+    var val = parseAssignWizardDurationSec(s && s.duration_sec);
+    return '<div class="aw-section-duration-wrap">' +
+      '<span class="aw-section-duration-label">Duration (sec)</span>' +
+      '<input type="number" min="1" step="1" inputmode="numeric" data-section-id="' + (s && s.id ? s.id : '') +
+        '" class="aw-section-duration ' + inputClass + '" value="' + (val != null ? val : '') +
+        '" placeholder="" title="Optional countdown in seconds. Leave blank for no countdown.">' +
+    '</div>';
+  }
+
+  function wireAssignWizardSectionDurationInputs(wrap, inputClass){
+    if(!wrap) return;
+    Array.prototype.forEach.call(wrap.querySelectorAll('.' + inputClass), function(input){
+      input.addEventListener('input', function(){
+        var s = _assignWizard.sections.find(function(x){ return x.id === input.getAttribute('data-section-id'); });
+        if(s) s.duration_sec = parseAssignWizardDurationSec(input.value);
+      });
+    });
   }
 
   function renderAssignWizardSectionsList(){
@@ -2226,19 +2272,21 @@
     var sections = _assignWizard.sections || [];
     if(!sections.length){ wrap.innerHTML = ''; return; }
     wrap.innerHTML = sections.map(function(s, i){
-      return '<div class="aw-section-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">' +
-        '<input type="text" data-section-id="' + s.id + '" class="aw-section-label" value="' + escapeHtml(s.label || '') + '" placeholder="e.g. Round 1 — 12 boulders (EMOM)" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;">' +
+      return '<div class="aw-section-row">' +
+        '<input type="text" data-section-id="' + s.id + '" class="aw-section-label-input" value="' + escapeHtml(s.label || '') + '" placeholder="e.g. Round 1 — 12 boulders (EMOM)" style="flex:1;min-width:140px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;">' +
+        assignWizardSectionDurationHtml(s, 'aw-section-duration-input') +
         '<button type="button" class="aw-section-up" data-i="' + i + '" ' + (i === 0 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↑</button>' +
         '<button type="button" class="aw-section-down" data-i="' + i + '" ' + (i === sections.length - 1 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↓</button>' +
         '<button type="button" class="aw-section-remove" data-i="' + i + '" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 4px;">Remove</button>' +
         '</div>';
     }).join('');
-    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-label'), function(input){
+    Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-label-input'), function(input){
       input.addEventListener('input', function(){
         var s = _assignWizard.sections.find(function(x){ return x.id === input.getAttribute('data-section-id'); });
         if(s) s.label = input.value;
       });
     });
+    wireAssignWizardSectionDurationInputs(wrap, 'aw-section-duration-input');
     Array.prototype.forEach.call(wrap.querySelectorAll('.aw-section-up'), function(btn){
       btn.addEventListener('click', function(){
         var i = parseInt(btn.getAttribute('data-i'), 10);
@@ -2274,8 +2322,9 @@
     var sections = _assignWizard.sections || [];
     if(!sections.length){ wrap.innerHTML = ''; return; }
     wrap.innerHTML = sections.map(function(s, i){
-      return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">' +
-        '<input type="text" data-section-id="' + s.id + '" class="edit-cw-section-label" value="' + escapeHtml(s.label || '') + '" placeholder="e.g. Round 1 — 12 boulders (EMOM)" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;">' +
+      return '<div class="aw-section-row">' +
+        '<input type="text" data-section-id="' + s.id + '" class="edit-cw-section-label" value="' + escapeHtml(s.label || '') + '" placeholder="e.g. Round 1 — 12 boulders (EMOM)" style="flex:1;min-width:140px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;">' +
+        assignWizardSectionDurationHtml(s, 'edit-cw-section-duration') +
         '<button type="button" class="edit-cw-section-up" data-i="' + i + '" ' + (i === 0 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↑</button>' +
         '<button type="button" class="edit-cw-section-down" data-i="' + i + '" ' + (i === sections.length - 1 ? 'disabled' : '') + ' style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;padding:6px 9px;">↓</button>' +
         '<button type="button" class="edit-cw-section-remove" data-i="' + i + '" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:6px 4px;">Remove</button>' +
@@ -2287,6 +2336,7 @@
         if(s) s.label = input.value;
       });
     });
+    wireAssignWizardSectionDurationInputs(wrap, 'edit-cw-section-duration');
     Array.prototype.forEach.call(wrap.querySelectorAll('.edit-cw-section-up'), function(btn){
       btn.addEventListener('click', function(){
         var i = parseInt(btn.getAttribute('data-i'), 10);
@@ -2454,7 +2504,13 @@
       try{ raw = JSON.parse(raw); }catch(e){ raw = []; }
     }
     _assignWizard.sections = Array.isArray(raw)
-      ? raw.map(function(s, i){ return { id: 'sec-' + i + '-' + Date.now(), label: (s && s.label) || '' }; })
+      ? raw.map(function(s, i){
+          return {
+            id: 'sec-' + i + '-' + Date.now(),
+            label: (s && s.label) || '',
+            duration_sec: parseAssignWizardDurationSec(s && s.duration_sec)
+          };
+        })
       : [];
     goAssignWizardStep(2);
   }
@@ -2684,7 +2740,7 @@
         renderEditCustomWorkoutSectionsList();
         document.getElementById('edit-cw-section-add').addEventListener('click', function(){
           _assignWizard.sections = _assignWizard.sections || [];
-          _assignWizard.sections.push({ id: 'sec-' + Date.now() + '-' + _assignWizard.sections.length, label: '' });
+          _assignWizard.sections.push({ id: 'sec-' + Date.now() + '-' + _assignWizard.sections.length, label: '', duration_sec: null });
           renderEditCustomWorkoutSectionsList();
         });
         setAssignWizardFooter(
@@ -2723,7 +2779,7 @@
             '<textarea id="new-a-lib-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
           '<div class="aw-field"><label>Session sections (optional)</label>' +
-            '<div class="form-note" style="margin:0 0 8px;">Build the checklist the athlete sees and checks off during the session — e.g. "Warm up", "Round 1 — 12 boulders (EMOM)", "Rest", "Round 2". Leave empty to fall back to a single free-text block, same as today.</div>' +
+            '<div class="form-note" style="margin:0 0 8px;">Build the checklist the athlete sees and checks off during the session — e.g. "Warm up", "Round 1 — 12 boulders (EMOM)", "Rest 5 min". Optional Duration (sec) turns a section into a countdown (300 = 5 min rest). Leave duration blank for open-ended work. Leave the list empty to fall back to a single free-text block, same as today.</div>' +
             '<div id="new-a-sections-list"></div>' +
             '<button type="button" id="new-a-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
           '</div>';
@@ -2750,7 +2806,7 @@
         if(addSecBtn){
           addSecBtn.addEventListener('click', function(){
             _assignWizard.sections = _assignWizard.sections || [];
-            _assignWizard.sections.push({ id: 'sec-' + Date.now() + '-' + _assignWizard.sections.length, label: '' });
+            _assignWizard.sections.push({ id: 'sec-' + Date.now() + '-' + _assignWizard.sections.length, label: '', duration_sec: null });
             renderAssignWizardSectionsList();
           });
         }
