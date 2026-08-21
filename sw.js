@@ -2,8 +2,9 @@
    Keep APP_VERSION in sync with `var app_version` in index.html / index-staging.html.
    A new deploy changes this file, so browsers install a fresh worker and drop the
    old versioned cache on activate. */
-var APP_VERSION = 'staging-index228';
+var APP_VERSION = 'staging-index229';
 var CACHE_NAME = 'see-shell-' + APP_VERSION;
+var SEE_VAPID_PUBLIC_KEY = 'BP6DrkZmQspCullBBbaIlg41Z7W_AXFbefEAksCLdkdlkHBUPiJHP5YyKU7BXFBKU0sK1tJUU4v88zZtYJDRmd4';
 
 var SHELL_URLS = [
   './',
@@ -26,6 +27,15 @@ function isApiRequest(url){
 
 function isSameOrigin(url){
   return url.origin === self.location.origin;
+}
+
+function urlBase64ToUint8Array(base64String){
+  var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var raw = atob(base64);
+  var output = new Uint8Array(raw.length);
+  for(var i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
 }
 
 self.addEventListener('install', function(event){
@@ -74,4 +84,78 @@ self.addEventListener('fetch', function(event){
       });
     })
   );
+});
+
+self.addEventListener('push', function(event){
+  event.waitUntil((async function(){
+    var title = 'Sharp End Exposure';
+    var body = 'New message from your coach';
+    var url = './index.html?open=train-chat';
+    try{
+      if(event.data){
+        var parsed = event.data.json();
+        if(parsed && typeof parsed === 'object'){
+          if(parsed.title) title = String(parsed.title);
+          if(parsed.body) body = String(parsed.body);
+          if(parsed.url) url = String(parsed.url);
+        }
+      }
+    }catch(e){
+      try{ if(event.data) body = event.data.text() || body; }catch(e2){}
+    }
+    return self.registration.showNotification(title, {
+      body: body,
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      data: { url: url }
+    });
+  })());
+});
+
+self.addEventListener('notificationclick', function(event){
+  event.notification.close();
+  var target = (event.notification && event.notification.data && event.notification.data.url)
+    || './index.html?open=train-chat';
+  event.waitUntil((async function(){
+    var dest;
+    try{ dest = new URL(target, self.registration.scope).href; }
+    catch(e){ dest = target; }
+    var list = [];
+    try{ list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true }); }
+    catch(e2){ list = []; }
+    for(var i = 0; i < list.length; i++){
+      var client = list[i];
+      if(!client) continue;
+      try{ client.postMessage({ type: 'open-screen', screen: 'screen-train-chat' }); }catch(e3){}
+      if(typeof client.focus === 'function') return client.focus();
+    }
+    if(self.clients && typeof self.clients.openWindow === 'function'){
+      return self.clients.openWindow(dest);
+    }
+  })());
+});
+
+self.addEventListener('pushsubscriptionchange', function(event){
+  event.waitUntil((async function(){
+    var sub = event.newSubscription;
+    if(!sub){
+      try{
+        sub = await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(SEE_VAPID_PUBLIC_KEY)
+        });
+      }catch(e){ sub = null; }
+    }
+    var list = [];
+    try{ list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true }); }
+    catch(e){ list = []; }
+    var payload = {
+      type: 'pushsubscriptionchange',
+      oldEndpoint: event.oldSubscription && event.oldSubscription.endpoint,
+      newEndpoint: sub && sub.endpoint
+    };
+    list.forEach(function(client){
+      try{ client.postMessage(payload); }catch(e2){}
+    });
+  })());
 });
