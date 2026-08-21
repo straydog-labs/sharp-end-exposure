@@ -459,6 +459,73 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   border-color:var(--comfort);
   color:var(--comfort);
 }
+.train-block-timer-toggle{
+  background:rgba(232,118,58,.08);
+  border:1px solid rgba(232,118,58,.4);
+  border-radius:8px;
+  color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  padding:6px 10px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  flex-shrink:0;
+}
+.train-block-timer-toggle.on{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.train-block-kicker{
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+.train-block-title{
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:0;
+  text-transform:none;
+  color:var(--text);
+  line-height:1.3;
+}
+.train-add-affordance{
+  background:none;
+  border:none;
+  color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  padding:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.train-block-edit{
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  padding:0;
+  -webkit-tap-highlight-color:transparent;
+}
+.train-session-more{
+  width:100%;
+  background:none;
+  border:none;
+  color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:13px;
+  font-weight:700;
+  padding:8px 0 12px;
+  cursor:pointer;
+  text-align:left;
+}
 .train-block-timer{
   display:flex;
   align-items:center;
@@ -3238,7 +3305,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg></div></div>
           <div class="te-label">Session</div>
           <div class="te-title">Start a session</div>
-          <div class="te-sub">Browse or search</div>
+          <div class="te-sub">Browse workouts</div>
         </button>
         <button type="button" class="train-energy-card" id="train-hub-card-recent" onclick="showScreen('screen-train-recent')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div></div>
@@ -3281,7 +3348,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
   </div>
   <div class="content">
-    <div class="screen-title">Start a session<span class="sub">Pick a workout, or search.</span></div>
+    <div class="screen-title">Start a session<span class="sub">Pick a focus, then a workout.</span></div>
     <div class="insight-card" style="margin-top:8px;">
       <div class="insight-label" style="margin-bottom:6px;">Energy mix</div>
       <svg id="train-arc-svg" width="100%" viewBox="0 0 320 72" style="display:block;overflow:visible;">
@@ -3294,7 +3361,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <g id="train-arc-dots"></g>
       </svg>
     </div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-top:8px;">Start a session</div>
     <div class="train-energy-grid" id="train-energy-grid"></div>
     <button type="button" onclick="showScreen('screen-workout-library')"
       style="width:100%;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
@@ -3404,7 +3470,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="screen-title" id="train-picker-title">Strength<span class="sub">Pick a foundational or custom workout, or start a blank session.</span></div>
     <button type="button" id="train-picker-blank" onclick="startBlankTrainSession()"
       style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px;cursor:pointer;margin:8px 0 16px;">Start blank session →</button>
-    <div id="train-picker-cats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+    <div id="train-picker-cats" style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
     <div id="train-picker-list"><div style="font-size:13px;color:var(--muted);">Loading…</div></div>
     <button type="button" onclick="startCustomWorkoutCreate()"
       style="width:100%;margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">+ Add custom workout</button>
@@ -3449,8 +3515,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <button type="button" onclick="trainAddBlockMenu()" style="background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">+ Add block</button>
     </div>
     <div id="train-block-menu" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:8px;margin-bottom:10px;">
-      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('section')">+ Add section</button>
-      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('interval')">Interval</button>
+      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('section')">Add section</button>
       <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('circuit')">Weighted circuit</button>
       <button type="button" class="saw-chip" onclick="trainAddBlock('rep_pass_fail')">Rep-level pass/fail</button>
     </div>
@@ -3458,10 +3523,15 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <div class="insight-card train-section-card" id="train-cooldown-card" style="margin:12px 0;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
-        <div class="insight-label" style="margin:0;">Cool down</div>
+        <button type="button" onclick="toggleTrainCooldownSection()" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;color:inherit;-webkit-tap-highlight-color:transparent;">
+          <span class="insight-label" style="margin:0;">Cool down</span>
+          <span id="train-cooldown-chevron" style="font-size:18px;transition:transform .2s;transform:rotate(90deg);">›</span>
+        </button>
         <button type="button" class="train-section-complete" id="train-cooldown-complete-btn" onclick="toggleTrainSectionComplete('cool_down')">Mark complete</button>
       </div>
-      <textarea id="train-sess-cooldown" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
+      <div id="train-cooldown-body">
+        <textarea id="train-sess-cooldown" placeholder="Notes / checklist" style="width:100%;min-height:72px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;"></textarea>
+      </div>
     </div>
 
     <div id="train-sess-msg" style="font-size:13px;color:var(--panic);min-height:18px;margin-bottom:8px;"></div>
@@ -3877,7 +3947,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:16px;font-weight:700;">Edit this climb</div>
-      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:6px 12px;cursor:pointer;">Done</button>
+      <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:6px 12px;cursor:pointer;">Close</button>
     </div>
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Grade</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;" id="edit-grade-chips"></div>
@@ -4578,7 +4648,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index227'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index228'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -8146,7 +8216,7 @@ function renderTrainList(){
     // unbounded — collapses behind this.
     html += '<button id="train-completed-toggle" data-count="'+done.length+'" onclick="toggleTrainCompleted()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:13px;font-weight:700;padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent;margin-top:14px;">'
       +'<span id="train-completed-toggle-label">Show completed ('+done.length+')</span>'
-      +'<span id="train-completed-toggle-arrow" style="font-size:14px;color:var(--muted);">↓</span>'
+      +'<span id="train-completed-toggle-arrow" class="res-card-chevron" aria-hidden="true">›</span>'
       +'</button>'
       +'<div id="train-completed-wrap" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-md) var(--r-md);padding:10px;">'
       +done.map(trainCardHtml).join('')
@@ -8166,7 +8236,10 @@ function toggleTrainCompleted(){
   var count = toggle.dataset.count || '0';
   wrap.style.display = isOpen ? 'none' : 'block';
   if(label) label.textContent = (isOpen ? 'Show completed (' : 'Hide completed (') + count + ')';
-  if(arrow) arrow.textContent = isOpen ? '↓' : '↑';
+  if(arrow){
+    if(isOpen) arrow.classList.remove('open');
+    else arrow.classList.add('open');
+  }
   toggle.style.borderRadius = isOpen ? 'var(--r-md)' : 'var(--r-md) var(--r-md) 0 0';
 }
 
@@ -8869,6 +8942,7 @@ async function trainMarkComplete(id){
 // ═══════════════════════════════════════════════════════
 var _trainSessionsCache = [];
 var _trainSessionListExpanded = {};
+var _trainSessionListShowAll = false;
 var _trainPickerType = 'Hangboard';
 var _trainPickerItems = [];
 var _trainPickerCategory = 'all';
@@ -9149,6 +9223,16 @@ function renderTrainHubStats(){
   renderTrainEnergyArc(rows);
 }
 
+function trainEnergyArcBand(type){
+  var raw = String(type || '');
+  var focus = normalizeTrainingFocus(raw) || raw;
+  if(focus === 'Hangboard' || focus === 'Boards' || focus === 'Strength & Weights' || focus === 'Boulders'
+    || raw === 'strength' || raw === 'power') return 12;
+  if(focus === 'Routes' || focus === 'Cardio & Capacity'
+    || raw === 'endurance' || raw === 'capacity') return 36;
+  return 60;
+}
+
 function renderTrainEnergyArc(rows){
   var g = document.getElementById('train-arc-dots');
   if(!g) return;
@@ -9157,11 +9241,7 @@ function renderTrainEnergyArc(rows){
   if(!recent.length) return;
   recent.forEach(function(r, i){
     var x = 28 + (i / Math.max(recent.length-1, 1)) * 280;
-    var t = r.energy_type || '';
-    var band = 36;
-    if(t==='strength' || t==='power') band = 12;
-    else if(t==='endurance' || t==='capacity') band = 36;
-    else band = 60;
+    var band = trainEnergyArcBand(r.energy_type);
     var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     c.setAttribute('cx', x);
     c.setAttribute('cy', band);
@@ -9169,6 +9249,28 @@ function renderTrainEnergyArc(rows){
     c.setAttribute('fill', 'var(--accent)');
     g.appendChild(c);
   });
+}
+
+function trainNotesLineIsReflection(line){
+  return /^(What went well|What to work on|Anything surprise you)\b/i.test(String(line || '').trim());
+}
+
+function trainSessionWorkoutName(row){
+  var notes = String((row && row.notes) || '').trim();
+  if(notes){
+    var first = notes.split(/\n/)[0].trim();
+    if(first && !trainNotesLineIsReflection(first)) return first;
+  }
+  return workoutTypeLabel(row && row.energy_type) || (row && row.energy_type) || 'Session';
+}
+
+function trainSessionReflectionBody(row){
+  var notes = String((row && row.notes) || '').trim();
+  if(!notes) return '';
+  var lines = notes.split('\n');
+  var first = (lines[0] || '').trim();
+  if(trainNotesLineIsReflection(first)) return notes;
+  return lines.slice(1).join('\n').trim();
 }
 
 function renderTrainSessionList(){
@@ -9179,7 +9281,10 @@ function renderTrainSessionList(){
     el.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No training sessions yet. Start a session to log one.</div>';
     return;
   }
-  el.innerHTML = rows.slice(0, 8).map(function(r){
+  var cap = 8;
+  var extra = rows.length - cap;
+  var shown = (_trainSessionListShowAll || extra <= 0) ? rows : rows.slice(0, cap);
+  var html = shown.map(function(r){
     var when = formatChatTimestamp(r.started_at || r.created_at);
     var blocks = parseTrainSessionBlocks(r);
     var n = Array.isArray(blocks) ? blocks.length : 0;
@@ -9188,7 +9293,7 @@ function renderTrainSessionList(){
     return '<div class="insight-card train-session-row'+(open?' is-open':'')+'" data-session-id="'+escTrainHtml(sid)+'" style="padding:12px 14px;margin-bottom:8px;">'
       + '<button type="button" class="train-session-row-toggle" aria-expanded="'+(open?'true':'false')+'" onclick="toggleTrainSessionListRow(\''+sid.replace(/'/g, '')+'\')">'
       + '<div class="train-session-row-meta">'
-      + '<div style="font-size:14px;font-weight:700;">' + escTrainHtml(workoutTypeLabel(r.energy_type) || r.energy_type || 'Session') + '</div>'
+      + '<div style="font-size:14px;font-weight:700;">' + escTrainHtml(trainSessionWorkoutName(r)) + '</div>'
       + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' + escTrainHtml(when) + ' · ' + n + ' block' + (n===1?'':'s') + '</div>'
       + '</div>'
       + '<span class="res-card-chevron'+(open?' open':'')+'" aria-hidden="true">›</span>'
@@ -9196,6 +9301,17 @@ function renderTrainSessionList(){
       + (open ? '<div class="train-session-row-detail">'+renderTrainSessionDetailHtml(r)+'</div>' : '')
       + '</div>';
   }).join('');
+  if(extra > 0){
+    html += _trainSessionListShowAll
+      ? '<button type="button" class="train-session-more" onclick="toggleTrainSessionListMore()">Show less</button>'
+      : '<button type="button" class="train-session-more" onclick="toggleTrainSessionListMore()">+'+extra+' more</button>';
+  }
+  el.innerHTML = html;
+}
+
+function toggleTrainSessionListMore(){
+  _trainSessionListShowAll = !_trainSessionListShowAll;
+  renderTrainSessionList();
 }
 
 function toggleTrainSessionListRow(id){
@@ -9220,6 +9336,29 @@ function parseTrainSessionBlocks(row){
 
 function trainTextNonEmpty(v){
   return !!(v && String(v).trim());
+}
+
+function trainBlockHasTitle(b){
+  return !!(b && String(b.title || '').trim());
+}
+
+function trainBlockShapeLabel(shape){
+  if(shape === 'rep_pass_fail') return 'Rep-level pass/fail';
+  if(shape === 'interval') return 'Interval';
+  if(shape === 'section') return 'Section';
+  if(shape === 'check') return 'Check';
+  if(shape === 'circuit') return 'Weighted circuit';
+  if(shape === 'emom') return 'EMOM';
+  return String(shape || 'block').replace(/_/g, ' ');
+}
+
+function trainBlockDisplayTitle(b){
+  if(trainBlockHasTitle(b)) return String(b.title).trim();
+  return trainBlockShapeLabel(b && b.shape);
+}
+
+function trainBlockIsCompact(b){
+  return trainBlockHasTitle(b) && !b.editing;
 }
 
 function trainBlockRecordedDurationMs(b){
@@ -9268,7 +9407,7 @@ function renderTrainSessionDetailHtml(row){
       html += '<div class="train-note-preview">'+renderTrainNotePreview(row.warm_up)+'</div>';
     }
     html += split.warmup.map(function(b){
-      return renderTrainSessionBlockDetailHtml(b, blocks.indexOf(b));
+      return renderTrainSessionBlockDetailHtml(b, 0, true);
     }).join('');
     html += '</div>';
   }
@@ -9276,25 +9415,27 @@ function renderTrainSessionDetailHtml(row){
     html += '<div class="train-session-detail-section"><div class="train-session-detail-label">Cool-down</div>'
       + '<div class="train-note-preview">'+renderTrainNotePreview(row.cool_down)+'</div></div>';
   }
-  html += split.main.map(function(b){
-    return renderTrainSessionBlockDetailHtml(b, blocks.indexOf(b));
+  html += split.main.map(function(b, i){
+    return renderTrainSessionBlockDetailHtml(b, i + 1);
   }).join('');
-  if(trainTextNonEmpty(row.notes)){
+  var reflection = trainSessionReflectionBody(row);
+  if(trainTextNonEmpty(reflection)){
     html += '<div class="train-session-detail-section"><div class="train-session-detail-label">Reflection</div>'
-      + '<div class="train-note-preview">'+renderTrainNotePreview(row.notes)+'</div></div>';
+      + '<div class="train-note-preview">'+renderTrainNotePreview(reflection)+'</div></div>';
   }
   return html || '<div style="font-size:13px;color:var(--muted);">Nothing recorded.</div>';
 }
 
-function renderTrainSessionBlockDetailHtml(b, bi){
+function renderTrainSessionBlockDetailHtml(b, bi, isWarmup){
   b = b || {};
   var done = !!b.complete;
-  var shapeLabel = ((b.shape === 'section' || b.shape === 'check' || b.shape === 'interval') && b.title)
-    ? b.title
-    : String(b.shape || 'block').replace(/_/g, ' ');
+  var shapeLabel = trainBlockDisplayTitle(b);
+  var kicker = isWarmup || !(bi > 0)
+    ? ''
+    : '<span class="train-block-kicker">Block '+bi+' · </span>';
   var head = '<div class="train-block-card'+(done?' is-complete':'')+'">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
-    + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+escTrainHtml(shapeLabel)+'</div>'
+    + '<div>'+kicker+'<span class="train-block-title">'+escTrainHtml(shapeLabel)+'</span></div>'
     + (done ? '<span class="train-section-complete on">Complete</span>' : '')
     + '</div>';
   var timedMs = b.timer_enabled ? trainBlockRecordedDurationMs(b) : 0;
@@ -9395,13 +9536,34 @@ function setTrainPickerCategory(cat){
 
 function paintTrainPickerCategoryChips(items){
   var wrap = document.getElementById('train-picker-cats');
-  if(wrap) wrap.innerHTML = '';
+  if(!wrap) return;
+  items = items || [];
+  if(!items.length){
+    wrap.innerHTML = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+  var cats = [
+    { id: 'all', label: 'All' },
+    { id: 'foundational', label: 'Foundational' },
+    { id: 'custom', label: 'Custom' }
+  ];
+  wrap.innerHTML = cats.map(function(cat){
+    var on = (_trainPickerCategory || 'all') === cat.id;
+    return '<button type="button" class="wl-cat-chip'+(on?' selected':'')+'" onclick="setTrainPickerCategory(\''+cat.id+'\')">'+escTrainHtml(cat.label)+'</button>';
+  }).join('');
 }
 
 function paintTrainPickerList(){
   var list = document.getElementById('train-picker-list');
   if(!list) return;
-  var items = _trainPickerItems || [];
+  var cat = _trainPickerCategory || 'all';
+  var items = (_trainPickerItems || []).filter(function(item){
+    if(cat === 'custom') return item._source === 'custom';
+    if(cat === 'foundational') return item._source !== 'custom';
+    return true;
+  });
   if(!items.length){
     list.innerHTML = '<div style="font-size:13px;color:var(--muted);">No workouts in this focus. Start blank, or add a custom workout.</div>';
     return;
@@ -9429,7 +9591,7 @@ async function renderTrainPicker(){
   var list = document.getElementById('train-picker-list');
   if(list) list.innerHTML = '<div style="font-size:13px;color:var(--muted);">Loading…</div>';
   var cats = document.getElementById('train-picker-cats');
-  if(cats) cats.innerHTML = '';
+  if(cats){ cats.innerHTML = ''; cats.style.display = 'none'; }
   var focus = encodeURIComponent(_trainPickerType || '');
   var foundational = await sbS('workout_library', 'select=*&training_focus=eq.' + focus + '&order=name.asc');
   var customs = await sbS('custom_workouts', 'select=*&training_focus=eq.' + focus + '&order=name.asc');
@@ -9449,6 +9611,7 @@ async function renderTrainPicker(){
     });
   }
   _trainPickerItems = items;
+  paintTrainPickerCategoryChips(items);
   paintTrainPickerList();
 }
 
@@ -9466,6 +9629,7 @@ function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
     warm_up_complete: false,
     cool_down_complete: false,
     warm_up_expanded: true,
+    cool_down_expanded: true,
     blocks: [],
     seed_description: seedDesc || '',
     // XOR: at most one library reference (DB constraint on assignments)
@@ -9626,7 +9790,34 @@ function startCustomWorkoutCreate(){
   selectWlNewFocus(_trainPickerType);
 }
 
+var _trainCancelArmed = false;
+var _trainCancelArmTimer = null;
+
 function cancelTrainSession(){
+  var btn = document.querySelector('#screen-train-session .back-btn');
+  if(!_trainCancelArmed){
+    _trainCancelArmed = true;
+    if(btn){
+      btn.textContent = 'Tap again to discard';
+      btn.classList.add('is-confirming');
+    }
+    if(_trainCancelArmTimer) clearTimeout(_trainCancelArmTimer);
+    _trainCancelArmTimer = setTimeout(function(){
+      _trainCancelArmed = false;
+      var b = document.querySelector('#screen-train-session .back-btn');
+      if(b){
+        b.textContent = '← Cancel';
+        b.classList.remove('is-confirming');
+      }
+    }, 4000);
+    return;
+  }
+  _trainCancelArmed = false;
+  if(_trainCancelArmTimer) clearTimeout(_trainCancelArmTimer);
+  if(btn){
+    btn.textContent = '← Cancel';
+    btn.classList.remove('is-confirming');
+  }
   clearAllTrainBlockTimerIntervals();
   releaseTrainWakeLock();
   trainSessionState = null;
@@ -9703,9 +9894,18 @@ function trainAddSectionChild(sectionId, kind){
 
 function trainRemoveBlock(id){
   if(!trainSessionState) return;
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  if(!b._removeArmed){
+    collectTrainBlockFields();
+    trainSessionState.blocks.forEach(function(x){ if(x !== b) x._removeArmed = false; });
+    b._removeArmed = true;
+    renderTrainSessionBuilder();
+    return;
+  }
   clearTrainBlockTimerInterval(id);
   if(_trainIntervalLastPhaseKey) delete _trainIntervalLastPhaseKey[id];
-  trainSessionState.blocks = trainSessionState.blocks.filter(function(b){ return b.id !== id; });
+  trainSessionState.blocks = trainSessionState.blocks.filter(function(x){ return x.id !== id; });
   if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
   renderTrainSessionBuilder();
 }
@@ -9742,12 +9942,13 @@ function renderTrainSessionBuilder(){
   paintTrainSectionComplete('train-warmup-complete-btn', 'train-warmup-card', !!trainSessionState.warm_up_complete);
   paintTrainSectionComplete('train-cooldown-complete-btn', 'train-cooldown-card', !!trainSessionState.cool_down_complete);
   paintTrainWarmupSection();
+  paintTrainCooldownSection();
   var allBlocks = trainSessionState.blocks || [];
   var split = splitTrainBlocksByWarmup(allBlocks);
   var warmupWrap = document.getElementById('train-warmup-blocks-wrap');
   if(warmupWrap){
     warmupWrap.innerHTML = split.warmup.map(function(b){
-      return renderTrainBlockHtml(b, allBlocks.indexOf(b));
+      return renderTrainBlockHtml(b, 0, true);
     }).join('');
   }
   var wrap = document.getElementById('train-blocks-wrap');
@@ -9759,8 +9960,8 @@ function renderTrainSessionBuilder(){
       return;
     }
   } else {
-    wrap.innerHTML = split.main.map(function(b){
-      return renderTrainBlockHtml(b, allBlocks.indexOf(b));
+    wrap.innerHTML = split.main.map(function(b, i){
+      return renderTrainBlockHtml(b, i + 1, false);
     }).join('');
   }
   syncTrainBlockTimerIntervals();
@@ -10163,20 +10364,66 @@ function stopTrainBlockTimer(id){
   renderTrainSessionBuilder();
 }
 
-function renderTrainBlockHtml(b, bi){
+function trainIntervalGroupsLine(b){
+  var bits = (b.groups || []).map(function(g){
+    return g && g.sets ? (g.sets + ' sets') : '';
+  }).filter(Boolean);
+  if(!bits.length) return '';
+  return '<div style="font-size:12px;color:var(--muted);margin:8px 0;">Groups: ' + escTrainHtml(bits.join(' / ')) + '</div>';
+}
+
+function trainSectionDurationField(b){
+  var show = !!b._showCountdown || (b.duration_sec != null && String(b.duration_sec).trim() !== '');
+  if(show) return fieldHtml('Duration (sec)', 'tb-'+b.id+'-dur', b.duration_sec);
+  return '<div style="margin:0 0 8px;"><button type="button" class="train-add-affordance" onclick="trainRevealCountdown(\''+b.id+'\')">+ Add countdown</button></div>';
+}
+
+function trainRevealCountdown(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  b._showCountdown = true;
+  renderTrainSessionBuilder();
+}
+
+function toggleTrainBlockEditing(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  b.editing = !b.editing;
+  renderTrainSessionBuilder();
+}
+
+function revealTrainBlockNote(id){
+  var btn = document.getElementById(id + '-add');
+  var ta = document.getElementById(id);
+  if(btn) btn.style.display = 'none';
+  if(ta){
+    ta.style.cssText = 'display:block;width:100%;min-height:72px;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;';
+    setTimeout(function(){ ta.focus(); }, 30);
+  }
+}
+
+function renderTrainBlockHtml(b, bi, isWarmup){
   var done = !!b.complete;
   var timerOn = !!b.timer_enabled;
   var isCheck = b.shape === 'check';
-  var shapeLabel = ((b.shape === 'section' || isCheck || b.shape === 'interval') && b.title)
-    ? escTrainHtml(b.title)
-    : escTrainHtml((b.shape || 'block').replace(/_/g,' '));
+  var compact = trainBlockIsCompact(b);
+  var kicker = isWarmup || !(bi > 0)
+    ? ''
+    : '<span class="train-block-kicker">Block '+bi+' · </span>';
   var head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
-    + '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);">Block '+(bi+1)+' · '+shapeLabel+'</div>'
+    + '<div>'+kicker+'<span class="train-block-title">'+escTrainHtml(trainBlockDisplayTitle(b))+'</span></div>'
     + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-    + (isCheck ? '' : '<button type="button" class="train-section-complete'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
+    + (trainBlockHasTitle(b)
+      ? '<button type="button" class="train-block-edit" onclick="toggleTrainBlockEditing(\''+b.id+'\')">'+(b.editing?'Done editing':'Edit')+'</button>'
+      : '')
+    + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
-    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div></div>';
+    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button></div></div>';
   var timerRow = '';
   if(timerOn && !isCheck){
     if(b.shape === 'interval'){
@@ -10212,59 +10459,102 @@ function renderTrainBlockHtml(b, bi){
   }
   var body = '';
   if(b.shape === 'interval'){
-    body = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
-      + fieldHtml('Work sec', 'tb-'+b.id+'-work', b.work_sec)
-      + fieldHtml('Rest sec', 'tb-'+b.id+'-rest', b.rest_sec)
-      + fieldHtml('Target sets', 'tb-'+b.id+'-sets', b.target_sets)
-      + '</div>'
-      + '<div style="font-size:12px;color:var(--muted);margin:8px 0;">Groups: ' + escTrainHtml((b.groups||[]).map(function(g){ return g.sets+' sets'; }).join(' / ')) + '</div>'
+    var intervalFields = (compact
+      ? '<div style="font-size:13px;color:var(--text);">Work '+escTrainHtml(String(b.work_sec == null ? 0 : b.work_sec))+'s / Rest '+escTrainHtml(String(b.rest_sec == null ? 0 : b.rest_sec))+'s x '+escTrainHtml(String(b.target_sets == null ? 0 : b.target_sets))+' sets</div>'
+      : ((trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
+        + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
+        + fieldHtml('Work sec', 'tb-'+b.id+'-work', b.work_sec)
+        + fieldHtml('Rest sec', 'tb-'+b.id+'-rest', b.rest_sec)
+        + fieldHtml('Target sets', 'tb-'+b.id+'-sets', b.target_sets)
+        + '</div>'));
+    body = intervalFields
+      + trainIntervalGroupsLine(b)
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
   } else if(b.shape === 'emom'){
     var round = (b.rounds && b.rounds[0]) || { boulders: [], notes: '' };
-    body = '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Round 1 boulders</div>'
-      + (round.boulders||[]).map(function(bo, i){
-        return '<input id="tb-'+b.id+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+    if(compact){
+      body = (round.boulders || []).map(function(bo){
+        if(!trainTextNonEmpty(bo && bo.text)) return '';
+        return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+'</div>';
       }).join('')
-      + trainBlockNoteField('tb-'+b.id+'-notes', 'Round notes', round.notes||'')
-      + attemptSummary(b)
-      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+        + (trainTextNonEmpty(round.notes) ? '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>' : '')
+        + attemptSummary(b)
+        + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    } else {
+      body = '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Round 1 boulders</div>'
+        + (round.boulders||[]).map(function(bo, i){
+          return '<input id="tb-'+b.id+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+        }).join('')
+        + trainBlockNoteField('tb-'+b.id+'-notes', 'Round notes', round.notes||'')
+        + attemptSummary(b)
+        + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    }
   } else if(b.shape === 'circuit'){
-    body = fieldHtml('Rounds', 'tb-'+b.id+'-rounds', b.rounds)
-      + (b.exercises||[]).map(function(ex, i){
-        return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-top:6px;">'
-          + '<input id="tb-'+b.id+'-ex'+i+'-name" value="'+escTrainHtml(ex.name||'')+'" placeholder="Exercise" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
-          + '<input id="tb-'+b.id+'-ex'+i+'-wt" value="'+escTrainHtml(ex.weight||'')+'" placeholder="Weight" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
-          + '<input id="tb-'+b.id+'-ex'+i+'-reps" value="'+escTrainHtml(ex.reps||'')+'" placeholder="Reps" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
-          + '</div>';
-      }).join('')
-      + trainBlockNoteField('tb-'+b.id+'-cnotes', 'Block notes', b.notes||'')
-      + attemptSummary(b)
-      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    if(compact){
+      var roundsN = Number(b.rounds);
+      if(isNaN(roundsN)) roundsN = 0;
+      body = '<div style="font-size:13px;color:var(--text);margin-bottom:6px;">'+escTrainHtml(String(roundsN))+' round'+(roundsN===1?'':'s')+'</div>'
+        + (b.exercises || []).map(function(ex){
+          ex = ex || {};
+          var bits = [ex.name, ex.weight, ex.reps].filter(function(x){ return trainTextNonEmpty(x); });
+          return '<div style="font-size:13px;color:var(--text);margin-top:4px;">'+escTrainHtml(bits.join(' · ') || 'Exercise')+'</div>';
+        }).join('')
+        + (trainTextNonEmpty(b.notes) ? '<div class="train-note-preview">'+renderTrainNotePreview(b.notes)+'</div>' : '')
+        + attemptSummary(b)
+        + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    } else {
+      body = fieldHtml('Rounds', 'tb-'+b.id+'-rounds', b.rounds)
+        + (b.exercises||[]).map(function(ex, i){
+          return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-top:6px;">'
+            + '<input id="tb-'+b.id+'-ex'+i+'-name" value="'+escTrainHtml(ex.name||'')+'" placeholder="Exercise" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+            + '<input id="tb-'+b.id+'-ex'+i+'-wt" value="'+escTrainHtml(ex.weight||'')+'" placeholder="Weight" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+            + '<input id="tb-'+b.id+'-ex'+i+'-reps" value="'+escTrainHtml(ex.reps||'')+'" placeholder="Reps" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+            + '</div>';
+        }).join('')
+        + trainBlockNoteField('tb-'+b.id+'-cnotes', 'Block notes', b.notes||'')
+        + attemptSummary(b)
+        + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    }
   } else if(b.shape === 'rep_pass_fail'){
     var set0 = (b.sets && b.sets[0]) || { reps: [] };
-    body = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-      + fieldHtml('Grip / variant', 'tb-'+b.id+'-grip', b.grip)
-      + fieldHtml('Assistance', 'tb-'+b.id+'-assist', b.assistance)
-      + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;">'
+    var rpfMeta = [];
+    if(trainTextNonEmpty(b.grip)) rpfMeta.push('Grip: '+escTrainHtml(b.grip));
+    if(trainTextNonEmpty(b.assistance)) rpfMeta.push('Assistance: '+escTrainHtml(b.assistance));
+    var rpfDots = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;">'
       + (set0.reps||[]).map(function(rp, i){
         var col = rp.ok === true ? 'var(--comfort)' : (rp.ok === false ? 'var(--panic)' : 'var(--muted)');
         return '<button type="button" onclick="trainToggleRep(\''+b.id+'\','+i+')" style="width:36px;height:36px;border-radius:8px;border:1px solid '+col+';background:var(--bg);color:'+col+';font-weight:700;cursor:pointer;">'+(i+1)+'</button>';
       }).join('')
-      + '</div>' + trainBlockNoteField('tb-'+b.id+'-prog', 'Progression rule', b.progression_note||'')
-      + attemptSummary(b)
-      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+      + '</div>';
+    if(compact){
+      body = (rpfMeta.length ? '<div style="font-size:13px;color:var(--text);">'+rpfMeta.join(' · ')+'</div>' : '')
+        + rpfDots
+        + (trainTextNonEmpty(b.progression_note) ? '<div class="train-note-preview">'+renderTrainNotePreview(b.progression_note)+'</div>' : '')
+        + attemptSummary(b)
+        + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    } else {
+      body = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+        + fieldHtml('Grip / variant', 'tb-'+b.id+'-grip', b.grip)
+        + fieldHtml('Assistance', 'tb-'+b.id+'-assist', b.assistance)
+        + '</div>' + rpfDots
+        + trainBlockNoteField('tb-'+b.id+'-prog', 'Progression rule', b.progression_note||'')
+        + attemptSummary(b)
+        + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    }
   } else if(b.shape === 'section'){
-    body = fieldHtml('Title', 'tb-'+b.id+'-title', b.title)
-      + fieldHtml('Duration (sec)', 'tb-'+b.id+'-dur', b.duration_sec)
+    body = (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
+      + trainSectionDurationField(b)
       + (b.notes ? renderTrainNotePreview(b.notes) : '')
       + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
       + '<button type="button" class="saw-chip" onclick="trainAddSectionChild(\''+b.id+'\',\'interval\')">+ Interval</button>'
       + '<button type="button" class="saw-chip" onclick="trainAddSectionChild(\''+b.id+'\',\'check\')">+ Check</button>'
       + '</div>';
   } else if(b.shape === 'check'){
-    body = fieldHtml('Title', 'tb-'+b.id+'-title', b.title)
-      + trainBlockNoteField('tb-'+b.id+'-chknotes', 'Notes', b.notes||'');
+    body = (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
+      + (compact && trainTextNonEmpty(b.notes)
+        ? '<div class="train-note-preview">'+renderTrainNotePreview(b.notes)+'</div>'
+        : trainBlockNoteField('tb-'+b.id+'-chknotes', 'Notes', b.notes||''));
   }
   return head + timerRow + body + '</div>';
 }
@@ -10282,6 +10572,12 @@ function renderTrainNotePreview(text){
 }
 
 function trainBlockNoteField(id, placeholder, value){
+  if(!trainTextNonEmpty(value)){
+    return '<div style="margin-top:8px;">'
+      + '<button type="button" id="'+id+'-add" class="train-add-affordance" onclick="revealTrainBlockNote(\''+id+'\')">+ Add note</button>'
+      + '<textarea id="'+id+'" placeholder="'+escTrainHtml(placeholder)+'" style="display:none;">'+escTrainHtml(value||'')+'</textarea>'
+      + '</div>';
+  }
   return '<div style="margin-top:8px;">'
     + '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;">'
     + '<button type="button" onclick="expandTrainBlockNote(\''+id+'\')" style="background:none;border:none;color:var(--accent);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;padding:0;">Expand</button>'
@@ -10367,6 +10663,26 @@ function toggleTrainWarmupSection(){
   paintTrainWarmupSection();
 }
 
+function trainCooldownSectionIsOpen(){
+  return !trainSessionState || trainSessionState.cool_down_expanded !== false;
+}
+
+function paintTrainCooldownSection(){
+  var body = document.getElementById('train-cooldown-body');
+  var chevron = document.getElementById('train-cooldown-chevron');
+  var open = trainCooldownSectionIsOpen();
+  if(body) body.style.display = open ? 'block' : 'none';
+  if(chevron) chevron.style.transform = open ? 'rotate(90deg)' : '';
+}
+
+function toggleTrainCooldownSection(){
+  if(!trainSessionState){
+    trainSessionState = newTrainSessionState(_trainPickerType || 'strength');
+  }
+  trainSessionState.cool_down_expanded = !trainCooldownSectionIsOpen();
+  paintTrainCooldownSection();
+}
+
 function toggleTrainSectionComplete(key){
   if(!trainSessionState) return;
   syncTrainSessionFieldsFromDom();
@@ -10376,6 +10692,7 @@ function toggleTrainSectionComplete(key){
     if(trainSessionState.warm_up_complete) trainSessionState.warm_up_expanded = false;
   } else if(key === 'cool_down'){
     trainSessionState.cool_down_complete = !trainSessionState.cool_down_complete;
+    if(trainSessionState.cool_down_complete) trainSessionState.cool_down_expanded = false;
   } else {
     var b = trainSessionState.blocks.find(function(x){ return x.id === key; });
     if(b) b.complete = !b.complete;
@@ -10410,6 +10727,8 @@ function collectTrainBlockFields(){
       b.work_sec = numOr(document.getElementById('tb-'+b.id+'-work'), b.work_sec);
       b.rest_sec = numOr(document.getElementById('tb-'+b.id+'-rest'), b.rest_sec);
       b.target_sets = numOr(document.getElementById('tb-'+b.id+'-sets'), b.target_sets);
+      var it = document.getElementById('tb-'+b.id+'-title');
+      if(it) b.title = it.value;
     } else if(b.shape === 'emom'){
       if(!b.rounds[0]) b.rounds[0] = { boulders: [], notes: '' };
       (b.rounds[0].boulders||[]).forEach(function(bo, i){
@@ -10635,12 +10954,14 @@ async function trainFlowSaveReflectionIfFilled(){
   if(refl.went_well) parts.push('What went well: ' + refl.went_well);
   if(refl.still_learning) parts.push('What to work on: ' + refl.still_learning);
   if(refl.surprised_by) parts.push('Anything surprise you: ' + refl.surprised_by);
-  await sbU('training_sessions', 'id=eq.' + _lastTrainSessionId, { notes: parts.join('\n\n') });
+  var savedRefl = await sbU('training_sessions', 'id=eq.' + _lastTrainSessionId, { notes: parts.join('\n\n') });
+  if(savedRefl) showToast('Reflection saved ✓');
+  else showToast('Could not save reflection - try again', true);
 }
 
 async function trainDoneAnother(){
   await trainFlowSaveReflectionIfFilled();
-  startBlankTrainSession();
+  showScreen('screen-train-start');
 }
 
 async function trainDoneHome(){
@@ -11137,11 +11458,15 @@ async function saveEditedClimb(){
   var wentWell=(function(){var t=document.getElementById('edit-went-well-text');var chips=Array.from(document.querySelectorAll('#edit-sheet .edit-refl-chip.selected[onclick*="went-well"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})();
   var stillLearning=(function(){var t=document.getElementById('edit-still-learning-text');var chips=Array.from(document.querySelectorAll('#edit-sheet .edit-refl-chip.selected[onclick*="still-learning"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})();
   var surprisedBy=(function(){var t=document.getElementById('edit-surprised-text');var chips=Array.from(document.querySelectorAll('#edit-sheet .edit-refl-chip.selected[onclick*="surprised"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})();
-  await sbU('sessions','id=eq.'+logState.sessId,{
+  var savedClimb = await sbU('sessions','id=eq.'+logState.sessId,{
     baseline_zone:logState.result,grade_value:logState.grade,climbing_type:logState.terrain,
     route_name:logState.routeName||null,zone:logState.zone,zone_confidence:logState.zoneConf,
     went_well:wentWell,still_learning:stillLearning,surprised_by:surprisedBy
   });
+  if(!savedClimb){
+    showToast('Could not update - try again', true);
+    return;
+  }
   // Fall-capture data (Feature 2) — upsert: update if a falls row already exists
   // for this session, insert if not. Guarded to signed-in users (falls RLS
   // requires a real user_id match, same reasoning as logClimb()'s save).
@@ -12430,7 +12755,11 @@ async function saveRouteDetails(){
       bolt_count:rdState.bolts||null,
       route_height_ft:rdState.unit==='ft'?rdState.height:(rdState.height?Math.round(rdState.height*3.281):null)
     };
-    await sbU('sessions','id=eq.'+logState.sessId,payload);
+    var savedDetails = await sbU('sessions','id=eq.'+logState.sessId,payload);
+    if(!savedDetails){
+      showToast('Could not save details - try again', true);
+      return;
+    }
     showToast('Details saved ✓');
   }
   showScreen('screen-celebrate');
@@ -14301,7 +14630,11 @@ async function deleteRoute(){
   var count = (window._rhSessions||[]).length;
   if(!confirm("Delete this entire route and all "+count+" attempt"+(count===1?'':'s')+"? This can't be undone from the app.")) return;
   var now = new Date().toISOString();
-  await sbU('climbs','id=eq.'+climbId,{deleted_at:now});
+  var climbOk = await sbU('climbs','id=eq.'+climbId,{deleted_at:now});
+  if(!climbOk){
+    showToast('Could not delete route - try again', true);
+    return;
+  }
   await sbU('sessions','climb_id=eq.'+climbId,{deleted_at:now});
   showToast('Route deleted');
   showScreen('screen-sessions');
@@ -15212,7 +15545,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer', 'toggleTrainSessionListRow'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer', 'toggleTrainSessionListRow', 'cancelTrainSession', 'trainRemoveBlock'
   ];
 
   function shouldSkip(onclick){
@@ -16199,6 +16532,8 @@ async function runSEETests(){
       && /blocks:\s*trainSessionState\.blocks/.test(String(saveTrainSession));
     var samePattern = String(toggleTrainWarmupSection).indexOf('paintTrainWarmupSection') !== -1
       && String(paintTrainWarmupSection).indexOf("rotate(90deg)") !== -1
+      && String(toggleTrainCooldownSection).indexOf('paintTrainCooldownSection') !== -1
+      && String(paintTrainCooldownSection).indexOf("rotate(90deg)") !== -1
       && String(toggleFallSection).indexOf("rotate(90deg)") !== -1;
 
     if(markupOk && defaultOpen && manualClose && manualOpen && autoClose && reexpand && coolLeaves && saveClean && samePattern){
@@ -16217,8 +16552,9 @@ async function runSEETests(){
     var menu = document.getElementById('train-block-menu');
     var menuOk = !!(menu
       && /trainAddBlock\('section'\)/.test(menu.innerHTML)
-      && /\+ Add section/.test(menu.innerHTML)
-      && /trainAddBlock\('interval'\)/.test(menu.innerHTML)
+      && />Add section</.test(menu.innerHTML)
+      && menu.innerHTML.indexOf('+ Add section') === -1
+      && menu.innerHTML.indexOf("trainAddBlock('interval')") === -1
       && menu.innerHTML.indexOf("trainAddBlock('emom')") === -1
       && menu.innerHTML.indexOf('EMOM boulder list') === -1);
 
@@ -16226,10 +16562,11 @@ async function runSEETests(){
     trainSessionState = newTrainSessionState('strength');
     trainAddBlock('section');
     var sec = trainSessionState.blocks[0];
-    var secHtml = renderTrainBlockHtml(sec, 0);
+    var secHtml = renderTrainBlockHtml(sec, 1);
     var sectionOk = sec.shape === 'section'
       && /trainAddSectionChild/.test(secHtml)
-      && /Duration \(sec\)/.test(secHtml)
+      && /\+ Add countdown/.test(secHtml)
+      && secHtml.indexOf('Duration (sec)') === -1
       && /toggleTrainBlockTimerEnabled/.test(secHtml);
 
     trainAddSectionChild(sec.id, 'interval');
@@ -16268,6 +16605,82 @@ async function runSEETests(){
     trainSessionState = prevSess;
     showScreen('screen-train');
   }catch(e){ fail('Train add-block menu uses section/interval/check instead of EMOM', e.message); }
+
+  try{
+    var prevSess = trainSessionState;
+    trainSessionState = newTrainSessionState('Hangboard');
+    var untitledSec = newTrainBlock('section');
+    var titledSec = newTrainBlock('section'); titledSec.title = 'Repeaters';
+    var untitledIv = newTrainBlock('interval');
+    var titledIv = newTrainBlock('interval'); titledIv.title = '7on 3off'; titledIv.groups = [];
+    var emptyChk = newTrainBlock('check'); emptyChk.title = 'Shakes';
+    var htmlUntitled = renderTrainBlockHtml(untitledSec, 1);
+    var htmlTitled = renderTrainBlockHtml(titledSec, 1);
+    var htmlIvU = renderTrainBlockHtml(untitledIv, 2);
+    var htmlIvT = renderTrainBlockHtml(titledIv, 2);
+    var htmlChk = renderTrainBlockHtml(emptyChk, 3);
+    var a1 = /for="tb-/.test(htmlUntitled) && htmlUntitled.indexOf('Title') !== -1
+      && htmlTitled.indexOf('>Title<') === -1 && htmlTitled.indexOf('Repeaters') !== -1
+      && /train-block-kicker/.test(htmlTitled) && /train-block-title/.test(htmlTitled)
+      && htmlTitled.indexOf('text-transform:uppercase') === -1;
+    var a2 = /\+ Add note/.test(htmlChk) && htmlChk.indexOf('>Expand<') === -1;
+    var a3 = htmlIvT.indexOf('Groups:') === -1;
+    var a4 = /\+ Add countdown/.test(htmlTitled) && htmlTitled.indexOf('Duration (sec)') === -1;
+    titledSec.duration_sec = 180;
+    var htmlDur = renderTrainBlockHtml(titledSec, 1);
+    var a4b = /Duration \(sec\)/.test(htmlDur);
+    var a5 = /_trainCancelArmed/.test(String(cancelTrainSession))
+      && /_removeArmed/.test(String(trainRemoveBlock));
+    trainRemoveBlock(untitledSec.id); // no-op, not in state
+    trainSessionState.blocks = [untitledSec];
+    trainRemoveBlock(untitledSec.id);
+    var armed = untitledSec._removeArmed === true && trainSessionState.blocks.length === 1;
+    trainRemoveBlock(untitledSec.id);
+    var removed = trainSessionState.blocks.length === 0;
+    var a6 = /savedClimb/.test(String(saveEditedClimb)) && /Could not update/.test(String(saveEditedClimb))
+      && /savedRefl/.test(String(trainFlowSaveReflectionIfFilled));
+    var chips = (function(){
+      _trainPickerItems = [{ name: 'A', _source: 'foundational' }, { name: 'B', _source: 'custom' }];
+      _trainPickerCategory = 'all';
+      paintTrainPickerCategoryChips(_trainPickerItems);
+      var wrap = document.getElementById('train-picker-cats');
+      return wrap && wrap.style.display !== 'none' && /Foundational/.test(wrap.innerHTML) && /Custom/.test(wrap.innerHTML);
+    })();
+    var a8 = ((document.querySelector('#screen-train-start .screen-title .sub') || {}).textContent || '').indexOf('search') === -1
+      && ((document.querySelector('#train-hub-card-start .te-sub') || {}).textContent || '').indexOf('search') === -1;
+    var a9 = trainEnergyArcBand('Hangboard') === 12 && trainEnergyArcBand('Boulders') === 12
+      && trainEnergyArcBand('Routes') === 36 && trainEnergyArcBand('Cardio & Capacity') === 36
+      && trainEnergyArcBand('Warm-Ups') === 60 && trainEnergyArcBand('Mobility & Flexibility') === 60
+      && trainEnergyArcBand('strength') === 12 && trainEnergyArcBand('skill_development') === 60;
+    var a10 = /Close/.test(document.getElementById('edit-sheet').innerHTML)
+      && document.getElementById('edit-sheet').innerHTML.indexOf('>Done<') === -1;
+    var b1 = !!document.getElementById('train-cooldown-chevron')
+      && /toggleTrainCooldownSection/.test(document.getElementById('train-cooldown-card').innerHTML)
+      && String(toggleTrainCompleted).indexOf('res-card-chevron') === -1
+      && String(toggleTrainCompleted).indexOf("classList.add('open')") !== -1;
+    var b2 = /train-block-timer-toggle/.test(htmlUntitled) && /train-section-complete/.test(htmlUntitled);
+    var b3 = /Work /.test(htmlIvT) && htmlIvT.indexOf('tb-'+titledIv.id+'-work') === -1
+      && /Edit/.test(htmlIvT);
+    var b4 = document.getElementById('train-block-menu').innerHTML.indexOf("trainAddBlock('interval')") === -1;
+    var b5 = document.getElementById('train-block-menu').innerHTML.indexOf('+ Add section') === -1;
+    var wuHtml = renderTrainBlockHtml(untitledIv, 0, true);
+    var b6 = wuHtml.indexOf('Block ') === -1 && /Block 2/.test(htmlIvU);
+    var b8 = /Title/.test(htmlIvU);
+    var b9 = document.getElementById('screen-train-start').innerHTML.split('Start a session').length === 2;
+    var c1 = String(trainDoneAnother).indexOf('startBlankTrainSession') === -1;
+
+    trainSessionState = prevSess;
+    showScreen('screen-train');
+    if(a1 && a2 && a3 && a4 && a4b && a5 && armed && removed && a6 && chips && a8 && a9 && a10
+      && b1 && b2 && b3 && b4 && b5 && b6 && b8 && b9 && c1){
+      pass('Train UX cleanup batch A1-A10 B1-B9 C1');
+    } else {
+      fail('Train UX cleanup batch A1-A10 B1-B9 C1',
+        'a1='+a1+' a2='+a2+' a3='+a3+' a4='+a4+' a4b='+a4b+' a5='+a5+' armed='+armed+' removed='+removed
+        +' a6='+a6+' chips='+chips+' a8='+a8+' a9='+a9+' a10='+a10
+        +' b1='+b1+' b2='+b2+' b3='+b3+' b4='+b4+' b5='+b5+' b6='+b6+' b8='+b8+' b9='+b9+' c1='+c1);
+    }
+  }catch(e){ fail('Train UX cleanup batch A1-A10 B1-B9 C1', e.message); }
 
   try{
     var empty = countMarkdownCheckboxes('');
@@ -16854,13 +17267,13 @@ async function runSEETests(){
       && !document.querySelector('#screen-train #train-goals-section')
       && !document.querySelector('#screen-train #coach-chat-section');
     var startSub = ((document.querySelector('#screen-train-start .screen-title .sub') || {}).textContent || '').trim();
-    var startCopyOk = startSub === 'Pick a workout, or search.';
+    var startCopyOk = startSub === 'Pick a focus, then a workout.';
     var hubSubs = hubIds.map(function(id){
       var el = document.querySelector('#' + id + ' .te-sub');
       return el ? (el.textContent || '').trim() : '';
     });
     var terseOk = hubSubs.every(function(t){ return t && t.split(/\s+/).length <= 5; })
-      && hubSubs[0] === 'Browse or search'
+      && hubSubs[0] === 'Browse workouts'
       && hubSubs[2] === 'Open plans';
     if(cardsOk && screensOk && hooksOk && energyOnStart && goalsOnSub && chatOnSub && listOnRecent && listOnAssign && landingLean && startCopyOk && terseOk && hubIcons && assignBadge && chatDot){
       pass('Train hub 5-card landing + drill-downs');
@@ -16918,6 +17331,23 @@ async function runSEETests(){
     var secOk = /Finisher/.test(detail) && /easy traverses/.test(detail);
     var empty = renderTrainSessionDetailHtml({ id: 'x', blocks: [], warm_up: '', cool_down: '   ', notes: null });
     var emptyOk = empty.indexOf('Warm-up') === -1 && empty.indexOf('Cool-down') === -1 && empty.indexOf('Reflection') === -1;
+    var titleOnly = renderTrainSessionDetailHtml({ id: 'y', energy_type: 'Hangboard', notes: 'Repeaters', blocks: [] });
+    var titleNotRefl = titleOnly.indexOf('Reflection') === -1 && /Repeaters/.test(titleOnly) === false;
+    // Title-only notes must not be labeled Reflection. Workout name is for the list row.
+    var named = { id: 'sess-hist-name', energy_type: 'Hangboard', notes: 'Repeaters', blocks: [] };
+    var prevShow = _trainSessionListShowAll;
+    _trainSessionListShowAll = false;
+    _trainSessionsCache = [named].concat(Array.from({length: 8}, function(_, i){
+      return { id: 'pad-'+i, energy_type: 'Hangboard', notes: 'Pad '+i, blocks: [] };
+    }));
+    renderTrainSessionList();
+    var listNamed = document.getElementById('train-session-list');
+    var nameOk = !!(listNamed && /Repeaters/.test(listNamed.innerHTML) && listNamed.innerHTML.indexOf('>Hangboard<') === -1);
+    var moreOk = !!(listNamed && /\+1 more/.test(listNamed.innerHTML));
+    toggleTrainSessionListMore();
+    var allOk = !!_trainSessionListShowAll && /Pad 7/.test(document.getElementById('train-session-list').innerHTML);
+    _trainSessionListShowAll = prevShow;
+    var titleNotReflOk = titleOnly.indexOf('Reflection') === -1;
     var noEdit = detail.indexOf('<input') === -1 && detail.toLowerCase().indexOf('onclick') === -1 && detail.indexOf('<textarea') === -1;
     var usesPreview = String(renderTrainSessionDetailHtml).indexOf('renderTrainNotePreview') !== -1;
     var usesFmt = String(renderTrainSessionBlockDetailHtml).indexOf('formatTrainBlockTimerElapsed') !== -1;
@@ -16930,16 +17360,19 @@ async function runSEETests(){
 
     _trainSessionsCache = prevCache;
     _trainSessionListExpanded = prevExp || {};
+    _trainSessionListShowAll = prevShow;
     renderTrainSessionList();
     if(hasToggle && closed0 && open1 && closed1 && stayed && warmOk && noCool && reflOk && ivOk
-      && emomOk && circOk && rpfOk && secOk && emptyOk && noEdit && usesPreview && usesFmt && protoOk){
+      && emomOk && circOk && rpfOk && secOk && emptyOk && titleNotReflOk && nameOk && moreOk && allOk
+      && noEdit && usesPreview && usesFmt && protoOk){
       pass('Recent session list expand + read-only detail');
     } else {
       fail('Recent session list expand + read-only detail',
         'toggle=' + hasToggle + ' closed0=' + closed0 + ' open=' + open1 + ' closed1=' + closed1
         + ' stayed=' + stayed + ' warm=' + warmOk + ' noCool=' + noCool + ' refl=' + reflOk
         + ' iv=' + ivOk + ' emom=' + emomOk + ' circ=' + circOk + ' rpf=' + rpfOk
-        + ' sec=' + secOk + ' empty=' + emptyOk + ' noEdit=' + noEdit
+        + ' sec=' + secOk + ' empty=' + emptyOk + ' title=' + titleNotReflOk + ' name=' + nameOk
+        + ' more=' + moreOk + ' all=' + allOk + ' noEdit=' + noEdit
         + ' preview=' + usesPreview + ' fmt=' + usesFmt + ' proto=' + protoOk);
     }
   }catch(e){
@@ -16989,6 +17422,8 @@ async function runSEETests(){
     var saveSrc = String(saveTrainSession);
     var navOk = /screen-train-done/.test(saveSrc) && /populateTrainDoneScreen/.test(saveSrc)
       && saveSrc.indexOf("showToast('Session saved") === -1;
+    var anotherOk = String(trainDoneAnother).indexOf('startBlankTrainSession') === -1
+      && /screen-train-start/.test(String(trainDoneAnother));
     var prevSess = trainSessionState;
     var st = newTrainSessionState('strength');
     var flagsOk = st.warm_up_complete === false && st.cool_down_complete === false;
@@ -17003,11 +17438,11 @@ async function runSEETests(){
     var toggleSrc = String(toggleTrainSectionComplete);
     var noGate = toggleSrc.indexOf('saveTrainSession') === -1;
     trainSessionState = prevSess;
-    if(doneOk && navOk && flagsOk && blockFlag && warmOn && blockOn && htmlHasToggle && noGate){
+    if(doneOk && navOk && anotherOk && flagsOk && blockFlag && warmOn && blockOn && htmlHasToggle && noGate){
       pass('Train session complete + section toggles');
     } else {
       fail('Train session complete + section toggles',
-        'done=' + doneOk + ' nav=' + navOk + ' flags=' + flagsOk + ' blockFlag=' + blockFlag +
+        'done=' + doneOk + ' nav=' + navOk + ' another=' + anotherOk + ' flags=' + flagsOk + ' blockFlag=' + blockFlag +
         ' warm=' + warmOn + ' blockOn=' + blockOn + ' html=' + htmlHasToggle + ' noGate=' + noGate);
     }
   }catch(e){ fail('Train session complete + section toggles', e.message); }
@@ -17247,7 +17682,7 @@ async function runSEETests(){
     var htmlPlain = renderTrainBlockHtml(roundB, 1);
     var fallbackOk = /data-block-timer-elapsed/.test(htmlPlain)
       && htmlPlain.indexOf('data-block-countdown-phase') === -1
-      && /Duration \(sec\)/.test(htmlPlain);
+      && /\+ Add countdown/.test(htmlPlain);
 
     var prevReq = _trainWakeLockRequestCount;
     var prevRel = _trainWakeLockReleaseCount;
@@ -17665,13 +18100,13 @@ async function saveNote(){
   var text = ta ? ta.value.trim() : '';
   if(!text){ closeNotesEditor(); return; }
   if(!logState.sessId){ showToast('Session ID not found'); return; }
-  try{
-    await sbU('sessions','id=eq.'+logState.sessId,{session_notes:text});
-    closeNotesEditor();
-    showToast('Note saved');
-  }catch(e){
-    showToast('Could not save note — try again');
+  var savedNote = await sbU('sessions','id=eq.'+logState.sessId,{session_notes:text});
+  if(!savedNote){
+    showToast('Could not save note - try again', true);
+    return;
   }
+  closeNotesEditor();
+  showToast('Note saved');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -18175,18 +18610,18 @@ async function submitProfileFeedback(){
   var ta = document.getElementById('profile-feedback-text');
   var text = ta ? ta.value.trim() : '';
   if(!text){ showToast('Nothing to send'); return; }
-  try{
-    await sbI('feedback',{
-      answers: JSON.stringify({quick: text}),
-      device_id: getDeviceId(),
-      user_id: window._authUser ? window._authUser.id : null,
-      app_version: app_version
-    });
-    if(ta) ta.value = '';
-    showToast('Feedback sent — thank you');
-  }catch(e){
-    showToast('Could not send — try again');
+  var savedFb = await sbI('feedback',{
+    answers: JSON.stringify({quick: text}),
+    device_id: getDeviceId(),
+    user_id: window._authUser ? window._authUser.id : null,
+    app_version: app_version
+  });
+  if(!savedFb){
+    showToast('Could not send - try again', true);
+    return;
   }
+  if(ta) ta.value = '';
+  showToast('Feedback sent - thank you');
 }
 
 // ═══════════════════════════════════════════════════════
