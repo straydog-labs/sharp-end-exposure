@@ -893,24 +893,36 @@
 
   function armInlineConfirm(btn, confirmLabel, onConfirm){
     if(!btn || typeof onConfirm !== 'function') return;
-    if(btn.getAttribute('data-confirm-armed') === '1'){
+    function disarm(){
       btn.removeAttribute('data-confirm-armed');
       btn.classList.remove('is-confirming');
+      if(btn._confirmPrev != null){
+        btn.textContent = btn._confirmPrev;
+        btn._confirmPrev = null;
+      }
+      if(btn._confirmDoc){
+        document.removeEventListener('click', btn._confirmDoc, true);
+        btn._confirmDoc = null;
+      }
+    }
+    if(btn.getAttribute('data-confirm-armed') === '1'){
+      disarm();
       onConfirm();
       return;
     }
-    var prev = btn.textContent;
+    btn._confirmPrev = btn.textContent;
     btn.setAttribute('data-confirm-armed', '1');
     btn.classList.add('is-confirming');
     btn.textContent = confirmLabel || 'Confirm';
-    var onDoc = function(e){
+    btn._confirmDoc = function(e){
       if(btn.contains(e.target)) return;
-      btn.removeAttribute('data-confirm-armed');
-      btn.classList.remove('is-confirming');
-      btn.textContent = prev;
-      document.removeEventListener('click', onDoc, true);
+      disarm();
     };
-    setTimeout(function(){ document.addEventListener('click', onDoc, true); }, 0);
+    setTimeout(function(){
+      if(btn.getAttribute('data-confirm-armed') === '1' && btn._confirmDoc){
+        document.addEventListener('click', btn._confirmDoc, true);
+      }
+    }, 0);
   }
 
   function assignmentDescriptionHtml(text){
