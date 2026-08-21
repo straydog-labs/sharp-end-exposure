@@ -83,7 +83,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .see-tip-card .see-tip-text{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:14px;font-weight:500;}
 .see-tip-card .see-tip-got-it{background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 22px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .see-tip-card .see-tip-off{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:8px 0 0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-#tips-enabled-toggle,#tips-enabled-toggle-anon{min-width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+#tips-enabled-toggle,#tips-enabled-toggle-anon,#push-notify-toggle{min-width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:8px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .install-see-lead{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:10px;}
 .install-see-steps{margin:0;padding-left:18px;font-size:14px;color:var(--muted);line-height:1.65;}
 .install-see-steps li{margin-bottom:6px;}
@@ -91,7 +91,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .install-see-plat{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
 .install-see-how{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;font-weight:600;text-decoration:underline;text-underline-offset:3px;margin-top:4px;}
 #install-see-howto{margin-top:12px;}
-#tips-enabled-toggle.on,#tips-enabled-toggle-anon.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+#tips-enabled-toggle.on,#tips-enabled-toggle-anon.on,#push-notify-toggle.on{background:var(--accent);border-color:var(--accent);color:#fff;}
 
 
 /* ── TRAIN HUB + SESSION BUILDER (build 198) ── */
@@ -2774,6 +2774,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-title">Feedback</div>
           <div class="te-sub">Bugs, ideas, legal</div>
         </button>
+        <button type="button" class="train-energy-card" id="profile-card-notifications" onclick="showScreen('screen-profile-notifications')" style="grid-column:1 / -1;">
+          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div></div>
+          <div class="te-label">Coach</div>
+          <div class="te-title">Notifications</div>
+          <div class="te-sub">Coach messages on this phone</div>
+        </button>
       </div>
 
       <!-- Sign out / Delete account — quiet text-only links, not full-width
@@ -2925,6 +2931,24 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           </ol>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-profile-notifications">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-profile')">← Profile</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Notifications<span class="sub">Coach messages on this phone, even if SEE is closed.</span></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-top:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);">Enable notifications</div>
+        <button type="button" id="push-notify-toggle" onclick="togglePushNotifications()" aria-pressed="false">Off</button>
+      </div>
+      <div id="push-notify-status" style="font-size:13px;color:var(--muted);line-height:1.55;">Checking this device...</div>
+      <div id="push-notify-ios-note" style="display:none;font-size:12px;color:var(--muted);line-height:1.55;margin-top:10px;">On iPhone this only works if SEE was added to the Home Screen (iOS 16.4+), not from Safari in the browser.</div>
     </div>
   </div>
 </div>
@@ -4648,7 +4672,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index228'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index229'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4728,7 +4752,10 @@ function initAuth(){
           // verified server truth, not just local completion history (Fix 3)
           try{ localStorage.setItem('see_baseline_complete','1'); }catch(e){}
         }
-        showScreen('screen-home'); loadHomeScreen();
+        if(!consumeTrainChatDeepLink()){
+          showScreen('screen-home'); loadHomeScreen();
+        }
+        syncPushSubscriptionIfGranted();
         _authRoutingResolve();
       })();
     } else if(event === 'PASSWORD_RECOVERY'){
@@ -5264,7 +5291,7 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-profile-journal':'fnav-profile','screen-profile-account':'fnav-profile','screen-profile-data':'fnav-profile','screen-profile-install':'fnav-profile','screen-profile-help':'fnav-profile','screen-profile-feedback':'fnav-profile','screen-journal-entry':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
+  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-profile-journal':'fnav-profile','screen-profile-account':'fnav-profile','screen-profile-data':'fnav-profile','screen-profile-install':'fnav-profile','screen-profile-help':'fnav-profile','screen-profile-feedback':'fnav-profile','screen-profile-notifications':'fnav-profile','screen-journal-entry':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   if(_prevScreen==='screen-train-session' && id!=='screen-train-session'){
     clearAllTrainBlockTimerIntervals();
@@ -5282,7 +5309,8 @@ function showScreen(id){
   else if(id!=='screen-consent' && id!=='screen-auth' && id!=='screen-password-recovery'){ refreshCoachChatUnreadBadge(); }
   if(id==='screen-train-picker'){ renderTrainPicker(); }
   if(id==='screen-train-session'){ renderTrainSessionBuilder(); if(anyTrainIntervalProtocolActive()) requestTrainWakeLock(); }
-  if(id==='screen-profile' || id==='screen-profile-journal' || id==='screen-profile-account' || id==='screen-profile-data' || id==='screen-profile-install' || id==='screen-profile-help' || id==='screen-profile-feedback' || id==='screen-journal-entry' || id==='screen-sessions' || id==='screen-drill'){ refreshCoachDashToggle(); }
+  if(id==='screen-profile-notifications'){ paintPushNotificationUI(); }
+  if(id==='screen-profile' || id==='screen-profile-journal' || id==='screen-profile-account' || id==='screen-profile-data' || id==='screen-profile-install' || id==='screen-profile-help' || id==='screen-profile-feedback' || id==='screen-profile-notifications' || id==='screen-journal-entry' || id==='screen-sessions' || id==='screen-drill'){ refreshCoachDashToggle(); }
   if(id==='screen-workout-library')loadWorkoutLibrary();
   if(id==='screen-workout-library-add')initWorkoutLibraryAddForm();
   if(id==='screen-baseline'){baselineState.qi=0;renderBaselineQ();}
@@ -15545,7 +15573,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer', 'toggleTrainSessionListRow', 'cancelTrainSession', 'trainRemoveBlock'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer', 'toggleTrainSessionListRow', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications'
   ];
 
   function shouldSkip(onclick){
@@ -17883,12 +17911,33 @@ async function runSEETests(){
     var cachesShell = /see-shell-/.test(swText) && /index\.html/.test(swText);
     var skipsApi = /supabase/.test(swText) && /isApiRequest/.test(swText);
     var noApiCache = !/cache\.put\([^)]*supabase/i.test(swText);
-    if(swVer === app_version && cachesShell && skipsApi && noApiCache && typeof registerSEEServiceWorker === 'function'){
+    var hasPush = /addEventListener\(['"]push['"]/.test(swText);
+    var hasClick = /addEventListener\(['"]notificationclick['"]/.test(swText);
+    var hasSubChange = /addEventListener\(['"]pushsubscriptionchange['"]/.test(swText);
+    if(swVer === app_version && cachesShell && skipsApi && noApiCache && typeof registerSEEServiceWorker === 'function' && hasPush && hasClick && hasSubChange){
       pass('PWA service worker versioned shell (no API cache)');
     } else {
-      fail('PWA service worker versioned shell (no API cache)', 'swVer=' + swVer + ' app=' + app_version + ' shell=' + cachesShell + ' apiSkip=' + skipsApi);
+      fail('PWA service worker versioned shell (no API cache)', 'swVer=' + swVer + ' app=' + app_version + ' shell=' + cachesShell + ' apiSkip=' + skipsApi + ' push=' + hasPush + ' click=' + hasClick);
     }
   }catch(e){ fail('PWA service worker versioned shell (no API cache)', e.message); }
+
+  try{
+    var vapidOk = typeof SEE_VAPID_PUBLIC_KEY === 'string' && SEE_VAPID_PUBLIC_KEY.length > 80;
+    var bytes = vapidOk ? urlBase64ToUint8Array(SEE_VAPID_PUBLIC_KEY) : null;
+    var keyOk = bytes instanceof Uint8Array && bytes.length === 65 && bytes[0] === 4;
+    var helpersOk = typeof togglePushNotifications === 'function' && typeof paintPushNotificationUI === 'function';
+    var swRegSrc = String(registerSEEServiceWorker);
+    var routeSrc = String(routeOnLoad);
+    var noAutoPrompt = !/requestPermission/.test(swRegSrc) && !/Notification\.requestPermission/.test(routeSrc);
+    var toggleEl = document.getElementById('push-notify-toggle');
+    var notifyScreen = document.getElementById('screen-profile-notifications');
+    var uiOk = !!(toggleEl && notifyScreen && notifyScreen.contains(toggleEl));
+    if(vapidOk && keyOk && helpersOk && noAutoPrompt && uiOk){
+      pass('Push: Profile opt-in, VAPID public key, no permission prompt on load');
+    } else {
+      fail('Push: Profile opt-in, VAPID public key, no permission prompt on load', 'vapid=' + vapidOk + ' key=' + keyOk + ' helpers=' + helpersOk + ' noPrompt=' + noAutoPrompt + ' ui=' + uiOk);
+    }
+  }catch(e){ fail('Push: Profile opt-in, VAPID public key, no permission prompt on load', e.message); }
 
   try{
     var coachSrc = String(openCoachDashboard);
@@ -17958,8 +18007,8 @@ async function runSEETests(){
   }catch(e){ fail('Profile Install SEE instructions (UA detect + disclosure)', e.message); }
 
   try{
-    var ids = ['profile-card-journal','profile-card-account','profile-card-data','profile-card-install','profile-card-help','profile-card-feedback'];
-    var screens = ['screen-profile-journal','screen-profile-account','screen-profile-data','screen-profile-install','screen-profile-help','screen-profile-feedback'];
+    var ids = ['profile-card-journal','profile-card-account','profile-card-data','profile-card-install','profile-card-help','profile-card-feedback','profile-card-notifications'];
+    var screens = ['screen-profile-journal','screen-profile-account','screen-profile-data','screen-profile-install','screen-profile-help','screen-profile-feedback','screen-profile-notifications'];
     var cardsOk = ids.every(function(id){ return !!document.getElementById(id); });
     var screensOk = screens.every(function(id){ return !!document.getElementById(id); });
     var landing = document.getElementById('profile-hub-cards');
@@ -17971,7 +18020,8 @@ async function runSEETests(){
     var showSrc = String(showScreen);
     var hooksOk = /screen-profile-journal/.test(showSrc) && /loadJournalEntries/.test(showSrc)
       && /screen-profile-install/.test(showSrc) && /initInstallSEEInstructions/.test(showSrc)
-      && /screen-profile-data/.test(showSrc) && /loadBaselinePerceptionCompare/.test(showSrc);
+      && /screen-profile-data/.test(showSrc) && /loadBaselinePerceptionCompare/.test(showSrc)
+      && /screen-profile-notifications/.test(showSrc) && /paintPushNotificationUI/.test(showSrc);
     var startWrap = document.getElementById('train-sess-start') && document.getElementById('train-sess-start').closest('.saw-field');
     var endWrap = document.getElementById('train-sess-end') && document.getElementById('train-sess-end').closest('.saw-field');
     var dtMin = !!(startWrap && endWrap
@@ -18740,10 +18790,11 @@ async function routeOnLoad(){
         // Authenticated - go to Home
         if(!hasSeenBaseline){
           showScreen('screen-baseline');
-        } else {
+        } else if(!consumeTrainChatDeepLink()){
           showScreen('screen-home');
           loadHomeScreen();
         }
+        syncPushSubscriptionIfGranted();
       } else if(!dismissed){
         // Not authed, not dismissed — show auth
         showScreen('screen-auth');
@@ -18798,12 +18849,259 @@ function acknowledgeConsent(){
   routeOnLoad();
 }
 
+const SEE_VAPID_PUBLIC_KEY = 'BP6DrkZmQspCullBBbaIlg41Z7W_AXFbefEAksCLdkdlkHBUPiJHP5YyKU7BXFBKU0sK1tJUU4v88zZtYJDRmd4';
+
+function urlBase64ToUint8Array(base64String){
+  var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var raw = atob(base64);
+  var output = new Uint8Array(raw.length);
+  for(var i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
+function pushNotificationsSupported(){
+  return typeof window !== 'undefined'
+    && 'Notification' in window
+    && 'serviceWorker' in navigator
+    && 'PushManager' in window;
+}
+
+function pushIosNeedsHomeScreen(){
+  return detectInstallPlatform() === 'ios' && !isSEEStandalone();
+}
+
+function syncPushNotifyToggle(on){
+  var toggle = document.getElementById('push-notify-toggle');
+  if(!toggle) return;
+  toggle.textContent = on ? 'On' : 'Off';
+  toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if(on) toggle.classList.add('on');
+  else toggle.classList.remove('on');
+}
+
+function setPushNotifyStatus(text){
+  var status = document.getElementById('push-notify-status');
+  if(status) status.textContent = text || '';
+}
+
+async function currentPushSubscription(){
+  if(!pushNotificationsSupported()) return null;
+  try{
+    var reg = await navigator.serviceWorker.ready;
+    return await reg.pushManager.getSubscription();
+  }catch(e){
+    return null;
+  }
+}
+
+function pushSubscriptionKeys(sub){
+  if(!sub) return null;
+  try{
+    if(typeof sub.toJSON === 'function'){
+      var json = sub.toJSON();
+      if(json && json.endpoint && json.keys && json.keys.p256dh && json.keys.auth){
+        return { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth };
+      }
+    }
+  }catch(e){}
+  try{
+    var key = sub.getKey && sub.getKey('p256dh');
+    var auth = sub.getKey && sub.getKey('auth');
+    if(!key || !auth) return null;
+    function toB64Url(buf){
+      var bin = String.fromCharCode.apply(null, new Uint8Array(buf));
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+    return { endpoint: sub.endpoint, p256dh: toB64Url(key), auth: toB64Url(auth) };
+  }catch(e2){
+    return null;
+  }
+}
+
+async function upsertPushSubscription(sub){
+  if(!window._authUser || !window._authUser.id || !sub) return false;
+  var keys = pushSubscriptionKeys(sub);
+  if(!keys) return false;
+  var row = {
+    user_id: window._authUser.id,
+    endpoint: keys.endpoint,
+    p256dh: keys.p256dh,
+    auth: keys.auth
+  };
+  try{
+    var r = await fetch(SB_URL + '/rest/v1/push_subscriptions?on_conflict=user_id,endpoint', {
+      method: 'POST',
+      headers: Object.assign({}, getSBHeaders(), { Prefer: 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify(row)
+    });
+    return r.ok;
+  }catch(e){
+    return false;
+  }
+}
+
+async function deletePushSubscriptionRow(endpoint){
+  if(!window._authUser || !window._authUser.id || !endpoint) return;
+  await sbD(
+    'push_subscriptions',
+    'user_id=eq.' + encodeURIComponent(window._authUser.id) + '&endpoint=eq.' + encodeURIComponent(endpoint)
+  );
+}
+
+async function paintPushNotificationUI(){
+  var iosNote = document.getElementById('push-notify-ios-note');
+  if(iosNote) iosNote.style.display = pushIosNeedsHomeScreen() ? 'block' : 'none';
+  if(!window._authUser){
+    syncPushNotifyToggle(false);
+    setPushNotifyStatus('Sign in to enable notifications on this device.');
+    return;
+  }
+  if(pushIosNeedsHomeScreen()){
+    syncPushNotifyToggle(false);
+    setPushNotifyStatus('On iPhone, add SEE to your Home Screen first. Safari tabs cannot receive push.');
+    return;
+  }
+  if(!pushNotificationsSupported()){
+    syncPushNotifyToggle(false);
+    setPushNotifyStatus('Push notifications are not available in this browser.');
+    return;
+  }
+  if(Notification.permission === 'denied'){
+    syncPushNotifyToggle(false);
+    setPushNotifyStatus('Notifications are blocked for this site. Enable them in your browser or phone settings, then try again.');
+    return;
+  }
+  var sub = await currentPushSubscription();
+  var on = Notification.permission === 'granted' && !!sub;
+  syncPushNotifyToggle(on);
+  if(on) setPushNotifyStatus('Notifications are on for this device.');
+  else setPushNotifyStatus('Off. Coach messages will only show in the app until you enable this.');
+}
+
+async function togglePushNotifications(){
+  if(!window._authUser){ showToast('Sign in first.', true); return; }
+  if(pushIosNeedsHomeScreen()){
+    showToast('Add SEE to your Home Screen, then open it from there to enable notifications.', true);
+    paintPushNotificationUI();
+    return;
+  }
+  if(!pushNotificationsSupported()){
+    showToast('Push notifications are not available here.', true);
+    paintPushNotificationUI();
+    return;
+  }
+  var toggle = document.getElementById('push-notify-toggle');
+  var currentlyOn = toggle && toggle.classList.contains('on');
+  if(currentlyOn){
+    try{
+      var existing = await currentPushSubscription();
+      if(existing){
+        var endpoint = existing.endpoint;
+        await existing.unsubscribe();
+        await deletePushSubscriptionRow(endpoint);
+      }
+      showToast('Notifications off on this device.');
+    }catch(e){
+      showToast('Could not turn notifications off.', true);
+    }
+    paintPushNotificationUI();
+    return;
+  }
+  var permission = Notification.permission;
+  if(permission === 'denied'){
+    showToast('Notifications are blocked. Enable them in your browser or phone settings.', true);
+    paintPushNotificationUI();
+    return;
+  }
+  if(permission !== 'granted'){
+    try{ permission = await Notification.requestPermission(); }
+    catch(e){ permission = 'denied'; }
+  }
+  if(permission !== 'granted'){
+    showToast('Notification permission was not granted.', true);
+    paintPushNotificationUI();
+    return;
+  }
+  try{
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(SEE_VAPID_PUBLIC_KEY)
+      });
+    }
+    var ok = await upsertPushSubscription(sub);
+    if(!ok){
+      showToast('Saved locally, but the server did not accept this device yet. Ask John if the push_subscriptions table is live.', true);
+    } else {
+      showToast('Notifications on. Coach messages can reach this phone when the app is closed.');
+    }
+  }catch(e){
+    showToast('Could not enable notifications on this device.', true);
+  }
+  paintPushNotificationUI();
+}
+
+async function refreshPushSubscriptionAfterChange(){
+  if(!window._authUser || !window._authUser.id) return;
+  if(!pushNotificationsSupported() || Notification.permission !== 'granted') return;
+  try{
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    if(sub) await upsertPushSubscription(sub);
+  }catch(e){}
+}
+
+async function syncPushSubscriptionIfGranted(){
+  if(!window._authUser || !window._authUser.id) return;
+  if(!pushNotificationsSupported() || Notification.permission !== 'granted') return;
+  if(pushIosNeedsHomeScreen()) return;
+  try{
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    if(sub) await upsertPushSubscription(sub);
+  }catch(e){}
+}
+
+function consumeTrainChatDeepLink(){
+  try{
+    var params = new URLSearchParams(location.search);
+    if(params.get('open') !== 'train-chat') return false;
+    if(!window._authUser) return false;
+    params.delete('open');
+    var qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    showScreen('screen-train-chat');
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
 function registerSEEServiceWorker(){
   if(typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
   var proto = (window.location && window.location.protocol) || '';
   if(proto !== 'https:' && proto !== 'http:') return;
   var swUrl = 'sw.js?v=' + encodeURIComponent(app_version);
   navigator.serviceWorker.register(swUrl, { scope: './', updateViaCache: 'none' }).catch(function(){});
+  if(!window._seePushSwMsgBound){
+    window._seePushSwMsgBound = true;
+    navigator.serviceWorker.addEventListener('message', function(event){
+      var data = event.data || {};
+      if(data.type === 'open-screen' && data.screen){
+        showScreen(data.screen);
+        return;
+      }
+      if(data.type === 'pushsubscriptionchange'){
+        refreshPushSubscriptionAfterChange();
+      }
+    });
+    navigator.serviceWorker.addEventListener('pushsubscriptionchange', function(){
+      refreshPushSubscriptionAfterChange();
+    });
+  }
 }
 if(document.readyState === 'complete') registerSEEServiceWorker();
 else window.addEventListener('load', registerSEEServiceWorker);
