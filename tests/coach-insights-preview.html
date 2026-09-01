@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coach insights — independent preview</title>
+<script src="../js/coach-athlete-insights.js"></script>
+<style>
+  :root{
+    --bg:#2e2e2e;--surface:#3a3a3a;--border:#4a4a4a;--text:#f0f0f0;--text-secondary:#a8a8a8;
+    --accent:#e89252;--comfort:#7ec87a;--learning:#f5a623;--panic:#e84444;
+  }
+  body{background:var(--bg);color:var(--text);font-family:sans-serif;margin:0;padding:24px;max-width:900px;}
+  h1{font-size:20px;margin:0 0 8px;}
+  h2{font-size:16px;margin:28px 0 8px;}
+  .note{color:var(--text-secondary);font-size:13px;line-height:1.5;margin-bottom:16px;}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;}
+  .zone-bar-track{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--bg);border:1px solid var(--border);}
+  .zone-bar-seg{height:100%;}
+  .zone-comfort{background:var(--comfort);}
+  .zone-learning{background:var(--learning);}
+  .zone-panic{background:var(--panic);}
+  .meta{font-size:12px;color:var(--text-secondary);margin-top:8px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:6px 8px 6px 0;border-bottom:1px solid var(--border);}
+</style>
+</head>
+<body>
+  <h1>Independent preview — any coach / any athlete</h1>
+  <p class="note">Synthetic sessions for two unnamed athletes. No gym seed. Same helpers the dashboard uses.</p>
+  <div id="out"></div>
+  <script>
+    function week(offsetDays, extra){
+      var d = new Date('2026-09-01T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() + offsetDays);
+      return Object.assign({ created_at: d.toISOString(), is_checkin: false }, extra);
+    }
+    var athleteA = [
+      week(-2, { zone:'comfort', baseline_zone:'sent', grade_value:'V3', climbing_type:'Slab', discipline:'Boulder' }),
+      week(-3, { zone:'comfort', baseline_zone:'sent', grade_value:'V4', climbing_type:'Slab', discipline:'Boulder' }),
+      week(-10, { zone:'learning', baseline_zone:'fell', grade_value:'V5', climbing_type:'Vertical', discipline:'Boulder' }),
+      week(-18, { zone:'comfort', baseline_zone:'sent', grade_value:'V2', climbing_type:'Slab', discipline:'Boulder' })
+    ];
+    var athleteB = [
+      week(-1, { zone:'panic', baseline_zone:'fell', grade_value:'5.12a', climbing_type:'Overhang', discipline:'Lead' }),
+      week(-4, { zone:'panic', baseline_zone:'fell', grade_value:'5.12b', climbing_type:'Overhang', discipline:'Lead' }),
+      week(-5, { zone:'learning', baseline_zone:'sent', grade_value:'5.11d', climbing_type:'Roof', discipline:'Sport' }),
+      week(-20, { zone:'learning', baseline_zone:'sent', grade_value:'5.11a', climbing_type:'Overhang', discipline:'Lead' })
+    ];
+    function bar(counts){
+      var t = (counts.comfort||0)+(counts.learning||0)+(counts.panic||0);
+      if(!t) return '<div class="meta">No zone-tagged sessions</div>';
+      return '<div class="zone-bar-track">' +
+        ['comfort','learning','panic'].map(function(z){
+          var pct = (counts[z]||0)/t*100;
+          return pct ? '<div class="zone-bar-seg zone-'+z+'" style="width:'+pct+'%"></div>' : '';
+        }).join('') + '</div>';
+    }
+    function athleteBlock(label, rows){
+      var p = CoachInsights.computeProgressSeries(rows, { weekCount: 8, endDate: new Date('2026-09-01T12:00:00Z') });
+      var g = CoachInsights.computeGapDiagnostic(rows);
+      var terrains = g.terrains.map(function(t){
+        return '<div><strong>'+t.terrain+'</strong> · '+t.summary.count+' sessions'+bar(t.summary.zones)+'</div>';
+      }).join('');
+      return '<div class="panel"><h2>'+label+'</h2>' +
+        '<div class="meta">Progress sessions in window: '+p.sessionCount+
+        ' · terrains plotted: '+p.gradeSeries.map(function(s){return s.terrain;}).join(', ')+'</div>' +
+        '<div class="meta">Last week zone % comfort/learning/panic: '+
+        p.zonePoints[p.zonePoints.length-1].comfort+' / '+
+        p.zonePoints[p.zonePoints.length-1].learning+' / '+
+        p.zonePoints[p.zonePoints.length-1].panic+'</div>' +
+        '<p class="note">Boulder '+g.boulder.count+' · Lead '+g.lead.count+
+        '. Comfort share highest on '+(g.highestComfortShare&&g.highestComfortShare.terrain)+
+        '. Panic share highest on '+(g.highestPanicShare&&g.highestPanicShare.terrain)+'.</p>' +
+        '<div>Boulder</div>'+bar(g.boulder.zones)+
+        '<div style="margin-top:10px">Lead</div>'+bar(g.lead.zones)+
+        '<div style="margin-top:14px">'+terrains+'</div></div>';
+    }
+    var csv = CoachInsights.parseGymClimbsCsv(
+      'name,wall_lane,angle,steepness,terrain_type\n'+
+      'Example A,Lane 1,20,slight,Slab\n'+
+      'Example B,Cave,40,steep,Overhang\n'
+    );
+    document.getElementById('out').innerHTML =
+      athleteBlock('Athlete A — slab / boulder', athleteA) +
+      athleteBlock('Athlete B — overhang / lead', athleteB) +
+      '<div class="panel"><h2>Gym catalog CSV (authoring only)</h2>' +
+      '<table><thead><tr><th>Name</th><th>Wall</th><th>Angle</th><th>Steepness</th><th>Terrain</th></tr></thead><tbody>' +
+      csv.rows.map(function(r){
+        return '<tr><td>'+r.name+'</td><td>'+r.wall_lane+'</td><td>'+r.angle+'</td><td>'+r.steepness+'</td><td>'+r.terrain_type+'</td></tr>';
+      }).join('') +
+      '</tbody></table><div class="meta">Errors: '+(csv.errors.join('; ')||'none')+
+      '. Table id is a UUID FK target. No gym seed.</div></div>';
+  </script>
+</body>
+</html>
