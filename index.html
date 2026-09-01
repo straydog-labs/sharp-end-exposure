@@ -92,6 +92,18 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .install-see-how{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:0;font-weight:600;text-decoration:underline;text-underline-offset:3px;margin-top:4px;}
 #install-see-howto{margin-top:12px;}
 #tips-enabled-toggle.on,#tips-enabled-toggle-anon.on,#push-notify-toggle.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.log-train-hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px;}
+.gym-catalog-chip{background:var(--surface2);border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;}
+.gym-catalog-chip.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
+.gym-catalog-row{width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;margin-bottom:8px;font-family:'Space Grotesk',sans-serif;}
+.gym-catalog-row .gcr-name{font-size:15px;font-weight:700;color:var(--text);}
+.gym-catalog-row .gcr-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+.my-notes-row{width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;margin-bottom:8px;font-family:'Space Grotesk',sans-serif;}
+.my-notes-row .mnr-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+.my-notes-row .mnr-kind{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
+.my-notes-row .mnr-date{font-size:11px;color:var(--muted);}
+.my-notes-row .mnr-title{font-size:14px;font-weight:700;color:var(--text);margin-top:4px;}
+.my-notes-row .mnr-body{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5;}
 
 
 /* ── TRAIN HUB + SESSION BUILDER (build 198) ── */
@@ -1153,7 +1165,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 20 9 10 13 15 17 9 21 20"/><line x1="3" y1="20" x2="21" y2="20"/></svg></div></div>
           <div class="te-label">Climb</div>
           <div class="te-title">Log a climb</div>
-          <div class="te-sub">Start a new session</div>
+          <div class="te-sub">Log a send or attempt</div>
         </button>
         <button type="button" class="train-energy-card" id="home-card-train" onclick="showScreen('screen-train')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="18" y2="12"/><rect x="3" y="8" width="3" height="8" rx="1"/><rect x="18" y="8" width="3" height="8" rx="1"/></svg></div></div>
@@ -1168,6 +1180,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-sub">Primary and secondary</div>
         </button>
       </div>
+      <div class="log-train-hint" id="home-log-train-hint">Log a climb is a send or attempt. Train is a workout.</div>
     </div>
   </div>
 </div>
@@ -1780,8 +1793,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div style="padding:16px 0 4px;display:flex;flex-direction:column;gap:8px;">
       <button onclick="logAnother()" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;">Log another climb</button>
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:0;padding-top:4px;">
-        <button onclick="showScreen('screen-route-details')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;">Add details</button>
+        <button id="cel-view-notes" onclick="openLoggedClimbNotes()" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;">Your notes for this climb</button>
         <span style="color:var(--border);padding:6px 0;">·</span>
+        <button onclick="showScreen('screen-route-details')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;">Add details</button>
         <span style="color:var(--border);padding:6px 0;">·</span>
         <button onclick="openEditSheet()" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;padding:6px 12px;cursor:pointer;">Edit climb</button>
         <span style="color:var(--border);padding:6px 0;">·</span>
@@ -2014,6 +2028,26 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div class="log-flow-progress-track"><div class="log-flow-progress-fill" style="width:33%"></div></div>
       <div class="log-flow-progress-label">Step 2 of 6</div>
     </div>
+  </div>
+</div>
+
+<!-- Optional gym catalog pick -- shown only when the linked coach has rows. -->
+<div class="screen log-flow-screen" id="screen-log-catalog">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-log-result')">← Back</button>
+  </div>
+  <div class="log-flow-body">
+    <div class="screen-title">Gym climb<span class="sub">Optional -- pick from your coach's catalog, or skip and type it yourself.</span></div>
+    <input id="gym-catalog-search" type="search" placeholder="Search name, wall, or lane" autocomplete="off"
+      oninput="filterGymCatalog()"
+      style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;box-sizing:border-box;margin-bottom:10px;"/>
+    <div id="gym-catalog-walls" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+    <div id="gym-catalog-list"></div>
+    <div id="gym-catalog-empty" style="display:none;font-size:13px;color:var(--muted);padding:8px 2px;">No matching climbs. Skip and log freeform.</div>
+  </div>
+  <div class="log-flow-footer">
+    <button class="log-btn log-flow-cta ready" id="gym-catalog-skip" onclick="skipGymCatalog()">Skip -- type it myself</button>
   </div>
 </div>
 
@@ -2342,6 +2376,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <div class="log-flow-done-actions">
       <button class="log-btn log-flow-cta ready" onclick="logFlowLogAnother()">Log another climb</button>
+      <button class="log-flow-skip-link" id="log-done-view-notes" onclick="openLoggedClimbNotes()">Your notes for this climb</button>
       <button class="log-flow-skip-link" onclick="logFlowDoneHome()">Home</button>
     </div>
   </div>
@@ -2738,6 +2773,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
 
       <div class="train-energy-grid" id="profile-hub-cards">
+        <button type="button" class="train-energy-card" id="profile-card-notes" onclick="showScreen('screen-profile-notes')">
+          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg></div></div>
+          <div class="te-label">Write</div>
+          <div class="te-title">My notes</div>
+          <div class="te-sub">Climb, train, and coach notes</div>
+        </button>
         <button type="button" class="train-energy-card" id="profile-card-journal" onclick="showScreen('screen-profile-journal')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div></div>
           <div class="te-label">Write</div>
@@ -2840,6 +2881,17 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div style="margin:20px 0;border-top:1px solid var(--border);"></div>
       <div id="journal-entries-list"><div style="text-align:center;padding:16px 0;font-size:13px;color:var(--muted);">No journal entries yet.</div></div>
     </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-profile-notes">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="showScreen('screen-profile')">← Profile</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">My notes<span class="sub">Climb reflections, training reflections, and coach notes -- newest first.</span></div>
+    <div id="my-notes-list"><div style="font-size:13px;color:var(--muted);padding:12px 2px;">Loading...</div></div>
   </div>
 </div>
 
@@ -3316,6 +3368,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="content">
     <!-- tip host: train-home injected by mountTipForScreen (build 195) -->
     <div class="screen-title">Train<span class="sub">Write your own training plan, or track what your coach assigns.</span></div>
+    <div class="log-train-hint" id="train-log-train-hint">Train is a workout. To log a send or attempt, use Log a climb.</div>
 
     <!-- Anonymous prompt — assignments_self_insert requires auth.uid() = athlete_id,
          no anonymous path, same reasoning as Journal (Fix 6, build 173) -->
@@ -4672,7 +4725,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index229'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index230'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -5291,7 +5344,7 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-profile-journal':'fnav-profile','screen-profile-account':'fnav-profile','screen-profile-data':'fnav-profile','screen-profile-install':'fnav-profile','screen-profile-help':'fnav-profile','screen-profile-feedback':'fnav-profile','screen-profile-notifications':'fnav-profile','screen-journal-entry':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions'};
+  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-profile-journal':'fnav-profile','screen-profile-account':'fnav-profile','screen-profile-data':'fnav-profile','screen-profile-install':'fnav-profile','screen-profile-help':'fnav-profile','screen-profile-feedback':'fnav-profile','screen-profile-notifications':'fnav-profile','screen-profile-notes':'fnav-profile','screen-journal-entry':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   if(_prevScreen==='screen-train-session' && id!=='screen-train-session'){
     clearAllTrainBlockTimerIntervals();
@@ -5310,7 +5363,8 @@ function showScreen(id){
   if(id==='screen-train-picker'){ renderTrainPicker(); }
   if(id==='screen-train-session'){ renderTrainSessionBuilder(); if(anyTrainIntervalProtocolActive()) requestTrainWakeLock(); }
   if(id==='screen-profile-notifications'){ paintPushNotificationUI(); }
-  if(id==='screen-profile' || id==='screen-profile-journal' || id==='screen-profile-account' || id==='screen-profile-data' || id==='screen-profile-install' || id==='screen-profile-help' || id==='screen-profile-feedback' || id==='screen-profile-notifications' || id==='screen-journal-entry' || id==='screen-sessions' || id==='screen-drill'){ refreshCoachDashToggle(); }
+  if(id==='screen-profile-notes'){ loadMyNotes(); }
+  if(id==='screen-profile' || id==='screen-profile-journal' || id==='screen-profile-account' || id==='screen-profile-data' || id==='screen-profile-install' || id==='screen-profile-help' || id==='screen-profile-feedback' || id==='screen-profile-notifications' || id==='screen-profile-notes' || id==='screen-journal-entry' || id==='screen-sessions' || id==='screen-drill'){ refreshCoachDashToggle(); }
   if(id==='screen-workout-library')loadWorkoutLibrary();
   if(id==='screen-workout-library-add')initWorkoutLibraryAddForm();
   if(id==='screen-baseline'){baselineState.qi=0;renderBaselineQ();}
@@ -5588,7 +5642,7 @@ function selectGrade(btn,sys){
 // ═══════════════════════════════════════════════════════
 // LOG FLOW
 // ═══════════════════════════════════════════════════════
-var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null};
+var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null};
 
 
 var _climbTableSort = {col:'date', dir:'desc'};
@@ -6034,23 +6088,68 @@ async function postSessionCoachNote(sessionId){
   await loadSessionCoachNotesThread(sessionId);
 }
 
+function findCachedSession(sessionId){
+  var lists = [window._cachedClimbs, window._cachedSessions];
+  for(var i = 0; i < lists.length; i++){
+    var arr = lists[i];
+    if(!Array.isArray(arr)) continue;
+    var hit = arr.find(function(c){ return c && c.id === sessionId; });
+    if(hit) return hit;
+  }
+  if(logState && logState.sessId === sessionId){
+    return {
+      id: sessionId,
+      route_name: logState.routeName,
+      grade_value: logState.grade,
+      climbing_type: logState.terrain,
+      went_well: (document.getElementById('went-well-text') || {}).value || '',
+      still_learning: (document.getElementById('still-learning-text') || {}).value || '',
+      surprised_by: (document.getElementById('surprised-text') || {}).value || ''
+    };
+  }
+  return null;
+}
+
 function previewSessionNotes(sessionId){
-  var climbs = window._cachedClimbs || [];
-  var s = climbs.find(function(c){ return c.id === sessionId; });
-  if(!s) return;
+  // Overlay includes #session-coach-notes; loadSessionCoachNotesThread fills it.
+  var s = findCachedSession(sessionId);
+  if(!s){
+    sbS('sessions', 'select=*&id=eq.' + sessionId + '&limit=1').then(function(rows){
+      if(Array.isArray(rows) && rows[0]){
+        window._cachedSessions = (window._cachedSessions || []).concat([rows[0]]);
+        renderSessionNotesOverlay(rows[0], sessionId);
+      } else {
+        renderSessionNotesOverlay({ id: sessionId }, sessionId);
+      }
+      loadSessionCoachNotesThread(sessionId);
+    });
+    return;
+  }
+  renderSessionNotesOverlay(s, sessionId);
+  loadSessionCoachNotesThread(sessionId);
+}
+
+function renderSessionNotesOverlay(s, sessionId){
   var existing = document.getElementById('notes-preview-overlay');
   if(existing) existing.remove();
   var rows = '';
-  if(s.went_well) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What went well</div><div style="font-size:13px;color:var(--text);">'+s.went_well+'</div></div>';
-  if(s.still_learning) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What to work on</div><div style="font-size:13px;color:var(--text);">'+s.still_learning+'</div></div>';
-  if(s.surprised_by) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Surprised by</div><div style="font-size:13px;color:var(--text);">'+s.surprised_by+'</div></div>';
+  if(s.route_name || s.grade_value){
+    rows += '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;">' +
+      escTrainHtml([s.route_name, s.grade_value, s.climbing_type].filter(Boolean).join(' · ') || 'This climb') + '</div>';
+  }
+  if(s.went_well) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What went well</div><div style="font-size:13px;color:var(--text);">'+escTrainHtml(s.went_well)+'</div></div>';
+  if(s.still_learning) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What to work on</div><div style="font-size:13px;color:var(--text);">'+escTrainHtml(s.still_learning)+'</div></div>';
+  if(s.surprised_by) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Surprised by</div><div style="font-size:13px;color:var(--text);">'+escTrainHtml(s.surprised_by)+'</div></div>';
+  if(!s.went_well && !s.still_learning && !s.surprised_by){
+    rows += '<div style="font-size:13px;color:var(--muted);margin-bottom:10px;">No climb reflection yet. Add one from the logged-climb screen, or read coach notes below.</div>';
+  }
   var overlay = document.createElement('div');
   overlay.id = 'notes-preview-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;';
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
   overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;box-sizing:border-box;max-height:80vh;overflow-y:auto;">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
-    + '<div style="font-size:13px;font-weight:700;color:var(--muted);">Notes preview</div>'
+    + '<div style="font-size:13px;font-weight:700;color:var(--muted);">Your notes for this climb</div>'
     + '<button onclick="document.getElementById(\'notes-preview-overlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">×</button>'
     + '</div>'
     + rows
@@ -6061,7 +6160,90 @@ function previewSessionNotes(sessionId){
     + '</div>'
     + '</div>';
   document.body.appendChild(overlay);
-  loadSessionCoachNotesThread(sessionId);
+}
+
+function openLoggedClimbNotes(){
+  if(logState && logState.sessId){
+    previewSessionNotes(logState.sessId);
+    return;
+  }
+  showScreen('screen-profile-notes');
+}
+
+function clipNotePreview(text, max){
+  var s = String(text || '').replace(/\s+/g, ' ').trim();
+  if(s.length <= max) return s;
+  return s.slice(0, max - 1) + '...';
+}
+
+function sessionHasClimbReflection(s){
+  return !!(s && ((s.went_well && String(s.went_well).trim()) || (s.still_learning && String(s.still_learning).trim()) || (s.surprised_by && String(s.surprised_by).trim())));
+}
+
+async function loadMyNotes(){
+  var list = document.getElementById('my-notes-list');
+  if(!list) return;
+  if(!window._authUser){
+    list.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:12px 2px;">Sign in to see your notes.</div>';
+    return;
+  }
+  var uid = window._authUser.id;
+  list.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:12px 2px;">Loading...</div>';
+  var climbs = await sbS('sessions', 'select=id,route_name,grade_value,climbing_type,went_well,still_learning,surprised_by,created_at&user_id=eq.' + uid + '&is_checkin=eq.false&deleted_at=is.null&order=created_at.desc&limit=80');
+  var trains = await sbS('training_sessions', 'select=id,notes,created_at,energy_type&user_id=eq.' + uid + '&order=created_at.desc&limit=80');
+  var coachNotes = await sbS('coach_notes', 'select=id,session_id,note,created_at,author_id&athlete_id=eq.' + uid + '&order=created_at.desc&limit=80');
+  if(!Array.isArray(climbs)) climbs = [];
+  if(!Array.isArray(trains)) trains = [];
+  else trains = trains.filter(function(t){ return !t.deleted_at; });
+  if(!Array.isArray(coachNotes)) coachNotes = [];
+  window._cachedSessions = climbs.concat(window._cachedSessions || []);
+  var items = [];
+  climbs.forEach(function(s){
+    if(!sessionHasClimbReflection(s)) return;
+    var body = [s.went_well, s.still_learning, s.surprised_by].filter(function(x){ return x && String(x).trim(); }).join(' · ');
+    items.push({
+      at: s.created_at || '',
+      kind: 'Climb',
+      title: s.route_name || s.grade_value || 'Climb',
+      body: body,
+      action: 'previewSessionNotes(\'' + s.id + '\')'
+    });
+  });
+  trains.forEach(function(t){
+    if(!t.notes || !String(t.notes).trim()) return;
+    items.push({
+      at: t.created_at || '',
+      kind: 'Train',
+      title: t.energy_type || 'Training session',
+      body: t.notes,
+      action: 'showScreen(\'screen-train-recent\')'
+    });
+  });
+  coachNotes.forEach(function(n){
+    if(!n.note || !String(n.note).trim()) return;
+    items.push({
+      at: n.created_at || '',
+      kind: 'Coach',
+      title: 'Coach note',
+      body: n.note,
+      action: n.session_id ? 'previewSessionNotes(\'' + n.session_id + '\')' : ''
+    });
+  });
+  items.sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); });
+  if(!items.length){
+    list.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:12px 2px;">No notes yet. Reflections you add after a climb or training session, and notes from your coach, show up here.</div>';
+    return;
+  }
+  list.innerHTML = items.map(function(it){
+    var d = it.at ? new Date(it.at) : null;
+    var dateLabel = (d && !isNaN(d.getTime())) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    var open = it.action ? ' onclick="' + it.action + '"' : '';
+    return '<button type="button" class="my-notes-row"' + open + '>'
+      + '<div class="mnr-top"><span class="mnr-kind">' + escTrainHtml(it.kind) + '</span><span class="mnr-date">' + escTrainHtml(dateLabel) + '</span></div>'
+      + '<div class="mnr-title">' + escTrainHtml(it.title) + '</div>'
+      + '<div class="mnr-body">' + escTrainHtml(clipNotePreview(it.body, 140)) + '</div>'
+      + '</button>';
+  }).join('');
 }
 
 
@@ -6372,6 +6554,193 @@ function logFlowContinueFromResult(){
     logFlowSaveSession();
     return;
   }
+  if(!window._authUser){
+    showScreen('screen-log-terrain');
+    updateLogFlowProgress(3);
+    return;
+  }
+  maybeShowGymCatalog();
+}
+
+var _gymCatalogRows = [];
+var _gymCatalogWall = '';
+
+function gymClimbField(row, keys){
+  if(!row) return '';
+  for(var i = 0; i < keys.length; i++){
+    if(row[keys[i]] != null && String(row[keys[i]]).trim()) return String(row[keys[i]]).trim();
+  }
+  return '';
+}
+
+function inferGradeSysFromValue(grade){
+  var g = String(grade || '');
+  if(/^V/i.test(g) || g === 'VB') return 'V';
+  if(/^E\d/.test(g) || /^(Diff|V\.Diff|Severe|H\.Severe|VS|H\.VS)$/.test(g)) return 'UK';
+  if(/^5\./.test(g)) return 'YDS';
+  if(/^[5-9][abc]?\+?$/i.test(g)) return 'FR';
+  return 'YDS';
+}
+
+async function loadGymCatalogRows(){
+  var coachId = await fetchActiveLinkedCoachId();
+  if(!coachId) return [];
+  var rows = await sbS('gym_climbs', 'select=*&coach_id=eq.' + coachId + '&limit=500');
+  if(!Array.isArray(rows)) return [];
+  return rows.filter(function(r){ return r && r.id && !r.deleted_at; });
+}
+
+function gymCatalogWallLabel(row){
+  var wall = gymClimbField(row, ['wall','wall_name','area']);
+  var lane = gymClimbField(row, ['lane','lane_name']);
+  if(wall && lane) return wall + ' / ' + lane;
+  return wall || lane || '';
+}
+
+function renderGymCatalog(){
+  var qEl = document.getElementById('gym-catalog-search');
+  var q = qEl ? qEl.value.trim().toLowerCase() : '';
+  var wallsEl = document.getElementById('gym-catalog-walls');
+  var listEl = document.getElementById('gym-catalog-list');
+  var emptyEl = document.getElementById('gym-catalog-empty');
+  var walls = [];
+  _gymCatalogRows.forEach(function(row){
+    var w = gymClimbField(row, ['wall','wall_name','area']) || 'Other';
+    if(walls.indexOf(w) === -1) walls.push(w);
+  });
+  walls.sort();
+  if(wallsEl){
+    wallsEl.innerHTML = '<button type="button" class="gym-catalog-chip' + (!_gymCatalogWall ? ' selected' : '') + '" onclick="setGymCatalogWall(\'\')">All walls</button>' +
+      walls.map(function(w){
+        return '<button type="button" class="gym-catalog-chip' + (_gymCatalogWall === w ? ' selected' : '') + '" onclick="setGymCatalogWall(decodeURIComponent(\'' + encodeURIComponent(w) + '\'))">' + escTrainHtml(w) + '</button>';
+      }).join('');
+  }
+  var shown = [];
+  _gymCatalogRows.forEach(function(row, idx){
+    var wall = gymClimbField(row, ['wall','wall_name','area']) || 'Other';
+    if(_gymCatalogWall && wall !== _gymCatalogWall) return;
+    var name = gymClimbField(row, ['name','route_name','climb_name','title']) || 'Unnamed climb';
+    var lane = gymClimbField(row, ['lane','lane_name']);
+    var grade = gymClimbField(row, ['grade_value','grade']);
+    var terrain = gymClimbField(row, ['terrain','terrain_type']);
+    var hay = (name + ' ' + wall + ' ' + lane + ' ' + grade + ' ' + terrain).toLowerCase();
+    if(q && hay.indexOf(q) === -1) return;
+    shown.push({ row: row, idx: idx, name: name, wall: wall, lane: lane, grade: grade, terrain: terrain });
+  });
+  if(listEl){
+    listEl.innerHTML = shown.map(function(item){
+      var meta = [item.wall + (item.lane ? ' · ' + item.lane : ''), item.grade, item.terrain].filter(Boolean).join(' · ');
+      return '<button type="button" class="gym-catalog-row" onclick="pickGymClimbByIndex(' + item.idx + ')">'
+        + '<div class="gcr-name">' + escTrainHtml(item.name) + '</div>'
+        + (meta ? '<div class="gcr-meta">' + escTrainHtml(meta) + '</div>' : '')
+        + '</button>';
+    }).join('');
+  }
+  if(emptyEl) emptyEl.style.display = shown.length ? 'none' : 'block';
+}
+
+function setGymCatalogWall(wall){
+  _gymCatalogWall = wall || '';
+  renderGymCatalog();
+}
+
+function filterGymCatalog(){
+  renderGymCatalog();
+}
+
+async function maybeShowGymCatalog(){
+  try{
+    var rows = await loadGymCatalogRows();
+    if(!rows.length){
+      showScreen('screen-log-terrain');
+      updateLogFlowProgress(3);
+      return;
+    }
+    _gymCatalogRows = rows;
+    _gymCatalogWall = '';
+    var search = document.getElementById('gym-catalog-search');
+    if(search) search.value = '';
+    renderGymCatalog();
+    showScreen('screen-log-catalog');
+  }catch(e){
+    showScreen('screen-log-terrain');
+    updateLogFlowProgress(3);
+  }
+}
+
+function skipGymCatalog(){
+  logState.gymClimbId = null;
+  showScreen('screen-log-terrain');
+  updateLogFlowProgress(3);
+}
+
+function applyTerrainChoice(terrain){
+  var btn = null;
+  document.querySelectorAll('.terrain-chips .chip').forEach(function(b){
+    if(b.textContent.trim() === terrain) btn = b;
+  });
+  if(btn) selectTerrain(btn, terrain);
+  else logState.terrain = terrain;
+}
+
+function applyGradeChoice(grade){
+  var sys = inferGradeSysFromValue(grade);
+  logState.gradeSys = sys;
+  logState.grade = grade;
+  try{ localStorage.setItem('see_grade_sys', sys); }catch(e){}
+  buildGradeGrid(sys);
+  document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){
+    b.classList.toggle('selected', (b.dataset.grade || b.textContent) === grade);
+  });
+  var cta = document.getElementById('log-grade-continue');
+  if(cta) cta.classList.add('ready');
+}
+
+function pickGymClimbByIndex(idx){
+  var row = _gymCatalogRows[idx];
+  if(!row) return;
+  logState.gymClimbId = row.id;
+  var name = gymClimbField(row, ['name','route_name','climb_name','title']);
+  var terrain = gymClimbField(row, ['terrain','terrain_type']);
+  var climbingType = gymClimbField(row, ['climbing_type','style']);
+  var grade = gymClimbField(row, ['grade_value','grade']);
+  var disc = gymClimbField(row, ['discipline']);
+  var terrains = ['Slab','Vertical','Overhang','Roof','Arête','Arete','Dihedral','Crack'];
+  var discs = ['Sport','Trad','Boulder','Top Rope','Lead','Auto Belay'];
+  if(!terrain && terrains.indexOf(climbingType) > -1) terrain = climbingType;
+  if(!disc && discs.indexOf(climbingType) > -1) disc = climbingType;
+  if(terrain === 'Arete') terrain = 'Arête';
+  if(terrain) applyTerrainChoice(terrain);
+  if(grade) applyGradeChoice(grade);
+  if(disc){
+    logDetailsState.disc = disc;
+    var indoor = document.getElementById('log-details-discipline-indoor');
+    var outdoor = document.getElementById('log-details-discipline-outdoor');
+    var btn = null;
+    [indoor, outdoor].forEach(function(wrap){
+      if(!wrap || btn) return;
+      Array.from(wrap.querySelectorAll('.chip')).forEach(function(b){
+        if((b.querySelector('strong') || b).textContent.trim() === disc) btn = b;
+      });
+    });
+    if(btn) logDetailsSelectDisc(btn, disc);
+  }
+  if(name){
+    logState.routeName = name;
+    var inp = document.getElementById('log-rname-input');
+    if(inp) inp.value = name;
+  }
+  logState.setting = 'indoor';
+  var indoorBtn = document.getElementById('btn-indoor');
+  if(indoorBtn) selectSetting('indoor', indoorBtn);
+  var gym = gymClimbField(row, ['gym_name','gym']);
+  if(gym){
+    logDetailsState.gymName = gym;
+    var gymEl = document.getElementById('log-gym-name');
+    if(gymEl) gymEl.value = gym;
+  }
+  var terrCta = document.getElementById('log-terrain-continue');
+  if(terrCta && logState.terrain) terrCta.classList.add('ready');
   showScreen('screen-log-terrain');
   updateLogFlowProgress(3);
 }
@@ -6669,7 +7038,8 @@ async function logFlowSaveSession(){
     bolt_count: detailsPayload.bolt_count,
     route_height_ft: detailsPayload.route_height_ft,
     crux_count: detailsPayload.crux_count,
-    gym_name: detailsPayload.gym_name
+    gym_name: detailsPayload.gym_name,
+    gym_climb_id: logState.gymClimbId || null
   };
 
   try{
@@ -6689,6 +7059,10 @@ async function logFlowSaveSession(){
   } catch(e){}
 
   var raw = await sbI('sessions', payload);
+  if(raw === null && payload.gym_climb_id){
+    delete payload.gym_climb_id;
+    raw = await sbI('sessions', payload);
+  }
   if(raw === null){
     offlineQueueAdd(payload, logState.routeName, climbId);
     showToast('Saved offline');
@@ -7041,6 +7415,7 @@ async function logClimb(){
     prepare_session_id: window._prepareSessionId||null,
     // Silent capture: session duration
     session_duration_seconds: window._sessionStartTime ? Math.round((Date.now()-window._sessionStartTime)/1000) : null,
+    gym_climb_id: logState.gymClimbId || null,
     // Silent capture: default focus
     session_focus: 'unset',
     // Reflection (optional — only if filled in)
@@ -7071,6 +7446,10 @@ async function logClimb(){
   }catch(e){}
 
   var raw = await sbI('sessions', payload);
+  if(raw === null && payload.gym_climb_id){
+    delete payload.gym_climb_id;
+    raw = await sbI('sessions', payload);
+  }
   // sbI returns null on both network failure and HTTP error
   // Queue offline if null — never show red error for network failure
   if(raw === null){
@@ -8027,8 +8406,8 @@ async function resolveChatLabels(coachId){
       selfLabel = selfEmail;
     }
   }
-  // profiles RLS is own-row; coach name may not be readable. Prefer First Last
-  // when available, else "Your coach".
+  // Linked-partner SELECT on profiles (sql/profiles-linked-partner-select.sql)
+  // lets this read succeed. Until John applies it, fall back to "Your coach".
   var coachLabel = 'Your coach';
   if(coachId){
     var coachProf = await sbS('profiles', 'select=first_name,last_name&user_id=eq.' + coachId + '&limit=1');
@@ -11269,7 +11648,7 @@ function resetLogScreen(){
     var b=document.getElementById(id);
     if(b){b.classList.remove('selected','selected-send','selected-attempt','selected-dna');b.style.borderColor='';b.style.background='';}
   });
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null};
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null};
   // Reset reflection section (panel wrapper + inner body — resetLogScreen hides body so toggle must reopen both)
   var reflPanel=document.getElementById('log-reflection-panel');
   var noteBtn=document.getElementById('log-done-add-note');
@@ -11306,7 +11685,7 @@ function resetLogScreen(){
 }
 
 function logAnother(){
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null};
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null};
   
   
   resetLogScreen();
@@ -15573,7 +15952,8 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer', 'toggleTrainSessionListRow', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications'
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'toggleTrainSessionListRow', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications',
+    'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes'
   ];
 
   function shouldSkip(onclick){
@@ -18007,8 +18387,51 @@ async function runSEETests(){
   }catch(e){ fail('Profile Install SEE instructions (UA detect + disclosure)', e.message); }
 
   try{
-    var ids = ['profile-card-journal','profile-card-account','profile-card-data','profile-card-install','profile-card-help','profile-card-feedback','profile-card-notifications'];
-    var screens = ['screen-profile-journal','screen-profile-account','screen-profile-data','screen-profile-install','screen-profile-help','screen-profile-feedback','screen-profile-notifications'];
+    var logSub = ((document.querySelector('#home-card-log .te-sub') || {}).textContent || '');
+    var homeHint = ((document.getElementById('home-log-train-hint') || {}).textContent || '');
+    var trainHint = ((document.getElementById('train-log-train-hint') || {}).textContent || '');
+    var copyOk = !/session/i.test(logSub) && /send or attempt/.test(logSub)
+      && /send or attempt/.test(homeHint) && /workout/.test(homeHint)
+      && /workout/.test(trainHint) && /Log a climb/.test(trainHint);
+    if(copyOk){ pass('Log a climb copy is not a training session'); }
+    else { fail('Log a climb copy is not a training session', 'sub=' + logSub + ' home=' + homeHint + ' train=' + trainHint); }
+  }catch(e){ fail('Log a climb copy is not a training session', e.message); }
+
+  try{
+    var catalog = document.getElementById('screen-log-catalog');
+    var skip = document.getElementById('gym-catalog-skip');
+    var mapped = gymClimbField({ terrain: 'Slab', grade_value: '5.10a', name: 'Red 12' }, ['terrain','terrain_type']) === 'Slab'
+      && inferGradeSysFromValue('V4') === 'V'
+      && inferGradeSysFromValue('5.10a') === 'YDS';
+    var flowSrc = String(logFlowContinueFromResult) + String(logFlowSaveSession) + String(maybeShowGymCatalog);
+    var optionalOk = /maybeShowGymCatalog/.test(String(logFlowContinueFromResult))
+      && /gym_climb_id/.test(String(logFlowSaveSession))
+      && /loadGymCatalogRows/.test(flowSrc);
+    var sixStill = Array.from(document.querySelectorAll('.log-flow-progress-label')).some(function(el){ return /of 6/.test(el.textContent); });
+    if(catalog && skip && mapped && optionalOk && sixStill && typeof skipGymCatalog === 'function'){
+      pass('Gym catalog pick is optional and maps any coach row');
+    } else {
+      fail('Gym catalog pick is optional and maps any coach row', 'catalog=' + !!catalog + ' skip=' + !!skip + ' mapped=' + mapped + ' optional=' + optionalOk + ' six=' + sixStill);
+    }
+  }catch(e){ fail('Gym catalog pick is optional and maps any coach row', e.message); }
+
+  try{
+    var notesCard = document.getElementById('profile-card-notes');
+    var notesScreen = document.getElementById('screen-profile-notes');
+    var doneLink = document.getElementById('log-done-view-notes');
+    var celLink = document.getElementById('cel-view-notes');
+    var fnsOk = typeof loadMyNotes === 'function' && typeof openLoggedClimbNotes === 'function'
+      && /previewSessionNotes/.test(String(openLoggedClimbNotes));
+    if(notesCard && notesScreen && doneLink && celLink && fnsOk){
+      pass('My notes list + post-log notes entry');
+    } else {
+      fail('My notes list + post-log notes entry', 'card=' + !!notesCard + ' screen=' + !!notesScreen + ' done=' + !!doneLink + ' cel=' + !!celLink + ' fns=' + fnsOk);
+    }
+  }catch(e){ fail('My notes list + post-log notes entry', e.message); }
+
+  try{
+    var ids = ['profile-card-journal','profile-card-account','profile-card-data','profile-card-install','profile-card-help','profile-card-feedback','profile-card-notifications','profile-card-notes'];
+    var screens = ['screen-profile-journal','screen-profile-account','screen-profile-data','screen-profile-install','screen-profile-help','screen-profile-feedback','screen-profile-notifications','screen-profile-notes'];
     var cardsOk = ids.every(function(id){ return !!document.getElementById(id); });
     var screensOk = screens.every(function(id){ return !!document.getElementById(id); });
     var landing = document.getElementById('profile-hub-cards');
@@ -18021,7 +18444,8 @@ async function runSEETests(){
     var hooksOk = /screen-profile-journal/.test(showSrc) && /loadJournalEntries/.test(showSrc)
       && /screen-profile-install/.test(showSrc) && /initInstallSEEInstructions/.test(showSrc)
       && /screen-profile-data/.test(showSrc) && /loadBaselinePerceptionCompare/.test(showSrc)
-      && /screen-profile-notifications/.test(showSrc) && /paintPushNotificationUI/.test(showSrc);
+      && /screen-profile-notifications/.test(showSrc) && /paintPushNotificationUI/.test(showSrc)
+      && /screen-profile-notes/.test(showSrc) && /loadMyNotes/.test(showSrc);
     var startWrap = document.getElementById('train-sess-start') && document.getElementById('train-sess-start').closest('.saw-field');
     var endWrap = document.getElementById('train-sess-end') && document.getElementById('train-sess-end').closest('.saw-field');
     var dtMin = !!(startWrap && endWrap
