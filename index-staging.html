@@ -3475,6 +3475,19 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
 </div>
 
+<!-- Recent-session detail — same showScreen pattern as journal-entry / library-detail.
+     Tapping a row must not expand inline under the list (John's scroll complaint). -->
+<div class="screen" id="screen-train-session-detail">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="showScreen('screen-train-recent')">← Recent</button>
+  </div>
+  <div class="content">
+    <div class="screen-title" id="train-session-detail-title">Session<span class="sub" id="train-session-detail-sub">Logged session</span></div>
+    <div id="train-session-detail-body"></div>
+  </div>
+</div>
+
 <div class="screen" id="screen-train-assignments">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
@@ -4725,7 +4738,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index231'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index232'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -5344,7 +5357,7 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-profile-journal':'fnav-profile','screen-profile-account':'fnav-profile','screen-profile-data':'fnav-profile','screen-profile-install':'fnav-profile','screen-profile-help':'fnav-profile','screen-profile-feedback':'fnav-profile','screen-profile-notifications':'fnav-profile','screen-profile-notes':'fnav-profile','screen-journal-entry':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions'};
+  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-drill','screen-prepare-climb':'fnav-drill','screen-prepare-result':'fnav-drill','screen-research':'fnav-research','screen-profile':'fnav-profile','screen-profile-journal':'fnav-profile','screen-profile-account':'fnav-profile','screen-profile-data':'fnav-profile','screen-profile-install':'fnav-profile','screen-profile-help':'fnav-profile','screen-profile-feedback':'fnav-profile','screen-profile-notifications':'fnav-profile','screen-profile-notes':'fnav-profile','screen-journal-entry':'fnav-profile','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-session-detail':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   if(_prevScreen==='screen-train-session' && id!=='screen-train-session'){
     clearAllTrainBlockTimerIntervals();
@@ -6216,7 +6229,7 @@ async function loadMyNotes(){
       kind: 'Train',
       title: t.energy_type || 'Training session',
       body: t.notes,
-      action: 'showScreen(\'screen-train-recent\')'
+      action: 'openTrainSessionDetail(\'' + t.id + '\')'
     });
   });
   coachNotes.forEach(function(n){
@@ -9292,7 +9305,6 @@ async function trainMarkComplete(id){
 // Climb-log visual parity; foundational workout_library + custom_workouts.
 // ═══════════════════════════════════════════════════════
 var _trainSessionsCache = [];
-var _trainSessionListExpanded = {};
 var _trainSessionListShowAll = false;
 var _trainPickerType = 'Hangboard';
 var _trainPickerItems = [];
@@ -9640,16 +9652,14 @@ function renderTrainSessionList(){
     var blocks = parseTrainSessionBlocks(r);
     var n = Array.isArray(blocks) ? blocks.length : 0;
     var sid = String(r.id || '');
-    var open = !!_trainSessionListExpanded[sid];
-    return '<div class="insight-card train-session-row'+(open?' is-open':'')+'" data-session-id="'+escTrainHtml(sid)+'" style="padding:12px 14px;margin-bottom:8px;">'
-      + '<button type="button" class="train-session-row-toggle" aria-expanded="'+(open?'true':'false')+'" onclick="toggleTrainSessionListRow(\''+sid.replace(/'/g, '')+'\')">'
+    return '<div class="insight-card train-session-row" data-session-id="'+escTrainHtml(sid)+'" style="padding:12px 14px;margin-bottom:8px;">'
+      + '<button type="button" class="train-session-row-toggle" onclick="openTrainSessionDetail(\''+sid.replace(/'/g, '')+'\')">'
       + '<div class="train-session-row-meta">'
       + '<div style="font-size:14px;font-weight:700;">' + escTrainHtml(trainSessionWorkoutName(r)) + '</div>'
       + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' + escTrainHtml(when) + ' · ' + n + ' block' + (n===1?'':'s') + '</div>'
       + '</div>'
-      + '<span class="res-card-chevron'+(open?' open':'')+'" aria-hidden="true">›</span>'
+      + '<span class="res-card-chevron" aria-hidden="true">›</span>'
       + '</button>'
-      + (open ? '<div class="train-session-row-detail">'+renderTrainSessionDetailHtml(r)+'</div>' : '')
       + '</div>';
   }).join('');
   if(extra > 0){
@@ -9665,12 +9675,41 @@ function toggleTrainSessionListMore(){
   renderTrainSessionList();
 }
 
-function toggleTrainSessionListRow(id){
+function paintTrainSessionDetail(row){
+  var titleEl = document.getElementById('train-session-detail-title');
+  var bodyEl = document.getElementById('train-session-detail-body');
+  var name = trainSessionWorkoutName(row);
+  var when = formatChatTimestamp(row.started_at || row.created_at);
+  var blocks = parseTrainSessionBlocks(row);
+  var n = Array.isArray(blocks) ? blocks.length : 0;
+  var subText = [when, n + ' block' + (n===1?'':'s')].filter(Boolean).join(' · ');
+  if(titleEl){
+    titleEl.innerHTML = escTrainHtml(name) + '<span class="sub" id="train-session-detail-sub">' + escTrainHtml(subText) + '</span>';
+  }
+  var html = renderTrainSessionDetailHtml(row);
+  if(bodyEl){
+    bodyEl.innerHTML = html
+      ? '<div class="train-session-row-detail" style="margin-top:0;padding-top:0;border-top:none;">' + html + '</div>'
+      : '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No details recorded for this session.</div>';
+  }
+}
+
+function openTrainSessionDetail(id){
   id = String(id || '');
   if(!id) return;
-  if(_trainSessionListExpanded[id]) delete _trainSessionListExpanded[id];
-  else _trainSessionListExpanded[id] = true;
-  renderTrainSessionList();
+  var row = (_trainSessionsCache || []).find(function(r){ return String(r.id) === id; });
+  if(row){
+    paintTrainSessionDetail(row);
+    showScreen('screen-train-session-detail');
+    return;
+  }
+  sbS('training_sessions', 'select=*&id=eq.' + encodeURIComponent(id) + '&limit=1').then(function(rows){
+    if(Array.isArray(rows) && rows[0] && !rows[0].deleted_at){
+      _trainSessionsCache = (_trainSessionsCache || []).concat([rows[0]]);
+      paintTrainSessionDetail(rows[0]);
+      showScreen('screen-train-session-detail');
+    }
+  });
 }
 
 function parseTrainSessionBlocks(row){
@@ -15896,7 +15935,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'toggleTrainSessionListRow', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications',
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications',
     'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes'
   ];
 
@@ -15916,6 +15955,7 @@ function runButtonAudit(options){
     var oc = btn.getAttribute('onclick') || '';
     if(oc.indexOf('showScreen') > -1) return true;
     if(oc.indexOf('openWorkoutLibraryItem') > -1) return true;
+    if(oc.indexOf('openTrainSessionDetail') > -1) return true;
     return false;
   }
 
@@ -17594,7 +17634,7 @@ async function runSEETests(){
 
   try{
     var hubIds = ['train-hub-card-start','train-hub-card-recent','train-hub-card-assign','train-hub-card-goals','train-hub-card-chat'];
-    var subIds = ['screen-train-start','screen-train-recent','screen-train-assignments','screen-train-goals','screen-train-chat'];
+    var subIds = ['screen-train-start','screen-train-recent','screen-train-session-detail','screen-train-assignments','screen-train-goals','screen-train-chat'];
     var showSrc = String(showScreen);
     var cardsOk = hubIds.every(function(id){ return !!document.getElementById(id); });
     var screensOk = subIds.every(function(id){ return !!document.getElementById(id); });
@@ -17641,8 +17681,7 @@ async function runSEETests(){
 
   try{
     var prevCache = _trainSessionsCache;
-    var prevExp = _trainSessionListExpanded;
-    _trainSessionListExpanded = {};
+    var prevScreen = (document.querySelector('.screen.active') || {}).id || null;
     var fixture = {
       id: 'sess-hist-1',
       energy_type: 'Hangboard',
@@ -17661,15 +17700,21 @@ async function runSEETests(){
     _trainSessionsCache = [fixture];
     renderTrainSessionList();
     var list = document.getElementById('train-session-list');
-    var hasToggle = !!(list && /toggleTrainSessionListRow/.test(list.innerHTML) && list.querySelector('.res-card-chevron'));
-    var closed0 = !!(list && !list.querySelector('.train-session-row-detail'));
-    toggleTrainSessionListRow('sess-hist-1');
-    var open1 = !!_trainSessionListExpanded['sess-hist-1'] && !!document.querySelector('#train-session-list .train-session-row-detail');
-    toggleTrainSessionListRow('sess-hist-1');
-    var closed1 = !_trainSessionListExpanded['sess-hist-1'] && !document.querySelector('#train-session-list .train-session-row-detail');
-    toggleTrainSessionListRow('sess-hist-1');
-    renderTrainSessionList();
-    var stayed = !!_trainSessionListExpanded['sess-hist-1'] && !!document.querySelector('#train-session-list .train-session-row-detail');
+    var hasNav = !!(list && /openTrainSessionDetail/.test(list.innerHTML) && list.querySelector('.res-card-chevron'));
+    var noInline = !!(list && !list.querySelector('.train-session-row-detail'));
+    var listUsesScreen = /openTrainSessionDetail/.test(String(renderTrainSessionList))
+      && String(renderTrainSessionList).indexOf('train-session-row-detail') === -1
+      && /showScreen\('screen-train-session-detail'\)/.test(String(openTrainSessionDetail));
+    window.scrollTo(0, 480);
+    openTrainSessionDetail('sess-hist-1');
+    var detailScreen = document.getElementById('screen-train-session-detail');
+    var opened = !!(detailScreen && detailScreen.classList.contains('active'));
+    var atTop = (window.scrollY || window.pageYOffset) === 0;
+    var back = !!(detailScreen && detailScreen.querySelector('.back-btn') && /screen-train-recent/.test(detailScreen.querySelector('.back-btn').getAttribute('onclick') || ''));
+    var painted = !!(document.getElementById('train-session-detail-body')
+      && /Warm-up/.test(document.getElementById('train-session-detail-body').innerHTML)
+      && /Band pulls/.test(document.getElementById('train-session-detail-body').innerHTML));
+    var stillNoInline = !document.querySelector('#train-session-list .train-session-row-detail');
 
     var detail = renderTrainSessionDetailHtml(fixture);
     var warmOk = /Warm-up/.test(detail) && /Band pulls/.test(detail);
@@ -17711,24 +17756,27 @@ async function runSEETests(){
     var protoOk = /Timed: 00:37/.test(proto);
 
     _trainSessionsCache = prevCache;
-    _trainSessionListExpanded = prevExp || {};
     _trainSessionListShowAll = prevShow;
     renderTrainSessionList();
-    if(hasToggle && closed0 && open1 && closed1 && stayed && warmOk && noCool && reflOk && ivOk
+    if(prevScreen) showScreen(prevScreen);
+    if(hasNav && noInline && listUsesScreen && opened && atTop && back && painted && stillNoInline
+      && warmOk && noCool && reflOk && ivOk
       && emomOk && circOk && rpfOk && secOk && emptyOk && titleNotReflOk && nameOk && moreOk && allOk
       && noEdit && usesPreview && usesFmt && protoOk){
-      pass('Recent session list expand + read-only detail');
+      pass('Recent session list opens a dedicated detail screen');
     } else {
-      fail('Recent session list expand + read-only detail',
-        'toggle=' + hasToggle + ' closed0=' + closed0 + ' open=' + open1 + ' closed1=' + closed1
-        + ' stayed=' + stayed + ' warm=' + warmOk + ' noCool=' + noCool + ' refl=' + reflOk
+      fail('Recent session list opens a dedicated detail screen',
+        'nav=' + hasNav + ' noInline=' + noInline + ' listUses=' + listUsesScreen
+        + ' opened=' + opened + ' atTop=' + atTop + ' back=' + back + ' painted=' + painted
+        + ' stillNoInline=' + stillNoInline
+        + ' warm=' + warmOk + ' noCool=' + noCool + ' refl=' + reflOk
         + ' iv=' + ivOk + ' emom=' + emomOk + ' circ=' + circOk + ' rpf=' + rpfOk
         + ' sec=' + secOk + ' empty=' + emptyOk + ' title=' + titleNotReflOk + ' name=' + nameOk
         + ' more=' + moreOk + ' all=' + allOk + ' noEdit=' + noEdit
         + ' preview=' + usesPreview + ' fmt=' + usesFmt + ' proto=' + protoOk);
     }
   }catch(e){
-    fail('Recent session list expand + read-only detail', e.message);
+    fail('Recent session list opens a dedicated detail screen', e.message);
   }
 
   try{
