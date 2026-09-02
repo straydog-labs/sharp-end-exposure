@@ -59,8 +59,12 @@
     function athleteBlock(label, rows){
       var p = CoachInsights.computeProgressSeries(rows, { weekCount: 8, endDate: new Date('2026-09-01T12:00:00Z') });
       var g = CoachInsights.computeGapDiagnostic(rows);
+      var head = CoachInsights.gapHeadlineModel(g);
       var terrains = g.terrains.map(function(t){
         return '<div><strong>'+t.terrain+'</strong> · '+t.summary.count+' sessions'+bar(t.summary.zones)+'</div>';
+      }).join('');
+      var headlines = head.lines.map(function(line){
+        return '<p class="note"><strong>'+line.text+'</strong></p>';
       }).join('');
       return '<div class="panel"><h2>'+label+'</h2>' +
         '<div class="meta">Progress sessions in window: '+p.sessionCount+
@@ -69,11 +73,7 @@
         p.zonePoints[p.zonePoints.length-1].comfort+' / '+
         p.zonePoints[p.zonePoints.length-1].learning+' / '+
         p.zonePoints[p.zonePoints.length-1].panic+'</div>' +
-        '<p class="note">Boulder '+g.boulder.count+' · Lead '+g.lead.count+
-        '. Comfort share highest on '+(g.highestComfortShare&&g.highestComfortShare.terrain)+
-        '. Panic share highest on '+(g.highestPanicShare&&g.highestPanicShare.terrain)+'.</p>' +
-        '<div>Boulder</div>'+bar(g.boulder.zones)+
-        '<div style="margin-top:10px">Lead</div>'+bar(g.lead.zones)+
+        headlines +
         '<div style="margin-top:14px">'+terrains+'</div></div>';
     }
     var csv = CoachInsights.parseGymClimbsCsv(
@@ -82,8 +82,8 @@
       'Example B,Cave,40,steep,Overhang\n'
     );
     document.getElementById('out').innerHTML =
-      athleteBlock('Athlete A — slab / boulder', athleteA) +
-      athleteBlock('Athlete B — overhang / lead', athleteB) +
+      athleteBlock('Athlete A — slab / vertical', athleteA) +
+      athleteBlock('Athlete B — overhang / roof', athleteB) +
       '<div class="panel"><h2>Gym catalog CSV (authoring only)</h2>' +
       '<table><thead><tr><th>Name</th><th>Wall</th><th>Angle</th><th>Steepness</th><th>Terrain</th></tr></thead><tbody>' +
       csv.rows.map(function(r){
