@@ -2039,7 +2039,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="log-flow-body">
     <div class="screen-title">Gym climb<span class="sub">Optional -- pick from your coach's catalog, or skip and type it yourself.</span></div>
-    <input id="gym-catalog-search" type="search" placeholder="Search name, wall, or lane" autocomplete="off"
+    <input id="gym-catalog-search" type="search" placeholder="Search name or wall / lane" autocomplete="off"
       oninput="filterGymCatalog()"
       style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;box-sizing:border-box;margin-bottom:10px;"/>
     <div id="gym-catalog-walls" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
@@ -4725,7 +4725,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index230'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index231'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -6573,28 +6573,16 @@ function gymClimbField(row, keys){
   return '';
 }
 
-function inferGradeSysFromValue(grade){
-  var g = String(grade || '');
-  if(/^V/i.test(g) || g === 'VB') return 'V';
-  if(/^E\d/.test(g) || /^(Diff|V\.Diff|Severe|H\.Severe|VS|H\.VS)$/.test(g)) return 'UK';
-  if(/^5\./.test(g)) return 'YDS';
-  if(/^[5-9][abc]?\+?$/i.test(g)) return 'FR';
-  return 'YDS';
-}
-
 async function loadGymCatalogRows(){
   var coachId = await fetchActiveLinkedCoachId();
   if(!coachId) return [];
-  var rows = await sbS('gym_climbs', 'select=*&coach_id=eq.' + coachId + '&limit=500');
+  var rows = await sbS('gym_climbs', 'select=*&created_by=eq.' + coachId + '&limit=500');
   if(!Array.isArray(rows)) return [];
   return rows.filter(function(r){ return r && r.id && !r.deleted_at; });
 }
 
 function gymCatalogWallLabel(row){
-  var wall = gymClimbField(row, ['wall','wall_name','area']);
-  var lane = gymClimbField(row, ['lane','lane_name']);
-  if(wall && lane) return wall + ' / ' + lane;
-  return wall || lane || '';
+  return gymClimbField(row, ['wall_lane']);
 }
 
 function renderGymCatalog(){
@@ -6605,7 +6593,7 @@ function renderGymCatalog(){
   var emptyEl = document.getElementById('gym-catalog-empty');
   var walls = [];
   _gymCatalogRows.forEach(function(row){
-    var w = gymClimbField(row, ['wall','wall_name','area']) || 'Other';
+    var w = gymCatalogWallLabel(row) || 'Other';
     if(walls.indexOf(w) === -1) walls.push(w);
   });
   walls.sort();
@@ -6617,19 +6605,19 @@ function renderGymCatalog(){
   }
   var shown = [];
   _gymCatalogRows.forEach(function(row, idx){
-    var wall = gymClimbField(row, ['wall','wall_name','area']) || 'Other';
-    if(_gymCatalogWall && wall !== _gymCatalogWall) return;
-    var name = gymClimbField(row, ['name','route_name','climb_name','title']) || 'Unnamed climb';
-    var lane = gymClimbField(row, ['lane','lane_name']);
-    var grade = gymClimbField(row, ['grade_value','grade']);
-    var terrain = gymClimbField(row, ['terrain','terrain_type']);
-    var hay = (name + ' ' + wall + ' ' + lane + ' ' + grade + ' ' + terrain).toLowerCase();
+    var wallLane = gymCatalogWallLabel(row) || 'Other';
+    if(_gymCatalogWall && wallLane !== _gymCatalogWall) return;
+    var name = gymClimbField(row, ['name']) || 'Unnamed climb';
+    var terrain = gymClimbField(row, ['terrain_type']);
+    var angle = gymClimbField(row, ['angle']);
+    var steepness = gymClimbField(row, ['steepness']);
+    var hay = (name + ' ' + wallLane + ' ' + terrain + ' ' + angle + ' ' + steepness).toLowerCase();
     if(q && hay.indexOf(q) === -1) return;
-    shown.push({ row: row, idx: idx, name: name, wall: wall, lane: lane, grade: grade, terrain: terrain });
+    shown.push({ row: row, idx: idx, name: name, wallLane: wallLane, terrain: terrain, angle: angle, steepness: steepness });
   });
   if(listEl){
     listEl.innerHTML = shown.map(function(item){
-      var meta = [item.wall + (item.lane ? ' · ' + item.lane : ''), item.grade, item.terrain].filter(Boolean).join(' · ');
+      var meta = [item.wallLane, item.terrain, item.angle, item.steepness].filter(Boolean).join(' · ');
       return '<button type="button" class="gym-catalog-row" onclick="pickGymClimbByIndex(' + item.idx + ')">'
         + '<div class="gcr-name">' + escTrainHtml(item.name) + '</div>'
         + (meta ? '<div class="gcr-meta">' + escTrainHtml(meta) + '</div>' : '')
@@ -6683,61 +6671,17 @@ function applyTerrainChoice(terrain){
   else logState.terrain = terrain;
 }
 
-function applyGradeChoice(grade){
-  var sys = inferGradeSysFromValue(grade);
-  logState.gradeSys = sys;
-  logState.grade = grade;
-  try{ localStorage.setItem('see_grade_sys', sys); }catch(e){}
-  buildGradeGrid(sys);
-  document.querySelectorAll('#grade-grid .grade-btn').forEach(function(b){
-    b.classList.toggle('selected', (b.dataset.grade || b.textContent) === grade);
-  });
-  var cta = document.getElementById('log-grade-continue');
-  if(cta) cta.classList.add('ready');
-}
-
 function pickGymClimbByIndex(idx){
   var row = _gymCatalogRows[idx];
   if(!row) return;
   logState.gymClimbId = row.id;
-  var name = gymClimbField(row, ['name','route_name','climb_name','title']);
-  var terrain = gymClimbField(row, ['terrain','terrain_type']);
-  var climbingType = gymClimbField(row, ['climbing_type','style']);
-  var grade = gymClimbField(row, ['grade_value','grade']);
-  var disc = gymClimbField(row, ['discipline']);
-  var terrains = ['Slab','Vertical','Overhang','Roof','Arête','Arete','Dihedral','Crack'];
-  var discs = ['Sport','Trad','Boulder','Top Rope','Lead','Auto Belay'];
-  if(!terrain && terrains.indexOf(climbingType) > -1) terrain = climbingType;
-  if(!disc && discs.indexOf(climbingType) > -1) disc = climbingType;
-  if(terrain === 'Arete') terrain = 'Arête';
+  var name = gymClimbField(row, ['name']);
+  var terrain = gymClimbField(row, ['terrain_type']);
   if(terrain) applyTerrainChoice(terrain);
-  if(grade) applyGradeChoice(grade);
-  if(disc){
-    logDetailsState.disc = disc;
-    var indoor = document.getElementById('log-details-discipline-indoor');
-    var outdoor = document.getElementById('log-details-discipline-outdoor');
-    var btn = null;
-    [indoor, outdoor].forEach(function(wrap){
-      if(!wrap || btn) return;
-      Array.from(wrap.querySelectorAll('.chip')).forEach(function(b){
-        if((b.querySelector('strong') || b).textContent.trim() === disc) btn = b;
-      });
-    });
-    if(btn) logDetailsSelectDisc(btn, disc);
-  }
   if(name){
     logState.routeName = name;
     var inp = document.getElementById('log-rname-input');
     if(inp) inp.value = name;
-  }
-  logState.setting = 'indoor';
-  var indoorBtn = document.getElementById('btn-indoor');
-  if(indoorBtn) selectSetting('indoor', indoorBtn);
-  var gym = gymClimbField(row, ['gym_name','gym']);
-  if(gym){
-    logDetailsState.gymName = gym;
-    var gymEl = document.getElementById('log-gym-name');
-    if(gymEl) gymEl.value = gym;
   }
   var terrCta = document.getElementById('log-terrain-continue');
   if(terrCta && logState.terrain) terrCta.classList.add('ready');
@@ -18400,9 +18344,18 @@ async function runSEETests(){
   try{
     var catalog = document.getElementById('screen-log-catalog');
     var skip = document.getElementById('gym-catalog-skip');
-    var mapped = gymClimbField({ terrain: 'Slab', grade_value: '5.10a', name: 'Red 12' }, ['terrain','terrain_type']) === 'Slab'
-      && inferGradeSysFromValue('V4') === 'V'
-      && inferGradeSysFromValue('5.10a') === 'YDS';
+    var loadSrc = String(loadGymCatalogRows);
+    var pickSrc = String(pickGymClimbByIndex);
+    var mapped = gymClimbField({ terrain_type: 'Slab', wall_lane: 'Lane 4', name: 'Red 12' }, ['terrain_type']) === 'Slab'
+      && gymCatalogWallLabel({ wall_lane: 'Lane 4' }) === 'Lane 4'
+      && gymCatalogWallLabel({ wall: 'Cave', lane: '3' }) === ''
+      && /created_by=eq\./.test(loadSrc)
+      && !/coach_id=eq\./.test(loadSrc)
+      && /terrain_type/.test(pickSrc)
+      && !/grade_value/.test(pickSrc)
+      && !/discipline/.test(pickSrc)
+      && !/gym_name/.test(pickSrc)
+      && !/climbing_type/.test(pickSrc);
     var flowSrc = String(logFlowContinueFromResult) + String(logFlowSaveSession) + String(maybeShowGymCatalog);
     var optionalOk = /maybeShowGymCatalog/.test(String(logFlowContinueFromResult))
       && /gym_climb_id/.test(String(logFlowSaveSession))
