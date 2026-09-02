@@ -17,6 +17,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/coach-athlete-insights.js"></script>
+<script src="js/coach-stack-nav.js"></script>
 <style>
   :root{
     /* Dark grey (not near-black). Surface stays one step lighter than bg;
@@ -551,11 +552,27 @@
 
   .link-athlete-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);}
 
+  .detail-stack-bar{display:none;}
+
   @media (max-width: 820px){
     .coach-layout{grid-template-columns:1fr;}
     #topbar{padding-left:16px;padding-right:16px;}
     #main{padding:20px 16px calc(48px + env(safe-area-inset-bottom, 0px));}
     .see-card{min-height:96px;}
+    .coach-layout:not(.detail-open) #detail-panel{display:none;}
+    .coach-layout.detail-open #detail-panel{
+      display:block;position:fixed;inset:0;z-index:1500;
+      overflow-y:auto;-webkit-overflow-scrolling:touch;
+      border-radius:0;border:none;margin:0;
+      background:var(--bg);
+      padding:0 16px calc(48px + env(safe-area-inset-bottom, 0px));
+    }
+    .coach-layout.detail-open .detail-stack-bar{
+      display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;z-index:2;background:var(--bg);
+      padding:calc(16px + env(safe-area-inset-top, 0px)) 0 12px;
+    }
+    .coach-layout.detail-open #athlete-subview-back{display:none;}
   }
 
   /* ---------- New assignment: full-screen step flow (baseline-weight) ---------- */
@@ -1219,6 +1236,63 @@
 
   /* ===================== COACH VIEW ===================== */
 
+  function coachNavIsMobile(){
+    return window.CoachStackNav
+      ? window.CoachStackNav.isMobile(window.matchMedia.bind(window))
+      : window.matchMedia('(max-width: 820px)').matches;
+  }
+
+  function coachStackState(){
+    return {
+      layout: document.querySelector('.coach-layout'),
+      panel: document.getElementById('detail-panel'),
+      body: document.body,
+      landing: document.getElementById('athlete-landing'),
+      sub: document.getElementById('athlete-subview'),
+      mobile: coachNavIsMobile()
+    };
+  }
+
+  function detailStackChromeHtml(){
+    return '<div class="detail-stack-bar">' +
+      '<button type="button" class="aw-back" id="detail-stack-back">← Roster</button>' +
+      '<div class="aw-word">STRAY<span>DOG</span></div>' +
+    '</div>';
+  }
+
+  function syncCoachStackBack(){
+    if(!window.CoachStackNav) return;
+    window.CoachStackNav.syncBackButton(document.getElementById('detail-stack-back'), {
+      pane: _athletePane,
+      hasAthlete: !!_detailCtx,
+      athleteLabel: _detailCtx ? _detailCtx.athleteLabel : ''
+    });
+  }
+
+  function openCoachDetailOverlay(){
+    if(!window.CoachStackNav) return;
+    window.CoachStackNav.openDetail(coachStackState());
+    syncCoachStackBack();
+  }
+
+  function closeCoachDetailToRoster(){
+    _athletePane = null;
+    if(window.CoachStackNav) window.CoachStackNav.closeDetail(coachStackState());
+    var listEl = document.getElementById('roster-list');
+    if(listEl){
+      Array.prototype.forEach.call(listEl.querySelectorAll('.roster-row'), function(r){ r.classList.remove('active'); });
+    }
+    syncCoachStackBack();
+  }
+
+  function onCoachStackBack(){
+    if(window.CoachStackNav && window.CoachStackNav.backAction(_athletePane, !!_detailCtx) === 'landing'){
+      showAthleteLanding();
+      return;
+    }
+    closeCoachDetailToRoster();
+  }
+
   function renderCoachView(token, user){
     mainEl.innerHTML =
       '<div class="page-title">Roster</div>' +
@@ -1256,6 +1330,27 @@
       '</div>';
 
     loadRoster(token, user);
+
+    document.getElementById('detail-panel').addEventListener('click', function(e){
+      var btn = e.target && e.target.closest ? e.target.closest('#detail-stack-back') : null;
+      if(!btn) return;
+      e.preventDefault();
+      onCoachStackBack();
+    });
+
+    if(window.matchMedia){
+      var mq = window.matchMedia(window.CoachStackNav ? window.CoachStackNav.MOBILE_MQ : '(max-width: 820px)');
+      var onMq = function(){
+        var open = document.querySelector('.coach-layout.detail-open');
+        if(coachNavIsMobile() && open) document.body.style.overflow = 'hidden';
+        else if(!document.getElementById('assign-wizard-overlay') ||
+          !document.getElementById('assign-wizard-overlay').classList.contains('open')){
+          document.body.style.overflow = '';
+        }
+      };
+      if(mq.addEventListener) mq.addEventListener('change', onMq);
+      else if(mq.addListener) mq.addListener(onMq);
+    }
 
     document.getElementById('open-gym-climbs').addEventListener('click', function(){
       openGymClimbsCatalog(token, user);
@@ -1750,10 +1845,15 @@
 
   function showAthleteLanding(){
     _athletePane = null;
-    var landing = document.getElementById('athlete-landing');
-    var sub = document.getElementById('athlete-subview');
-    if(landing) landing.style.display = '';
-    if(sub) sub.style.display = 'none';
+    if(window.CoachStackNav){
+      window.CoachStackNav.showLanding(coachStackState());
+    } else {
+      var landing = document.getElementById('athlete-landing');
+      var sub = document.getElementById('athlete-subview');
+      if(landing) landing.style.display = '';
+      if(sub) sub.style.display = 'none';
+    }
+    syncCoachStackBack();
     paintAthleteLandingStats();
     paintAthleteHubBadges();
   }
@@ -1763,8 +1863,12 @@
     _athletePane = pane;
     var landing = document.getElementById('athlete-landing');
     var sub = document.getElementById('athlete-subview');
-    if(landing) landing.style.display = 'none';
-    if(sub) sub.style.display = '';
+    if(window.CoachStackNav){
+      window.CoachStackNav.showSubview(coachStackState());
+    } else {
+      if(landing) landing.style.display = 'none';
+      if(sub) sub.style.display = '';
+    }
     var ids = ['detail-assignments','detail-new-assignment','detail-goals','detail-baseline','detail-sessions','detail-coach-notes','detail-chat'];
     ids.forEach(function(id){
       var el = document.getElementById(id);
@@ -1788,6 +1892,7 @@
     } else if(pane === 'chat'){
       loadChatMessages(_detailCtx.token, _detailCtx.coachUser, _detailCtx.athleteId, _detailCtx.athleteLabel);
     }
+    syncCoachStackBack();
   }
 
   function renderAthleteDetail(token, coachUser, athleteId, athleteLabel, athleteEmail){
@@ -1819,6 +1924,7 @@
     _coachChatViewingAthleteId = athleteId;
 
     detailEl.innerHTML =
+      detailStackChromeHtml() +
       '<div id="athlete-landing">' +
         '<div class="detail-header">' +
           '<div>' +
@@ -1885,6 +1991,7 @@
     loadAthleteSessions(token, coachUser, athleteId, title);
     loadAthleteCoachNotes(token, coachUser, athleteId);
     loadAthleteInsightPanels(token, athleteId);
+    openCoachDetailOverlay();
   }
 
   var _athleteInsightCache = {};
@@ -2119,6 +2226,7 @@
     var detailEl = document.getElementById('detail-panel');
     if(!detailEl || !_gymClimbsCtx) return;
     detailEl.innerHTML =
+      detailStackChromeHtml() +
       '<div class="detail-header"><div>' +
         '<div class="detail-title">Gym climb catalog</div>' +
         '<div class="detail-sub">Your climbs only. Any coach can build their own catalog — nothing here is shared from another gym.</div>' +
@@ -2155,6 +2263,7 @@
       e.target.value = '';
     });
     loadGymClimbs();
+    openCoachDetailOverlay();
   }
 
   function downloadGymClimbsTemplate(){
@@ -3859,7 +3968,13 @@
     if(!overlay) return;
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    var keepLock = window.CoachStackNav
+      ? window.CoachStackNav.bodyOverflowAfterWizardClose({
+          mobile: coachNavIsMobile(),
+          detailOpen: !!document.querySelector('.coach-layout.detail-open')
+        })
+      : '';
+    document.body.style.overflow = keepLock;
     setAssignWizardFooter('');
     var msgEl = document.getElementById('new-a-msg');
     if(msgEl) msgEl.innerHTML = '';
