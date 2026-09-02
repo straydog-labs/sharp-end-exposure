@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coach stack nav — mobile preview</title>
+<script src="../js/coach-stack-nav.js"></script>
+<style>
+  :root{ --bg:#2e2e2e; --surface:#3a3a3a; --border:#4a4a4a; --text:#f0f0f0; --text-secondary:#a8a8a8; --accent:#e89252; }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:sans-serif;}
+  #topbar{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface);}
+  #main{padding:16px;}
+  .coach-layout{display:grid;grid-template-columns:300px 1fr;gap:16px;}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;}
+  .roster-row{padding:16px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;}
+  .see-card{display:block;width:100%;margin-top:12px;padding:16px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);}
+  .aw-back{background:none;border:none;color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;}
+  .aw-word{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);}
+  .detail-stack-bar{display:none;}
+  .tall{height:900px;background:rgba(232,146,82,.08);margin-top:12px;padding:12px;}
+  @media (max-width: 820px){
+    .coach-layout{grid-template-columns:1fr;}
+    .coach-layout:not(.detail-open) #detail-panel{display:none;}
+    .coach-layout.detail-open #detail-panel{
+      display:block;position:fixed;inset:0;z-index:1500;overflow-y:auto;
+      border-radius:0;border:none;margin:0;background:var(--bg);
+      padding:0 16px 48px;
+    }
+    .coach-layout.detail-open .detail-stack-bar{
+      display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;z-index:2;background:var(--bg);padding:16px 0 12px;
+    }
+    .coach-layout.detail-open #athlete-subview-back{display:none;}
+  }
+</style>
+</head>
+<body>
+  <div id="topbar">Roster (preview)</div>
+  <div id="main">
+    <div class="coach-layout">
+      <div class="panel" id="roster-panel">
+        <div class="roster-row" id="row-a">Athlete A</div>
+        <button type="button" class="roster-row" id="open-gym">Gym climb catalog</button>
+      </div>
+      <div class="panel" id="detail-panel"><div class="stub">Select an athlete</div></div>
+    </div>
+  </div>
+  <pre id="log"></pre>
+  <script>
+    var _athletePane = null;
+    var _detailCtx = null;
+    var log = [];
+    function chromeHtml(){
+      return '<div class="detail-stack-bar"><button type="button" class="aw-back" id="detail-stack-back">← Roster</button><div class="aw-word">STRAYDOG</div></div>';
+    }
+    function state(){
+      return {
+        layout: document.querySelector('.coach-layout'),
+        panel: document.getElementById('detail-panel'),
+        body: document.body,
+        landing: document.getElementById('athlete-landing'),
+        sub: document.getElementById('athlete-subview'),
+        mobile: CoachStackNav.isMobile(window.matchMedia.bind(window))
+      };
+    }
+    function openAthlete(){
+      _athletePane = null;
+      _detailCtx = { athleteLabel: 'Athlete A' };
+      document.getElementById('detail-panel').innerHTML = chromeHtml() +
+        '<div id="athlete-landing"><div class="detail-title">Athlete A</div>' +
+        '<button type="button" class="see-card" id="hub-journal">Journal</button>' +
+        '<div class="tall">landing filler so a tap would otherwise sit below the fold</div></div>' +
+        '<div id="athlete-subview" style="display:none;"><button type="button" class="aw-back" id="athlete-subview-back">← Athlete A</button>' +
+        '<div class="tall">journal pane</div></div>';
+      CoachStackNav.openDetail(state());
+      CoachStackNav.syncBackButton(document.getElementById('detail-stack-back'), {
+        pane: _athletePane, hasAthlete: true, athleteLabel: 'Athlete A'
+      });
+    }
+    function openJournal(){
+      _athletePane = 'journal';
+      CoachStackNav.showSubview(state());
+      CoachStackNav.syncBackButton(document.getElementById('detail-stack-back'), {
+        pane: _athletePane, hasAthlete: true, athleteLabel: 'Athlete A'
+      });
+    }
+    function stackBack(){
+      if(CoachStackNav.backAction(_athletePane, !!_detailCtx) === 'landing'){
+        _athletePane = null;
+        CoachStackNav.showLanding(state());
+        CoachStackNav.syncBackButton(document.getElementById('detail-stack-back'), {
+          pane: null, hasAthlete: true, athleteLabel: 'Athlete A'
+        });
+        return;
+      }
+      _athletePane = null;
+      CoachStackNav.closeDetail(state());
+    }
+    document.getElementById('detail-panel').addEventListener('click', function(e){
+      if(e.target.closest && e.target.closest('#detail-stack-back')) stackBack();
+    });
+    document.getElementById('row-a').addEventListener('click', openAthlete);
+    document.getElementById('open-gym').addEventListener('click', function(){
+      _athletePane = null;
+      _detailCtx = null;
+      document.getElementById('detail-panel').innerHTML = chromeHtml() +
+        '<div class="detail-title">Gym climb catalog</div><div class="tall">catalog</div>';
+      CoachStackNav.openDetail(state());
+      CoachStackNav.syncBackButton(document.getElementById('detail-stack-back'), { pane: null, hasAthlete: false });
+    });
+    document.addEventListener('click', function(e){
+      if(e.target.id === 'hub-journal') openJournal();
+    });
+
+    function check(){
+      var panel = document.getElementById('detail-panel');
+      var cs = getComputedStyle(panel);
+      var layout = document.querySelector('.coach-layout');
+      var results = [];
+      function ok(name, cond){ results.push((cond ? 'PASS' : 'FAIL') + ' ' + name); }
+      openAthlete();
+      ok('mobile overlay fixed', cs.position === 'fixed' || getComputedStyle(panel).position === 'fixed');
+      ok('opened at top', panel.scrollTop === 0);
+      ok('detail-open', layout.classList.contains('detail-open'));
+      ok('back visible', getComputedStyle(document.getElementById('detail-stack-back')).display !== 'none');
+      panel.scrollTop = 200;
+      openJournal();
+      ok('hub scrolled to top', panel.scrollTop === 0);
+      ok('landing hidden', document.getElementById('athlete-landing').style.display === 'none');
+      ok('subview shown', document.getElementById('athlete-subview').style.display === '');
+      ok('back says athlete', /Athlete A/.test(document.getElementById('detail-stack-back').textContent));
+      stackBack();
+      ok('back to landing', document.getElementById('athlete-landing').style.display === '');
+      ok('landing at top', panel.scrollTop === 0);
+      stackBack();
+      ok('back to roster', !layout.classList.contains('detail-open'));
+      document.getElementById('log').textContent = results.join('\n');
+      document.getElementById('log').setAttribute('data-ok', results.every(function(l){ return l.indexOf('PASS') === 0; }) ? '1' : '0');
+    }
+    if(/stay=athlete/.test(location.search)){ openAthlete(); }
+    else if(/stay=journal/.test(location.search)){ openAthlete(); openJournal(); }
+    else if(/stay=gym/.test(location.search)){ document.getElementById('open-gym').click(); }
+    else if(window.matchMedia('(max-width: 820px)').matches) check();
+    else document.getElementById('log').textContent = 'Desktop width — overlay CSS not applied (expected).';
+  </script>
+</body>
+</html>
