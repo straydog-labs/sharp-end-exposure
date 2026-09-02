@@ -21,19 +21,11 @@ function fail(msg) {
 }
 
 // --- classify boulder vs lead from real columns only ---
-assert.strictEqual(CI.classifyBoulderVsLead({ discipline: 'Boulder', grade_value: '5.11a' }), 'boulder');
-assert.strictEqual(CI.classifyBoulderVsLead({ discipline: 'Lead' }), 'lead');
-assert.strictEqual(CI.classifyBoulderVsLead({ discipline: 'Sport' }), 'lead');
-assert.strictEqual(CI.classifyBoulderVsLead({ discipline: 'Top Rope' }), 'lead');
-assert.strictEqual(CI.classifyBoulderVsLead({ grade_value: 'V4' }), 'boulder');
-assert.strictEqual(CI.classifyBoulderVsLead({ grade_value: 'VB' }), 'boulder');
-assert.strictEqual(CI.classifyBoulderVsLead({ grade_value: '5.12a' }), 'lead');
-assert.strictEqual(CI.classifyBoulderVsLead({ grade_value: '6c+' }), 'lead');
-assert.strictEqual(CI.classifyBoulderVsLead({ climbing_type: 'Overhang' }), '');
 assert.strictEqual(CI.normalizeTerrainType('overhang'), 'Overhang');
 assert.strictEqual(CI.normalizeTerrainType('Arête'), '');
 assert.strictEqual(CI.gradeRank('V5'), CI.GRADE_ORDER.indexOf('V5'));
 assert.strictEqual(CI.gradeRank('not-a-grade'), null);
+assert.strictEqual(CI.classifyBoulderVsLead, undefined);
 
 // --- progress: same axis, any athlete, checkins excluded ---
 const end = new Date('2026-09-01T12:00:00Z');
@@ -71,7 +63,7 @@ const emptyProg = CI.computeProgressSeries([], { weekCount: 4, endDate: end });
 assert.strictEqual(emptyProg.sessionCount, 0);
 assert.strictEqual(emptyProg.hasZoneTrend, false);
 
-// --- gap diagnostic: boulder vs lead + zone mix by terrain ---
+// --- gap diagnostic: zone mix by terrain only (any athlete, 1–5 terrains) ---
 const gapRows = [
   { zone: 'comfort', baseline_zone: 'sent', climbing_type: 'Slab', discipline: 'Boulder', grade_value: 'V4', is_checkin: false },
   { zone: 'comfort', baseline_zone: 'sent', climbing_type: 'Slab', discipline: 'Boulder', grade_value: 'V3', is_checkin: false },
@@ -82,27 +74,61 @@ const gapRows = [
   { zone: 'comfort', baseline_zone: 'sent', climbing_type: 'Arête', discipline: 'Boulder', grade_value: 'V2', is_checkin: false }
 ];
 const gap = CI.computeGapDiagnostic(gapRows);
-assert.strictEqual(gap.boulder.count, 4);
-assert.strictEqual(gap.lead.count, 3);
-assert.ok(gap.boulder.percents.comfort > gap.lead.percents.comfort);
-assert.ok(gap.lead.percents.panic > gap.boulder.percents.panic);
-assert.strictEqual(gap.boulder.sendRate, 75);
-assert.strictEqual(gap.lead.sendRate, 50, 'dna excluded from send denominator');
+assert.strictEqual(gap.boulder, undefined);
+assert.strictEqual(gap.lead, undefined);
+assert.strictEqual(gap.unclassifiedCount, undefined);
 assert.strictEqual(gap.highestComfortShare.terrain, 'Slab');
 assert.strictEqual(gap.highestPanicShare.terrain, 'Overhang');
 assert.strictEqual(gap.otherTerrainCount, 1);
 assert.ok(!gap.terrains.some((t) => t.terrain === 'Arête'));
+assert.strictEqual(gap.terrains.length, 2);
 
-const gapFromGradeOnly = CI.computeGapDiagnostic([
-  { zone: 'comfort', baseline_zone: 'sent', climbing_type: 'Vertical', grade_value: 'V6' },
-  { zone: 'learning', baseline_zone: 'fell', climbing_type: 'Vertical', grade_value: '5.10a' }
+const contrastHead = CI.gapHeadlineModel(gap);
+assert.strictEqual(contrastHead.contrast, true);
+assert.ok(/Most comfortable on Slab/.test(contrastHead.lines[0].text));
+assert.ok(/Least comfortable on Overhang/.test(contrastHead.lines[1].text));
+assert.ok(!/boulder|lead/i.test(contrastHead.lines.map((l) => l.text).join(' ')));
+
+const oneTerrainGap = CI.computeGapDiagnostic([
+  { zone: 'comfort', climbing_type: 'Vertical' },
+  { zone: 'learning', climbing_type: 'Vertical' },
+  { zone: 'comfort', climbing_type: 'Vertical' }
 ]);
-assert.strictEqual(gapFromGradeOnly.boulder.count, 1);
-assert.strictEqual(gapFromGradeOnly.lead.count, 1);
+assert.strictEqual(oneTerrainGap.terrains.length, 1);
+const oneHead = CI.gapHeadlineModel(oneTerrainGap);
+assert.strictEqual(oneHead.contrast, false);
+assert.ok(/Vertical is the only logged terrain/.test(oneHead.lines[0].text));
+assert.ok(/No other terrain to compare yet/.test(oneHead.lines[0].text));
+assert.ok(!/Most comfortable|Least comfortable/.test(oneHead.lines[0].text));
+
+const samePeakGap = CI.computeGapDiagnostic([
+  { zone: 'comfort', climbing_type: 'Overhang' },
+  { zone: 'panic', climbing_type: 'Overhang' },
+  { zone: 'learning', climbing_type: 'Roof' }
+]);
+assert.strictEqual(samePeakGap.highestComfortShare.terrain, 'Overhang');
+assert.strictEqual(samePeakGap.highestPanicShare.terrain, 'Overhang');
+const sameHead = CI.gapHeadlineModel(samePeakGap);
+assert.strictEqual(sameHead.contrast, false);
+assert.ok(/both peak on Overhang/.test(sameHead.lines[0].text));
+assert.ok(!/Most comfortable|Least comfortable/.test(sameHead.lines[0].text));
+
+const fiveTerrainGap = CI.computeGapDiagnostic(
+  CI.TERRAIN_TYPES.map((t, i) => ({
+    zone: i === 0 ? 'comfort' : (i === 4 ? 'panic' : 'learning'),
+    climbing_type: t
+  }))
+);
+assert.strictEqual(fiveTerrainGap.terrains.length, 5);
+const fiveHead = CI.gapHeadlineModel(fiveTerrainGap);
+assert.strictEqual(fiveHead.contrast, true);
+assert.ok(/Most comfortable on Slab/.test(fiveHead.lines[0].text));
+assert.ok(/Least comfortable on Crack/.test(fiveHead.lines[1].text));
 
 const emptyGap = CI.computeGapDiagnostic([]);
 assert.strictEqual(emptyGap.sessionCount, 0);
 assert.strictEqual(emptyGap.highestComfortShare, null);
+assert.deepStrictEqual(CI.gapHeadlineModel(emptyGap).lines, []);
 
 // --- CSV authoring (any coach, no gym seed) ---
 const parsed = CI.parseGymClimbsCsv(
@@ -149,6 +175,14 @@ assert.ok(/athlete-progress-panel/.test(dash));
 assert.ok(/athlete-gap-panel/.test(dash));
 assert.ok(/open-gym-climbs/.test(dash));
 assert.ok(/js\/coach-athlete-insights\.js/.test(dash));
+assert.ok(/Comfort vs panic by terrain/.test(dash));
+assert.ok(/gapHeadlineModel/.test(dash));
+assert.ok(!/Boulder vs lead/.test(dash));
+assert.ok(!/classifyBoulderVsLead/.test(dash));
+assert.ok(!/unclassifiedCount/.test(dash));
+assert.ok(!/gapGroupHtml/.test(dash));
+assert.ok(!/classifyBoulderVsLead/.test(js));
+assert.ok(!/\bboulder\b/i.test(js));
 assert.ok(!/index\.html/.test(js));
 
 console.log('coach-athlete-insights tests: ok');

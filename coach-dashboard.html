@@ -366,12 +366,15 @@
     display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11.5px;color:var(--text-secondary);margin-top:8px;
   }
   .insight-swatch{display:inline-block;width:10px;height:3px;margin-right:6px;vertical-align:middle;border-radius:1px;}
-  .gap-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
-  .gap-col{
-    background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;
+  .gap-headlines{margin:12px 0 4px;}
+  .gap-headline{
+    font-size:16px;font-weight:700;line-height:1.35;letter-spacing:-.02em;margin-bottom:8px;
   }
-  .gap-col-title{font-size:14px;font-weight:700;margin-bottom:8px;}
-  .gap-meta{font-size:12px;color:var(--text-secondary);line-height:1.45;margin-top:8px;}
+  .gap-headline:last-child{margin-bottom:0;}
+  .gap-headline.comfort{color:var(--comfort);}
+  .gap-headline.panic{color:var(--panic);}
+  .gap-headline.single,
+  .gap-headline.same{color:var(--text);font-size:15px;font-weight:600;}
   .gap-terrain-row{margin-top:12px;}
   .gap-terrain-head{
     display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px;
@@ -388,9 +391,6 @@
   .climb-table tr:last-child td{border-bottom:none;}
   .climb-actions{display:flex;flex-wrap:wrap;gap:6px;}
   .gym-climbs-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 14px;}
-  @media (max-width: 820px){
-    .gap-grid{grid-template-columns:1fr;}
-  }
 
   .form-row{margin-bottom:12px;}
   .form-row label{display:block;font-size:11.5px;color:var(--text-secondary);margin-bottom:6px;letter-spacing:.03em;}
@@ -1845,7 +1845,7 @@
         '</div>' +
         '<div class="insight-panel" id="athlete-gap-panel">' +
           '<div class="team-zone-label">Where\'s the gap?</div>' +
-          '<div class="team-zone-note">Boulder vs lead, and zone mix by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
+          '<div class="team-zone-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
           '<div id="athlete-gap-body"><div class="zone-bar-empty">Loading···</div></div>' +
         '</div>' +
         '<div class="see-card-grid" id="athlete-hub-cards">' +
@@ -2054,28 +2054,18 @@
       weekBars + zoneSvg + gradeSvg;
   }
 
-  function gapGroupHtml(title, summary){
-    if(!summary || !summary.count){
-      return '<div class="gap-col"><div class="gap-col-title">' + escapeHtml(title) + '</div>' +
-        '<div class="empty-state">No classified sessions yet.</div></div>';
-    }
-    var send = summary.sendRate == null
-      ? 'Send rate unavailable (no sent/fell outcomes)'
-      : ('Send rate ' + summary.sendRate + '% of ' + summary.sentKnown + ' sent/fell');
-    var grade = summary.medianGrade ? ('Median logged grade ' + summary.medianGrade) : 'No mapped grades';
-    return '<div class="gap-col"><div class="gap-col-title">' + escapeHtml(title) + '</div>' +
-      zoneBarSegsHtml(summary.zones) + zoneBarLegendHtml(summary.zones) +
-      '<div class="gap-meta">' + summary.count +
-      (summary.count === 1 ? ' session' : ' sessions') +
-      ' · ' + escapeHtml(send) + ' · ' + escapeHtml(grade) + '</div></div>';
-  }
-
   function renderGapPanelHtml(sessions){
     var CI = window.CoachInsights;
     var gap = CI.computeGapDiagnostic(sessions);
     if(!gap.sessionCount){
       return '<div class="empty-state">No logged climb sessions yet for this athlete.</div>';
     }
+    var headlines = CI.gapHeadlineModel(gap);
+    var headlineHtml = (headlines.lines && headlines.lines.length)
+      ? '<div class="gap-headlines">' + headlines.lines.map(function(line){
+          return '<div class="gap-headline ' + escapeHtml(line.kind) + '">' + escapeHtml(line.text) + '</div>';
+        }).join('') + '</div>'
+      : '';
     var terrainHtml = gap.terrains.length
       ? gap.terrains.map(function(row){
           return '<div class="gap-terrain-row">' +
@@ -2089,37 +2079,17 @@
         }).join('')
       : '<div class="empty-state">No sessions with a Slab / Vertical / Overhang / Roof / Crack terrain tag.</div>';
 
-    var highlights = [];
-    if(gap.highestComfortShare){
-      highlights.push('Comfort-zone share is highest on ' + gap.highestComfortShare.terrain +
-        ' (' + gap.highestComfortShare.percent + '% of ' + gap.highestComfortShare.count +
-        (gap.highestComfortShare.count === 1 ? ' session' : ' sessions') + ').');
-    }
-    if(gap.highestPanicShare){
-      highlights.push('Panic-zone share is highest on ' + gap.highestPanicShare.terrain +
-        ' (' + gap.highestPanicShare.percent + '% of ' + gap.highestPanicShare.count +
-        (gap.highestPanicShare.count === 1 ? ' session' : ' sessions') + ').');
-    }
+    var extras = [];
     if(gap.otherTerrainCount){
-      highlights.push(gap.otherTerrainCount +
+      extras.push(gap.otherTerrainCount +
         (gap.otherTerrainCount === 1 ? ' session uses' : ' sessions use') +
         ' a terrain label outside the five-type catalog.');
     }
-    if(gap.unclassifiedCount){
-      highlights.push(gap.unclassifiedCount +
-        (gap.unclassifiedCount === 1 ? ' session has' : ' sessions have') +
-        ' no boulder/lead discipline or grade scale.');
-    }
 
-    return '<div class="insight-chart-title">Boulder vs lead</div>' +
-      '<div class="form-note">Boulder vs lead from sessions.discipline, or from grade scale when discipline is blank (V* boulder, 5.* / French / UK lead). Lead includes sport, trad, top rope, and auto belay. Zone mix from sessions.zone. Send rate from sessions.baseline_zone (sent ÷ sent+fell). climbing_type is terrain in this app, so it is used in the breakdown below — not as boulder vs lead.</div>' +
-      '<div class="gap-grid">' +
-        gapGroupHtml('Boulder', gap.boulder) +
-        gapGroupHtml('Lead', gap.lead) +
-      '</div>' +
-      '<div class="insight-chart-title">Zone mix by terrain</div>' +
+    return headlineHtml +
+      (gap.terrains.length ? '<div class="insight-chart-title">Zone mix by terrain</div>' : '') +
       terrainHtml +
-      (highlights.length ? '<div class="team-zone-note">' + escapeHtml(highlights.join(' ')) + '</div>' : '');
+      (extras.length ? '<div class="team-zone-note">' + escapeHtml(extras.join(' ')) + '</div>' : '');
   }
 
   var _gymClimbsCtx = null;

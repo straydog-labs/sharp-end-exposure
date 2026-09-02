@@ -34,14 +34,6 @@
     return map;
   })();
 
-  var LEAD_DISCIPLINES = {
-    lead: true,
-    sport: true,
-    trad: true,
-    'top rope': true,
-    'auto belay': true
-  };
-
   function normalizeZone(value) {
     var z = String(value || '').trim().toLowerCase();
     if (z === 'comfort' || z === 'learning' || z === 'panic') return z;
@@ -124,24 +116,6 @@
     if (row.deleted_at) return false;
     if (row.is_checkin === true) return false;
     return true;
-  }
-
-  /**
-   * Boulder vs lead from real logged columns only:
-   * sessions.discipline first, then sessions.grade_value scale.
-   * climbing_type in this app is terrain (Slab/Vertical/…), not boulder/lead.
-   */
-  function classifyBoulderVsLead(row) {
-    var d = String(row && row.discipline ? row.discipline : '').trim().toLowerCase();
-    if (d === 'boulder') return 'boulder';
-    if (LEAD_DISCIPLINES[d]) return 'lead';
-    var g = String(row && row.grade_value ? row.grade_value : '').trim();
-    if (!g) return '';
-    if (/^vb$/i.test(g) || /^v\d/i.test(g)) return 'boulder';
-    if (/^5\.\d/.test(g)) return 'lead';
-    if (/^(4|5|6|7|8|9)[abc]/i.test(g)) return 'lead';
-    if (/^(mod|diff|vdiff|hvd|sev|hs|vs|hvs|e\d{1,2})$/i.test(g)) return 'lead';
-    return '';
   }
 
   function medianGradeLabel(grades) {
@@ -265,19 +239,11 @@
 
   function computeGapDiagnostic(sessions) {
     var climbRows = (sessions || []).filter(isClimbSession);
-    var boulder = [];
-    var lead = [];
-    var unclassified = 0;
     var byTerrain = {};
     TERRAIN_TYPES.forEach(function (t) { byTerrain[t] = []; });
     var otherTerrain = [];
 
     climbRows.forEach(function (row) {
-      var side = classifyBoulderVsLead(row);
-      if (side === 'boulder') boulder.push(row);
-      else if (side === 'lead') lead.push(row);
-      else unclassified += 1;
-
       var terrain = normalizeTerrainType(row.climbing_type);
       if (terrain) byTerrain[terrain].push(row);
       else if (row.climbing_type) otherTerrain.push(row);
@@ -300,9 +266,6 @@
 
     return {
       sessionCount: climbRows.length,
-      boulder: summarizeGroup(boulder),
-      lead: summarizeGroup(lead),
-      unclassifiedCount: unclassified,
       terrains: terrainRows,
       otherTerrainCount: otherTerrain.length,
       highestComfortShare: highestComfort
@@ -311,6 +274,90 @@
       highestPanicShare: highestPanic
         ? { terrain: highestPanic.terrain, percent: highestPanic.summary.percents.panic, count: highestPanic.summary.count }
         : null
+    };
+  }
+
+  function sessionWord(n) {
+    return n === 1 ? 'session' : 'sessions';
+  }
+
+  /**
+   * Plain-language gap headlines from terrain zone mix only.
+   * Two-sided contrast only when comfort and panic peak on different terrains.
+   * One logged terrain, or both peaks on the same terrain, is stated as-is —
+   * never framed as a discipline split or a false two-sided gap.
+   */
+  function gapHeadlineModel(gap) {
+    var terrains = (gap && gap.terrains) || [];
+    var comfort = gap && gap.highestComfortShare;
+    var panic = gap && gap.highestPanicShare;
+    if (!terrains.length) return { contrast: false, lines: [] };
+
+    var hasComfort = !!(comfort && comfort.percent > 0);
+    var hasPanic = !!(panic && panic.percent > 0);
+    var split = !!(
+      terrains.length >= 2 &&
+      hasComfort &&
+      hasPanic &&
+      comfort.terrain !== panic.terrain
+    );
+
+    if (split) {
+      return {
+        contrast: true,
+        lines: [
+          {
+            kind: 'comfort',
+            text: 'Most comfortable on ' + comfort.terrain +
+              ' — ' + comfort.percent + '% comfort-zone across ' +
+              comfort.count + ' ' + sessionWord(comfort.count) + '.'
+          },
+          {
+            kind: 'panic',
+            text: 'Least comfortable on ' + panic.terrain +
+              ' — ' + panic.percent + '% panic-zone across ' +
+              panic.count + ' ' + sessionWord(panic.count) + '.'
+          }
+        ]
+      };
+    }
+
+    if (terrains.length === 1) {
+      var only = terrains[0];
+      var pct = only.summary.percents;
+      return {
+        contrast: false,
+        lines: [{
+          kind: 'single',
+          text: only.terrain + ' is the only logged terrain so far — ' +
+            pct.comfort + '% comfort-zone, ' + pct.panic + '% panic-zone across ' +
+            only.summary.count + ' ' + sessionWord(only.summary.count) +
+            '. No other terrain to compare yet.'
+        }]
+      };
+    }
+
+    var names = terrains.map(function (row) { return row.terrain; }).join(', ');
+    if (comfort && panic && comfort.terrain === panic.terrain) {
+      return {
+        contrast: false,
+        lines: [{
+          kind: 'same',
+          text: 'Comfort-zone and panic-zone shares both peak on ' + comfort.terrain +
+            ' (' + comfort.percent + '% comfort, ' + panic.percent + '% panic across ' +
+            comfort.count + ' ' + sessionWord(comfort.count) +
+            '). Also logged: ' + names + '. No split across terrains yet.'
+        }]
+      };
+    }
+
+    return {
+      contrast: false,
+      lines: [{
+        kind: 'single',
+        text: 'Logged terrains: ' + names +
+          ' — no comfort-zone vs panic-zone split across terrains yet.'
+      }]
     };
   }
 
@@ -418,9 +465,9 @@
     zonePercents: zonePercents,
     gradeRank: gradeRank,
     normalizeTerrainType: normalizeTerrainType,
-    classifyBoulderVsLead: classifyBoulderVsLead,
     computeProgressSeries: computeProgressSeries,
     computeGapDiagnostic: computeGapDiagnostic,
+    gapHeadlineModel: gapHeadlineModel,
     parseGymClimbsCsv: parseGymClimbsCsv,
     validateGymClimbRow: validateGymClimbRow,
     weekKey: weekKey,
