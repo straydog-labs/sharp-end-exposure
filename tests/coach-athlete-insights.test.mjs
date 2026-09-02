@@ -63,6 +63,24 @@ const emptyProg = CI.computeProgressSeries([], { weekCount: 4, endDate: end });
 assert.strictEqual(emptyProg.sessionCount, 0);
 assert.strictEqual(emptyProg.hasZoneTrend, false);
 
+// Local week buckets match a local-time journal, not UTC calendar-day math.
+const sundayEve = new Date(2026, 7, 30, 23, 16, 0);
+assert.strictEqual(sundayEve.getDay(), 0, 'fixture is a local Sunday');
+assert.strictEqual(CI.weekKey(sundayEve), '2026-08-24');
+assert.strictEqual(CI.weekKey(new Date(2026, 7, 30, 8, 0, 0)), '2026-08-24');
+assert.strictEqual(CI.formatWeekLabel('2026-08-24'), 'Aug 24');
+if (sundayEve.getTimezoneOffset() > 0) {
+  assert.ok(sundayEve.getUTCDay() !== 0, 'west-of-UTC evening Sunday is already Monday in UTC');
+  assert.notStrictEqual(CI.weekKey(sundayEve), '2026-08-31');
+}
+const boundaryProg = CI.computeProgressSeries(
+  [{ zone: 'panic', created_at: sundayEve.toISOString(), is_checkin: false }],
+  { weekCount: 3, endDate: new Date(2026, 7, 31, 12, 0, 0) }
+);
+const boundaryWeek = boundaryProg.zonePoints.find((p) => p.key === '2026-08-24');
+assert.ok(boundaryWeek && boundaryWeek.panic === 100, 'Sunday 11pm local stays in the journal week');
+assert.ok(!boundaryProg.zonePoints.some((p) => p.key === '2026-08-31' && p.total > 0));
+
 // --- gap diagnostic: zone mix by terrain only (any athlete, 1–5 terrains) ---
 const gapRows = [
   { zone: 'comfort', baseline_zone: 'sent', climbing_type: 'Slab', discipline: 'Boulder', grade_value: 'V4', is_checkin: false },

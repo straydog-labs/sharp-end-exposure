@@ -79,18 +79,18 @@
   }
 
   function mondayUtc(date) {
-    var d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-    var day = d.getUTCDay();
+    var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    var day = d.getDay();
     var diff = day === 0 ? -6 : 1 - day;
-    d.setUTCDate(d.getUTCDate() + diff);
+    d.setDate(d.getDate() + diff);
     return d;
   }
 
   function weekKey(date) {
     var m = mondayUtc(date);
-    var y = m.getUTCFullYear();
-    var mo = String(m.getUTCMonth() + 1).padStart(2, '0');
-    var da = String(m.getUTCDate()).padStart(2, '0');
+    var y = m.getFullYear();
+    var mo = String(m.getMonth() + 1).padStart(2, '0');
+    var da = String(m.getDate()).padStart(2, '0');
     return y + '-' + mo + '-' + da;
   }
 
@@ -98,8 +98,8 @@
     var end = mondayUtc(endDate || new Date());
     var keys = [];
     for (var i = n - 1; i >= 0; i--) {
-      var d = new Date(end.getTime());
-      d.setUTCDate(d.getUTCDate() - i * 7);
+      var d = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+      d.setDate(d.getDate() - i * 7);
       keys.push(weekKey(d));
     }
     return keys;
@@ -107,8 +107,8 @@
 
   function formatWeekLabel(key) {
     var parts = key.split('-');
-    var d = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
   function isClimbSession(row) {
@@ -472,6 +472,7 @@
     validateGymClimbRow: validateGymClimbRow,
     weekKey: weekKey,
     lastNWeekKeys: lastNWeekKeys,
+    formatWeekLabel: formatWeekLabel,
     CSV_TEMPLATE: 'name,wall_lane,angle,steepness,terrain_type\nExample climb,Lane 1,20,slight,Slab\n'
   };
 

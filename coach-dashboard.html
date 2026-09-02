@@ -18,6 +18,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/coach-athlete-insights.js"></script>
 <script src="js/coach-stack-nav.js"></script>
+<script src="js/coach-log-session.js"></script>
 <style>
   :root{
     /* Dark grey (not near-black). Surface stays one step lighter than bg;
@@ -147,7 +148,7 @@
   .roster-row:hover{border-color:rgba(232,146,82,.45);}
   .roster-row:active{transform:scale(.98);}
   .roster-row.active{border-color:var(--accent);background:rgba(232,146,82,.1);}
-  .roster-name{font-size:16px;font-weight:700;line-height:1.25;}
+  .roster-name{font-size:16px;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .roster-meta{font-size:11px;color:var(--text-secondary);margin-top:6px;line-height:1.4;}
   .roster-empty{font-size:13px;color:var(--text-secondary);padding:12px 4px;}
   .roster-unread-dot{
@@ -594,6 +595,44 @@
     overflow-y:auto;-webkit-overflow-scrolling:touch;
   }
   #assign-wizard-overlay.open{display:block;}
+  #coach-log-overlay{
+    display:none;position:fixed;inset:0;z-index:1800;background:var(--bg);
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+  #coach-log-overlay.open{display:block;}
+  .clog-zone-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0 18px;}
+  .clog-zone{
+    min-height:72px;border-radius:16px;border:2px solid var(--border);background:var(--surface);
+    color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;
+    cursor:pointer;letter-spacing:-.02em;
+  }
+  .clog-zone.comfort{border-color:var(--comfort);}
+  .clog-zone.learning{border-color:var(--learning);}
+  .clog-zone.panic{border-color:var(--panic);}
+  .clog-zone.selected.comfort{background:rgba(126,200,122,.18);}
+  .clog-zone.selected.learning{background:rgba(245,166,35,.18);}
+  .clog-zone.selected.panic{background:rgba(232,68,68,.18);}
+  .clog-terrain{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;}
+  .clog-terrain button{
+    background:var(--surface);border:1px solid var(--border);border-radius:999px;
+    padding:10px 14px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .clog-terrain button.selected{border-color:var(--accent);color:var(--accent);}
+  .clog-catalog{max-height:220px;overflow-y:auto;margin:8px 0 14px;}
+  .clog-climb{
+    display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:12px 14px;color:var(--text);margin-bottom:8px;
+    font-family:'Space Grotesk',sans-serif;cursor:pointer;
+  }
+  .clog-climb.selected{border-color:var(--accent);}
+  .clog-climb-name{font-weight:700;font-size:14px;}
+  .clog-climb-meta{font-size:12px;color:var(--text-secondary);margin-top:3px;}
+  .journal-coach-tag{
+    display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);border:1px solid rgba(232,146,82,.4);border-radius:4px;
+    padding:2px 6px;margin-left:8px;vertical-align:middle;
+  }
   .aw-shell{min-height:100%;display:flex;flex-direction:column;}
   .aw-top{
     display:flex;align-items:center;justify-content:space-between;
@@ -834,6 +873,32 @@
     </div>
     <div id="main"></div>
     <div id="coach-toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <div id="coach-log-overlay" aria-hidden="true">
+    <div class="aw-shell">
+      <div class="aw-top">
+        <button type="button" class="aw-back" id="clog-back">← Back</button>
+        <div class="aw-word">STRAY<span>DOG</span> · Log</div>
+      </div>
+      <div class="aw-content">
+        <div class="aw-eyebrow">Log a climb</div>
+        <div class="aw-hero" id="clog-hero">How did it feel?</div>
+        <div class="aw-hero-sub" id="clog-hero-sub">Zone is the only required field. Tap a zone to save.</div>
+        <div id="clog-zones" class="clog-zone-grid"></div>
+        <div class="aw-section-label">Climb (optional)</div>
+        <div id="clog-catalog" class="clog-catalog"></div>
+        <div class="aw-section-label">Terrain (optional)</div>
+        <div id="clog-terrains" class="clog-terrain"></div>
+        <div class="form-row"><label for="clog-grade">Grade (optional)</label><input id="clog-grade" type="text" autocomplete="off" placeholder="e.g. V4 or 5.11a"></div>
+        <div class="form-row"><label for="clog-note">Short note (optional)</label><textarea id="clog-note" rows="2" placeholder="Anything you want on this attempt"></textarea></div>
+        <div class="form-actions">
+          <button type="button" class="btn-primary" id="clog-save">Save</button>
+          <button type="button" class="btn-cancel" id="clog-again" style="display:none;">Log another</button>
+        </div>
+        <div class="form-error" id="clog-msg"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Full-screen New assignment flow (baseline-weight step UI) -->
@@ -1932,6 +1997,10 @@
             sub +
           '</div>' +
         '</div>' +
+        '<button type="button" class="assign-launch" id="coach-log-launch" style="margin-bottom:14px;">' +
+          '<span><span>Log a climb</span><span class="assign-launch-sub">Zone first — one tap to save</span></span>' +
+          '<span class="assign-launch-arrow">→</span>' +
+        '</button>' +
         '<div class="roster-stats">' +
           '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-sessions">—</div><div class="roster-stat-label">Sessions</div></div>' +
           '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-learning">—</div><div class="roster-stat-label">Learning</div></div>' +
@@ -1946,7 +2015,7 @@
         '</div>' +
         '<div class="insight-panel" id="athlete-progress-panel">' +
           '<div class="team-zone-label">Progress over time</div>' +
-          '<div class="team-zone-note">Mental-zone mix and grade by terrain on the same 12-week axis. Logged sessions only. Descriptive — not a cause-and-effect read.</div>' +
+          '<div class="team-zone-note">Mental-zone mix and grade by terrain on the same 12-week local-calendar axis (same clock as the journal). The gap panel is all-time by terrain — same logs, different slice. Descriptive — not a cause-and-effect read.</div>' +
           '<div id="athlete-progress-body"><div class="zone-bar-empty">Loading···</div></div>' +
         '</div>' +
         '<div class="insight-panel" id="athlete-gap-panel">' +
@@ -1978,6 +2047,12 @@
     paintAthleteHubBadges();
 
     document.getElementById('athlete-subview-back').addEventListener('click', showAthleteLanding);
+    var logLaunch = document.getElementById('coach-log-launch');
+    if(logLaunch){
+      logLaunch.addEventListener('click', function(){
+        openCoachLogOverlay();
+      });
+    }
     Array.prototype.forEach.call(detailEl.querySelectorAll('#athlete-hub-cards .see-card'), function(btn){
       btn.addEventListener('click', function(){
         openAthletePane(btn.getAttribute('data-pane'));
@@ -1992,6 +2067,243 @@
     loadAthleteCoachNotes(token, coachUser, athleteId);
     loadAthleteInsightPanels(token, athleteId);
     openCoachDetailOverlay();
+  }
+
+  var _coachLogState = {
+    zone: '',
+    terrain: '',
+    gymClimbId: null,
+    routeName: '',
+    grade: '',
+    note: '',
+    catalog: []
+  };
+
+  function openCoachLogOverlay(){
+    if(!_detailCtx) return;
+    var overlay = document.getElementById('coach-log-overlay');
+    if(!overlay) return;
+    _coachLogState.zone = '';
+    _coachLogState.terrain = '';
+    _coachLogState.gymClimbId = null;
+    _coachLogState.routeName = '';
+    _coachLogState.grade = '';
+    _coachLogState.note = '';
+    var gradeEl = document.getElementById('clog-grade');
+    var noteEl = document.getElementById('clog-note');
+    if(gradeEl) gradeEl.value = '';
+    if(noteEl) noteEl.value = '';
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    var again = document.getElementById('clog-again');
+    if(again) again.style.display = 'none';
+    var msg = document.getElementById('clog-msg');
+    if(msg){ msg.className = 'form-error'; msg.textContent = ''; }
+    var hero = document.getElementById('clog-hero');
+    if(hero) hero.textContent = 'How did it feel?';
+    paintCoachLogForm();
+    loadCoachLogCatalog();
+  }
+
+  function closeCoachLogOverlay(){
+    var overlay = document.getElementById('coach-log-overlay');
+    if(overlay){
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+    var keep = (coachNavIsMobile() && document.querySelector('.coach-layout.detail-open'))
+      || (document.getElementById('assign-wizard-overlay') &&
+          document.getElementById('assign-wizard-overlay').classList.contains('open'));
+    document.body.style.overflow = keep ? 'hidden' : '';
+  }
+
+  function paintCoachLogForm(){
+    readCoachLogFields();
+    var zonesEl = document.getElementById('clog-zones');
+    if(zonesEl){
+      zonesEl.innerHTML = ['comfort','learning','panic'].map(function(z){
+        var cap = z.charAt(0).toUpperCase() + z.slice(1);
+        return '<button type="button" class="clog-zone ' + z +
+          (_coachLogState.zone === z ? ' selected' : '') +
+          '" data-zone="' + z + '">' + cap + '</button>';
+      }).join('');
+      Array.prototype.forEach.call(zonesEl.querySelectorAll('.clog-zone'), function(btn){
+        btn.addEventListener('click', function(){
+          _coachLogState.zone = btn.getAttribute('data-zone');
+          paintCoachLogForm();
+          saveCoachLogSession(true);
+        });
+      });
+    }
+    var terrainsEl = document.getElementById('clog-terrains');
+    if(terrainsEl){
+      var types = (window.CoachInsights && window.CoachInsights.TERRAIN_TYPES) ||
+        ['Slab','Vertical','Overhang','Roof','Crack'];
+      terrainsEl.innerHTML = types.map(function(t){
+        return '<button type="button"' + (_coachLogState.terrain === t ? ' class="selected"' : '') +
+          ' data-terrain="' + t + '">' + t + '</button>';
+      }).join('');
+      Array.prototype.forEach.call(terrainsEl.querySelectorAll('button'), function(btn){
+        btn.addEventListener('click', function(){
+          var t = btn.getAttribute('data-terrain');
+          _coachLogState.terrain = _coachLogState.terrain === t ? '' : t;
+          paintCoachLogForm();
+        });
+      });
+    }
+    var catEl = document.getElementById('clog-catalog');
+    if(catEl){
+      if(!_coachLogState.catalog.length){
+        catEl.innerHTML = '<div class="form-note">No climbs in your catalog — pick a terrain or skip.</div>';
+      } else {
+        catEl.innerHTML = _coachLogState.catalog.map(function(row){
+          var meta = [row.wall_lane, row.terrain_type, row.angle].filter(Boolean).join(' · ');
+          return '<button type="button" class="clog-climb' +
+            (_coachLogState.gymClimbId === row.id ? ' selected' : '') +
+            '" data-climb-id="' + escapeHtml(row.id) + '">' +
+            '<div class="clog-climb-name">' + escapeHtml(row.name || 'Unnamed climb') + '</div>' +
+            (meta ? '<div class="clog-climb-meta">' + escapeHtml(meta) + '</div>' : '') +
+          '</button>';
+        }).join('');
+        Array.prototype.forEach.call(catEl.querySelectorAll('.clog-climb'), function(btn){
+          btn.addEventListener('click', function(){
+            var id = btn.getAttribute('data-climb-id');
+            var row = null;
+            for(var i=0;i<_coachLogState.catalog.length;i++){
+              if(_coachLogState.catalog[i].id === id){ row = _coachLogState.catalog[i]; break; }
+            }
+            if(_coachLogState.gymClimbId === id){
+              _coachLogState.gymClimbId = null;
+              _coachLogState.routeName = '';
+            } else if(row){
+              _coachLogState.gymClimbId = row.id;
+              _coachLogState.routeName = row.name || '';
+              if(row.terrain_type) _coachLogState.terrain = row.terrain_type;
+            }
+            paintCoachLogForm();
+          });
+        });
+      }
+    }
+    var gradeEl = document.getElementById('clog-grade');
+    var noteEl = document.getElementById('clog-note');
+    if(gradeEl && gradeEl.value !== _coachLogState.grade) gradeEl.value = _coachLogState.grade || '';
+    if(noteEl && noteEl.value !== _coachLogState.note) noteEl.value = _coachLogState.note || '';
+  }
+
+  function readCoachLogFields(){
+    var gradeEl = document.getElementById('clog-grade');
+    var noteEl = document.getElementById('clog-note');
+    if(gradeEl) _coachLogState.grade = gradeEl.value;
+    if(noteEl) _coachLogState.note = noteEl.value;
+  }
+
+  function loadCoachLogCatalog(){
+    if(!_detailCtx) return;
+    sbSelect(
+      _detailCtx.token,
+      'gym_climbs',
+      'select=id,name,wall_lane,angle,steepness,terrain_type' +
+        '&created_by=eq.' + _detailCtx.coachUser.id +
+        '&deleted_at=is.null&order=name.asc'
+    ).then(function(rows){
+      _coachLogState.catalog = Array.isArray(rows) ? rows : [];
+      paintCoachLogForm();
+    }).catch(function(){
+      _coachLogState.catalog = [];
+      paintCoachLogForm();
+    });
+  }
+
+  function saveCoachLogSession(fromZoneTap){
+    if(!_detailCtx || !window.CoachLogSession) return;
+    readCoachLogFields();
+    var built = window.CoachLogSession.buildPayload({
+      athleteId: _detailCtx.athleteId,
+      coachId: _detailCtx.coachUser.id,
+      zone: _coachLogState.zone,
+      terrain: _coachLogState.terrain,
+      gymClimbId: _coachLogState.gymClimbId,
+      routeName: _coachLogState.routeName,
+      grade: _coachLogState.grade,
+      note: _coachLogState.note
+    });
+    var msg = document.getElementById('clog-msg');
+    if(!built.ok){
+      if(fromZoneTap) return;
+      if(msg){ msg.className = 'form-error'; msg.textContent = built.error; }
+      return;
+    }
+    var saveBtn = document.getElementById('clog-save');
+    if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+    if(msg) msg.textContent = '';
+    var payload = built.payload;
+    fetch(SB_URL + '/rest/v1/sessions', {
+      method: 'POST',
+      headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      if(res.ok) return res.json();
+      return res.json().then(function(err){
+        if(payload.gym_climb_id){
+          delete payload.gym_climb_id;
+          return fetch(SB_URL + '/rest/v1/sessions', {
+            method: 'POST',
+            headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
+            body: JSON.stringify(payload)
+          }).then(function(res2){
+            if(res2.ok) return res2.json();
+            return res2.json().then(function(err2){ throw err2; });
+          });
+        }
+        if(payload.logged_by_coach != null){
+          delete payload.logged_by_coach;
+          delete payload.logged_by;
+          delete payload.session_notes;
+          return fetch(SB_URL + '/rest/v1/sessions', {
+            method: 'POST',
+            headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
+            body: JSON.stringify(payload)
+          }).then(function(res3){
+            if(res3.ok) return res3.json();
+            throw err;
+          });
+        }
+        throw err;
+      });
+    }).then(function(){
+      showCoachToast('Climb logged.');
+      if(msg){ msg.className = 'form-success'; msg.textContent = 'Saved.'; }
+      var again = document.getElementById('clog-again');
+      if(again) again.style.display = '';
+      var hero = document.getElementById('clog-hero');
+      if(hero) hero.textContent = 'Logged.';
+      if(_detailCtx){
+        loadAthleteSessions(_detailCtx.token, _detailCtx.coachUser, _detailCtx.athleteId, _detailCtx.athleteLabel);
+        loadAthleteInsightPanels(_detailCtx.token, _detailCtx.athleteId);
+      }
+    }).catch(function(err){
+      if(msg){
+        msg.className = 'form-error';
+        msg.textContent = 'Could not save. ' + friendlyErrorMessage(err, 'Apply the coach-log SQL if this is a first run.');
+      }
+    }).then(function(){
+      if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+    });
+  }
+
+  function resetCoachLogAnother(){
+    if(!window.CoachLogSession) return;
+    readCoachLogFields();
+    _coachLogState = Object.assign({ catalog: _coachLogState.catalog }, window.CoachLogSession.keepAfterLogAnother(_coachLogState));
+    var again = document.getElementById('clog-again');
+    if(again) again.style.display = 'none';
+    var hero = document.getElementById('clog-hero');
+    if(hero) hero.textContent = 'How did it feel?';
+    var msg = document.getElementById('clog-msg');
+    if(msg){ msg.className = 'form-error'; msg.textContent = ''; }
+    paintCoachLogForm();
   }
 
   var _athleteInsightCache = {};
@@ -4542,6 +4854,11 @@
     resetAssignWizard();
     syncWizardShellMode();
   });
+  document.getElementById('clog-back').addEventListener('click', closeCoachLogOverlay);
+  document.getElementById('clog-save').addEventListener('click', function(){
+    saveCoachLogSession(false);
+  });
+  document.getElementById('clog-again').addEventListener('click', resetCoachLogAnother);
 
   var _lastSessionRows = [];
   var _journalNotesBySession = {};
@@ -4680,6 +4997,7 @@
     var zone = (s.zone || '').toLowerCase();
     var zoneClass = (zone === 'comfort' || zone === 'learning' || zone === 'panic') ? zone : '';
     var refl =
+      journalFieldHtml('Note', s.session_notes) +
       journalFieldHtml('What went well', s.went_well) +
       journalFieldHtml('What to work on', s.still_learning) +
       journalFieldHtml('Surprised by', s.surprised_by);
@@ -4695,7 +5013,9 @@
       '<div class="journal-head">' +
         '<div>' +
           '<div class="journal-route"><span class="journal-kind climb">Climb</span>' +
-            escapeHtml(s.route_name || 'Unnamed climb') + '</div>' +
+            escapeHtml(s.route_name || 'Unnamed climb') +
+            (s.logged_by_coach ? '<span class="journal-coach-tag">Logged by coach</span>' : '') +
+            '</div>' +
           '<div class="journal-when">' + fmtChatTime(s.created_at) + '</div>' +
         '</div>' +
         '<span class="journal-zone' + (zoneClass ? ' ' + zoneClass : '') + '">' +
@@ -4850,14 +5170,23 @@
       athleteLabel: athleteLabel || ''
     };
     var cols = 'id,created_at,route_name,zone,went_well,still_learning,surprised_by,' +
-      'breathing_post,gut_post,crux_response,body_state';
+      'breathing_post,gut_post,crux_response,body_state,session_notes,logged_by_coach,logged_by';
     var climbP = sbSelect(
       token,
       'sessions',
       'select=' + cols +
         '&user_id=eq.' + athleteId +
         '&deleted_at=is.null&order=created_at.desc&limit=20'
-    );
+    ).catch(function(){
+      return sbSelect(
+        token,
+        'sessions',
+        'select=id,created_at,route_name,zone,went_well,still_learning,surprised_by,' +
+          'breathing_post,gut_post,crux_response,body_state' +
+          '&user_id=eq.' + athleteId +
+          '&deleted_at=is.null&order=created_at.desc&limit=20'
+      );
+    });
     var trainP = sbSelect(
       token,
       'training_sessions',
