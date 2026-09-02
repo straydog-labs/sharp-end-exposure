@@ -707,6 +707,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .cl-grade{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;}
 .cl-terrain{color:var(--muted);white-space:nowrap;}
 .cl-zone-pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;}
+.journal-coach-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);border:1px solid rgba(232,118,58,.4);border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle;}
 .cl-row-detail{display:none;background:rgba(255,255,255,.02);}
 .cl-row-detail.open{display:table-row;}
 .cl-row-detail td{padding:8px 10px 12px;border-bottom:1px solid rgba(255,255,255,.08);}
@@ -6148,7 +6149,8 @@ function renderSessionNotesOverlay(s, sessionId){
   var rows = '';
   if(s.route_name || s.grade_value){
     rows += '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;">' +
-      escTrainHtml([s.route_name, s.grade_value, s.climbing_type].filter(Boolean).join(' · ') || 'This climb') + '</div>';
+      escTrainHtml([s.route_name, s.grade_value, s.climbing_type].filter(Boolean).join(' · ') || 'This climb') +
+      (s.logged_by_coach ? '<span class="journal-coach-tag">Logged by coach</span>' : '') + '</div>';
   }
   if(s.went_well) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What went well</div><div style="font-size:13px;color:var(--text);">'+escTrainHtml(s.went_well)+'</div></div>';
   if(s.still_learning) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What to work on</div><div style="font-size:13px;color:var(--text);">'+escTrainHtml(s.still_learning)+'</div></div>';
@@ -8153,7 +8155,7 @@ function homeRecentActivityHtml(sessions){
       if(!isNaN(dt.getTime())) when = dt.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     }
     return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;">'
-      + '<div><div style="font-size:14px;font-weight:600;color:var(--text);">'+escTrainHtml(title)+'</div>'
+      + '<div><div style="font-size:14px;font-weight:600;color:var(--text);">'+escTrainHtml(title)+(s.logged_by_coach?'<span class="journal-coach-tag">Logged by coach</span>':'')+'</div>'
       + (zone ? '<div style="font-size:11px;color:var(--muted);text-transform:capitalize;margin-top:2px;">'+escTrainHtml(zone)+'</div>' : '')
       + '</div>'
       + '<div style="font-size:11px;color:var(--muted);font-family:\'Space Mono\',monospace;white-space:nowrap;">'+escTrainHtml(when)+'</div>'
@@ -8181,8 +8183,15 @@ async function loadHomeScreen(){
   }
   var sessions = await sbS(
     'sessions',
-    'select=id,route_name,grade_value,zone,created_at,is_checkin&user_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=created_at.desc&limit=8'
+    'select=id,route_name,grade_value,zone,created_at,is_checkin,logged_by_coach&user_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=created_at.desc&limit=8'
   );
+  if(!Array.isArray(sessions) || !sessions.length){
+    var recentFallback = await sbS(
+      'sessions',
+      'select=id,route_name,grade_value,zone,created_at,is_checkin&user_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=created_at.desc&limit=8'
+    );
+    if(Array.isArray(recentFallback) && recentFallback.length) sessions = recentFallback;
+  }
   if(!Array.isArray(sessions)) sessions = [];
   var recent = sessions.filter(function(s){ return !s.is_checkin; }).slice(0, 5);
   if(recentEl) recentEl.innerHTML = homeRecentActivityHtml(recent);
@@ -12415,6 +12424,7 @@ function climbRow(s,resultLabels){
     +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">'
     +'<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 7px;border-radius:99px;'+pillStyle+'">'+(conf?zoneName(s.zone):zoneName(s.zone)+' ~')+'</span>'
     +routeLabel
+    +(s.logged_by_coach?'<span class="journal-coach-tag">Logged by coach</span>':'')
     +'</div>'
     +'</div>'
     +'</div>';
@@ -14240,7 +14250,7 @@ function buildTableRow(s){
   return '<tr data-sid="'+sid+'" '+rowAttrs+'>'
     + '<td><span class="cl-grade">' + (s.grade_value||'—') + '</span></td>'
     + '<td><span class="cl-terrain">' + (s.climbing_type||'—') + '</span></td>'
-    + '<td>' + zonePillHtml + '</td>'
+    + '<td>' + zonePillHtml + (s.logged_by_coach?'<span class="journal-coach-tag">Logged by coach</span>':'') + '</td>'
     + '<td style="color:var(--muted2);font-size:11px;white-space:nowrap;">' + dateStr + (s.climb_id?' <span style="color:var(--muted2);font-size:12px;">›</span>':'') + '</td>'
     + '</tr>';
 }
