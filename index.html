@@ -110,7 +110,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .coach-dash-toggle{display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:6px 10px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
 .coach-dash-toggle.show{display:inline-flex;align-items:center;gap:4px;}
 .train-energy-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}
-.train-energy-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;cursor:pointer;text-align:left;color:var(--text);font-family:'Space Grotesk',sans-serif;-webkit-tap-highlight-color:transparent;min-height:132px;display:flex;flex-direction:column;justify-content:flex-start;position:relative;box-shadow:0 8px 24px rgba(0,0,0,.18);}
+.train-energy-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px;cursor:pointer;text-align:left;color:var(--text);font-family:'Space Grotesk',sans-serif;text-decoration:none;-webkit-tap-highlight-color:transparent;min-height:132px;display:flex;flex-direction:column;justify-content:flex-start;position:relative;box-shadow:0 8px 24px rgba(0,0,0,.18);}
+#profile-card-coach-guide[hidden]{display:none !important;}
 .train-energy-card:active{transform:scale(.98);}
 .train-energy-card .te-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;}
 .train-energy-card .te-icon{width:36px;height:36px;border-radius:10px;background:rgba(232,118,58,.14);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -2831,6 +2832,18 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-title">Help</div>
           <div class="te-sub">Helper tips on or off</div>
         </button>
+        <a class="train-energy-card" id="profile-card-guide" href="https://straydog-labs.github.io/see-guide-site/athlete-guide.html" target="_blank" rel="noopener">
+          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div></div>
+          <div class="te-label">Learn</div>
+          <div class="te-title">Guide</div>
+          <div class="te-sub">How to use SEE</div>
+        </a>
+        <a class="train-energy-card" id="profile-card-coach-guide" href="https://straydog-labs.github.io/see-guide-site/coach-guide.html" target="_blank" rel="noopener" hidden aria-hidden="true">
+          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div></div>
+          <div class="te-label">Learn</div>
+          <div class="te-title">Coach guide</div>
+          <div class="te-sub">Roster, insights, logging for an athlete</div>
+        </a>
         <button type="button" class="train-energy-card" id="profile-card-feedback" onclick="showScreen('screen-profile-feedback')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"/></svg></div></div>
           <div class="te-label">Talk</div>
@@ -4773,7 +4786,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index233'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index234'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -9462,21 +9475,39 @@ async function refreshCoachDashToggle(){
   // Root-cause note: gate query itself was already correct after build 199; residual
   // risk was CSS-only hide (class + inline display) without the HTML hidden
   // attribute, while the control always lives in footer-nav for every account.
+  // Coach guide tile on Profile uses this same gate — one query, fail-closed.
   var btn = document.getElementById('coach-dash-toggle');
-  if(!btn) return;
+  var guide = document.getElementById('profile-card-coach-guide');
+  if(!btn && !guide) return;
   function hideToggle(){
     _isCoachUser = false;
-    btn.classList.remove('show');
-    btn.style.display = 'none';
-    btn.hidden = true;
-    btn.setAttribute('aria-hidden', 'true');
+    if(btn){
+      btn.classList.remove('show');
+      btn.style.display = 'none';
+      btn.hidden = true;
+      btn.setAttribute('aria-hidden', 'true');
+    }
+    if(guide){
+      guide.hidden = true;
+      guide.setAttribute('hidden', '');
+      guide.style.display = 'none';
+      guide.setAttribute('aria-hidden', 'true');
+    }
   }
   function showToggle(){
     _isCoachUser = true;
-    btn.classList.add('show');
-    btn.style.display = 'inline-flex';
-    btn.hidden = false;
-    btn.setAttribute('aria-hidden', 'false');
+    if(btn){
+      btn.classList.add('show');
+      btn.style.display = 'inline-flex';
+      btn.hidden = false;
+      btn.setAttribute('aria-hidden', 'false');
+    }
+    if(guide){
+      guide.hidden = false;
+      guide.removeAttribute('hidden');
+      guide.style.display = '';
+      guide.setAttribute('aria-hidden', 'false');
+    }
   }
   if(!window._authUser || !window._authUser.id){
     hideToggle();
@@ -18743,6 +18774,66 @@ async function runSEETests(){
         ' journal=' + journalOnSub + ' help=' + helpOnSub + ' hooks=' + hooksOk + ' dt=' + dtMin);
     }
   }catch(e){ fail('Profile card landing + session datetime min-width', e.message); }
+
+  try{
+    var athleteTile = document.getElementById('profile-card-guide');
+    var coachTile = document.getElementById('profile-card-coach-guide');
+    var hub = document.getElementById('profile-hub-cards');
+    var athleteOk = !!(athleteTile && hub && hub.contains(athleteTile)
+      && athleteTile.tagName === 'A'
+      && athleteTile.getAttribute('href') === 'https://straydog-labs.github.io/see-guide-site/athlete-guide.html'
+      && athleteTile.getAttribute('target') === '_blank'
+      && /\bnoopener\b/.test(athleteTile.getAttribute('rel') || '')
+      && /Guide/.test(athleteTile.textContent)
+      && /How to use SEE/.test(athleteTile.textContent)
+      && !athleteTile.hasAttribute('hidden'));
+    var coachStaticHidden = !!(coachTile && hub && hub.contains(coachTile)
+      && coachTile.tagName === 'A'
+      && coachTile.getAttribute('href') === 'https://straydog-labs.github.io/see-guide-site/coach-guide.html'
+      && coachTile.getAttribute('target') === '_blank'
+      && /\bnoopener\b/.test(coachTile.getAttribute('rel') || '')
+      && /Coach guide/.test(coachTile.textContent)
+      && (coachTile.hidden === true || coachTile.hasAttribute('hidden')));
+    var src = String(refreshCoachDashToggle);
+    var sameGate = /profile-card-coach-guide/.test(src)
+      && /coach_flags/.test(src)
+      && (src.match(/sbS\(/g) || []).length === 1
+      && /hideToggle/.test(src) && /showToggle/.test(src);
+    var prevAuth = window._authUser;
+    window._authUser = null;
+    await refreshCoachDashToggle();
+    var hiddenNoAuth = coachTile.hidden === true && coachTile.hasAttribute('hidden')
+      && (coachTile.style.display === 'none' || getComputedStyle(coachTile).display === 'none');
+    var origSbS = sbS;
+    window.sbS = async function(table, q){
+      if(table === 'coach_flags') return [{ is_coach: true }];
+      return origSbS.apply(this, arguments);
+    };
+    window._authUser = { id: 'see-test-coach' };
+    await refreshCoachDashToggle();
+    var shownForCoach = coachTile.hidden === false && !coachTile.hasAttribute('hidden')
+      && getComputedStyle(coachTile).display !== 'none';
+    window.sbS = async function(table, q){
+      if(table === 'coach_flags') return [{ is_coach: false }];
+      return origSbS.apply(this, arguments);
+    };
+    await refreshCoachDashToggle();
+    var hiddenForAthlete = coachTile.hidden === true && coachTile.hasAttribute('hidden')
+      && (coachTile.style.display === 'none' || getComputedStyle(coachTile).display === 'none');
+    window.sbS = origSbS;
+    window._authUser = prevAuth;
+    await refreshCoachDashToggle();
+    if(athleteOk && coachStaticHidden && sameGate && hiddenNoAuth && shownForCoach && hiddenForAthlete){
+      pass('Profile Guide tiles + coach-guide fail-closed gate');
+    } else {
+      fail('Profile Guide tiles + coach-guide fail-closed gate',
+        'athlete=' + athleteOk + ' staticHidden=' + coachStaticHidden + ' gate=' + sameGate
+        + ' noAuth=' + hiddenNoAuth + ' coachShow=' + shownForCoach + ' athleteHide=' + hiddenForAthlete);
+    }
+  }catch(e){
+    try{ if(typeof origSbS === 'function') window.sbS = origSbS; }catch(e2){}
+    fail('Profile Guide tiles + coach-guide fail-closed gate', e.message);
+  }
 
   // ── SECTION E: Screen sweep + isolation ─────────────────
   console.log('%c E — Screen Sweep + Isolation ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
