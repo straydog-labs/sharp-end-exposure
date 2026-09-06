@@ -950,6 +950,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .error-toast{position:fixed;bottom:20px;left:16px;right:16px;background:rgba(232,68,68,.95);color:#fff;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;}
 .error-toast.show{opacity:1;}
 .toast.show{opacity:1;}
+.see-sys-banner{position:fixed;left:12px;right:12px;bottom:12px;z-index:980;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.28);}
+.see-sys-banner[hidden]{display:none !important;}
+.see-sys-banner .see-sys-banner-msg{flex:1;font-size:13px;font-weight:600;color:var(--text);line-height:1.35;text-align:left;}
+.see-sys-banner button{background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;padding:8px 10px;cursor:pointer;white-space:nowrap;}
+.see-sys-banner button.see-sys-banner-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text);}
+#update-banner{bottom:auto;top:calc(56px + env(safe-area-inset-top, 0px));}
 .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface3) 50%,var(--surface) 75%);background-size:200% 100%;animation:skeleton-shimmer 1.4s infinite;border-radius:var(--r-sm);}
 @keyframes skeleton-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 .save-ind{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;min-height:16px;}
@@ -1004,6 +1010,13 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="app">
 <div id="toast-el" class="toast"></div>
 <div id="error-toast-el" class="error-toast"></div>
+<div id="sync-banner" class="see-sys-banner" hidden>
+  <button type="button" id="sync-banner-msg" class="see-sys-banner-msg" onclick="retryOfflineQueue()" style="background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;">Climbs pending sync. Tap to retry.</button>
+  <button type="button" id="sync-banner-view" class="see-sys-banner-secondary" onclick="viewOfflineQueue()">View</button>
+</div>
+<div id="update-banner" class="see-sys-banner" hidden>
+  <button type="button" id="update-banner-msg" class="see-sys-banner-msg" onclick="applySeeUpdate()" style="background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;">Update available. Tap to refresh.</button>
+</div>
 
 <!-- LOADING STATE — shown only while routeOnLoad() awaits the real auth/baseline
      check (Fix 6), instead of a blank screen or a premature baseline-screen flash -->
@@ -4786,7 +4799,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index234'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index235'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4894,19 +4907,27 @@ function initAuth(){
 }
 
 // ── SUPABASE HELPERS ─────────────────────────────────
+function sbFail(kind, extra){
+  extra = extra || {};
+  return { ok:false, kind:kind, status:extra.status||0, message:extra.message||'', table:extra.table||'' };
+}
+function sbFailed(r){ return !r || r.ok === false; }
+function isSbNetworkFail(r){ return !!(r && r.ok === false && r.kind === 'network'); }
+function isSbHttpFail(r){ return !!(r && r.ok === false && r.kind === 'http'); }
+
 async function sbI(table,payload){
   try{
     const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...getSBHeaders(),'Prefer':'return=representation'},body:JSON.stringify(payload)});
     if(!r.ok){
       const err=await r.json().catch(function(){return {};});
       console.error('sbI HTTP error:',r.status,table,err.message||err);
-      return null;
+      return sbFail('http', {status:r.status, message:err.message||String(err), table:table});
     }
     const d=await r.json();
     return Array.isArray(d)?d[0]:d;
   }catch(e){
     console.error('sbI network error:',e.message,table);
-    return null;
+    return sbFail('network', {message:e && e.message ? e.message : 'network', table:table});
   }
 }
 async function sbS(table,params=''){
@@ -4933,11 +4954,29 @@ async function sbU(table,filter,payload){
     if(!r.ok){
       const err=await r.json().catch(function(){return {};});
       console.error('sbU HTTP error:',r.status,table,err.message||err);
-      return null;
+      return sbFail('http', {status:r.status, message:err.message||String(err), table:table});
     }
     const d=await r.json();
     return Array.isArray(d)?d[0]:d;
-    }catch(e){console.error('sbU',e);return null;}
+    }catch(e){
+      console.error('sbU network error:',e.message,table);
+      return sbFail('network', {message:e && e.message ? e.message : 'network', table:table});
+    }
+}
+
+async function sbInsertSession(payload){
+  var p = Object.assign({}, payload || {});
+  var raw = await sbI('sessions', p);
+  if(isSbHttpFail(raw) && p.take_high_point){
+    delete p.take_high_point;
+    raw = await sbI('sessions', p);
+  }
+  if(isSbHttpFail(raw) && p.gym_climb_id){
+    delete p.gym_climb_id;
+    raw = await sbI('sessions', p);
+  }
+  if(!sbFailed(raw) && raw) Object.assign(payload, p);
+  return raw;
 }
 
 async function sbD(table,filter){
@@ -6105,7 +6144,7 @@ async function saveEditSessionCoachNote(id, sessionId){
   var text = ta ? ta.value.trim() : '';
   if(!text) return;
   var ok = await sbU('coach_notes', 'id=eq.' + id, { note: text, edited_at: new Date().toISOString() });
-  if(!ok){ showToast('Could not save edit - try again', true); return; }
+  if(sbFailed(ok)){ showToast('Could not save edit - try again', true); return; }
   _editingSessionNoteId = null;
   await loadSessionCoachNotesThread(sessionId);
 }
@@ -6154,7 +6193,7 @@ async function postSessionCoachNote(sessionId){
     note: text
   });
   if(btn){ btn.disabled = false; btn.textContent = 'Reply'; }
-  if(!saved){
+  if(sbFailed(saved)){
     showToast('Could not save note - try again', true);
     return;
   }
@@ -7133,19 +7172,16 @@ async function logFlowSaveSession(){
     }
   } catch(e){}
 
-  var raw = await sbI('sessions', payload);
-  if(raw === null && payload.take_high_point){
-    delete payload.take_high_point;
-    raw = await sbI('sessions', payload);
-  }
-  if(raw === null && payload.gym_climb_id){
-    delete payload.gym_climb_id;
-    raw = await sbI('sessions', payload);
-  }
-  if(raw === null){
+  var raw = await sbInsertSession(payload);
+  if(isSbNetworkFail(raw)){
     offlineQueueAdd(payload, logState.routeName, climbId);
-    showToast('Saved offline');
+    showToast('Saved offline. Will sync when you are back online.');
     showScreen('screen-log-prompt');
+    if(saveBtn){ saveBtn.textContent = 'Save climb'; saveBtn.classList.add('ready'); }
+    return;
+  }
+  if(sbFailed(raw) || !(raw && raw.id)){
+    showToast('Could not save this climb. Try again.', true);
     if(saveBtn){ saveBtn.textContent = 'Save climb'; saveBtn.classList.add('ready'); }
     return;
   }
@@ -7525,22 +7561,20 @@ async function logClimb(){
     }
   }catch(e){}
 
-  var raw = await sbI('sessions', payload);
-  if(raw === null && payload.take_high_point){
-    delete payload.take_high_point;
-    raw = await sbI('sessions', payload);
-  }
-  if(raw === null && payload.gym_climb_id){
-    delete payload.gym_climb_id;
-    raw = await sbI('sessions', payload);
-  }
-  // sbI returns null on both network failure and HTTP error
-  // Queue offline if null — never show red error for network failure
-  if(raw === null){
+  var raw = await sbInsertSession(payload);
+  if(isSbNetworkFail(raw)){
     offlineQueueAdd(payload, logState.routeName, climbId);
     showScreen('screen-celebrate');
     renderCelebrate();
-    console.warn('[logClimb] save returned null — queued offline');
+    showToast('Saved offline. Will sync when you are back online.');
+    console.warn('[logClimb] network fail - queued offline');
+    if(btn){btn.textContent='Log climb';btn.classList.add('ready');}
+    return;
+  }
+  if(sbFailed(raw) || !(raw && raw.id)){
+    console.error('Session save failed:', raw);
+    if(btn){btn.textContent='Retry';btn.classList.add('ready');btn.style.background='rgba(232,68,68,.8)';}
+    showToast('Could not save this climb. Tap Retry to try again.', true);
     return;
   }
   var saved=Array.isArray(raw)?raw[0]:raw;
@@ -8048,7 +8082,7 @@ async function saveJournalEntry(){
     entry_text: text
   };
   var saved = await sbI('journal_entries', payload);
-  if(saved === null){ showToast('Could not save — try again', true); return; }
+  if(sbFailed(saved)){ showToast('Could not save — try again', true); return; }
   if(textEl) textEl.value = '';
   showToast('Entry saved ✓');
   loadJournalEntries();
@@ -8423,7 +8457,7 @@ async function markCoachChatReadIfViewing(){
       '&read_at=is.null',
     { read_at: now }
   );
-  if(saved === null){
+  if(sbFailed(saved)){
     setTrainChatUnreadBadge(true);
     return false;
   }
@@ -8565,7 +8599,7 @@ async function saveEditCoachChatMessage(id){
   if(!text) return;
   var nowIso = new Date().toISOString();
   var ok = await sbU('coach_messages', 'id=eq.' + id, { body: text, edited_at: nowIso });
-  if(!ok){ showToast('Could not save edit - try again', true); return; }
+  if(sbFailed(ok)){ showToast('Could not save edit - try again', true); return; }
   var m = _coachChatMessages.find(function(x){ return x.id === id; });
   if(m){ m.body = text; m.edited_at = nowIso; }
   _editingChatMessageId = null;
@@ -8628,7 +8662,7 @@ async function sendCoachChatMessage(){
     link: null
   });
   if(btn){ btn.disabled = false; btn.textContent = 'Send'; }
-  if(!saved){
+  if(sbFailed(saved)){
     if(errEl) errEl.textContent = 'Could not send. Try again.';
     return;
   }
@@ -8769,7 +8803,7 @@ async function handleTrainCheckboxChange(assignmentId, idx, cbEl){
   var prevText = a.description;
   a.description = newText; // optimistic — keeps cache in sync immediately
   var res = await sbU('assignments', 'id=eq.'+assignmentId, {description: newText});
-  if(res === null){
+  if(sbFailed(res)){
     cbEl.checked = !newChecked; // roll back — save failed, don't leave an unsaved visual state
     a.description = prevText;
     showToast('Could not save checkbox — try again', true);
@@ -9368,7 +9402,7 @@ async function submitSelfAssignWizard(){
     };
     if(link) freeformPayload.resource_link = link;
     var savedFreeform = await sbI('assignments', freeformPayload);
-    if(!savedFreeform){ failCreate('Could not save assignment. Try again.'); return; }
+    if(sbFailed(savedFreeform)){ failCreate('Could not save assignment. Try again.'); return; }
     await finishOk();
     return;
   }
@@ -9388,7 +9422,7 @@ async function submitSelfAssignWizard(){
     }
     if(link) assignPayload.resource_link = link;
     var saved = await sbI('assignments', assignPayload);
-    if(!saved){ failCreate('Could not save assignment. Try again.'); return; }
+    if(sbFailed(saved)){ failCreate('Could not save assignment. Try again.'); return; }
     await finishOk();
     return;
   }
@@ -9410,7 +9444,7 @@ async function submitSelfAssignWizard(){
   };
   if(link) payload.resource_link = link;
   var assigned = await sbI('assignments', payload);
-  if(!assigned){ failCreate('Workout saved, but assignment failed. Try again from Train.'); return; }
+  if(sbFailed(assigned)){ failCreate('Workout saved, but assignment failed. Try again from Train.'); return; }
   await finishOk();
 }
 
@@ -9652,7 +9686,7 @@ async function saveNewTrainGoal(){
     priority: _trainGoalAddPriority === 'primary' ? 'primary' : 'secondary',
     text: text
   });
-  if(!saved){
+  if(sbFailed(saved)){
     showToast('Could not save goal - try again', true);
     return;
   }
@@ -9685,7 +9719,7 @@ async function saveEditTrainGoal(id){
   var g = _trainGoalsCache.find(function(x){ return String(x.id) === String(id); });
   var priority = goalPriorityKey(g && g.priority);
   var saved = await sbU('athlete_goals', 'id=eq.' + id, { text: text, priority: priority });
-  if(!saved){
+  if(sbFailed(saved)){
     showToast('Could not save goal - try again', true);
     return;
   }
@@ -11352,7 +11386,7 @@ async function saveTrainSession(){
     app_version: app_version
   };
   var saved = await sbI('training_sessions', payload);
-  if(!saved){
+  if(sbFailed(saved)){
     if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
     if(msg) msg.textContent = 'Could not save. If this is a fresh environment, confirm training_sessions migration is applied.';
     return;
@@ -11379,7 +11413,7 @@ async function saveTrainSession(){
     if(libId) assignPayload.library_item_id = libId;
     if(customId) assignPayload.custom_workout_item_id = customId;
     var assignSaved = await sbI('assignments', assignPayload);
-    if(!assignSaved){
+    if(sbFailed(assignSaved)){
       console.warn('[saveTrainSession] session saved but assignment link failed');
     }
   }
@@ -11495,7 +11529,7 @@ async function trainFlowSaveReflectionIfFilled(){
   if(refl.still_learning) parts.push('What to work on: ' + refl.still_learning);
   if(refl.surprised_by) parts.push('Anything surprise you: ' + refl.surprised_by);
   var savedRefl = await sbU('training_sessions', 'id=eq.' + _lastTrainSessionId, { notes: parts.join('\n\n') });
-  if(savedRefl) showToast('Reflection saved ✓');
+  if(!sbFailed(savedRefl)) showToast('Reflection saved ✓');
   else showToast('Could not save reflection - try again', true);
 }
 
@@ -11694,7 +11728,7 @@ async function addLibraryItemToTraining(){
     library_item_id: item.id
   };
   var saved = await sbI('assignments', payload);
-  if(saved === null){
+  if(sbFailed(saved)){
     if(btn){ btn.disabled = false; btn.textContent = 'Add to my training'; btn.style.opacity = '1'; }
     if(msgEl) msgEl.textContent = 'Could not add. Try again.';
     return;
@@ -11762,7 +11796,7 @@ async function createWorkoutLibraryItem(){
   var asCustom = !!window._wlSaveAsCustom;
   var table = asCustom ? 'custom_workouts' : 'workout_library';
   var saved = await sbI(table, payload);
-  if(saved === null){ if(msgEl) msgEl.textContent = 'Could not save. Try again.'; return; }
+  if(sbFailed(saved)){ if(msgEl) msgEl.textContent = 'Could not save. Try again.'; return; }
   if(nameEl) nameEl.value = '';
   if(descEl) descEl.value = '';
   window._wlSaveAsCustom = false;
@@ -12039,11 +12073,11 @@ async function saveEditedClimb(){
     take_high_point:takeHp
   };
   var savedClimb = await sbU('sessions','id=eq.'+logState.sessId, editPayload);
-  if(!savedClimb && Object.prototype.hasOwnProperty.call(editPayload,'take_high_point')){
+  if(sbFailed(savedClimb) && Object.prototype.hasOwnProperty.call(editPayload,'take_high_point')){
     delete editPayload.take_high_point;
     savedClimb = await sbU('sessions','id=eq.'+logState.sessId, editPayload);
   }
-  if(!savedClimb){
+  if(sbFailed(savedClimb)){
     showToast('Could not update - try again', true);
     return;
   }
@@ -13350,7 +13384,7 @@ async function saveRouteDetails(){
       route_height_ft:rdState.unit==='ft'?rdState.height:(rdState.height?Math.round(rdState.height*3.281):null)
     };
     var savedDetails = await sbU('sessions','id=eq.'+logState.sessId,payload);
-    if(!savedDetails){
+    if(sbFailed(savedDetails)){
       showToast('Could not save details - try again', true);
       return;
     }
@@ -15020,7 +15054,7 @@ async function persistBaselineTerrainCalibration(terrain, score){
       baseline_terrain_state: next.state,
       baseline_terrain_calibrated: next.cal
     });
-    if(saved){
+    if(!sbFailed(saved)){
       window._cachedBaseline = Object.assign({}, row, {
         baseline_terrain_state: next.state,
         baseline_terrain_calibrated: next.cal
@@ -15227,7 +15261,7 @@ async function deleteRoute(){
   if(!confirm("Delete this entire route and all "+count+" attempt"+(count===1?'':'s')+"? This can't be undone from the app.")) return;
   var now = new Date().toISOString();
   var climbOk = await sbU('climbs','id=eq.'+climbId,{deleted_at:now});
-  if(!climbOk){
+  if(sbFailed(climbOk)){
     showToast('Could not delete route - try again', true);
     return;
   }
@@ -15938,43 +15972,78 @@ function applyParsedSomatic(){
 // Flushes on app load and on every successful network request
 // ═══════════════════════════════════════════════════════
 var OFFLINE_QUEUE_KEY = 'see_offline_queue';
+var OFFLINE_QUEUE_STALE_MS = 86400000;
+
+function readOfflineQueue(){
+  try{ return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+
+function writeOfflineQueue(queue){
+  try{ localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue||[])); }
+  catch(e){ console.error('Offline queue write error:', e); }
+  paintSyncBanner();
+}
 
 function offlineQueueAdd(payload, routeName, climbId){
   try{
-    var queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)||'[]');
+    var queue = readOfflineQueue();
     queue.push({type:'session', payload:payload, routeName:routeName||null, climbId:climbId||null, ts:Date.now()});
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-    // Show subtle banner
-    
+    writeOfflineQueue(queue);
   }catch(e){ console.error('Offline queue add error:', e); }
 }
 
+function paintSyncBanner(){
+  var banner = document.getElementById('sync-banner');
+  var msg = document.getElementById('sync-banner-msg');
+  if(!banner) return;
+  var queue = readOfflineQueue();
+  if(!queue.length){
+    banner.hidden = true;
+    return;
+  }
+  var stale = queue.some(function(e){ return e.ts && (Date.now() - e.ts) > OFFLINE_QUEUE_STALE_MS; });
+  var n = queue.length;
+  var text = n === 1 ? '1 climb pending sync. Tap to retry.' : (n + ' climbs pending sync. Tap to retry.');
+  if(stale) text = n === 1
+    ? '1 climb still waiting to sync (older than a day). Tap to retry.'
+    : (n + ' climbs still waiting to sync (some older than a day). Tap to retry.');
+  if(msg) msg.textContent = text;
+  banner.hidden = false;
+}
 
+function viewOfflineQueue(){
+  var queue = readOfflineQueue();
+  if(!queue.length){ showToast('No climbs waiting to sync.'); paintSyncBanner(); return; }
+  var lines = queue.map(function(e, i){
+    var name = e.routeName || (e.payload && e.payload.route_name) || 'Climb';
+    var err = e.lastError ? ' - ' + e.lastError : '';
+    return (i+1) + '. ' + name + err;
+  });
+  showToast(lines.join(' / '));
+}
+
+function retryOfflineQueue(){
+  flushOfflineQueue();
+}
 
 async function flushOfflineQueue(){
-  // Clear entries older than 24 hours to prevent stuck banner
+  if(window._flushOfflineQueueBusy) return;
+  window._flushOfflineQueueBusy = true;
   try{
-    var q = JSON.parse(localStorage.getItem('see_offline_queue')||'[]');
-    var cutoff = Date.now() - 86400000;
-    var fresh = q.filter(function(e){ return !e.ts || e.ts > cutoff; });
-    if(fresh.length !== q.length) localStorage.setItem('see_offline_queue', JSON.stringify(fresh));
-  }catch(e){}
-  try{
-    var queue = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)||'[]');
-    if(queue.length === 0) return;
+    var queue = readOfflineQueue();
+    if(queue.length === 0){ paintSyncBanner(); return; }
     var remaining = [];
+    var synced = 0;
     for(var i=0; i<queue.length; i++){
       var entry = queue[i];
       try{
-        var payload = entry.payload;
-        // Attempt climb creation if no climbId
+        var payload = entry.payload || {};
         if(!entry.climbId && entry.routeName){
-          // Check cache for existing climb
           var cached = (window._cachedClimbs||[]).find(function(c){ return c.route_name===entry.routeName; });
           if(cached && cached.climb_id){
             payload.climb_id = cached.climb_id;
           } else {
-            // Create climb record
             var newClimb = await sbI('climbs',{
               name:entry.routeName,
               grade_value:payload.grade_value||null,
@@ -15985,18 +16054,40 @@ async function flushOfflineQueue(){
             if(newClimb && newClimb.id) payload.climb_id = newClimb.id;
           }
         }
-        await sbI('sessions', payload);
-        // Success — don't add back to remaining
+        var saved = await sbInsertSession(payload);
+        if(saved && saved.id){
+          synced++;
+        } else {
+          entry.lastError = isSbHttpFail(saved) ? (saved.message || 'server rejected this climb') : 'waiting for a connection';
+          remaining.push(entry);
+        }
       }catch(e){
-        remaining.push(entry); // keep for retry
+        entry.lastError = (e && e.message) || 'waiting for a connection';
+        remaining.push(entry);
       }
     }
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
-    if(remaining.length === 0 && queue.length > 0){
-      
-      showToast('Synced ✓');
-    }
+    writeOfflineQueue(remaining);
+    if(synced > 0 && remaining.length === 0) showToast('Synced ✓');
+    else if(synced > 0) showToast('Synced ' + synced + '. ' + remaining.length + ' still pending.');
   }catch(e){ console.error('Flush offline queue error:', e); }
+  finally{
+    window._flushOfflineQueueBusy = false;
+    paintSyncBanner();
+  }
+}
+
+function startOfflineQueueWatchers(){
+  if(window._offlineQueueWatchersBound) return;
+  window._offlineQueueWatchersBound = true;
+  window.addEventListener('online', function(){ flushOfflineQueue(); });
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') flushOfflineQueue();
+  });
+  window.addEventListener('pageshow', function(){ flushOfflineQueue(); });
+  setInterval(function(){
+    if(document.visibilityState === 'visible') flushOfflineQueue();
+  }, 75000);
+  paintSyncBanner();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -16137,6 +16228,7 @@ function runButtonAudit(options){
     'saveEditedClimb', 'launchLogWithClimb', 'startLogFlow', 'afterQ4', 'openEditSheet',
     'showNotesEditor', 'celebrateHomeLink', 'logFlowLogAnother', 'logFlowDoneHome',
     'submitBaseline', 'saveRouteDetails', 'deleteSession', 'flushOfflineQueue',
+    'retryOfflineQueue', 'viewOfflineQueue', 'applySeeUpdate',
     'loadClimbLog', 'loadTrainAssignments', 'loadWorkoutLibrary', 'loadExampleClimbLog', 'loadDrillRouteOptions',
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
@@ -16658,9 +16750,53 @@ async function runSEETests(){
     if(queueAfter.length > queueBefore.length){
       pass('Offline queue write works');
       var cleaned = queueAfter.filter(function(e){ return !e.payload.test; });
-      localStorage.setItem('see_offline_queue', JSON.stringify(cleaned));
+      writeOfflineQueue(cleaned);
     } else { fail('Offline queue write works', 'Queue length did not increase'); }
   }catch(e){ fail('Offline queue write works', e.message); }
+
+  try{
+    var net = sbFail('network', {message:'offline', table:'sessions'});
+    var http = sbFail('http', {status:400, message:'column take_high_point does not exist', table:'sessions'});
+    var shapeOk = net.ok === false && net.kind === 'network' && http.kind === 'http' && http.status === 400
+      && sbFailed(net) && sbFailed(http) && sbFailed(null)
+      && !sbFailed({id:'x'}) && isSbNetworkFail(net) && isSbHttpFail(http)
+      && !isSbNetworkFail(http) && !isSbHttpFail(net);
+    var logSrc = String(logClimb) + String(logFlowSaveSession);
+    var flushSrc = String(flushOfflineQueue);
+    var watcherSrc = String(startOfflineQueueWatchers);
+    var swSrc = String(registerSEEServiceWorker);
+    var insertSrc = String(sbInsertSession);
+    var aOk = /sbFail\('network'/.test(String(sbI)) && /sbFail\('http'/.test(String(sbI))
+      && /sbFail\('network'/.test(String(sbU)) && /sbFail\('http'/.test(String(sbU));
+    var bOk = /isSbNetworkFail/.test(logSrc) && /Could not save this climb/.test(logSrc)
+      && /sbInsertSession/.test(logSrc);
+    var cOk = /addEventListener\('online'/.test(watcherSrc)
+      && /visibilitychange/.test(watcherSrc)
+      && /pageshow/.test(watcherSrc)
+      && /75000/.test(watcherSrc)
+      && /startOfflineQueueWatchers/.test(document.documentElement.innerHTML);
+    var dOk = !!document.getElementById('sync-banner')
+      && /pending sync/.test((document.getElementById('sync-banner-msg')||{}).textContent || '')
+      && flushSrc.indexOf('fresh.length !== q.length') === -1
+      && !/filter\(function\(e\)\{ return !e\.ts/.test(flushSrc);
+    var eOk = /take_high_point/.test(insertSrc) && /gym_climb_id/.test(insertSrc)
+      && /sbInsertSession/.test(flushSrc);
+    var fOk = !!document.getElementById('update-banner')
+      && /controllerchange/.test(swSrc) && /updatefound/.test(swSrc)
+      && /applySeeUpdate/.test((document.getElementById('update-banner-msg')||{}).getAttribute('onclick') || '');
+    var prevQ = readOfflineQueue();
+    writeOfflineQueue([{type:'session', payload:{test:true}, routeName:'Stale', ts: Date.now() - 90000000}]);
+    var banner = document.getElementById('sync-banner');
+    paintSyncBanner();
+    var staleKept = readOfflineQueue().length === 1 && banner && banner.hidden === false;
+    writeOfflineQueue(prevQ);
+    if(shapeOk && aOk && bOk && cOk && dOk && eOk && fOk && staleKept){
+      pass('Offline queue distinguishes network vs HTTP, retries, never silently deletes');
+    } else {
+      fail('Offline queue distinguishes network vs HTTP, retries, never silently deletes',
+        'shape=' + shapeOk + ' A=' + aOk + ' B=' + bOk + ' C=' + cOk + ' D=' + dOk + ' E=' + eOk + ' F=' + fOk + ' stale=' + staleKept);
+    }
+  }catch(e){ fail('Offline queue distinguishes network vs HTTP, retries, never silently deletes', e.message); }
 
   // C6: Delete test session
   if(testId){
@@ -18949,7 +19085,7 @@ async function saveNote(){
   if(!text){ closeNotesEditor(); return; }
   if(!logState.sessId){ showToast('Session ID not found'); return; }
   var savedNote = await sbU('sessions','id=eq.'+logState.sessId,{session_notes:text});
-  if(!savedNote){
+  if(sbFailed(savedNote)){
     showToast('Could not save note - try again', true);
     return;
   }
@@ -19049,7 +19185,7 @@ async function authSignUp(){
         window._authUser = res.data.user;
         window._authToken = res.data.session.access_token;
         var profileSaved = await sbI('profiles', profilePayload);
-        if(!profileSaved){
+        if(sbFailed(profileSaved)){
           console.error('[authSignUp] profiles insert failed');
           try{ sessionStorage.setItem('see_pending_profile', JSON.stringify(profilePayload)); }catch(e){}
         }
@@ -19079,7 +19215,7 @@ async function flushPendingProfile(){
     first_name: pending.first_name,
     last_name: pending.last_name
   });
-  if(saved){
+  if(!sbFailed(saved)){
     try{ sessionStorage.removeItem('see_pending_profile'); }catch(e){}
     return;
   }
@@ -19464,7 +19600,7 @@ async function submitProfileFeedback(){
     user_id: window._authUser ? window._authUser.id : null,
     app_version: app_version
   });
-  if(!savedFb){
+  if(sbFailed(savedFb)){
     showToast('Could not send - try again', true);
     return;
   }
@@ -19546,6 +19682,7 @@ buildGradeGrid(_savedGradeSys);
 spSetGradeSys(_savedGradeSys);
 // Flush any pending offline saves
 setTimeout(flushOfflineQueue, 1000);
+startOfflineQueueWatchers();
 // Init auth first — then route appropriately
 initAuth();
 // Route on load — check localStorage first (instant), then check auth session
@@ -19878,12 +20015,36 @@ function consumeTrainChatDeepLink(){
   }
 }
 
+function showUpdateBanner(){
+  var el = document.getElementById('update-banner');
+  if(el) el.hidden = false;
+}
+
+function applySeeUpdate(){
+  location.reload();
+}
+
 function registerSEEServiceWorker(){
   if(typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
   var proto = (window.location && window.location.protocol) || '';
   if(proto !== 'https:' && proto !== 'http:') return;
   var swUrl = 'sw.js?v=' + encodeURIComponent(app_version);
-  navigator.serviceWorker.register(swUrl, { scope: './', updateViaCache: 'none' }).catch(function(){});
+  navigator.serviceWorker.register(swUrl, { scope: './', updateViaCache: 'none' }).then(function(reg){
+    if(reg.waiting) showUpdateBanner();
+    reg.addEventListener('updatefound', function(){
+      var w = reg.installing;
+      if(!w) return;
+      w.addEventListener('statechange', function(){
+        if(w.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner();
+      });
+    });
+  }).catch(function(){});
+  if(!window._seeControllerChangeBound && navigator.serviceWorker.addEventListener){
+    window._seeControllerChangeBound = true;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      showUpdateBanner();
+    });
+  }
   if(!window._seePushSwMsgBound){
     window._seePushSwMsgBound = true;
     navigator.serviceWorker.addEventListener('message', function(event){
