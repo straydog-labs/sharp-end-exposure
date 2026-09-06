@@ -4799,7 +4799,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index235'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index236'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -7903,6 +7903,34 @@ async function loadClimbCache(){
 
 function normalizeClimbName(s){
   return (s||'').toLowerCase().trim().replace(/  +/g,' ');
+}
+
+// Offline-queue climb resolve: live `climbs` query + normalizeClimbName.
+// Do not use window._cachedClimbs (SESSIONS cache, exact === on route_name).
+async function resolveClimbIdForQueue(routeName, payload){
+  payload = payload || {};
+  var name = (routeName || '').trim();
+  if(!name) return payload.climb_id || null;
+  _climbCache = null;
+  var climbs = await loadClimbCache();
+  var want = normalizeClimbName(name);
+  var match = (climbs || []).find(function(c){
+    return normalizeClimbName(c.name || '') === want;
+  });
+  if(match && match.id){
+    _climbCache = null;
+    return match.id;
+  }
+  var created = await sbI('climbs', {
+    name: name,
+    grade_value: payload.grade_value || null,
+    climbing_type: payload.climbing_type || null,
+    device_id: payload.device_id || getDeviceId(),
+    user_id: payload.user_id || (window._authUser ? window._authUser.id : null)
+  });
+  _climbCache = null;
+  if(created && created.id) return created.id;
+  return null;
 }
 
 async function onClimbNameInput(val){
@@ -16039,20 +16067,9 @@ async function flushOfflineQueue(){
       var entry = queue[i];
       try{
         var payload = entry.payload || {};
-        if(!entry.climbId && entry.routeName){
-          var cached = (window._cachedClimbs||[]).find(function(c){ return c.route_name===entry.routeName; });
-          if(cached && cached.climb_id){
-            payload.climb_id = cached.climb_id;
-          } else {
-            var newClimb = await sbI('climbs',{
-              name:entry.routeName,
-              grade_value:payload.grade_value||null,
-              climbing_type:payload.climbing_type||null,
-              device_id:getDeviceId(),
-              user_id:window._authUser ? window._authUser.id : null
-            });
-            if(newClimb && newClimb.id) payload.climb_id = newClimb.id;
-          }
+        if(!entry.climbId && (entry.routeName || payload.route_name)){
+          var resolvedId = await resolveClimbIdForQueue(entry.routeName || payload.route_name, payload);
+          if(resolvedId) payload.climb_id = resolvedId;
         }
         var saved = await sbInsertSession(payload);
         if(saved && saved.id){
@@ -16227,7 +16244,7 @@ function runButtonAudit(options){
     'saveNote', 'saveGaugeOverride', 'logFlowSaveSession', 'logClimb',
     'saveEditedClimb', 'launchLogWithClimb', 'startLogFlow', 'afterQ4', 'openEditSheet',
     'showNotesEditor', 'celebrateHomeLink', 'logFlowLogAnother', 'logFlowDoneHome',
-    'submitBaseline', 'saveRouteDetails', 'deleteSession', 'flushOfflineQueue',
+    'submitBaseline', 'saveRouteDetails', 'deleteSession', 'flushOfflineQueue', 'resolveClimbIdForQueue',
     'retryOfflineQueue', 'viewOfflineQueue', 'applySeeUpdate',
     'loadClimbLog', 'loadTrainAssignments', 'loadWorkoutLibrary', 'loadExampleClimbLog', 'loadDrillRouteOptions',
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
@@ -16797,6 +16814,83 @@ async function runSEETests(){
         'shape=' + shapeOk + ' A=' + aOk + ' B=' + bOk + ' C=' + cOk + ' D=' + dOk + ' E=' + eOk + ' F=' + fOk + ' stale=' + staleKept);
     }
   }catch(e){ fail('Offline queue distinguishes network vs HTTP, retries, never silently deletes', e.message); }
+
+  try{
+    var origS = window.sbS, origI = window.sbI, origInsert = window.sbInsertSession;
+    var prevQ2 = readOfflineQueue();
+    var prevCached = window._cachedClimbs;
+    var prevClimbCache = _climbCache;
+    var prevAuth = window._authUser;
+    var createdClimbs = [];
+    var flushedPayloads = [];
+    var existing = {id:'climb-existing', name:'Power of Now', grade_value:'V4', climbing_type:'Overhang'};
+    window._authUser = {id:'user-queue-test'};
+    window.sbS = async function(table){
+      if(table === 'climbs') return [existing];
+      return [];
+    };
+    window.sbI = async function(table, row){
+      createdClimbs.push({table:table, payload:row});
+      return {id:'climb-duplicate'};
+    };
+    window.sbInsertSession = async function(row){
+      flushedPayloads.push(row);
+      return {id:'sess-flushed'};
+    };
+
+    window._cachedClimbs = [];
+    _climbCache = null;
+    var idEmptyCache = await resolveClimbIdForQueue('power of now', {device_id:'d1', user_id:'user-queue-test'});
+    var cacheAfterEmpty = _climbCache;
+
+    window._cachedClimbs = [{id:'sess-stale', route_name:'Power of Now', climb_id:'climb-from-sessions'}];
+    _climbCache = [{id:'stale-cache-row', name:'Ignore Me'}];
+    var idStaleSessions = await resolveClimbIdForQueue('Power of Now', {device_id:'d1', user_id:'user-queue-test'});
+
+    window._cachedClimbs = [];
+    _climbCache = null;
+    var idCaseWs = await resolveClimbIdForQueue('  POWER   OF   NOW  ', {device_id:'d1', user_id:'user-queue-test'});
+    var cacheAfterCase = _climbCache;
+
+    window._cachedClimbs = [];
+    _climbCache = null;
+    writeOfflineQueue([{
+      type:'session',
+      payload:{route_name:'  POWER   OF   NOW  ', device_id:'d1', user_id:'user-queue-test', grade_value:'V4'},
+      routeName:'  POWER   OF   NOW  ',
+      climbId:null,
+      ts: Date.now()
+    }]);
+    window._flushOfflineQueueBusy = false;
+    await flushOfflineQueue();
+    var cacheAfterFlush = _climbCache;
+    var queueAfterFlush = readOfflineQueue();
+
+    window.sbS = origS;
+    window.sbI = origI;
+    window.sbInsertSession = origInsert;
+    writeOfflineQueue(prevQ2);
+    window._cachedClimbs = prevCached;
+    _climbCache = prevClimbCache;
+    window._authUser = prevAuth;
+    window._flushOfflineQueueBusy = false;
+
+    var emptyOk = idEmptyCache === 'climb-existing';
+    var staleOk = idStaleSessions === 'climb-existing';
+    var caseOk = idCaseWs === 'climb-existing';
+    var noDup = createdClimbs.length === 0;
+    var flushOk = flushedPayloads[0] && flushedPayloads[0].climb_id === 'climb-existing' && queueAfterFlush.length === 0;
+    var invalidated = cacheAfterEmpty === null && cacheAfterCase === null && cacheAfterFlush === null;
+    if(emptyOk && staleOk && caseOk && noDup && flushOk && invalidated){
+      pass('Offline queue climb resolve uses live climbs + normalizeClimbName (no duplicate)');
+    } else {
+      fail('Offline queue climb resolve uses live climbs + normalizeClimbName (no duplicate)',
+        'empty=' + emptyOk + ' stale=' + staleOk + ' case=' + caseOk + ' noDup=' + noDup +
+        ' flush=' + flushOk + ' invalidated=' + invalidated +
+        ' created=' + JSON.stringify(createdClimbs) +
+        ' flushed=' + JSON.stringify(flushedPayloads));
+    }
+  }catch(e){ fail('Offline queue climb resolve uses live climbs + normalizeClimbName (no duplicate)', e.message); }
 
   // C6: Delete test session
   if(testId){
