@@ -961,6 +961,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .save-ind{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;min-height:16px;}
 .warn-box{font-size:12px;color:var(--panic);background:rgba(255,92,58,.06);border:1px solid rgba(255,92,58,.2);border-radius:8px;padding:10px 14px;margin-top:10px;line-height:1.6;}
 .empty-state{text-align:center;padding:3rem 0;color:var(--muted);}
+.climb-star-btn{background:none;border:none;padding:4px;cursor:pointer;line-height:0;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.climb-star-btn svg{display:block;}
+.climb-beta-count{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;}
+
 .pattern-line{font-size:12px;color:var(--muted);font-weight:300;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:6px;border-left:2px solid var(--accent);display:none;}
 .dummy-banner{font-size:11px;color:var(--learning);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:6px;padding:6px 12px;text-align:center;margin-bottom:12px;}
 
@@ -1219,9 +1223,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </button>
   </div>
 
-  <!-- Quick-access strip — recent climbs (hidden until 1+ named climbs exist) -->
+  <!-- Projects strip — starred climbs (empty-state stays visible when none starred) -->
   <div id="quick-strip-wrap" style="display:none;padding:10px 0 0;">
-    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 16px;margin-bottom:8px;">Log again</div>
+    <div id="quick-strip-label" style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 16px;margin-bottom:8px;">Projects</div>
     <div id="quick-strip" style="display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;"></div>
   </div>
 
@@ -1535,16 +1539,20 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div style="padding:0 16px 80px;">
 
-    <!-- Route name + subtitle -->
+    <!-- Route name + subtitle + project star -->
     <div style="margin-bottom:20px;">
-      <div id="rh-name" style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;">—</div>
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div id="rh-name" style="flex:1;min-width:0;font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;">—</div>
+        <div id="rh-project-tools" style="display:flex;align-items:center;gap:8px;flex-shrink:0;padding-top:6px;"></div>
+      </div>
       <div id="rh-subtitle" style="font-size:14px;color:var(--muted);"></div>
     </div>
 
-    <!-- Beta notes card -->
+    <!-- Beta notes log -->
     <div class="insight-card" style="margin-bottom:12px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Route beta</div>
-      <textarea id="rh-beta-notes" placeholder="Add notes about this route — movement, holds, sequence..." style="width:100%;background:transparent;border:1px dashed var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;resize:none;min-height:72px;box-sizing:border-box;" oninput="saveRouteBeta()"></textarea>
+      <div id="rh-beta-list"></div>
+      <div id="rh-beta-add-wrap" style="margin-top:8px;"></div>
     </div>
 
     <!-- Stats row -->
@@ -1858,7 +1866,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="screen-title">Log a climb<span class="sub">What just happened out there?</span></div>
 
     <div id="log-locked-header" style="display:none;margin-bottom:4px;">
-      <div id="log-locked-name" style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;">—</div>
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div id="log-locked-name" style="flex:1;min-width:0;font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;">—</div>
+        <div id="log-locked-project-tools" style="display:flex;align-items:center;gap:8px;flex-shrink:0;padding-top:6px;"></div>
+      </div>
       <div id="log-locked-subtitle" style="font-size:14px;color:var(--muted);"></div>
     </div>
 
@@ -4799,7 +4810,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index236'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index237'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -6002,40 +6013,38 @@ function renderQuickStrip(climbs){
   var strip=document.getElementById('quick-strip');
   if(!wrap||!strip) return;
 
-  // Get 3 most recent named climbs (unique by name, most recent first)
   var seen={};
-  var recent=[];
-  climbs.slice().sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);})
+  var projects=[];
+  (climbs||[]).slice().sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);})
     .forEach(function(s){
-      if(s.route_name && s.climb_id && !seen[s.climb_id]){
+      if(s.route_name && s.climb_id && !seen[s.climb_id] && isClimbProject(s.climb_id)){
         seen[s.climb_id]=true;
-        recent.push(s);
+        projects.push(s);
       }
     });
-  recent=recent.slice(0,3);
+  projects=projects.slice(0,3);
 
-  if(!recent.length){wrap.style.display='none';return;}
   wrap.style.display='block';
+  if(!projects.length){
+    strip.innerHTML='<div style="font-size:13px;color:var(--muted);line-height:1.45;padding:4px 0 8px;">Star a climb to pin it here as a project.</div>';
+    return;
+  }
 
-  strip.innerHTML=recent.map(function(s){
+  strip.innerHTML=projects.map(function(s){
     var grade=s.grade_value||'';
     var terrain=s.climbing_type||'';
     var setting=s.setting||'';
     var name=s.route_name||'';
     var cid=s.climb_id||'';
-    // Fix 7: outer onclick uses single quotes (JSON.stringify's own delimiters are
-    // double quotes, so they no longer conflict). Any raw apostrophe WITHIN a
-    // value (e.g. "Joe's Problem") must be HTML-entity-encoded — not backslash-
-    // escaped — since HTML attribute-delimiter matching doesn't recognize
-    // backslash-escaping at all, only HTML entities get decoded before the
-    // extracted attribute text is handed to the JS parser.
     function escForAttr(v){ return JSON.stringify(v).replace(/'/g, '&#39;'); }
-    // Fix 3 (build 173): routes through launchLogWithClimb() — same entry point
-    // Route History's own +Attempt uses — instead of the old quickLogAgain(),
-    // which got the locked-header treatment for free and fixed Fix 1's reset bug
-    // as a side effect (launchLogWithClimb's pre-fill is deferred past showScreen's
-    // internal resetLogScreen() call; quickLogAgain's wasn't).
-    return '<div style="flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:12px 14px;min-width:140px;max-width:180px;">'      +'<div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;">'+name+'</div>'      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+(grade?grade:'—')+(terrain?' · '+terrain:'')+'</div>'      +'<button onclick=\'launchLogWithClimb('+escForAttr(cid)+','+escForAttr(name)+','+escForAttr(grade)+','+escForAttr(terrain)+','+escForAttr(setting)+')\'        style="width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:inherit;font-size:12px;font-weight:700;padding:7px;cursor:pointer;">'      +'+ Attempt</button>'      +'</div>';
+    var notes=climbBetaCountLabel(cid);
+    return '<div style="flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:12px 14px;min-width:140px;max-width:180px;">'
+      +'<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:2px;">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">'+escTrainHtml(name)+'</div>'
+      +climbStarButtonHtml(cid)
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+(grade?escTrainHtml(grade):'—')+(terrain?' · '+escTrainHtml(terrain):'')+(notes?' · '+escTrainHtml(notes):'')+'</div>'
+      +'<button onclick=\'launchLogWithClimb('+escForAttr(cid)+','+escForAttr(name)+','+escForAttr(grade)+','+escForAttr(terrain)+','+escForAttr(setting)+')\'        style="width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:inherit;font-size:12px;font-weight:700;padding:7px;cursor:pointer;">'      +'+ Attempt</button>'      +'</div>';
   }).join('');
 }
 
@@ -6044,8 +6053,10 @@ function renderQuickStrip(climbs){
 // resetLogScreen() the way this function's pre-fill-then-showScreen ordering did.
 
 
-function showClimbTable(){
+async function showClimbTable(){
   showScreen('screen-climb-table');
+  await loadClimbCache();
+  await loadBetaNoteCounts();
   renderClimbDataTable();
 }
 
@@ -6083,7 +6094,7 @@ function renderClimbDataTable(){
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
     var c=zoneColor(s.zone||'learning');
     var rowAttrs=s.climb_id?'data-cid="'+s.climb_id+'" onclick="openClimbExposure(this.dataset.cid)" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);"':'style="border-bottom:1px solid rgba(255,255,255,.05);"';
-    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.route_name||'—')+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabel(s.baseline_zone)||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'      +'</tr>';
+    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.climb_id?'<span style="display:inline-flex;align-items:center;gap:4px;max-width:100%;">'+climbStarButtonHtml(s.climb_id)+'<span style="overflow:hidden;text-overflow:ellipsis;">'+(s.route_name||'—')+'</span>'+(climbBetaNoteCount(s.climb_id)?' <span class="climb-beta-count">'+escTrainHtml(climbBetaCountLabel(s.climb_id))+'</span>':'')+'</span>':(s.route_name||'—'))+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabel(s.baseline_zone)||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'      +'</tr>';
   }).join('');
 }
 
@@ -7893,12 +7904,146 @@ function dismissGradeNudge(){
 // ═══════════════════════════════════════════════════════
 var _climbCache=null;
 var _selectedClimbId=null;
+var _betaNoteCounts={};
+var _editingBetaNoteId=null;
+var _addingBetaNote=false;
+var _rhBetaNotes=[];
 
 async function loadClimbCache(){
   if(_climbCache)return _climbCache;
-  var climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&'+(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId())+'&deleted_at=is.null&order=created_at.desc&limit=200');
+  var owner=(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId());
+  var extra='&deleted_at=is.null&order=created_at.desc&limit=200';
+  var climbs=await fetchOwnedClimbsSelect('id,name,grade_value,climbing_type,is_project,beta_notes', owner, extra);
+  if(!Array.isArray(climbs)){
+    climbs=await fetchOwnedClimbsSelect('id,name,grade_value,climbing_type,beta_notes', owner, extra);
+  }
+  if(!Array.isArray(climbs)){
+    climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&'+owner+extra);
+  }
   _climbCache=Array.isArray(climbs)?climbs:[];
   return _climbCache;
+}
+
+async function fetchOwnedClimbsSelect(cols, owner, extra){
+  try{
+    var r=await fetch(SB_URL+'/rest/v1/climbs?select='+cols+'&'+owner+extra,{headers:getSBHeaders()});
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){
+    return null;
+  }
+}
+
+function climbById(id){
+  if(!id||!_climbCache) return null;
+  for(var i=0;i<_climbCache.length;i++){
+    if(_climbCache[i].id===id) return _climbCache[i];
+  }
+  return null;
+}
+
+function isClimbProject(id){
+  var c=climbById(id);
+  return !!(c && c.is_project);
+}
+
+function climbBetaNoteCount(id){
+  if(!id) return 0;
+  var n=_betaNoteCounts[id]||0;
+  if(n>0) return n;
+  var c=climbById(id);
+  if(c && c.beta_notes && String(c.beta_notes).trim()) return 1;
+  return 0;
+}
+
+function climbBetaCountLabel(id){
+  var n=climbBetaNoteCount(id);
+  if(n<1) return '';
+  return n+' note'+(n===1?'':'s');
+}
+
+function climbBetaCountHtml(id){
+  var label=climbBetaCountLabel(id);
+  if(!label) return '';
+  return '<span class="climb-beta-count">'+escTrainHtml(label)+'</span>';
+}
+
+function climbStarSvg(filled){
+  if(filled){
+    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"><polygon points="12 3 14.9 9.2 21.6 9.9 16.6 14.5 18 21.1 12 17.6 6 21.1 7.4 14.5 2.4 9.9 9.1 9.2 12 3"/></svg>';
+  }
+  return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linejoin="round"><polygon points="12 3 14.9 9.2 21.6 9.9 16.6 14.5 18 21.1 12 17.6 6 21.1 7.4 14.5 2.4 9.9 9.1 9.2 12 3"/></svg>';
+}
+
+function climbStarButtonHtml(climbId){
+  if(!climbId) return '';
+  var filled=isClimbProject(climbId);
+  var label=filled?'Remove project star':'Star as project';
+  return '<button type="button" class="climb-star-btn" data-cid="'+escTrainHtml(climbId)+'" aria-label="'+label+'" onclick="event.stopPropagation();toggleClimbProject(\''+String(climbId).replace(/'/g,'')+'\')">'+climbStarSvg(filled)+'</button>';
+}
+
+function climbProjectToolsHtml(climbId){
+  if(!climbId) return '';
+  return climbBetaCountHtml(climbId)+climbStarButtonHtml(climbId);
+}
+
+async function loadBetaNoteCounts(){
+  var rows=await sbS('climb_beta_notes','select=climb_id&deleted_at=is.null&limit=1000');
+  var counts={};
+  if(Array.isArray(rows)){
+    rows.forEach(function(r){
+      if(!r||!r.climb_id) return;
+      counts[r.climb_id]=(counts[r.climb_id]||0)+1;
+    });
+  }
+  _betaNoteCounts=counts;
+  return counts;
+}
+
+async function toggleClimbProject(climbId){
+  if(!climbId) return;
+  await loadClimbCache();
+  var rec=climbById(climbId);
+  var next=!(rec && rec.is_project);
+  var ok=await sbU('climbs','id=eq.'+encodeURIComponent(climbId),{is_project:next});
+  if(sbFailed(ok)){ showToast('Could not update project - try again', true); return; }
+  if(rec) rec.is_project=next;
+  else {
+    _climbCache=_climbCache||[];
+    _climbCache.push({id:climbId, is_project:next});
+  }
+  refreshClimbProjectUi(climbId);
+}
+
+function refreshClimbProjectUi(climbId){
+  function isActive(id){
+    var el=document.getElementById(id);
+    return !!(el && el.classList.contains('active'));
+  }
+  if(isActive('screen-sessions')){
+    renderQuickStrip(window._cachedClimbs||[]);
+    renderClimbTable(window._cachedClimbs||[], true);
+  }
+  if(isActive('screen-climb-table')) renderClimbDataTable();
+  if(isActive('screen-route-history') && window._rhClimbId===climbId) paintRouteHistoryProjectUi();
+  paintLockedClimbProjectUi();
+  var sugg=document.getElementById('climb-suggestions');
+  var inp=document.getElementById('log-rname-input');
+  if(sugg && sugg.style.display==='block' && inp) onClimbNameInput(inp.value);
+}
+
+function paintRouteHistoryProjectUi(){
+  var host=document.getElementById('rh-project-tools');
+  if(host) host.innerHTML=climbProjectToolsHtml(window._rhClimbId);
+}
+
+function paintLockedClimbProjectUi(){
+  var host=document.getElementById('log-locked-project-tools');
+  if(!host) return;
+  var locked=document.getElementById('log-locked-header');
+  var id=_selectedClimbId||null;
+  if(!locked || locked.style.display==='none' || !id){ host.innerHTML=''; return; }
+  host.innerHTML=climbProjectToolsHtml(id);
 }
 
 function normalizeClimbName(s){
@@ -7947,10 +8092,14 @@ async function onClimbNameInput(val){
   sugg.style.display='block';
   sugg.innerHTML=matches.map(function(c){
     var sub=[c.grade_value,c.climbing_type].filter(Boolean).join(' · ');
-    return '<div onclick="selectClimb(\''+c.id+'\',\''+c.name.replace(/\'/g,'&#39;')+'\')" '
-      +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);-webkit-tap-highlight-color:transparent;">'
-      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+c.name+'</div>'
-      +(sub?'<div style="font-size:11px;color:var(--muted);">'+sub+'</div>':'')
+    var notes=climbBetaCountLabel(c.id);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);">'
+      +'<div onclick="selectClimb(\''+c.id+'\',\''+c.name.replace(/\'/g,'&#39;')+'\')" '
+      +'style="flex:1;min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent;">'
+      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+escTrainHtml(c.name)+'</div>'
+      +((sub||notes)?'<div style="font-size:11px;color:var(--muted);">'+escTrainHtml([sub,notes].filter(Boolean).join(' · '))+'</div>':'')
+      +'</div>'
+      +climbStarButtonHtml(c.id)
       +'</div>';
   }).join('');
 }
@@ -7977,6 +8126,7 @@ function lockRouteIdentityFields(routeName, grade, terrain, setting){
   if(nameEl) nameEl.textContent = routeName || '—';
   if(subEl) subEl.textContent = [grade, terrain, setting ? (setting.charAt(0).toUpperCase()+setting.slice(1)) : null].filter(Boolean).join(' · ');
   if(lockedHeader) lockedHeader.style.display = 'block';
+  paintLockedClimbProjectUi();
 }
 
 function unlockRouteIdentityFields(){
@@ -7995,6 +8145,7 @@ function unlockRouteIdentityFields(){
   if(titleEl) titleEl.style.display = '';
   var lockedHeader = document.getElementById('log-locked-header');
   if(lockedHeader) lockedHeader.style.display = 'none';
+  paintLockedClimbProjectUi();
 }
 
 async function selectClimb(id, name){
@@ -12432,6 +12583,8 @@ async function loadClimbLog(){
     return s.grade_value || s.zone;
   });
   window._cachedClimbs=validClimbs;
+  await loadClimbCache();
+  await loadBetaNoteCounts();
   renderClimbTable(validClimbs, true); // true = home-screen preview (5 most recent, unsorted)
 
   // YOUR PATTERNS — Stage 1-3 rebuild, build 183: Zone-by-Terrain, Falls-by-
@@ -12449,7 +12602,7 @@ async function loadClimbLog(){
     var fallsTerrainCard = document.getElementById('falls-terrain-card');
     if(fallsTerrainCard) fallsTerrainCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
   }
-  renderQuickStrip(climbs); // Item 9: populate quick-access strip
+  renderQuickStrip(climbs); // Projects strip: starred climbs only
 
   // 5-climb milestone — check on Climb Log home visit so it never interrupts Go Deeper
   if(total===5){
@@ -14467,10 +14620,11 @@ function renderClimbTable(climbs, previewOnly){
         + '<td colspan="4" style="padding:10px 10px 6px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
         + '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:4px;">'
+        + (row.climbId?climbStarButtonHtml(row.climbId):'')
         + '<span style="font-size:14px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+row.name+' '+gradeStr+terrainStr+'</span>'
         + (row.climbId?'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>':'')
         + '</div>'
-        + '<div style="flex-shrink:0;display:flex;align-items:center;gap:6px;">'+zonePillHtml+countLabel+'</div>'
+        + '<div style="flex-shrink:0;display:flex;align-items:center;gap:6px;">'+(row.climbId?climbBetaCountHtml(row.climbId):'')+zonePillHtml+countLabel+'</div>'
         + '</div>'
         + '</td></tr>';
       return;
@@ -15216,8 +15370,16 @@ async function openClimbExposure(climbId){
   if(!climbId) return;
   window._rhClimbId = climbId;
 
-  // Load climb record and sessions
-  var climbRec = _climbCache ? _climbCache.find(function(c){ return c.id===climbId; }) : null;
+  await loadClimbCache();
+  var climbRec = climbById(climbId);
+  if(!climbRec){
+    var fetched = await sbS('climbs','select=id,name,grade_value,climbing_type,is_project,beta_notes&id=eq.'+encodeURIComponent(climbId)+'&deleted_at=is.null&limit=1');
+    climbRec = (Array.isArray(fetched) && fetched[0]) ? fetched[0] : null;
+    if(climbRec){
+      _climbCache = _climbCache || [];
+      _climbCache.push(climbRec);
+    }
+  }
   var uid = window._authUser ? window._authUser.id : null;
   var sessQuery = uid
     ? 'select=*&climb_id=eq.'+encodeURIComponent(climbId)+'&user_id=eq.'+uid+'&is_baseline=eq.false&is_checkin=eq.false&deleted_at=is.null&order=created_at.asc'
@@ -15236,12 +15398,11 @@ async function openClimbExposure(climbId){
   var subEl  = document.getElementById('rh-subtitle');
   if(nameEl) nameEl.textContent = name || '—';
   if(subEl)  subEl.textContent  = [grade, terrain].filter(Boolean).join(' · ');
+  paintRouteHistoryProjectUi();
 
-  // Beta notes
-  var betaEl = document.getElementById('rh-beta-notes');
-  if(betaEl){
-    betaEl.value = (climbRec && climbRec.beta_notes) ? climbRec.beta_notes : '';
-  }
+  _editingBetaNoteId = null;
+  _addingBetaNote = false;
+  await loadRouteBetaNotes(climbId, climbRec);
   // Fix 6 (build 180): these must always be set regardless of whether the
   // beta-notes textarea happens to exist — rhAddAttempt() reads them to
   // launch the log screen for this route. They were nested inside the
@@ -15306,14 +15467,153 @@ function rhAddAttempt(){
   addAttemptFromLog(window._rhClimbName||'', window._rhGrade||null, window._rhTerrain||null, window._rhClimbId||null, 'route-history', window._rhSetting||null);
 }
 
-function saveRouteBeta(){
+async function loadRouteBetaNotes(climbId, climbRec){
+  var anyRows = await sbS(
+    'climb_beta_notes',
+    'select=id&climb_id=eq.'+encodeURIComponent(climbId)+'&limit=1'
+  );
+  var rows = await sbS(
+    'climb_beta_notes',
+    'select=id,climb_id,body,created_at,edited_at&climb_id=eq.'+encodeURIComponent(climbId)+'&deleted_at=is.null&order=created_at.desc'
+  );
+  if(!Array.isArray(rows)) rows = [];
+  var legacy = climbRec && climbRec.beta_notes ? String(climbRec.beta_notes).trim() : '';
+  var neverMigrated = !Array.isArray(anyRows) || anyRows.length === 0;
+  if(legacy && rows.length === 0 && neverMigrated){
+    var created = await sbI('climb_beta_notes', { climb_id: climbId, body: legacy });
+    if(created && created.id && !sbFailed(created)){
+      created._imported = true;
+      rows = [created];
+    } else {
+      rows = [{ id: '__imported__', climb_id: climbId, body: legacy, created_at: null, edited_at: null, _imported: true, _virtual: true }];
+    }
+  } else if(legacy){
+    rows.forEach(function(r){
+      if(r && r.body === legacy) r._imported = true;
+    });
+  }
+  _rhBetaNotes = rows;
+  _betaNoteCounts[climbId] = rows.length;
+  renderRouteBetaNotes();
+  paintRouteHistoryProjectUi();
+}
+
+function renderRouteBetaNotes(){
+  var listEl = document.getElementById('rh-beta-list');
+  var addEl = document.getElementById('rh-beta-add-wrap');
+  if(!listEl) return;
+  var notes = _rhBetaNotes || [];
+  if(!notes.length){
+    listEl.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:4px 0 2px;">No beta notes yet.</div>';
+  } else {
+    listEl.innerHTML = notes.map(function(n){ return renderRouteBetaNoteItemHtml(n); }).join('');
+  }
+  if(!addEl) return;
+  if(_addingBetaNote){
+    addEl.innerHTML =
+      '<textarea id="rh-beta-new-ta" rows="3" placeholder="Movement, holds, sequence..." style="width:100%;box-sizing:border-box;background:transparent;border:1px solid var(--accent);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:13px;resize:vertical;"></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:6px;">' +
+        '<button type="button" onclick="saveNewRouteBetaNote()" style="background:var(--accent);border:none;border-radius:var(--r-sm);color:#fff;font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;">Save</button>' +
+        '<button type="button" onclick="cancelAddRouteBetaNote()" style="background:none;border:none;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>' +
+      '</div>';
+    var ta = document.getElementById('rh-beta-new-ta');
+    if(ta) ta.focus();
+  } else {
+    addEl.innerHTML = '<button type="button" onclick="startAddRouteBetaNote()" style="background:none;border:1px dashed var(--border);border-radius:var(--r-md);color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;padding:8px 12px;cursor:pointer;width:100%;">Add note</button>';
+  }
+}
+
+function renderRouteBetaNoteItemHtml(n){
+  if(!n) return '';
+  var when = n._imported ? 'Imported note' : (n.created_at ? formatChatTimestamp(n.created_at) : '');
+  if(_editingBetaNoteId === n.id){
+    return '<div style="margin-bottom:10px;">' +
+      '<textarea id="rh-beta-edit-ta-' + n.id + '" rows="3" style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--accent);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:13px;">' + escTrainHtml(n.body || '') + '</textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:6px;">' +
+        '<button type="button" onclick="saveEditRouteBetaNote(\'' + n.id + '\')" style="background:var(--accent);border:none;border-radius:var(--r-sm);color:#fff;font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;">Save</button>' +
+        '<button type="button" onclick="cancelEditRouteBetaNote()" style="background:none;border:none;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>' +
+      '</div></div>';
+  }
+  return '<div style="margin-bottom:12px;">' +
+    '<div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">' +
+      escTrainHtml(when) +
+      (n.edited_at ? ' <span style="font-style:italic;text-transform:none;letter-spacing:0;font-weight:500;">(edited)</span>' : '') +
+    '</div>' +
+    '<div style="font-size:14px;color:var(--text);line-height:1.55;word-break:break-word;">' + escTrainHtml(n.body || '') + '</div>' +
+    '<div style="display:flex;gap:10px;margin-top:4px;">' +
+      '<button type="button" onclick="startEditRouteBetaNote(\'' + n.id + '\')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 2px;">Edit</button>' +
+      '<button type="button" onclick="deleteRouteBetaNote(\'' + n.id + '\')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 2px;">Delete</button>' +
+    '</div></div>';
+}
+
+function startAddRouteBetaNote(){
+  _addingBetaNote = true;
+  _editingBetaNoteId = null;
+  renderRouteBetaNotes();
+}
+function cancelAddRouteBetaNote(){
+  _addingBetaNote = false;
+  renderRouteBetaNotes();
+}
+async function saveNewRouteBetaNote(){
   var climbId = window._rhClimbId;
-  var betaEl  = document.getElementById('rh-beta-notes');
-  if(!climbId || !betaEl) return;
-  clearTimeout(window._rhBetaTimer);
-  window._rhBetaTimer = setTimeout(function(){
-    sbU('climbs','id=eq.'+climbId,{beta_notes: betaEl.value.trim()||null});
-  }, 800);
+  var ta = document.getElementById('rh-beta-new-ta');
+  var text = ta ? ta.value.trim() : '';
+  if(!text){ showToast('Add a note first'); return; }
+  if(!climbId){ showToast('No route to note', true); return; }
+  var saved = await sbI('climb_beta_notes', { climb_id: climbId, body: text });
+  if(sbFailed(saved) || !(saved && saved.id)){
+    showToast('Could not save note - try again', true);
+    return;
+  }
+  _addingBetaNote = false;
+  await loadRouteBetaNotes(climbId, climbById(climbId));
+}
+
+function startEditRouteBetaNote(id){
+  _editingBetaNoteId = id;
+  _addingBetaNote = false;
+  renderRouteBetaNotes();
+}
+function cancelEditRouteBetaNote(){
+  _editingBetaNoteId = null;
+  renderRouteBetaNotes();
+}
+async function saveEditRouteBetaNote(id){
+  var ta = document.getElementById('rh-beta-edit-ta-' + id);
+  var text = ta ? ta.value.trim() : '';
+  if(!text) return;
+  var climbId = window._rhClimbId;
+  var note = (_rhBetaNotes || []).find(function(n){ return n.id === id; });
+  if(note && note._virtual){
+    var created = await sbI('climb_beta_notes', { climb_id: climbId, body: text });
+    if(sbFailed(created) || !(created && created.id)){
+      showToast('Could not save edit - try again', true);
+      return;
+    }
+  } else {
+    var ok = await sbU('climb_beta_notes', 'id=eq.' + id, { body: text, edited_at: new Date().toISOString() });
+    if(sbFailed(ok)){ showToast('Could not save edit - try again', true); return; }
+  }
+  _editingBetaNoteId = null;
+  await loadRouteBetaNotes(climbId, climbById(climbId));
+}
+
+async function deleteRouteBetaNote(id){
+  if(!confirm('Delete this note?')) return;
+  var climbId = window._rhClimbId;
+  var note = (_rhBetaNotes || []).find(function(n){ return n.id === id; });
+  if(note && note._virtual){
+    _rhBetaNotes = [];
+    _betaNoteCounts[climbId] = 0;
+    renderRouteBetaNotes();
+    paintRouteHistoryProjectUi();
+    return;
+  }
+  var ok = await sbU('climb_beta_notes', 'id=eq.' + id, { deleted_at: new Date().toISOString() });
+  if(sbFailed(ok)){ showToast('Could not delete note - try again', true); return; }
+  _editingBetaNoteId = null;
+  await loadRouteBetaNotes(climbId, climbById(climbId));
 }
 
 function renderRouteInsights(sessList, terrain){
@@ -16251,7 +16551,9 @@ function runButtonAudit(options){
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
     'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications',
-    'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes'
+    'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes',
+    'toggleClimbProject', 'startAddRouteBetaNote', 'cancelAddRouteBetaNote', 'saveNewRouteBetaNote',
+    'startEditRouteBetaNote', 'cancelEditRouteBetaNote', 'saveEditRouteBetaNote', 'deleteRouteBetaNote'
   ];
 
   function shouldSkip(onclick){
@@ -17587,6 +17889,98 @@ async function runSEETests(){
         ' save=' + saveOk + ' editMode=' + editMode);
     }
   }catch(e){ fail('Session coach-notes replies are editable with an edited marker', e.message); }
+
+  try{
+    var prevCache = _climbCache;
+    var prevCounts = _betaNoteCounts;
+    var prevNotes = _rhBetaNotes;
+    var prevEdit = _editingBetaNoteId;
+    var prevAdd = _addingBetaNote;
+    _climbCache = [
+      { id: 'c-star', name: 'Power of Now', grade_value: 'V4', climbing_type: 'Overhang', is_project: true, beta_notes: 'old beta' },
+      { id: 'c-plain', name: 'Warm Up Wall', grade_value: '5.10a', climbing_type: 'Vertical', is_project: false }
+    ];
+    _betaNoteCounts = { 'c-star': 3 };
+    var labelEl = document.getElementById('quick-strip-label');
+    var noOldTa = !document.getElementById('rh-beta-notes');
+    var hasList = !!document.getElementById('rh-beta-list') && !!document.getElementById('rh-beta-add-wrap');
+    var projectsLabel = labelEl && /Projects/.test(labelEl.textContent) && !/Log again/.test(labelEl.textContent);
+    var starSrc = String(toggleClimbProject) + String(climbStarButtonHtml);
+    var starOk = /is_project/.test(starSrc) && /sbU\(\s*'climbs'/.test(starSrc) && /event\.stopPropagation/.test(starSrc);
+    var locOk = /climbStarButtonHtml/.test(String(onClimbNameInput))
+      && /climbStarButtonHtml/.test(String(renderClimbDataTable))
+      && /climbStarButtonHtml/.test(String(renderClimbTable))
+      && /paintRouteHistoryProjectUi/.test(String(openClimbExposure))
+      && /paintLockedClimbProjectUi/.test(String(lockRouteIdentityFields))
+      && /climbStarButtonHtml/.test(String(renderQuickStrip));
+    var noLegacyWrite = String(loadRouteBetaNotes).indexOf("beta_notes:") === -1
+      && typeof saveRouteBeta !== 'function';
+    var importSrc = String(loadRouteBetaNotes);
+    var importOk = /Imported note/.test(String(renderRouteBetaNoteItemHtml))
+      && /neverMigrated/.test(importSrc)
+      && /sbI\(\s*'climb_beta_notes'/.test(importSrc)
+      && /deleted_at/.test(String(deleteRouteBetaNote));
+    _editingBetaNoteId = null;
+    var noteHtml = renderRouteBetaNoteItemHtml({
+      id: 'n1', body: 'heel hook', created_at: '2026-09-01T00:00:00Z', edited_at: '2026-09-02T00:00:00Z'
+    });
+    var noteOk = /\(edited\)/.test(noteHtml) && /startEditRouteBetaNote\('n1'\)/.test(noteHtml)
+      && /deleteRouteBetaNote\('n1'\)/.test(noteHtml);
+    _editingBetaNoteId = 'n1';
+    var editing = renderRouteBetaNoteItemHtml({ id: 'n1', body: 'heel hook' });
+    var editMode = /rh-beta-edit-ta-n1/.test(editing) && /saveEditRouteBetaNote\('n1'\)/.test(editing);
+    _editingBetaNoteId = null;
+    _rhBetaNotes = [];
+    _addingBetaNote = false;
+    renderRouteBetaNotes();
+    var addBtn = /Add note/.test((document.getElementById('rh-beta-add-wrap')||{}).innerHTML || '');
+    var sessions = [
+      { climb_id: 'c-star', route_name: 'Power of Now', grade_value: 'V4', climbing_type: 'Overhang', created_at: '2026-09-07T12:00:00Z' },
+      { climb_id: 'c-plain', route_name: 'Warm Up Wall', grade_value: '5.10a', climbing_type: 'Vertical', created_at: '2026-09-07T13:00:00Z' }
+    ];
+    renderQuickStrip(sessions);
+    var strip = (document.getElementById('quick-strip')||{}).innerHTML || '';
+    var stripOk = /Power of Now/.test(strip) && /3 notes/.test(strip) && /\+ Attempt/.test(strip)
+      && strip.indexOf('Warm Up Wall') === -1;
+    _climbCache[0].is_project = false;
+    renderQuickStrip(sessions);
+    var emptyStrip = (document.getElementById('quick-strip')||{}).innerHTML || '';
+    var emptyOk = /Star a climb to pin it here as a project/.test(emptyStrip)
+      && emptyStrip.indexOf('Warm Up Wall') === -1;
+    var suggHost = document.getElementById('climb-suggestions');
+    var suggPrev = suggHost ? suggHost.innerHTML : '';
+    if(suggHost){
+      suggHost.style.display = 'block';
+      suggHost.innerHTML = '';
+    }
+    var origLoad = loadClimbCache;
+    loadClimbCache = async function(){ return _climbCache; };
+    await onClimbNameInput('Power');
+    loadClimbCache = origLoad;
+    var suggHtml = suggHost ? suggHost.innerHTML : '';
+    var suggOk = /Power of Now/.test(suggHtml) && /3 notes/.test(suggHtml) && /toggleClimbProject/.test(suggHtml);
+    if(suggHost){ suggHost.innerHTML = suggPrev; suggHost.style.display = 'none'; }
+    var sqlP = await fetch('sql/climbs-is-project.sql').then(function(r){ return r.ok ? r.text() : ''; });
+    var sqlN = await fetch('sql/climb-beta-notes.sql').then(function(r){ return r.ok ? r.text() : ''; });
+    var sqlOk = /is_project/.test(sqlP) && /climb_beta_notes/.test(sqlN)
+      && /anon, authenticated/.test(sqlN) && /exists \(/.test(sqlN)
+      && /device_id/.test(sqlN);
+    _climbCache = prevCache;
+    _betaNoteCounts = prevCounts;
+    _rhBetaNotes = prevNotes;
+    _editingBetaNoteId = prevEdit;
+    _addingBetaNote = prevAdd;
+    if(noOldTa && hasList && projectsLabel && starOk && locOk && noLegacyWrite && importOk
+      && noteOk && editMode && addBtn && stripOk && emptyOk && suggOk && sqlOk){
+      pass('Projects strip, climb stars, and dated beta notes');
+    } else {
+      fail('Projects strip, climb stars, and dated beta notes',
+        'ta=' + noOldTa + ' list=' + hasList + ' label=' + projectsLabel + ' star=' + starOk +
+        ' loc=' + locOk + ' noWrite=' + noLegacyWrite + ' import=' + importOk + ' note=' + noteOk +
+        ' edit=' + editMode + ' add=' + addBtn + ' strip=' + stripOk + ' empty=' + emptyOk +
+        ' sugg=' + suggOk + ' sql=' + sqlOk);
+    }
+  }catch(e){ fail('Projects strip, climb stars, and dated beta notes', e.message); }
 
   try{
     var signed = document.getElementById('train-signed-in-content');
