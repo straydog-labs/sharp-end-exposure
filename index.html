@@ -4818,7 +4818,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index239'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index240'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -4934,14 +4934,16 @@ function sbFailed(r){ return !r || r.ok === false; }
 function isSbNetworkFail(r){ return !!(r && r.ok === false && r.kind === 'network'); }
 function isSbHttpFail(r){ return !!(r && r.ok === false && r.kind === 'http'); }
 
-async function sbI(table,payload){
+async function sbI(table,payload,minimal){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...getSBHeaders(),'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    var prefer = minimal ? 'return=minimal' : 'return=representation';
+    const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...getSBHeaders(),'Prefer':prefer},body:JSON.stringify(payload)});
     if(!r.ok){
       const err=await r.json().catch(function(){return {};});
       console.error('sbI HTTP error:',r.status,table,err.message||err);
       return sbFail('http', {status:r.status, message:err.message||String(err), table:table});
     }
+    if(minimal) return {ok:true};
     const d=await r.json();
     return Array.isArray(d)?d[0]:d;
   }catch(e){
@@ -13541,7 +13543,7 @@ function selectFBOpt(btn,val){
   var nextBtn=document.getElementById('fb-next-btn');if(nextBtn)nextBtn.classList.add('ready');
 }
 async function submitFeedbackFinal(){
-  await sbI('feedback',{answers:JSON.stringify(fbAnswers),device_id:getDeviceId()});
+  await sbI('feedback',{answers:JSON.stringify(fbAnswers),device_id:getDeviceId()}, true);
   var succ=document.getElementById('fb-success');
   if(succ)succ.style.display='block';
   var form=document.getElementById('fb-content');if(form)form.style.display='none';
@@ -13555,7 +13557,7 @@ async function fbNext(){
   }
   fbIdx++;
   if(fbIdx>=FBQs.length){
-    await sbI('feedback',{answers:JSON.stringify(fbAnswers),device_id:getDeviceId()});
+    await sbI('feedback',{answers:JSON.stringify(fbAnswers),device_id:getDeviceId()}, true);
     try{localStorage.setItem('see_feedback_complete','1');}catch(e){}
     var succ=document.getElementById('fb-success');
     if(succ)succ.style.display='block';
@@ -15491,7 +15493,7 @@ function submitQuickFeedback(){
   var ta = document.getElementById('fb-quick-text');
   var text = ta ? ta.value.trim() : '';
   if(!text){ showToast('Add a note first'); return; }
-  sbI('feedback', {answers: JSON.stringify({quick: text}), device_id: getDeviceId()});
+  sbI('feedback', {answers: JSON.stringify({quick: text}), device_id: getDeviceId()}, true);
   // Show same success state
   document.getElementById('fb-quick').style.display = 'none';
   var succ = document.getElementById('fb-success');
@@ -19478,6 +19480,25 @@ async function runSEETests(){
   }catch(e){ fail('Climb snapshot sync + edit guards + inline delete confirm', e.message); }
 
   try{
+    var sbiSrc = String(sbI);
+    var helperOk = /return=minimal/.test(sbiSrc) && /return=representation/.test(sbiSrc)
+      && /minimal/.test(sbiSrc);
+    function fbUsesMinimal(fn){
+      return /sbI\(\s*'feedback'[\s\S]*,\s*true\s*\)/.test(String(fn));
+    }
+    var sitesOk = fbUsesMinimal(submitFeedbackFinal) && fbUsesMinimal(fbNext)
+      && fbUsesMinimal(submitQuickFeedback) && fbUsesMinimal(submitProfileFeedback);
+    var othersKeepRep = !/sbI\(\s*'climbs'[\s\S]*,\s*true/.test(String(logFlowSaveSession) + String(logClimb))
+      && !/sbI\(\s*'sessions'[\s\S]*,\s*true/.test(String(sbInsertSession));
+    if(helperOk && sitesOk && othersKeepRep){
+      pass('Feedback insert uses minimal return (no SELECT required)');
+    } else {
+      fail('Feedback insert uses minimal return (no SELECT required)',
+        'helper=' + helperOk + ' sites=' + sitesOk + ' others=' + othersKeepRep);
+    }
+  }catch(e){ fail('Feedback insert uses minimal return (no SELECT required)', e.message); }
+
+  try{
     var dash = await fetch('coach-dashboard.html', { cache: 'no-store' }).then(function(r){ return r.text(); });
     var insights = await fetch('js/coach-athlete-insights.js', { cache: 'no-store' }).then(function(r){ return r.text(); });
     var sendRateOk = /bz === 'sent'/.test(dash) && /bz === 'fell'/.test(dash)
@@ -20285,7 +20306,7 @@ async function submitProfileFeedback(){
     device_id: getDeviceId(),
     user_id: window._authUser ? window._authUser.id : null,
     app_version: app_version
-  });
+  }, true);
   if(sbFailed(savedFb)){
     showToast('Could not send - try again', true);
     return;
