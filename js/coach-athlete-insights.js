@@ -68,6 +68,178 @@
     return null;
   }
 
+  // Family-scoped lists. Additive copies — GRADE_ORDER / GRADE_RANK / gradeRank stay as-is.
+  var BOULDER_GRADE_ORDER = [
+    'VB',
+    'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9',
+    'V10', 'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V17'
+  ];
+  var YDS_GRADE_ORDER = [
+    '5.5', '5.6', '5.7', '5.8', '5.9',
+    '5.10a', '5.10b', '5.10c', '5.10d',
+    '5.11a', '5.11b', '5.11c', '5.11d',
+    '5.12a', '5.12b', '5.12c', '5.12d',
+    '5.13a', '5.13b', '5.13c', '5.13d',
+    '5.14a', '5.14b', '5.14c', '5.14d',
+    '5.15a', '5.15b', '5.15c', '5.15d'
+  ];
+  var FRENCH_GRADE_ORDER = [
+    '4a', '4b', '4c',
+    '5a', '5b', '5c',
+    '6a', '6a+', '6b', '6b+', '6c', '6c+',
+    '7a', '7a+', '7b', '7b+', '7c', '7c+',
+    '8a', '8a+', '8b', '8b+', '8c', '8c+',
+    '9a', '9a+', '9b', '9b+', '9c'
+  ];
+  var BRITISH_GRADE_ORDER = ['Mod', 'Diff', 'VDiff', 'HVD', 'Sev', 'HS', 'VS', 'HVS'];
+  var E_GRADE_ORDER = ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'E10'];
+  var ROPED_SYSTEMS = ['yds', 'french', 'british', 'e_grade'];
+  var ROPED_GRADE_ORDERS = {
+    yds: YDS_GRADE_ORDER,
+    french: FRENCH_GRADE_ORDER,
+    british: BRITISH_GRADE_ORDER,
+    e_grade: E_GRADE_ORDER
+  };
+  var ROPED_SYSTEM_LABELS = {
+    yds: 'YDS',
+    french: 'French',
+    british: 'British',
+    e_grade: 'E-grade'
+  };
+
+  function indexInOrder(order, grade) {
+    var key = String(grade == null ? '' : grade).trim();
+    if (!key || !order || !order.length) return null;
+    var i;
+    for (i = 0; i < order.length; i++) {
+      if (order[i] === key) return i;
+    }
+    var lower = key.toLowerCase();
+    for (i = 0; i < order.length; i++) {
+      if (String(order[i]).toLowerCase() === lower) return i;
+    }
+    return null;
+  }
+
+  function classifyGradeSystem(grade) {
+    var key = String(grade == null ? '' : grade).trim();
+    if (!key) return '';
+    if (indexInOrder(BOULDER_GRADE_ORDER, key) != null) return 'v_scale';
+    if (indexInOrder(YDS_GRADE_ORDER, key) != null) return 'yds';
+    if (indexInOrder(FRENCH_GRADE_ORDER, key) != null) return 'french';
+    if (indexInOrder(BRITISH_GRADE_ORDER, key) != null) return 'british';
+    if (indexInOrder(E_GRADE_ORDER, key) != null) return 'e_grade';
+    if (/^vb$/i.test(key) || /^v\d+$/i.test(key)) return 'v_scale';
+    if (/^5\.\d/.test(key)) return 'yds';
+    if (/^e([1-9]|10)$/i.test(key)) return 'e_grade';
+    if (/^(mod|diff|vdiff|hvd|sev|hs|vs|hvs)$/i.test(key)) return 'british';
+    if (/^(4[abc]|5[abc]|[6-9][abc]\+?)$/i.test(key)) return 'french';
+    return '';
+  }
+
+  function classifyGradeFamily(grade) {
+    var sys = classifyGradeSystem(grade);
+    if (sys === 'v_scale') return 'boulder';
+    if (sys === 'yds' || sys === 'french' || sys === 'british' || sys === 'e_grade') return 'roped';
+    return '';
+  }
+
+  function boulderGradeRank(grade) {
+    return indexInOrder(BOULDER_GRADE_ORDER, grade);
+  }
+
+  function ropedGradeRank(grade, system) {
+    var order = ROPED_GRADE_ORDERS[system];
+    if (!order) return null;
+    return indexInOrder(order, grade);
+  }
+
+  function normalizeRopedDisciplineGroup(discipline) {
+    var d = String(discipline == null ? '' : discipline).trim().toLowerCase();
+    if (!d) return '';
+    if (d === 'lead' || d === 'sport' || d === 'trad') return 'lead';
+    if (d === 'top rope') return 'top_rope';
+    if (d === 'auto belay') return 'auto_belay';
+    return '';
+  }
+
+  function ropedDisciplineMatches(discipline, filter) {
+    var f = String(filter || 'all').trim().toLowerCase();
+    if (!f || f === 'all') return true;
+    return normalizeRopedDisciplineGroup(discipline) === f;
+  }
+
+  function dominantRopedSystem(sessions) {
+    var counts = { yds: 0, french: 0, british: 0, e_grade: 0 };
+    var total = 0;
+    (sessions || []).forEach(function (row) {
+      if (!isClimbSession(row)) return;
+      var sys = classifyGradeSystem(row.grade_value);
+      if (!Object.prototype.hasOwnProperty.call(counts, sys)) return;
+      counts[sys] += 1;
+      total += 1;
+    });
+    var best = '';
+    var bestN = 0;
+    ROPED_SYSTEMS.forEach(function (sys) {
+      if (counts[sys] > bestN) {
+        bestN = counts[sys];
+        best = sys;
+      }
+    });
+    return {
+      system: best,
+      count: bestN,
+      total: total,
+      counts: counts,
+      excluded: best ? (total - bestN) : 0
+    };
+  }
+
+  function averageGradePoint(list, key, label) {
+    if (!list || !list.length) return { key: key, label: label, rank: null, grade: '' };
+    var sum = 0;
+    var i;
+    for (i = 0; i < list.length; i++) sum += list[i].rank;
+    var avg = sum / list.length;
+    var nearest = list.slice().sort(function (a, b) {
+      return Math.abs(a.rank - avg) - Math.abs(b.rank - avg);
+    })[0];
+    return { key: key, label: label, rank: avg, grade: nearest.grade };
+  }
+
+  function seriesFromTerrainBuckets(weeks, byWeek, field) {
+    return TERRAIN_TYPES.map(function (terrain) {
+      var points = weeks.map(function (k) {
+        var list = (byWeek[k][field] && byWeek[k][field][terrain]) || [];
+        return averageGradePoint(list, k, byWeek[k].label);
+      });
+      return { terrain: terrain, points: points };
+    }).filter(function (series) {
+      return series.points.some(function (p) { return p.rank != null; });
+    });
+  }
+
+  function gradeAxisFromSeries(seriesList, gradeOrder) {
+    var ranks = [];
+    (seriesList || []).forEach(function (s) {
+      (s.points || []).forEach(function (p) {
+        if (p.rank != null) ranks.push(p.rank);
+      });
+    });
+    if (!ranks.length || !gradeOrder || !gradeOrder.length) {
+      return { lo: 0, hi: 1, ticks: [] };
+    }
+    var lo = Math.max(0, Math.floor(Math.min.apply(null, ranks) - 1));
+    var hi = Math.min(gradeOrder.length - 1, Math.ceil(Math.max.apply(null, ranks) + 1));
+    if (hi <= lo) hi = Math.min(gradeOrder.length - 1, lo + 1);
+    var mid = Math.round((lo + hi) / 2);
+    var ticks = [lo, mid, hi].filter(function (v, i, arr) { return arr.indexOf(v) === i; }).map(function (v) {
+      return { value: v, label: gradeOrder[v] || String(v) };
+    });
+    return { lo: lo, hi: hi, ticks: ticks };
+  }
+
   function normalizeTerrainType(value) {
     var raw = String(value || '').trim();
     if (!raw) return '';
@@ -142,6 +314,7 @@
   function computeProgressSeries(sessions, options) {
     var weekCount = (options && options.weekCount) || 12;
     var endDate = (options && options.endDate) || new Date();
+    var ropedDiscipline = (options && options.ropedDiscipline) || 'all';
     var weeks = lastNWeekKeys(weekCount, endDate);
     var byWeek = {};
     weeks.forEach(function (k) {
@@ -149,9 +322,14 @@
         key: k,
         label: formatWeekLabel(k),
         zones: emptyZoneCounts(),
-        gradesByTerrain: {}
+        boulderByTerrain: {},
+        ropedByTerrain: {}
       };
     });
+
+    var dominant = dominantRopedSystem(sessions);
+    var dominantSystem = dominant.system;
+    var excludedOffSystem = 0;
 
     (sessions || []).forEach(function (row) {
       if (!isClimbSession(row) || !row.created_at) return;
@@ -161,12 +339,27 @@
       if (!byWeek[key]) return;
       var bucket = byWeek[key];
       addZone(bucket.zones, row.zone);
-      var terrain = normalizeTerrainType(row.climbing_type);
-      var rank = gradeRank(row.grade_value);
-      if (terrain && rank != null) {
-        if (!bucket.gradesByTerrain[terrain]) bucket.gradesByTerrain[terrain] = [];
-        bucket.gradesByTerrain[terrain].push({ grade: String(row.grade_value).trim(), rank: rank });
+      var family = classifyGradeFamily(row.grade_value);
+      var sys = classifyGradeSystem(row.grade_value);
+      if (family === 'roped' && dominantSystem && sys !== dominantSystem) {
+        excludedOffSystem += 1;
       }
+      var terrain = normalizeTerrainType(row.climbing_type);
+      if (!terrain) return;
+      if (family === 'boulder') {
+        var br = boulderGradeRank(row.grade_value);
+        if (br == null) return;
+        if (!bucket.boulderByTerrain[terrain]) bucket.boulderByTerrain[terrain] = [];
+        bucket.boulderByTerrain[terrain].push({ grade: String(row.grade_value).trim(), rank: br });
+        return;
+      }
+      if (family !== 'roped') return;
+      if (!dominantSystem || sys !== dominantSystem) return;
+      if (!ropedDisciplineMatches(row.discipline, ropedDiscipline)) return;
+      var rr = ropedGradeRank(row.grade_value, dominantSystem);
+      if (rr == null) return;
+      if (!bucket.ropedByTerrain[terrain]) bucket.ropedByTerrain[terrain] = [];
+      bucket.ropedByTerrain[terrain].push({ grade: String(row.grade_value).trim(), rank: rr });
     });
 
     var zonePoints = weeks.map(function (k) {
@@ -182,33 +375,37 @@
       };
     });
 
-    var terrains = TERRAIN_TYPES.slice();
-    var gradeSeries = terrains.map(function (terrain) {
-      var points = weeks.map(function (k) {
-        var list = byWeek[k].gradesByTerrain[terrain] || [];
-        if (!list.length) return { key: k, label: byWeek[k].label, rank: null, grade: '' };
-        var sum = 0;
-        for (var i = 0; i < list.length; i++) sum += list[i].rank;
-        var avg = sum / list.length;
-        var nearest = list.slice().sort(function (a, b) {
-          return Math.abs(a.rank - avg) - Math.abs(b.rank - avg);
-        })[0];
-        return { key: k, label: byWeek[k].label, rank: avg, grade: nearest.grade };
-      });
-      return { terrain: terrain, points: points };
-    }).filter(function (series) {
-      return series.points.some(function (p) { return p.rank != null; });
-    });
+    var boulderGradeSeries = seriesFromTerrainBuckets(weeks, byWeek, 'boulderByTerrain');
+    var ropedGradeSeries = seriesFromTerrainBuckets(weeks, byWeek, 'ropedByTerrain');
+    var gradeSeries = boulderGradeSeries.length && !ropedGradeSeries.length
+      ? boulderGradeSeries
+      : (!boulderGradeSeries.length && ropedGradeSeries.length
+        ? ropedGradeSeries
+        : boulderGradeSeries.concat(ropedGradeSeries));
 
     var sessionCount = zonePoints.reduce(function (n, p) { return n + p.total; }, 0);
+    var ropedOrder = dominantSystem ? ROPED_GRADE_ORDERS[dominantSystem] : [];
     return {
       weeks: weeks,
       labels: weeks.map(formatWeekLabel),
       zonePoints: zonePoints,
       gradeSeries: gradeSeries,
+      boulderGradeSeries: boulderGradeSeries,
+      ropedGradeSeries: ropedGradeSeries,
+      boulderAxis: gradeAxisFromSeries(boulderGradeSeries, BOULDER_GRADE_ORDER),
+      ropedAxis: gradeAxisFromSeries(ropedGradeSeries, ropedOrder),
       sessionCount: sessionCount,
       hasZoneTrend: zonePoints.some(function (p) { return p.total > 0; }),
-      hasGradeTrend: gradeSeries.length > 0
+      hasBoulderGradeTrend: boulderGradeSeries.length > 0,
+      hasRopedGradeTrend: ropedGradeSeries.length > 0,
+      hasGradeTrend: boulderGradeSeries.length > 0 || ropedGradeSeries.length > 0,
+      ropedDiscipline: ropedDiscipline,
+      ropedSystem: dominantSystem,
+      ropedSystemLabel: dominantSystem ? ROPED_SYSTEM_LABELS[dominantSystem] : '',
+      ropedGradeOrder: ropedOrder,
+      boulderGradeOrder: BOULDER_GRADE_ORDER,
+      excludedOffSystem: excludedOffSystem,
+      excludedOffSystemOverall: dominant.excluded
     };
   }
 
@@ -496,10 +693,24 @@
   var api = {
     TERRAIN_TYPES: TERRAIN_TYPES,
     GRADE_ORDER: GRADE_ORDER,
+    BOULDER_GRADE_ORDER: BOULDER_GRADE_ORDER,
+    YDS_GRADE_ORDER: YDS_GRADE_ORDER,
+    FRENCH_GRADE_ORDER: FRENCH_GRADE_ORDER,
+    BRITISH_GRADE_ORDER: BRITISH_GRADE_ORDER,
+    E_GRADE_ORDER: E_GRADE_ORDER,
+    ROPED_SYSTEM_LABELS: ROPED_SYSTEM_LABELS,
     normalizeZone: normalizeZone,
     emptyZoneCounts: emptyZoneCounts,
     zonePercents: zonePercents,
     gradeRank: gradeRank,
+    boulderGradeRank: boulderGradeRank,
+    ropedGradeRank: ropedGradeRank,
+    classifyGradeSystem: classifyGradeSystem,
+    classifyGradeFamily: classifyGradeFamily,
+    normalizeRopedDisciplineGroup: normalizeRopedDisciplineGroup,
+    ropedDisciplineMatches: ropedDisciplineMatches,
+    dominantRopedSystem: dominantRopedSystem,
+    gradeAxisFromSeries: gradeAxisFromSeries,
     normalizeTerrainType: normalizeTerrainType,
     computeProgressSeries: computeProgressSeries,
     computeGapDiagnostic: computeGapDiagnostic,

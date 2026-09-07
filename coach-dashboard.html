@@ -372,6 +372,13 @@
   .insight-legend{
     display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11.5px;color:var(--text-secondary);margin-top:8px;
   }
+  .roped-filter{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 10px;}
+  .roped-filter button{
+    background:var(--surface);border:1px solid var(--border);border-radius:999px;
+    padding:8px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .roped-filter button.selected{border-color:var(--accent);color:var(--accent);}
   .project-row{
     display:flex;align-items:baseline;justify-content:space-between;gap:12px;
     padding:10px 0;border-bottom:1px solid var(--border);
@@ -2001,6 +2008,7 @@
       athleteLabel: title
     };
     _coachChatViewingAthleteId = athleteId;
+    _ropedDisciplineFilter = 'all';
 
     detailEl.innerHTML =
       detailStackChromeHtml() +
@@ -2326,6 +2334,7 @@
   }
 
   var _athleteInsightCache = {};
+  var _ropedDisciplineFilter = 'all';
   var TERRAIN_LINE_COLOR = {
     Slab: '#8ec8d8',
     Vertical: '#c4b5e0',
@@ -2398,6 +2407,7 @@
       var rows = parts[0];
       var climbs = parts[1];
       if(progressEl) progressEl.innerHTML = renderProgressPanelHtml(rows);
+      wireRopedDisciplineChips();
       if(gapEl) gapEl.innerHTML = renderGapPanelHtml(rows);
       paintAthleteProjects(climbs, rows);
     }).catch(function(err){
@@ -2470,10 +2480,67 @@
       grid + lines + labels + '</svg>';
   }
 
+  function renderGradeFamilyChartHtml(title, seriesList, axis, labels, emptyMsg, extraTopHtml, extraNote){
+    if(!seriesList || !seriesList.length || !axis || !axis.ticks || !axis.ticks.length){
+      return '<div class="insight-chart-title">' + escapeHtml(title) + '</div>' +
+        (extraTopHtml || '') +
+        '<div class="empty-state">' + escapeHtml(emptyMsg) + '</div>' +
+        (extraNote || '');
+    }
+    return '<div class="insight-chart-title">' + escapeHtml(title) + '</div>' +
+      (extraTopHtml || '') +
+      renderSharedAxisSvg(seriesList.map(function(s){
+        return {
+          color: TERRAIN_LINE_COLOR[s.terrain] || 'var(--accent)',
+          xs: labels,
+          values: s.points.map(function(p){ return p.rank; })
+        };
+      }), axis.lo, axis.hi, axis.ticks, 720, 176) +
+      '<div class="insight-legend">' + seriesList.map(function(s){
+        return '<span><span class="insight-swatch" style="background:' +
+          (TERRAIN_LINE_COLOR[s.terrain] || 'var(--accent)') + '"></span>' +
+          escapeHtml(s.terrain) + '</span>';
+      }).join('') + '</div>' +
+      (extraNote || '');
+  }
+
+  function ropedFilterChipsHtml(selected){
+    var chips = [
+      { id: 'all', label: 'All' },
+      { id: 'lead', label: 'Lead' },
+      { id: 'top_rope', label: 'Top Rope' },
+      { id: 'auto_belay', label: 'Auto Belay' }
+    ];
+    var current = selected || 'all';
+    return '<div class="roped-filter" role="tablist" aria-label="Roped discipline filter">' +
+      chips.map(function(c){
+        return '<button type="button" data-roped-filter="' + c.id + '"' +
+          (c.id === current ? ' class="selected"' : '') + '>' + escapeHtml(c.label) + '</button>';
+      }).join('') +
+    '</div>';
+  }
+
+  function wireRopedDisciplineChips(){
+    var host = document.getElementById('athlete-progress-body');
+    if(!host) return;
+    Array.prototype.forEach.call(host.querySelectorAll('[data-roped-filter]'), function(btn){
+      btn.addEventListener('click', function(){
+        _ropedDisciplineFilter = btn.getAttribute('data-roped-filter') || 'all';
+        var athleteId = _detailCtx && _detailCtx.athleteId;
+        var rows = athleteId ? (_athleteInsightCache[athleteId] || []) : [];
+        host.innerHTML = renderProgressPanelHtml(rows);
+        wireRopedDisciplineChips();
+      });
+    });
+  }
+
   function renderProgressPanelHtml(sessions){
     var CI = window.CoachInsights;
-    var series = CI.computeProgressSeries(sessions, { weekCount: 12 });
-    if(!series.hasZoneTrend && !series.hasGradeTrend){
+    var series = CI.computeProgressSeries(sessions, {
+      weekCount: 12,
+      ropedDiscipline: _ropedDisciplineFilter || 'all'
+    });
+    if(!series.hasZoneTrend && !series.hasBoulderGradeTrend && !series.hasRopedGradeTrend && !series.hasGradeTrend){
       return '<div class="empty-state">No logged climb sessions in the last 12 weeks.</div>';
     }
     var weekBars = '<div class="progress-week-bars" aria-hidden="true">' +
@@ -2503,40 +2570,44 @@
         '</div>';
     }
 
-    var gradeSvg = '';
-    if(series.hasGradeTrend){
-      var ranks = [];
-      series.gradeSeries.forEach(function(s){
-        s.points.forEach(function(p){ if(p.rank != null) ranks.push(p.rank); });
-      });
-      var lo = Math.max(0, Math.floor(Math.min.apply(null, ranks) - 1));
-      var hi = Math.min(CI.GRADE_ORDER.length - 1, Math.ceil(Math.max.apply(null, ranks) + 1));
-      if(hi <= lo) hi = lo + 1;
-      var mid = Math.round((lo + hi) / 2);
-      var ticks = [lo, mid, hi].filter(function(v, i, arr){ return arr.indexOf(v) === i; }).map(function(v){
-        return { value: v, label: CI.GRADE_ORDER[v] || String(v) };
-      });
-      gradeSvg = '<div class="insight-chart-title">Grade by terrain</div>' +
-        renderSharedAxisSvg(series.gradeSeries.map(function(s){
-          return {
-            color: TERRAIN_LINE_COLOR[s.terrain] || 'var(--accent)',
-            xs: series.labels,
-            values: s.points.map(function(p){ return p.rank; })
-          };
-        }), lo, hi, ticks, 720, 176) +
-        '<div class="insight-legend">' + series.gradeSeries.map(function(s){
-          return '<span><span class="insight-swatch" style="background:' +
-            (TERRAIN_LINE_COLOR[s.terrain] || 'var(--accent)') + '"></span>' +
-            escapeHtml(s.terrain) + '</span>';
-        }).join('') + '</div>';
-    } else {
-      gradeSvg = '<div class="empty-state">No graded sessions with a known terrain in this window.</div>';
+    var boulderEmpty = 'No bouldering sessions in this window.';
+    var ropedEmpty = 'No roped sessions in this window.';
+    if((series.ropedDiscipline || 'all') === 'lead') ropedEmpty = 'No Lead sessions in this window.';
+    if(series.ropedDiscipline === 'top_rope') ropedEmpty = 'No Top Rope sessions in this window.';
+    if(series.ropedDiscipline === 'auto_belay') ropedEmpty = 'No Auto Belay sessions in this window.';
+
+    var offNote = '';
+    if(series.excludedOffSystem > 0){
+      offNote = '<div class="form-note">Left off ' + series.excludedOffSystem +
+        (series.excludedOffSystem === 1 ? ' session' : ' sessions') +
+        ' on a different grade system than this athlete\'s usual' +
+        (series.ropedSystemLabel ? ' (' + escapeHtml(series.ropedSystemLabel) + ')' : '') +
+        '.</div>';
     }
+
+    var boulderSvg = renderGradeFamilyChartHtml(
+      'Bouldering',
+      series.boulderGradeSeries,
+      series.boulderAxis,
+      series.labels,
+      boulderEmpty,
+      '',
+      ''
+    );
+    var ropedSvg = renderGradeFamilyChartHtml(
+      'Roped climbing',
+      series.ropedGradeSeries,
+      series.ropedAxis,
+      series.labels,
+      ropedEmpty,
+      ropedFilterChipsHtml(series.ropedDiscipline),
+      offNote
+    );
 
     return '<div class="form-note">' + series.sessionCount +
       (series.sessionCount === 1 ? ' logged session' : ' logged sessions') +
       ' in this window.</div>' +
-      weekBars + zoneSvg + gradeSvg;
+      weekBars + zoneSvg + boulderSvg + ropedSvg;
   }
 
   function renderGapPanelHtml(sessions){

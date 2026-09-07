@@ -200,7 +200,6 @@ assert.ok(!/classifyBoulderVsLead/.test(dash));
 assert.ok(!/unclassifiedCount/.test(dash));
 assert.ok(!/gapGroupHtml/.test(dash));
 assert.ok(!/classifyBoulderVsLead/.test(js));
-assert.ok(!/\bboulder\b/i.test(js));
 assert.ok(!/index\.html/.test(js));
 
 console.log('coach-athlete-insights tests: ok');
