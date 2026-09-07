@@ -2859,7 +2859,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <a class="train-energy-card" id="profile-card-guide" href="https://straydog-labs.github.io/see-guide-site/athlete-guide.html" target="_blank" rel="noopener">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div></div>
           <div class="te-label">Learn</div>
-          <div class="te-title">Guide</div>
+          <div class="te-title">Guide / Help</div>
           <div class="te-sub">How to use SEE</div>
         </a>
         <a class="train-energy-card" id="profile-card-coach-guide" href="https://straydog-labs.github.io/see-guide-site/coach-guide.html" target="_blank" rel="noopener" hidden aria-hidden="true">
@@ -2917,6 +2917,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-title">Help</div>
           <div class="te-sub">Helper tips on or off</div>
         </button>
+        <a class="train-energy-card" id="profile-card-guide-anon" href="https://straydog-labs.github.io/see-guide-site/athlete-guide.html" target="_blank" rel="noopener">
+          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div></div>
+          <div class="te-label">Learn</div>
+          <div class="te-title">Guide / Help</div>
+          <div class="te-sub">How to use SEE</div>
+        </a>
       </div>
     </div>
 
@@ -4810,7 +4816,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index237'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index238'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -19408,9 +19414,17 @@ async function runSEETests(){
       && athleteTile.getAttribute('href') === 'https://straydog-labs.github.io/see-guide-site/athlete-guide.html'
       && athleteTile.getAttribute('target') === '_blank'
       && /\bnoopener\b/.test(athleteTile.getAttribute('rel') || '')
-      && /Guide/.test(athleteTile.textContent)
+      && /Guide \/ Help/.test(athleteTile.textContent)
       && /How to use SEE/.test(athleteTile.textContent)
       && !athleteTile.hasAttribute('hidden'));
+    var anonTile = document.getElementById('profile-card-guide-anon');
+    var anonOk = !!(anonTile
+      && anonTile.tagName === 'A'
+      && anonTile.getAttribute('href') === 'https://straydog-labs.github.io/see-guide-site/athlete-guide.html'
+      && anonTile.getAttribute('target') === '_blank'
+      && /\bnoopener\b/.test(anonTile.getAttribute('rel') || '')
+      && /Guide \/ Help/.test(anonTile.textContent)
+      && anonTile.classList.contains('train-energy-card'));
     var coachStaticHidden = !!(coachTile && hub && hub.contains(coachTile)
       && coachTile.tagName === 'A'
       && coachTile.getAttribute('href') === 'https://straydog-labs.github.io/see-guide-site/coach-guide.html'
@@ -19447,11 +19461,11 @@ async function runSEETests(){
     window.sbS = origSbS;
     window._authUser = prevAuth;
     await refreshCoachDashToggle();
-    if(athleteOk && coachStaticHidden && sameGate && hiddenNoAuth && shownForCoach && hiddenForAthlete){
+    if(athleteOk && anonOk && coachStaticHidden && sameGate && hiddenNoAuth && shownForCoach && hiddenForAthlete){
       pass('Profile Guide tiles + coach-guide fail-closed gate');
     } else {
       fail('Profile Guide tiles + coach-guide fail-closed gate',
-        'athlete=' + athleteOk + ' staticHidden=' + coachStaticHidden + ' gate=' + sameGate
+        'athlete=' + athleteOk + ' anon=' + anonOk + ' staticHidden=' + coachStaticHidden + ' gate=' + sameGate
         + ' noAuth=' + hiddenNoAuth + ' coachShow=' + shownForCoach + ' athleteHide=' + hiddenForAthlete);
     }
   }catch(e){
