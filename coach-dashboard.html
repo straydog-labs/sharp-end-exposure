@@ -632,6 +632,9 @@
   .clog-zone.selected.comfort{background:rgba(126,200,122,.18);}
   .clog-zone.selected.learning{background:rgba(245,166,35,.18);}
   .clog-zone.selected.panic{background:rgba(232,68,68,.18);}
+  .clog-zone:disabled{
+    opacity:.55;cursor:default;
+  }
   .clog-terrain{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;}
   .clog-terrain button{
     background:var(--surface);border:1px solid var(--border);border-radius:999px;
@@ -2105,6 +2108,31 @@
     note: '',
     catalog: []
   };
+  var _coachLogLocked = false;
+  var _coachLogSaving = false;
+
+  function coachLogFormLocked(){
+    return _coachLogLocked || _coachLogSaving;
+  }
+
+  function setCoachLogSaveEnabled(on, label){
+    var saveBtn = document.getElementById('clog-save');
+    if(!saveBtn) return;
+    saveBtn.disabled = !on;
+    saveBtn.textContent = label || 'Save';
+  }
+
+  function refreshRosterAfterCoachLog(){
+    if(!_detailCtx || !_coachRoster || !_coachRoster.length) return;
+    loadRosterInsights(_detailCtx.token, _coachRoster);
+    updateRosterStats(_detailCtx.token, _coachRoster);
+  }
+
+  function unlockCoachLogForm(){
+    _coachLogLocked = false;
+    _coachLogSaving = false;
+    setCoachLogSaveEnabled(true, 'Save');
+  }
 
   function openCoachLogOverlay(){
     if(!_detailCtx) return;
@@ -2116,6 +2144,7 @@
     _coachLogState.routeName = '';
     _coachLogState.grade = '';
     _coachLogState.note = '';
+    unlockCoachLogForm();
     var gradeEl = document.getElementById('clog-grade');
     var noteEl = document.getElementById('clog-note');
     if(gradeEl) gradeEl.value = '';
@@ -2147,21 +2176,26 @@
 
   function paintCoachLogForm(){
     readCoachLogFields();
+    var locked = coachLogFormLocked();
     var zonesEl = document.getElementById('clog-zones');
     if(zonesEl){
       zonesEl.innerHTML = ['comfort','learning','panic'].map(function(z){
         var cap = z.charAt(0).toUpperCase() + z.slice(1);
         return '<button type="button" class="clog-zone ' + z +
           (_coachLogState.zone === z ? ' selected' : '') +
-          '" data-zone="' + z + '">' + cap + '</button>';
+          '" data-zone="' + z + '"' +
+          (locked ? ' disabled' : '') + '>' + cap + '</button>';
       }).join('');
-      Array.prototype.forEach.call(zonesEl.querySelectorAll('.clog-zone'), function(btn){
-        btn.addEventListener('click', function(){
-          _coachLogState.zone = btn.getAttribute('data-zone');
-          paintCoachLogForm();
-          saveCoachLogSession(true);
+      if(!locked){
+        Array.prototype.forEach.call(zonesEl.querySelectorAll('.clog-zone'), function(btn){
+          btn.addEventListener('click', function(){
+            if(coachLogFormLocked()) return;
+            _coachLogState.zone = btn.getAttribute('data-zone');
+            paintCoachLogForm();
+            saveCoachLogSession(true);
+          });
         });
-      });
+      }
     }
     var terrainsEl = document.getElementById('clog-terrains');
     if(terrainsEl){
@@ -2245,6 +2279,7 @@
 
   function saveCoachLogSession(fromZoneTap){
     if(!_detailCtx || !window.CoachLogSession) return;
+    if(coachLogFormLocked()) return;
     readCoachLogFields();
     var built = window.CoachLogSession.buildPayload({
       athleteId: _detailCtx.athleteId,
@@ -2262,10 +2297,12 @@
       if(msg){ msg.className = 'form-error'; msg.textContent = built.error; }
       return;
     }
-    var saveBtn = document.getElementById('clog-save');
-    if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+    _coachLogSaving = true;
+    setCoachLogSaveEnabled(false, 'Saving...');
+    paintCoachLogForm();
     if(msg) msg.textContent = '';
     var payload = built.payload;
+    var untaggedFallback = false;
     fetch(SB_URL + '/rest/v1/sessions', {
       method: 'POST',
       headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
@@ -2293,15 +2330,30 @@
             headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
             body: JSON.stringify(payload)
           }).then(function(res3){
-            if(res3.ok) return res3.json();
+            if(res3.ok){
+              untaggedFallback = true;
+              return res3.json();
+            }
             throw err;
           });
         }
         throw err;
       });
     }).then(function(){
-      showCoachToast('Climb logged.');
-      if(msg){ msg.className = 'form-success'; msg.textContent = 'Saved.'; }
+      _coachLogSaving = false;
+      _coachLogLocked = true;
+      setCoachLogSaveEnabled(false, 'Save');
+      paintCoachLogForm();
+      if(untaggedFallback){
+        showCoachToast('Climb logged — not tagged Logged by coach.');
+        if(msg){
+          msg.className = 'form-success';
+          msg.textContent = 'Saved, but it was not tagged Logged by coach.';
+        }
+      } else {
+        showCoachToast('Climb logged.');
+        if(msg){ msg.className = 'form-success'; msg.textContent = 'Saved.'; }
+      }
       var again = document.getElementById('clog-again');
       if(again) again.style.display = '';
       var hero = document.getElementById('clog-hero');
@@ -2309,14 +2361,17 @@
       if(_detailCtx){
         loadAthleteSessions(_detailCtx.token, _detailCtx.coachUser, _detailCtx.athleteId, _detailCtx.athleteLabel);
         loadAthleteInsightPanels(_detailCtx.token, _detailCtx.athleteId);
+        refreshRosterAfterCoachLog();
       }
     }).catch(function(err){
+      _coachLogSaving = false;
+      _coachLogLocked = false;
+      setCoachLogSaveEnabled(true, 'Save');
+      paintCoachLogForm();
       if(msg){
         msg.className = 'form-error';
         msg.textContent = 'Could not save. ' + friendlyErrorMessage(err, 'Apply the coach-log SQL if this is a first run.');
       }
-    }).then(function(){
-      if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
     });
   }
 
@@ -2324,6 +2379,7 @@
     if(!window.CoachLogSession) return;
     readCoachLogFields();
     _coachLogState = Object.assign({ catalog: _coachLogState.catalog }, window.CoachLogSession.keepAfterLogAnother(_coachLogState));
+    unlockCoachLogForm();
     var again = document.getElementById('clog-again');
     if(again) again.style.display = 'none';
     var hero = document.getElementById('clog-hero');
@@ -4993,6 +5049,7 @@
   });
   document.getElementById('clog-back').addEventListener('click', closeCoachLogOverlay);
   document.getElementById('clog-save').addEventListener('click', function(){
+    if(coachLogFormLocked()) return;
     saveCoachLogSession(false);
   });
   document.getElementById('clog-again').addEventListener('click', resetCoachLogAnother);

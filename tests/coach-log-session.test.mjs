@@ -73,4 +73,25 @@ assert.ok(/sessions_insert_linked_coach/.test(rlsSql));
 assert.ok(/coach_athlete_links/.test(rlsSql));
 assert.ok(!/wes\s*shih|sender\s*one/i.test(dash + colSql + rlsSql));
 
+assert.ok(/var _coachLogLocked/.test(dash));
+assert.ok(/var _coachLogSaving/.test(dash));
+assert.ok(/function coachLogFormLocked/.test(dash));
+assert.ok(/function unlockCoachLogForm/.test(dash));
+assert.ok(/if\(coachLogFormLocked\(\)\) return;/.test(dash));
+assert.ok(/disabled/.test(dash) && /clog-zone/.test(dash));
+assert.ok(/_coachLogLocked = true/.test(dash));
+assert.ok(/unlockCoachLogForm\(\)/.test(dash));
+assert.ok(/function refreshRosterAfterCoachLog/.test(dash));
+assert.ok(/loadRosterInsights\(_detailCtx\.token, _coachRoster\)/.test(dash));
+assert.ok(/updateRosterStats\(_detailCtx\.token, _coachRoster\)/.test(dash));
+assert.ok(/refreshRosterAfterCoachLog\(\)/.test(dash));
+assert.ok(/untaggedFallback/.test(dash));
+assert.ok(/if\(untaggedFallback\)/.test(dash));
+assert.ok(/not tagged Logged by coach/.test(dash));
+
+assert.ok(/var PANIC_WEEK_THRESHOLD = 3/.test(dash));
+assert.ok(/panicWeek \+ ' panic sessions this week/.test(dash));
+assert.ok(!/4 panic sessions this week/.test(dash));
+assert.ok((dash.match(/panicWeek \+ ' panic sessions this week/g) || []).length >= 2);
+
 console.log('coach-log-session + roster CSS tests: ok');
