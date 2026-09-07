@@ -659,6 +659,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
 }
+.is-confirming{border-color:var(--panic)!important;color:var(--panic)!important;}
+.climb-star-btn:disabled{opacity:.45;pointer-events:none;cursor:wait;}
 .log-flow-done-reflection{
   width:100%;
   margin-top:20px;
@@ -1605,7 +1607,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <!-- Delete route — visually separate destructive action, not grouped with Edit/+Attempt -->
     <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
-      <button onclick="deleteRoute()" style="width:100%;background:none;border:1px solid rgba(232,68,68,.3);border-radius:var(--r-md);color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">Delete this route</button>
+      <button onclick="deleteRoute(this)" style="width:100%;background:none;border:1px solid rgba(232,68,68,.3);border-radius:var(--r-md);color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">Delete this route</button>
     </div>
 
   </div>
@@ -2887,7 +2889,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div style="text-align:center;padding-top:8px;">
         <button onclick="authSignOut()" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;">Sign out</button>
         <span style="color:var(--border);">·</span>
-        <button onclick="confirmDeleteAccount()" style="background:none;border:none;color:rgba(232,68,68,.6);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;">Delete my account</button>
+        <button onclick="confirmDeleteAccount(this)" style="background:none;border:none;color:rgba(232,68,68,.6);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:8px;cursor:pointer;">Delete my account</button>
       </div>
     </div>
 
@@ -3138,7 +3140,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
       <div style="display:flex;gap:8px;">
         <button onclick="startEditJournalEntry()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">Edit</button>
-        <button onclick="deleteJournalEntry()" style="flex:1;background:none;border:1px solid rgba(232,68,68,.4);border-radius:var(--r-md);color:rgba(232,68,68,.8);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">Delete</button>
+        <button onclick="deleteJournalEntry(this)" style="flex:1;background:none;border:1px solid rgba(232,68,68,.4);border-radius:var(--r-md);color:rgba(232,68,68,.8);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">Delete</button>
       </div>
     </div>
 
@@ -4254,10 +4256,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     </div>
 
-    <button onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
+    <button id="edit-save-changes-btn" onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-      <button onclick="deleteAttempt()" style="width:100%;background:none;border:1px solid rgba(232,68,68,.3);border-radius:12px;color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">Delete this attempt</button>
+      <button onclick="deleteAttempt(this)" style="width:100%;background:none;border:1px solid rgba(232,68,68,.3);border-radius:12px;color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">Delete this attempt</button>
     </div>
   </div>
 
@@ -4816,7 +4818,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'staging-index238'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'staging-index239'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -6500,6 +6502,64 @@ function routeRenameConfirmNeeded(climbId, nextName, prevName){
   return !!(climbId && a && a !== b);
 }
 
+async function syncClimbCatalogFields(climbId, grade, terrain){
+  if(!climbId) return true;
+  var patch={
+    grade_value: grade || null,
+    climbing_type: terrain || null
+  };
+  var ok=await sbU('climbs','id=eq.'+encodeURIComponent(climbId), patch);
+  if(sbFailed(ok)) return false;
+  _climbCache=null;
+  if(Array.isArray(window._cachedClimbs)){
+    window._cachedClimbs.forEach(function(c){
+      if(c && c.id===climbId){
+        c.grade_value=patch.grade_value;
+        c.climbing_type=patch.climbing_type;
+      }
+    });
+  }
+  if(window._rhClimbId===climbId){
+    window._rhGrade=patch.grade_value;
+    window._rhTerrain=patch.climbing_type;
+  }
+  return true;
+}
+
+function armInlineConfirm(btn, confirmLabel, onConfirm){
+  if(!btn || typeof onConfirm !== 'function') return;
+  function disarm(){
+    btn.removeAttribute('data-confirm-armed');
+    btn.classList.remove('is-confirming');
+    if(btn._confirmPrev != null){
+      btn.textContent = btn._confirmPrev;
+      btn._confirmPrev = null;
+    }
+    if(btn._confirmDoc){
+      document.removeEventListener('click', btn._confirmDoc, true);
+      btn._confirmDoc = null;
+    }
+  }
+  if(btn.getAttribute('data-confirm-armed') === '1'){
+    disarm();
+    onConfirm();
+    return;
+  }
+  btn._confirmPrev = btn.textContent;
+  btn.setAttribute('data-confirm-armed', '1');
+  btn.classList.add('is-confirming');
+  btn.textContent = confirmLabel || 'Confirm delete';
+  btn._confirmDoc = function(e){
+    if(btn.contains(e.target)) return;
+    disarm();
+  };
+  setTimeout(function(){
+    if(btn.getAttribute('data-confirm-armed') === '1' && btn._confirmDoc){
+      document.addEventListener('click', btn._confirmDoc, true);
+    }
+  }, 0);
+}
+
 // ── SEND CAPTURE — "Tell us about the send" (Fix 4, build 176) — same
 // single-select-per-question pattern as fall/backoff capture above ──
 var sendState = {standout:null, moment_feeling:null, reflection_feeling:null};
@@ -7088,7 +7148,9 @@ async function logFlowSaveReflectionIfFilled(){
   await sbU('sessions', 'id=eq.' + logState.sessId, refl);
 }
 
+var _logFlowSaveBusy = false;
 async function logFlowSaveSession(){
+  if(_logFlowSaveBusy) return;
   deepAnswers = { q1: null, q2: null, q3: null, q4: null, q5: null, q6: null, q7: null };
   deepScores = { breath: null, gut: null, crux: null, body: null };
 
@@ -7100,9 +7162,13 @@ async function logFlowSaveSession(){
     return;
   }
 
+  _logFlowSaveBusy = true;
   var saveBtn = document.getElementById('log-name-save');
-  if(saveBtn){ saveBtn.textContent = 'Saving...'; saveBtn.classList.remove('ready'); }
+  var skipBtn = document.getElementById('log-name-skip');
+  if(saveBtn){ saveBtn.textContent = 'Saving...'; saveBtn.classList.remove('ready'); saveBtn.disabled = true; saveBtn.style.pointerEvents = 'none'; }
+  if(skipBtn){ skipBtn.style.pointerEvents = 'none'; skipBtn.style.opacity = '.45'; }
 
+  try {
   var zr = resolveZone({ result: logState.result });
   logState.zone = zr.zone;
   logState.zoneConf = zr.confidence;
@@ -7194,19 +7260,21 @@ async function logFlowSaveSession(){
     offlineQueueAdd(payload, logState.routeName, climbId);
     showToast('Saved offline. Will sync when you are back online.');
     showScreen('screen-log-prompt');
-    if(saveBtn){ saveBtn.textContent = 'Save climb'; saveBtn.classList.add('ready'); }
     return;
   }
   if(sbFailed(raw) || !(raw && raw.id)){
     showToast('Could not save this climb. Try again.', true);
-    if(saveBtn){ saveBtn.textContent = 'Save climb'; saveBtn.classList.add('ready'); }
     return;
   }
 
   var saved = Array.isArray(raw) ? raw[0] : raw;
   if(saved && saved.id){
     logState.sessId = saved.id;
-    showToast('Logged ✓');
+    if(!(await syncClimbCatalogFields(climbId, logState.grade, logState.terrain))){
+      showToast('Logged, but the route details did not fully update.', true);
+    } else {
+      showToast('Logged ✓');
+    }
     window._prepareSessionId = null;
 
     if(logState.result === 'fell' && window._authUser){
@@ -7280,8 +7348,11 @@ async function logFlowSaveSession(){
   } else {
     showToast('Could not save — try again', true);
   }
-
-  if(saveBtn){ saveBtn.textContent = 'Save climb'; saveBtn.classList.add('ready'); }
+  } finally {
+    _logFlowSaveBusy = false;
+    if(saveBtn){ saveBtn.textContent = 'Save climb'; saveBtn.classList.add('ready'); saveBtn.disabled = false; saveBtn.style.pointerEvents = ''; }
+    if(skipBtn){ skipBtn.style.pointerEvents = ''; skipBtn.style.opacity = ''; }
+  }
 }
 
 function populateLogDoneScreen(resetReflection){
@@ -7473,13 +7544,17 @@ async function logFlowDoneHome(){
   };
 })();
 
+var _logClimbSaveBusy = false;
 async function logClimb(){
+  if(_logClimbSaveBusy) return;
   // Reset Go Deeper state so chips never pre-populate from previous climb
   deepAnswers={q1:null,q2:null,q3:null,q4:null,q5:null,q6:null,q7:null};
   deepScores={breath:null,gut:null,crux:null,body:null};
   if(!logState.result||!logState.grade||!logState.terrain){showToast('Pick result, grade, and terrain first');return;}
+  _logClimbSaveBusy = true;
   var btn=document.getElementById('log-btn');
-  if(btn){btn.textContent='Logging...';btn.classList.remove('ready');}
+  if(btn){btn.textContent='Logging...';btn.classList.remove('ready');btn.disabled=true;btn.style.pointerEvents='none';}
+  try {
 
   var zr=resolveZone({result:logState.result});
   logState.zone=zr.zone;logState.zoneConf=zr.confidence;
@@ -7597,7 +7672,11 @@ async function logClimb(){
   var saved=Array.isArray(raw)?raw[0]:raw;
   if(saved&&saved.id){
     logState.sessId=saved.id;
-    showToast('Logged ✓');
+    if(!(await syncClimbCatalogFields(climbId, logState.grade, logState.terrain))){
+      showToast('Logged, but the route details did not fully update.', true);
+    } else {
+      showToast('Logged ✓');
+    }
     window._prepareSessionId = null; // clear after use
     window._sessionStartTime = null;
     // Save fall-capture data (Feature 1) — only if at least one answer was given.
@@ -7687,6 +7766,10 @@ async function logClimb(){
   (window._authUser&&window._authUser.id?sbS('sessions','select=*&user_id=eq.'+window._authUser.id+'&deleted_at=is.null&order=created_at.desc&limit=100'):sbS('sessions','select=*&device_id=eq.'+getDeviceId()+'&deleted_at=is.null&order=created_at.desc&limit=100')).then(function(s){
     window._cachedSessions=Array.isArray(s)?s.filter(function(x){return !x.is_checkin;}):[];
   });
+  } finally {
+    _logClimbSaveBusy = false;
+    if(btn){ btn.disabled = false; btn.style.pointerEvents = ''; }
+  }
 }
 
 var _celebrateRendered=false;
@@ -8006,19 +8089,32 @@ async function loadBetaNoteCounts(){
   return counts;
 }
 
+var _projectToggleBusy = {};
 async function toggleClimbProject(climbId){
   if(!climbId) return;
-  await loadClimbCache();
-  var rec=climbById(climbId);
-  var next=!(rec && rec.is_project);
-  var ok=await sbU('climbs','id=eq.'+encodeURIComponent(climbId),{is_project:next});
-  if(sbFailed(ok)){ showToast('Could not update project - try again', true); return; }
-  if(rec) rec.is_project=next;
-  else {
-    _climbCache=_climbCache||[];
-    _climbCache.push({id:climbId, is_project:next});
+  if(_projectToggleBusy[climbId]) return;
+  _projectToggleBusy[climbId] = true;
+  document.querySelectorAll('.climb-star-btn[data-cid="'+String(climbId).replace(/"/g,'')+'"]').forEach(function(btn){
+    btn.disabled = true;
+  });
+  try {
+    await loadClimbCache();
+    var rec=climbById(climbId);
+    var next=!(rec && rec.is_project);
+    var ok=await sbU('climbs','id=eq.'+encodeURIComponent(climbId),{is_project:next});
+    if(sbFailed(ok)){ showToast('Could not update project - try again', true); return; }
+    if(rec) rec.is_project=next;
+    else {
+      _climbCache=_climbCache||[];
+      _climbCache.push({id:climbId, is_project:next});
+    }
+    refreshClimbProjectUi(climbId);
+  } finally {
+    delete _projectToggleBusy[climbId];
+    document.querySelectorAll('.climb-star-btn[data-cid="'+String(climbId).replace(/"/g,'')+'"]').forEach(function(btn){
+      btn.disabled = false;
+    });
   }
-  refreshClimbProjectUi(climbId);
 }
 
 function refreshClimbProjectUi(climbId){
@@ -8364,9 +8460,12 @@ async function saveEditJournalEntry(){
   openJournalEntry(_journalOpenEntryId);
 }
 
-async function deleteJournalEntry(){
+async function deleteJournalEntry(btn){
   if(!_journalOpenEntryId) return;
-  if(!confirm('Delete this journal entry? This cannot be undone.')) return;
+  if(btn){
+    armInlineConfirm(btn, 'Confirm delete', function(){ deleteJournalEntry(); });
+    return;
+  }
   await sbU('journal_entries', 'id=eq.'+_journalOpenEntryId, {deleted_at: new Date().toISOString()});
   showToast('Entry deleted');
   _journalOpenEntryId = null;
@@ -9812,7 +9911,7 @@ function trainGoalRowHtml(g, editingId){
     + '<div style="font-size:14px;color:var(--text);line-height:1.45;">' + escTrainHtml(g.text || '') + '</div>'
     + '<div style="display:flex;gap:8px;flex-shrink:0;">'
     + '<button type="button" onclick="startEditTrainGoal(\'' + safeId + '\')" style="background:none;border:none;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Edit</button>'
-    + '<button type="button" onclick="deleteTrainGoal(\'' + safeId + '\')" style="background:none;border:none;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Delete</button>'
+    + '<button type="button" onclick="deleteTrainGoal(\'' + safeId + '\', this)" style="background:none;border:none;color:var(--muted);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;cursor:pointer;padding:0;">Delete</button>'
     + '</div></div>';
 }
 
@@ -9912,9 +10011,12 @@ async function saveEditTrainGoal(id){
   await loadTrainGoals();
 }
 
-async function deleteTrainGoal(id){
+async function deleteTrainGoal(id, btn){
   if(!id) return;
-  if(!confirm('Delete this goal?')) return;
+  if(btn){
+    armInlineConfirm(btn, 'Confirm delete', function(){ deleteTrainGoal(id); });
+    return;
+  }
   var ok = await sbD('athlete_goals', 'id=eq.' + id);
   if(!ok){
     showToast('Could not delete goal - try again', true);
@@ -12211,10 +12313,14 @@ function editSelTerrain(btn,t){
   document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){b.classList.remove('selected');});
   btn.classList.add('selected');logState.terrain=t;
 }
-async function deleteAttempt(){
+async function deleteAttempt(btn){
   if(!logState.sessId){showToast('No session to delete');return;}
-  if(!confirm("Delete this attempt? This can't be undone from the app.")) return;
-  await sbU('sessions','id=eq.'+logState.sessId,{deleted_at:new Date().toISOString()});
+  if(btn){
+    armInlineConfirm(btn, 'Confirm delete', function(){ deleteAttempt(); });
+    return;
+  }
+  var delOk=await sbU('sessions','id=eq.'+logState.sessId,{deleted_at:new Date().toISOString()});
+  if(sbFailed(delOk)){ showToast('Could not delete attempt - try again', true); return; }
   document.getElementById('edit-sheet').style.display='none';
   showToast('Attempt deleted');
   // Refresh whichever screen is visible
@@ -12226,19 +12332,32 @@ async function deleteAttempt(){
   }
 }
 
+var _editSaveBusy=false;
 async function saveEditedClimb(){
+  if(_editSaveBusy) return;
   if(!logState.sessId){showToast('No session to edit');return;}
   var rnEl=document.getElementById('edit-rname');
   if(rnEl) logState.routeName=rnEl.value.trim()||null;
   var climbId=logState._editClimbId||null;
   var nextName=logState.routeName||'';
   var prevName=logState._editOriginalRouteName||'';
+  if(climbId && !String(nextName).trim()){
+    showToast('Name this climb before saving', true);
+    return;
+  }
+  _editSaveBusy=true;
+  var saveBtn=document.getElementById('edit-save-changes-btn');
+  if(saveBtn){ saveBtn.disabled=true; saveBtn.style.pointerEvents='none'; saveBtn.style.opacity='.6'; }
+  try {
   var renameAll=false;
   if(routeRenameConfirmNeeded(climbId, nextName, prevName)){
     var sibs=await sbS('sessions','select=id&climb_id=eq.'+climbId+'&is_checkin=eq.false&deleted_at=is.null');
     var n=Array.isArray(sibs)&&sibs.length?sibs.length:1;
-    if(!confirm('Rename this route for all '+n+' logged attempts?')) return;
-    renameAll=true;
+    renameAll=confirm('Rename this route for all '+n+' logged attempts?');
+    if(!renameAll){
+      logState.routeName=prevName||null;
+      nextName=prevName||'';
+    }
   }
   // Don't overwrite a manual gauge override just applied in this edit session —
   // only recompute zone from result if it hasn't been manually set
@@ -12266,16 +12385,21 @@ async function saveEditedClimb(){
     showToast('Could not update - try again', true);
     return;
   }
+  var extrasFailed=false;
+  if(!(await syncClimbCatalogFields(climbId, logState.grade, logState.terrain))) extrasFailed=true;
   if(renameAll && climbId){
     var newName=String(nextName).trim();
-    await sbU('sessions','climb_id=eq.'+climbId+'&is_checkin=eq.false&deleted_at=is.null',{route_name:newName});
-    await sbU('climbs','id=eq.'+climbId,{name:newName});
-    _climbCache=null;
-    [window._cachedClimbs, window._cachedSessions, window._rhSessions].forEach(function(arr){
-      if(!Array.isArray(arr)) return;
-      arr.forEach(function(s){ if(s && s.climb_id===climbId) s.route_name=newName; });
-    });
-    logState._editOriginalRouteName=newName;
+    var sibOk=await sbU('sessions','climb_id=eq.'+climbId+'&is_checkin=eq.false&deleted_at=is.null',{route_name:newName});
+    var nameOk=await sbU('climbs','id=eq.'+climbId,{name:newName});
+    if(sbFailed(sibOk) || sbFailed(nameOk)) extrasFailed=true;
+    else {
+      _climbCache=null;
+      [window._cachedClimbs, window._cachedSessions, window._rhSessions].forEach(function(arr){
+        if(!Array.isArray(arr)) return;
+        arr.forEach(function(s){ if(s && s.climb_id===climbId) s.route_name=newName; });
+      });
+      logState._editOriginalRouteName=newName;
+    }
   }
   logState._editTakeHighPoint=takeHp||'';
   logState.takeHighPoint=takeHp||'';
@@ -12313,7 +12437,15 @@ async function saveEditedClimb(){
   if(activeScreen && activeScreen.id === 'screen-route-history' && window._rhClimbId){
     openClimbExposure(window._rhClimbId);
   }
-  showToast('Updated ✓');
+  if(extrasFailed){
+    showToast('Changes saved, but the route update did not fully apply. Try again.', true);
+  } else {
+    showToast('Updated ✓');
+  }
+  } finally {
+    _editSaveBusy=false;
+    if(saveBtn){ saveBtn.disabled=false; saveBtn.style.pointerEvents=''; saveBtn.style.opacity=''; }
+  }
 }
 
 function selectFocus(btn,v){
@@ -15449,18 +15581,24 @@ async function openClimbExposure(climbId){
   showScreen('screen-route-history');
 }
 
-async function deleteRoute(){
+async function deleteRoute(btn){
   var climbId = window._rhClimbId;
   if(!climbId){showToast('No route to delete');return;}
-  var count = (window._rhSessions||[]).length;
-  if(!confirm("Delete this entire route and all "+count+" attempt"+(count===1?'':'s')+"? This can't be undone from the app.")) return;
+  if(btn){
+    armInlineConfirm(btn, 'Confirm delete', function(){ deleteRoute(); });
+    return;
+  }
   var now = new Date().toISOString();
   var climbOk = await sbU('climbs','id=eq.'+climbId,{deleted_at:now});
   if(sbFailed(climbOk)){
     showToast('Could not delete route - try again', true);
     return;
   }
-  await sbU('sessions','climb_id=eq.'+climbId,{deleted_at:now});
+  var sessOk = await sbU('sessions','climb_id=eq.'+climbId,{deleted_at:now});
+  if(sbFailed(sessOk)){
+    showToast('Could not delete all attempts - try again', true);
+    return;
+  }
   showToast('Route deleted');
   showScreen('screen-sessions');
   loadClimbLog();
@@ -15548,7 +15686,7 @@ function renderRouteBetaNoteItemHtml(n){
     '<div style="font-size:14px;color:var(--text);line-height:1.55;word-break:break-word;">' + escTrainHtml(n.body || '') + '</div>' +
     '<div style="display:flex;gap:10px;margin-top:4px;">' +
       '<button type="button" onclick="startEditRouteBetaNote(\'' + n.id + '\')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 2px;">Edit</button>' +
-      '<button type="button" onclick="deleteRouteBetaNote(\'' + n.id + '\')" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 2px;">Delete</button>' +
+      '<button type="button" onclick="deleteRouteBetaNote(\'' + n.id + '\', this)" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 2px;">Delete</button>' +
     '</div></div>';
 }
 
@@ -15605,8 +15743,11 @@ async function saveEditRouteBetaNote(id){
   await loadRouteBetaNotes(climbId, climbById(climbId));
 }
 
-async function deleteRouteBetaNote(id){
-  if(!confirm('Delete this note?')) return;
+async function deleteRouteBetaNote(id, btn){
+  if(btn){
+    armInlineConfirm(btn, 'Confirm delete', function(){ deleteRouteBetaNote(id); });
+    return;
+  }
   var climbId = window._rhClimbId;
   var note = (_rhBetaNotes || []).find(function(n){ return n.id === id; });
   if(note && note._virtual){
@@ -16559,7 +16700,8 @@ function runButtonAudit(options){
     'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications',
     'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes',
     'toggleClimbProject', 'startAddRouteBetaNote', 'cancelAddRouteBetaNote', 'saveNewRouteBetaNote',
-    'startEditRouteBetaNote', 'cancelEditRouteBetaNote', 'saveEditRouteBetaNote', 'deleteRouteBetaNote'
+    'startEditRouteBetaNote', 'cancelEditRouteBetaNote', 'saveEditRouteBetaNote', 'deleteRouteBetaNote',
+    'deleteAttempt', 'deleteRoute', 'deleteJournalEntry', 'confirmDeleteAccount'
   ];
 
   function shouldSkip(onclick){
@@ -17931,7 +18073,7 @@ async function runSEETests(){
       id: 'n1', body: 'heel hook', created_at: '2026-09-01T00:00:00Z', edited_at: '2026-09-02T00:00:00Z'
     });
     var noteOk = /\(edited\)/.test(noteHtml) && /startEditRouteBetaNote\('n1'\)/.test(noteHtml)
-      && /deleteRouteBetaNote\('n1'\)/.test(noteHtml);
+      && /deleteRouteBetaNote\('n1'/.test(noteHtml);
     _editingBetaNoteId = 'n1';
     var editing = renderRouteBetaNoteItemHtml({ id: 'n1', body: 'heel hook' });
     var editMode = /rh-beta-edit-ta-n1/.test(editing) && /saveEditRouteBetaNote\('n1'\)/.test(editing);
@@ -19296,6 +19438,46 @@ async function runSEETests(){
   }catch(e){ fail('Took result + take high point + Learning estimate + route rename gate', e.message); }
 
   try{
+    var saveFn = String(saveEditedClimb);
+    var logFn = String(logFlowSaveSession) + String(logClimb);
+    var syncFn = String(syncClimbCatalogFields);
+    var catalogOk = typeof syncClimbCatalogFields === 'function'
+      && /grade_value/.test(syncFn)
+      && /climbing_type/.test(syncFn)
+      && /sbU\(\s*'climbs'/.test(syncFn)
+      && /syncClimbCatalogFields/.test(saveFn)
+      && /syncClimbCatalogFields/.test(logFn);
+    var emptyNameOk = /Name this climb before saving/.test(saveFn);
+    var decoupleOk = /renameAll=confirm\('Rename this route for all/.test(saveFn)
+      && !/if\(!confirm\('Rename this route for all/.test(saveFn);
+    var cascadeOk = /sibOk/.test(saveFn) && /nameOk/.test(saveFn)
+      && /route update did not fully apply/.test(saveFn)
+      && /sbFailed\(sibOk\)/.test(saveFn);
+    var busyOk = /_logFlowSaveBusy/.test(String(logFlowSaveSession))
+      && /_projectToggleBusy/.test(String(toggleClimbProject))
+      && /_editSaveBusy/.test(saveFn)
+      && /_logClimbSaveBusy/.test(String(logClimb));
+    var delGuardOk = /sbFailed/.test(String(deleteAttempt))
+      && /sbFailed\(sessOk\)/.test(String(deleteRoute))
+      && /Could not delete attempt/.test(String(deleteAttempt));
+    var confirmOk = typeof armInlineConfirm === 'function'
+      && /armInlineConfirm/.test(String(deleteAttempt))
+      && /armInlineConfirm/.test(String(deleteRoute))
+      && /armInlineConfirm/.test(String(deleteJournalEntry))
+      && /armInlineConfirm/.test(String(deleteTrainGoal))
+      && /armInlineConfirm/.test(String(deleteRouteBetaNote))
+      && /armInlineConfirm/.test(String(confirmDeleteAccount))
+      && /confirm\('Rename this route for all/.test(saveFn);
+    if(catalogOk && emptyNameOk && decoupleOk && cascadeOk && busyOk && delGuardOk && confirmOk){
+      pass('Climb snapshot sync + edit guards + inline delete confirm');
+    } else {
+      fail('Climb snapshot sync + edit guards + inline delete confirm',
+        'catalog=' + catalogOk + ' empty=' + emptyNameOk + ' decouple=' + decoupleOk +
+        ' cascade=' + cascadeOk + ' busy=' + busyOk + ' del=' + delGuardOk + ' confirm=' + confirmOk);
+    }
+  }catch(e){ fail('Climb snapshot sync + edit guards + inline delete confirm', e.message); }
+
+  try{
     var dash = await fetch('coach-dashboard.html', { cache: 'no-store' }).then(function(r){ return r.text(); });
     var insights = await fetch('js/coach-athlete-insights.js', { cache: 'no-store' }).then(function(r){ return r.text(); });
     var sendRateOk = /bz === 'sent'/.test(dash) && /bz === 'fell'/.test(dash)
@@ -19765,11 +19947,13 @@ async function authSignOut(){
   showScreen('screen-auth');
 }
 
-function confirmDeleteAccount(){
-  if(confirm('Delete your account? This cannot be undone. Your climb and feedback data will remain in our database until manually removed.')){
-    showToast('Account deletion requested — contact support to complete');
-    // Full self-serve delete in a later build
+function confirmDeleteAccount(btn){
+  if(btn){
+    armInlineConfirm(btn, 'Confirm delete', function(){ confirmDeleteAccount(); });
+    return;
   }
+  showToast('Account deletion requested. Contact support to complete.');
+  // Full self-serve delete in a later build
 }
 
 function openProfile(){
