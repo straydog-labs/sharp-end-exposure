@@ -457,6 +457,42 @@
     };
   }
 
+  function isStarredProject(row) {
+    if (!row) return false;
+    if (row.deleted_at) return false;
+    return row.is_project === true || row.is_project === 'true';
+  }
+
+  function countAttemptsForClimb(sessions, climbId) {
+    if (!climbId) return 0;
+    var n = 0;
+    var list = sessions || [];
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      if (!isClimbSession(s)) continue;
+      if (s.climb_id === climbId) n += 1;
+    }
+    return n;
+  }
+
+  function buildAthleteProjectList(climbs, sessions) {
+    var out = [];
+    var list = climbs || [];
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i];
+      if (!isStarredProject(c) || !c.id) continue;
+      var terrain = normalizeTerrainType(c.climbing_type) || String(c.climbing_type || '').trim();
+      out.push({
+        id: c.id,
+        name: String(c.name || '').trim() || 'Unnamed climb',
+        grade: String(c.grade_value || '').trim(),
+        terrain: terrain,
+        attempts: countAttemptsForClimb(sessions, c.id)
+      });
+    }
+    return out;
+  }
+
   var api = {
     TERRAIN_TYPES: TERRAIN_TYPES,
     GRADE_ORDER: GRADE_ORDER,
@@ -473,6 +509,9 @@
     weekKey: weekKey,
     lastNWeekKeys: lastNWeekKeys,
     formatWeekLabel: formatWeekLabel,
+    isStarredProject: isStarredProject,
+    countAttemptsForClimb: countAttemptsForClimb,
+    buildAthleteProjectList: buildAthleteProjectList,
     CSV_TEMPLATE: 'name,wall_lane,angle,steepness,terrain_type\nExample climb,Lane 1,20,slight,Slab\n'
   };
 

@@ -367,6 +367,14 @@
   .insight-legend{
     display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11.5px;color:var(--text-secondary);margin-top:8px;
   }
+  .project-row{
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    padding:10px 0;border-bottom:1px solid var(--border);
+  }
+  .project-row:last-child{border-bottom:none;padding-bottom:0;}
+  .project-name{font-size:14px;font-weight:700;line-height:1.3;}
+  .project-meta{font-size:12px;color:var(--text-secondary);margin-top:3px;}
+  .project-grade{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;}
   .insight-swatch{display:inline-block;width:10px;height:3px;margin-right:6px;vertical-align:middle;border-radius:1px;}
   .gap-headlines{margin:12px 0 4px;}
   .gap-headline{
@@ -2023,6 +2031,11 @@
           '<div class="team-zone-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
           '<div id="athlete-gap-body"><div class="zone-bar-empty">Loading···</div></div>' +
         '</div>' +
+        '<div class="insight-panel" id="athlete-projects-panel">' +
+          '<div class="team-zone-label">Projects</div>' +
+          '<div class="team-zone-note">Climbs this athlete starred. Read-only — starring stays on the athlete side.</div>' +
+          '<div id="athlete-projects-body"><div class="zone-bar-empty">Loading···</div></div>' +
+        '</div>' +
         '<div class="see-card-grid" id="athlete-hub-cards">' +
           athleteHubCardHtml('assignments', 'Plan', 'Assignments', 'hub-assign-sub', 'Open plans') +
           athleteHubCardHtml('goals', 'Focus', 'Training Goals', 'hub-goals-sub', 'Primary and secondary') +
@@ -2316,7 +2329,7 @@
   };
 
   function loadAthleteInsightSessions(token, athleteId){
-    var q = 'select=id,created_at,zone,baseline_zone,grade_value,climbing_type,discipline' +
+    var q = 'select=id,created_at,zone,baseline_zone,grade_value,climbing_type,discipline,climb_id' +
       '&user_id=eq.' + athleteId +
       '&is_checkin=eq.false&deleted_at=is.null&order=created_at.desc&limit=2000';
     return sbSelect(token, 'sessions', q).then(function(rows){
@@ -2326,22 +2339,69 @@
     });
   }
 
+  function loadAthleteProjectClimbs(token, athleteId){
+    var q = 'select=id,name,grade_value,climbing_type,is_project,deleted_at' +
+      '&user_id=eq.' + athleteId +
+      '&is_project=eq.true&deleted_at=is.null&order=name.asc';
+    return sbSelect(token, 'climbs', q).then(function(rows){
+      return Array.isArray(rows) ? rows : [];
+    }).catch(function(){
+      return [];
+    });
+  }
+
+  function renderAthleteProjectsHtml(climbs, sessions){
+    var list = (window.CoachInsights && window.CoachInsights.buildAthleteProjectList)
+      ? window.CoachInsights.buildAthleteProjectList(climbs, sessions)
+      : [];
+    if(!list.length){
+      return '<div class="zone-bar-empty">No projects starred yet.</div>';
+    }
+    return list.map(function(p){
+      var attemptLabel = p.attempts === 1 ? '1 attempt' : (p.attempts + ' attempts');
+      var meta = [p.terrain, attemptLabel].filter(Boolean).join(' · ');
+      return '<div class="project-row">' +
+        '<div>' +
+          '<div class="project-name">' + escapeHtml(p.name) + '</div>' +
+          (meta ? '<div class="project-meta">' + escapeHtml(meta) + '</div>' : '') +
+        '</div>' +
+        (p.grade ? '<div class="project-grade">' + escapeHtml(p.grade) + '</div>' : '') +
+      '</div>';
+    }).join('');
+  }
+
+  function paintAthleteProjects(climbs, sessions){
+    var el = document.getElementById('athlete-projects-body');
+    if(el) el.innerHTML = renderAthleteProjectsHtml(climbs, sessions);
+  }
+
   function loadAthleteInsightPanels(token, athleteId){
     var progressEl = document.getElementById('athlete-progress-body');
     var gapEl = document.getElementById('athlete-gap-body');
+    var projectsEl = document.getElementById('athlete-projects-body');
     if(!window.CoachInsights){
       if(progressEl) progressEl.innerHTML = '<div class="empty-state">Progress view is unavailable.</div>';
       if(gapEl) gapEl.innerHTML = '<div class="empty-state">Gap view is unavailable.</div>';
+      if(projectsEl) projectsEl.innerHTML = '<div class="zone-bar-empty">No projects starred yet.</div>';
       return Promise.resolve();
     }
-    return loadAthleteInsightSessions(token, athleteId).then(function(rows){
+    return Promise.all([
+      loadAthleteInsightSessions(token, athleteId),
+      loadAthleteProjectClimbs(token, athleteId)
+    ]).then(function(parts){
+      var rows = parts[0];
+      var climbs = parts[1];
       if(progressEl) progressEl.innerHTML = renderProgressPanelHtml(rows);
       if(gapEl) gapEl.innerHTML = renderGapPanelHtml(rows);
+      paintAthleteProjects(climbs, rows);
     }).catch(function(err){
       var msg = '<div class="empty-state" style="color:var(--danger);">Could not load logged sessions. ' +
         escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';
       if(progressEl) progressEl.innerHTML = msg;
       if(gapEl) gapEl.innerHTML = msg;
+      loadAthleteProjectClimbs(token, athleteId).then(function(climbs){
+        paintAthleteProjects(climbs, _athleteInsightCache[athleteId] || []);
+      });
     });
   }
 
