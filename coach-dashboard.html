@@ -633,21 +633,9 @@
     overflow-y:auto;-webkit-overflow-scrolling:touch;
   }
   #coach-log-overlay.open{display:block;}
-  .clog-zone-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0 18px;}
-  .clog-zone{
-    min-height:72px;border-radius:16px;border:2px solid var(--border);background:var(--surface);
-    color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;
-    cursor:pointer;letter-spacing:-.02em;
-  }
-  .clog-zone.comfort{border-color:var(--comfort);}
-  .clog-zone.learning{border-color:var(--learning);}
-  .clog-zone.panic{border-color:var(--panic);}
-  .clog-zone.selected.comfort{background:rgba(126,200,122,.18);}
-  .clog-zone.selected.learning{background:rgba(245,166,35,.18);}
-  .clog-zone.selected.panic{background:rgba(232,68,68,.18);}
-  .clog-zone:disabled{
-    opacity:.55;cursor:default;
-  }
+  .clog-gauge{margin:16px 0 18px;}
+  .clog-gauge-wrap{max-width:360px;margin:0 auto;position:relative;user-select:none;}
+  .clog-gauge-readout{min-height:72px;}
   .clog-terrain{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;}
   .clog-terrain button{
     background:var(--surface);border:1px solid var(--border);border-radius:999px;
@@ -921,8 +909,8 @@
       <div class="aw-content">
         <div class="aw-eyebrow">Log a climb</div>
         <div class="aw-hero" id="clog-hero">How did it feel?</div>
-        <div class="aw-hero-sub" id="clog-hero-sub">Zone is the only required field. Tap a zone to save.</div>
-        <div id="clog-zones" class="clog-zone-grid"></div>
+        <div class="aw-hero-sub" id="clog-hero-sub">Zone is the only required field. Drag the dial, then save.</div>
+        <div id="clog-gauge" class="clog-gauge"></div>
         <div class="aw-section-label">Climb (optional)</div>
         <div id="clog-catalog" class="clog-catalog"></div>
         <div class="aw-section-label">Terrain (optional)</div>
@@ -2036,7 +2024,7 @@
           '</div>' +
         '</div>' +
         '<button type="button" class="assign-launch" id="coach-log-launch" style="margin-bottom:14px;">' +
-          '<span><span>Log a climb</span><span class="assign-launch-sub">Zone first — one tap to save</span></span>' +
+          '<span><span>Log a climb</span><span class="assign-launch-sub">Drag the dial, then save</span></span>' +
           '<span class="assign-launch-arrow">→</span>' +
         '</button>' +
         '<div class="roster-stats">' +
@@ -2119,7 +2107,9 @@
     routeName: '',
     grade: '',
     note: '',
-    catalog: []
+    catalog: [],
+    activationScore: 6,
+    activationTouched: false
   };
   var _coachLogLocked = false;
   var _coachLogSaving = false;
@@ -2157,7 +2147,10 @@
     _coachLogState.routeName = '';
     _coachLogState.grade = '';
     _coachLogState.note = '';
+    _coachLogState.activationScore = 6;
+    _coachLogState.activationTouched = false;
     unlockCoachLogForm();
+    clearCoachLogGauge();
     var gradeEl = document.getElementById('clog-grade');
     var noteEl = document.getElementById('clog-note');
     if(gradeEl) gradeEl.value = '';
@@ -2187,29 +2180,40 @@
     document.body.style.overflow = keep ? 'hidden' : '';
   }
 
+  function clearCoachLogGauge(){
+    var host = document.getElementById('clog-gauge');
+    if(!host) return;
+    host.innerHTML = '';
+    host.removeAttribute('data-gauge-ready');
+    host.removeAttribute('data-gauge-locked');
+  }
+
+  function ensureCoachLogGauge(){
+    var host = document.getElementById('clog-gauge');
+    if(!host || !window.CoachLogSession || !window.CoachLogSession.mountActivationDial) return;
+    var locked = coachLogFormLocked();
+    var ready = host.getAttribute('data-gauge-ready') === '1';
+    var wasLocked = host.getAttribute('data-gauge-locked') === '1';
+    if(ready && host.innerHTML && wasLocked === (locked ? '1' : '0')) return;
+    host.innerHTML = '';
+    window.CoachLogSession.mountActivationDial(host, {
+      score: _coachLogState.activationScore != null ? _coachLogState.activationScore : 6,
+      touched: !!_coachLogState.activationTouched,
+      locked: locked,
+      onChange: function(score, zone){
+        if(coachLogFormLocked()) return;
+        _coachLogState.activationScore = score;
+        _coachLogState.activationTouched = true;
+        _coachLogState.zone = zone;
+      }
+    });
+    host.setAttribute('data-gauge-ready', '1');
+    host.setAttribute('data-gauge-locked', locked ? '1' : '0');
+  }
+
   function paintCoachLogForm(){
     readCoachLogFields();
-    var locked = coachLogFormLocked();
-    var zonesEl = document.getElementById('clog-zones');
-    if(zonesEl){
-      zonesEl.innerHTML = ['comfort','learning','panic'].map(function(z){
-        var cap = z.charAt(0).toUpperCase() + z.slice(1);
-        return '<button type="button" class="clog-zone ' + z +
-          (_coachLogState.zone === z ? ' selected' : '') +
-          '" data-zone="' + z + '"' +
-          (locked ? ' disabled' : '') + '>' + cap + '</button>';
-      }).join('');
-      if(!locked){
-        Array.prototype.forEach.call(zonesEl.querySelectorAll('.clog-zone'), function(btn){
-          btn.addEventListener('click', function(){
-            if(coachLogFormLocked()) return;
-            _coachLogState.zone = btn.getAttribute('data-zone');
-            paintCoachLogForm();
-            saveCoachLogSession(true);
-          });
-        });
-      }
-    }
+    ensureCoachLogGauge();
     var terrainsEl = document.getElementById('clog-terrains');
     if(terrainsEl){
       var types = (window.CoachInsights && window.CoachInsights.TERRAIN_TYPES) ||
@@ -2290,7 +2294,7 @@
     });
   }
 
-  function saveCoachLogSession(fromZoneTap){
+  function saveCoachLogSession(){
     if(!_detailCtx || !window.CoachLogSession) return;
     if(coachLogFormLocked()) return;
     readCoachLogFields();
@@ -2306,7 +2310,6 @@
     });
     var msg = document.getElementById('clog-msg');
     if(!built.ok){
-      if(fromZoneTap) return;
       if(msg){ msg.className = 'form-error'; msg.textContent = built.error; }
       return;
     }
@@ -2316,42 +2319,42 @@
     if(msg) msg.textContent = '';
     var payload = built.payload;
     var untaggedFallback = false;
-    fetch(SB_URL + '/rest/v1/sessions', {
-      method: 'POST',
-      headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
-      body: JSON.stringify(payload)
-    }).then(function(res){
-      if(res.ok) return res.json();
-      return res.json().then(function(err){
-        if(payload.gym_climb_id){
-          delete payload.gym_climb_id;
-          return fetch(SB_URL + '/rest/v1/sessions', {
-            method: 'POST',
-            headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
-            body: JSON.stringify(payload)
-          }).then(function(res2){
-            if(res2.ok) return res2.json();
-            return res2.json().then(function(err2){ throw err2; });
-          });
-        }
-        if(payload.logged_by_coach != null){
-          delete payload.logged_by_coach;
-          delete payload.logged_by;
-          delete payload.session_notes;
-          return fetch(SB_URL + '/rest/v1/sessions', {
-            method: 'POST',
-            headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
-            body: JSON.stringify(payload)
-          }).then(function(res3){
-            if(res3.ok){
-              untaggedFallback = true;
-              return res3.json();
-            }
-            throw err;
-          });
-        }
-        throw err;
+    function postCoachLogSession(body){
+      return fetch(SB_URL + '/rest/v1/sessions', {
+        method: 'POST',
+        headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
+        body: JSON.stringify(body)
+      }).then(function(res){
+        if(res.ok) return res.json();
+        return res.json().then(function(err){ throw err; });
       });
+    }
+    postCoachLogSession(payload)
+    .catch(function(err){
+      if(payload.gym_climb_id){
+        delete payload.gym_climb_id;
+        return postCoachLogSession(payload);
+      }
+      throw err;
+    })
+    .catch(function(err){
+      if(payload.hasOwnProperty('zone_confirmed_by_athlete')){
+        delete payload.zone_confirmed_by_athlete;
+        return postCoachLogSession(payload);
+      }
+      throw err;
+    })
+    .catch(function(err){
+      if(payload.logged_by_coach != null){
+        delete payload.logged_by_coach;
+        delete payload.logged_by;
+        delete payload.session_notes;
+        return postCoachLogSession(payload).then(function(rows){
+          untaggedFallback = true;
+          return rows;
+        });
+      }
+      throw err;
     }).then(function(){
       _coachLogSaving = false;
       _coachLogLocked = true;
@@ -2393,6 +2396,7 @@
     readCoachLogFields();
     _coachLogState = Object.assign({ catalog: _coachLogState.catalog }, window.CoachLogSession.keepAfterLogAnother(_coachLogState));
     unlockCoachLogForm();
+    clearCoachLogGauge();
     var again = document.getElementById('clog-again');
     if(again) again.style.display = 'none';
     var hero = document.getElementById('clog-hero');
@@ -5076,7 +5080,7 @@
   document.getElementById('clog-back').addEventListener('click', closeCoachLogOverlay);
   document.getElementById('clog-save').addEventListener('click', function(){
     if(coachLogFormLocked()) return;
-    saveCoachLogSession(false);
+    saveCoachLogSession();
   });
   document.getElementById('clog-again').addEventListener('click', resetCoachLogAnother);
 
