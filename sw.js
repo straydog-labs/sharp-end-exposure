@@ -2,7 +2,7 @@
    Keep APP_VERSION in sync with `var app_version` in index.html / index-staging.html.
    A new deploy changes this file, so browsers install a fresh worker and drop the
    old versioned cache on activate. */
-var APP_VERSION = 'index245';
+var APP_VERSION = 'index246';
 var CACHE_NAME = 'see-shell-' + APP_VERSION;
 var SEE_VAPID_PUBLIC_KEY = 'BP6DrkZmQspCullBBbaIlg41Z7W_AXFbefEAksCLdkdlkHBUPiJHP5YyKU7BXFBKU0sK1tJUU4v88zZtYJDRmd4';
 
