@@ -324,6 +324,20 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   opacity:1;
   pointer-events:all;
 }
+.zone-info-icon{
+  display:block;
+  margin:8px auto 0;
+  background:none;
+  border:none;
+  color:var(--muted2);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:13px;
+  font-weight:500;
+  line-height:1;
+  cursor:pointer;
+  padding:4px 6px;
+  -webkit-tap-highlight-color:transparent;
+}
 
 /* Mercury-like thin progress bar — fixed above safe area */
 .log-flow-progress{
@@ -1858,6 +1872,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="log-flow-body">
     <div class="screen-title">How activated did you feel?<span class="sub">Drag the dial — your first read.</span></div>
     <div id="log-act-gauge" style="width:100%;max-width:280px;margin:24px auto 0;"></div>
+    <button type="button" class="zone-info-icon" aria-label="What do these zones mean?" onclick="openResearchSheet('general')">ⓘ</button>
   </div>
   <div class="log-flow-footer">
     <button class="log-btn log-flow-cta" id="log-act-continue" onclick="logFlowContinueFromActivation()">Continue</button>
@@ -4842,7 +4857,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index245'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index246'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -17061,7 +17076,7 @@ function runButtonAudit(options){
     'toggleClimbProject', 'startAddRouteBetaNote', 'cancelAddRouteBetaNote', 'saveNewRouteBetaNote',
     'startEditRouteBetaNote', 'cancelEditRouteBetaNote', 'saveEditRouteBetaNote', 'deleteRouteBetaNote',
     'deleteAttempt', 'deleteRoute', 'deleteJournalEntry', 'confirmDeleteAccount',
-    'openCoachZoneConfirm', 'saveCoachZoneConfirm'
+    'openCoachZoneConfirm', 'saveCoachZoneConfirm', 'openResearchSheet'
   ];
 
   function shouldSkip(onclick){
@@ -19805,10 +19820,26 @@ async function runSEETests(){
   try{
     var actScreens = ['screen-log-act','screen-log-details','screen-log-reveal','screen-log-done'];
     var missingAct = actScreens.filter(function(id){ return !document.getElementById(id); });
-    if(missingAct.length === 0 && typeof logState === 'object' && typeof collectLogDetailsPayload === 'function'){
+    var actEl = document.getElementById('screen-log-act');
+    var zoneInfo = actEl && actEl.querySelector('.zone-info-icon');
+    var actTxt = actEl ? (actEl.textContent || '') : '';
+    var zoneInfoOk = !!(zoneInfo
+      && zoneInfo.getAttribute('aria-label') === 'What do these zones mean?'
+      && /openResearchSheet\('general'\)/.test(zoneInfo.getAttribute('onclick') || '')
+      && typeof openResearchSheet === 'function'
+      && RESEARCH_CONTENT && RESEARCH_CONTENT.general
+      && !document.querySelector('#screen-coach-zone-confirm .zone-info-icon')
+      && !SEE_TIPS['screen-log-act']
+      && /How activated did you feel/.test(actTxt)
+      && /Drag the dial/.test(actTxt)
+      && document.getElementById('log-act-gauge')
+      && document.getElementById('log-act-continue')
+      && /Step 1 of 6/.test(actTxt)
+      && actEl.querySelectorAll('input,textarea,select').length === 0);
+    if(missingAct.length === 0 && typeof logState === 'object' && typeof collectLogDetailsPayload === 'function' && zoneInfoOk){
       pass('Activation-first log screens still present');
     } else {
-      fail('Activation-first log screens still present', 'Missing: ' + missingAct.join(', '));
+      fail('Activation-first log screens still present', 'Missing: ' + missingAct.join(', ') + ' zoneInfo=' + zoneInfoOk);
     }
   }catch(e){ fail('Activation-first log screens still present', e.message); }
 
