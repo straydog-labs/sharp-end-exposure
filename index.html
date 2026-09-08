@@ -125,21 +125,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .train-energy-card.mental{border-color:var(--drill-a-dim);}
 .train-energy-card.mental .te-label{color:var(--drill-a);}
 .train-energy-card.mental .te-icon{background:var(--drill-a-dim);color:var(--drill-a);}
-/* Home: one card language. Action tiles drop the tall shadowed tile so they
-   match Due-this-week assignment cards (surface2, r-md, no min-height). */
-#screen-home .train-energy-card{
-  min-height:0;
-  box-shadow:none;
-  background:var(--surface2);
-  border-radius:var(--r-md);
-  padding:14px 16px;
-}
-#screen-home .train-energy-card .te-card-top{margin-bottom:8px;}
-#screen-home .train-energy-card .te-icon{width:28px;height:28px;border-radius:8px;}
-#screen-home .train-energy-card .te-icon svg{width:16px;height:16px;}
-#screen-home .train-energy-card .te-title{font-size:15px;}
-#screen-home .train-energy-card .te-sub{margin-top:4px;}
-#screen-home .train-energy-grid{margin-top:0;}
+.train-energy-card.train-assign-card{cursor:default;width:100%;margin-bottom:12px;box-sizing:border-box;}
+.train-energy-card.train-assign-card:active{transform:none;}
+.train-energy-card.train-assign-card.is-done{opacity:.6;}
 .saw-field input[type=datetime-local]{min-width:0;width:100%;max-width:100%;}
 .train-badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--muted);margin-left:6px;vertical-align:middle;}
 .train-badge.foundational{color:var(--accent);border-color:rgba(232,118,58,.35);}
@@ -4834,7 +4822,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index241'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index242'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -8972,7 +8960,7 @@ function trainCardHtml(a){
   var checkBadge = checks.total > 0
     ? '<span style="font-size:11px;font-weight:700;color:var(--muted);font-family:\'Space Mono\',monospace;white-space:nowrap;">'+checks.checked+'/'+checks.total+' done</span>'
     : '';
-  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:10px;'+(done?'opacity:.6;':'')+'">'
+  return '<div class="train-energy-card train-assign-card'+(done?' is-done':'')+'">'
     +fromCoach
     +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:4px;">'
     +'<div style="font-size:14px;font-weight:600;color:var(--text);">'+escTrainHtml(a.title)+'</div>'
@@ -17150,6 +17138,38 @@ async function runSEETests(){
         ' remap=' + remapOk + ' due=' + dueHandlers);
     }
   }catch(e){ fail('Home screen is the post-sign-in landing with due training', e.message); }
+
+  try{
+    var cssBlob = Array.prototype.map.call(document.querySelectorAll('style'), function(s){ return s.textContent || ''; }).join('\n');
+    var tokenOk = /\.train-energy-card\{[^}]*background:var\(--surface\)/.test(cssBlob)
+      && /\.train-energy-card\{[^}]*border-radius:var\(--r-xl\)/.test(cssBlob)
+      && /\.train-energy-card\{[^}]*padding:20px 18px/.test(cssBlob)
+      && !/#screen-home \.train-energy-card\{[^}]*background:var\(--surface2\)/.test(cssBlob);
+    var html = trainCardHtml({
+      id: 'asg-chrome', title: 'Hangboard', due_date: '2026-08-20', completed_at: null,
+      library_item_id: 'lib-1', custom_workout_item_id: null, coach_id: 'coach-1',
+      description: '- [x] A\n- [ ] B'
+    });
+    var doneHtml = trainCardHtml({
+      id: 'asg-done', title: 'Done one', due_date: null, completed_at: '2026-08-18T00:00:00Z',
+      library_item_id: null, custom_workout_item_id: null, coach_id: null, description: ''
+    });
+    var chromeOk = /class="[^"]*train-energy-card/.test(html)
+      && html.indexOf('background:var(--surface2)') === -1
+      && String(trainCardHtml).indexOf('background:var(--surface2)') === -1
+      && /From coach/.test(html)
+      && /startTrainSessionFromAssignment\('asg-chrome'\)/.test(html)
+      && /trainMarkComplete\('asg-chrome'\)/.test(html)
+      && /1\/2 done/.test(html)
+      && /is-done/.test(doneHtml)
+      && /Completed/.test(doneHtml);
+    if(tokenOk && chromeOk){
+      pass('Due-this-week cards share train-energy-card chrome');
+    } else {
+      fail('Due-this-week cards share train-energy-card chrome',
+        'token=' + tokenOk + ' chrome=' + chromeOk);
+    }
+  }catch(e){ fail('Due-this-week cards share train-energy-card chrome', e.message); }
 
   try{
     var prevId = (document.querySelector('.screen.active')||{}).id || 'screen-home';
