@@ -108,6 +108,8 @@ assert.ok(/panicWeek \+ ' panic sessions this week/.test(dash));
 assert.ok(!/4 panic sessions this week/.test(dash));
 assert.ok((dash.match(/panicWeek \+ ' panic sessions this week/g) || []).length >= 2);
 
+assert.ok(/Drag to set their zone/.test(logJs));
+assert.ok(/if \(fromUser\) untouched = false/.test(logJs));
 assert.ok(/function mountActivationDial/.test(logJs));
 assert.ok(/function scoreToZone/.test(logJs));
 assert.ok(typeof Log.mountActivationDial === 'function');

@@ -214,7 +214,8 @@
       currentScore = clampScore(s);
       positionHandle(currentScore);
       positionNeedle(currentScore);
-      updateReadout(currentScore);
+      if (fromUser) untouched = false;
+      if (fromUser || !untouched) updateReadout(currentScore);
       if (fromUser && onChange) onChange(currentScore, scoreToZone(currentScore));
     }
 
