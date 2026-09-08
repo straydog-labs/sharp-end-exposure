@@ -714,6 +714,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .cl-terrain{color:var(--muted);white-space:nowrap;}
 .cl-zone-pill{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;}
 .journal-coach-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);border:1px solid rgba(232,118,58,.4);border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle;}
+.coach-zone-read-btn{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;padding:0 0 0 8px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
 .cl-row-detail{display:none;background:rgba(255,255,255,.02);}
 .cl-row-detail.open{display:table-row;}
 .cl-row-detail td{padding:8px 10px 12px;border-bottom:1px solid rgba(255,255,255,.08);}
@@ -1057,6 +1058,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </span>
     Train
   </button>
+  <button class="footer-btn" id="fnav-mental" onclick="showScreen('screen-drill')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    Mental
+  </button>
 </nav>
 <div class="screen" id="screen-auth">
   <div style="max-width:480px;margin:0 auto;padding:40px 16px 60px;box-sizing:border-box;">
@@ -1188,12 +1193,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-label">Focus</div>
           <div class="te-title">View goals</div>
           <div class="te-sub">Primary and secondary</div>
-        </button>
-        <button type="button" class="train-energy-card" id="home-card-drill" onclick="showScreen('screen-drill')">
-          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div></div>
-          <div class="te-label">Drill</div>
-          <div class="te-title">Drill</div>
-          <div class="te-sub">Practice under pressure</div>
         </button>
         <button type="button" class="train-energy-card" id="home-card-research" onclick="showScreen('screen-research')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div></div>
@@ -2436,6 +2435,20 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 </div>
 
 
+<!-- Athlete overwrite of a coach-logged zone. Gauge only - no Mental somatic questions. -->
+<div class="screen" id="screen-coach-zone-confirm">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="closeCoachZoneConfirm()">← Back</button>
+  </div>
+  <div class="content">
+    <div class="screen-title">Set your own read<span class="sub">The ghost needle is the coach's logged zone. Drag the live needle to the activation you felt.</span></div>
+    <div id="coach-zone-confirm-gauge" style="width:100%;max-width:220px;margin:8px auto 12px;"></div>
+    <div id="coach-zone-confirm-legend" style="font-size:12px;color:var(--muted);line-height:1.5;margin:0 0 18px;text-align:center;">Coach's read / Your read</div>
+    <button type="button" class="btn btn-p" id="coach-zone-confirm-save" onclick="saveCoachZoneConfirm()" style="width:100%;justify-content:center;padding:16px;font-size:16px;border-radius:var(--r-md);">Save your read</button>
+  </div>
+</div>
+
 <!-- Zone arc detail — full history -->
 <div class="screen" id="screen-zone-arc-detail">
   <div class="page-header">
@@ -3165,7 +3178,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="content">
     <!-- tip host: drill-home injected by mountTipForScreen (build 195) -->
-    <div style="margin-bottom:24px;"><div style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;">Drill</div><div style="font-size:14px;color:var(--muted);">Three practices. Before, during, and after.</div></div>
+    <div style="margin-bottom:24px;"><div style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;">Mental</div><div style="font-size:14px;color:var(--muted);">Three practices. Before, during, and after.</div></div>
     <div style="background:var(--surface);border:1px solid var(--drill-a-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-a),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-a-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 12 Q6 8 9 12 Q12 16 15 12 Q18 8 21 12" stroke="var(--drill-a)" stroke-width="2" stroke-linecap="round" fill="none"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-a);margin-bottom:5px;">Before a climb</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Quick check-in</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">A somatic check-in at any point in your decision window. Days before, morning of, or at the base.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">2–3 min</div><button onclick="startPrepare()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
     <div style="background:var(--surface);border:1px solid var(--drill-b-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-b),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-b-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 20 L8 12 L12 16 L16 8 L21 20" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-b);margin-bottom:5px;">Full pre-climb sequence</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Prepare for a climb</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Breathwork, somatic check-in, route visualization, second check-in. The full sequence before committing.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">5–7 min</div><button onclick="startPrepareClimb()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
     <div style="background:var(--surface);border:1px solid var(--drill-c-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-c),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-c-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(107,140,174,0.4)" stroke-width="1.5"/><circle cx="12" cy="12" r="5" stroke="rgba(107,140,174,0.6)" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="var(--drill-c)"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-c);margin-bottom:5px;">Structured practice</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Exposure Drill</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Predict your zone, check in, climb, log post-climb. See how prediction and reality compare.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">Full session</div><button onclick="startExposureDrill()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
@@ -3404,7 +3417,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div class="res-study">
       <div class="res-study-header"><span class="res-year">2024</span><span class="res-author">Stien et al. — Frontiers in Physiology (RCT)</span></div>
       <div class="res-study-text">Despite clear finger-strength gains, the same RCT found no reliable transfer to bouldering performance - supporting skill (and how force is applied) as a distinct training axis. <a href="https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2024.1461820/full" target="_blank" rel="noopener">Full text (Frontiers)</a></div>
-      <div class="res-apply">On Train: Skill Development and Mobility cards. Mental Training routes to Drill practices.</div>
+      <div class="res-apply">On Train: Skill Development and Mobility cards. Mental Training routes to Mental practices.</div>
     </div>
     <div class="res-study">
       <div class="res-study-header"><span class="res-year">2025</span><span class="res-author">Pérez-Cordero et al. — Frontiers in Sports and Active Living</span></div>
@@ -4302,7 +4315,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="screen" id="screen-prepare-climb">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-drill')">← Drill</button>
+    <button class="back-btn" onclick="showScreen('screen-drill')">← Mental</button>
   </div>
   <div class="content">
 
@@ -4411,7 +4424,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div class="screen" id="screen-prepare-result">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button class="back-btn" onclick="showScreen('screen-drill')">← Drill</button>
+    <button class="back-btn" onclick="showScreen('screen-drill')">← Mental</button>
   </div>
   <div class="content">
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Prepare for a climb</div>
@@ -4822,7 +4835,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index242'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index243'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 function getSBHeaders(){
@@ -5482,7 +5495,7 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-home','screen-prepare-climb':'fnav-home','screen-prepare-result':'fnav-home','screen-research':'fnav-home','screen-profile':'fnav-home','screen-profile-journal':'fnav-home','screen-profile-account':'fnav-home','screen-profile-data':'fnav-home','screen-profile-install':'fnav-home','screen-profile-help':'fnav-home','screen-profile-feedback':'fnav-home','screen-profile-notifications':'fnav-home','screen-profile-notes':'fnav-home','screen-journal-entry':'fnav-home','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-session-detail':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions'};
+  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-mental','screen-drill-reveal':'fnav-mental','screen-drill-hold':'fnav-mental','screen-prepare-climb':'fnav-mental','screen-prepare-result':'fnav-mental','screen-zone-predict':'fnav-mental','screen-prepare':'fnav-mental','screen-prepare-pause':'fnav-mental','screen-research':'fnav-home','screen-profile':'fnav-home','screen-profile-journal':'fnav-home','screen-profile-account':'fnav-home','screen-profile-data':'fnav-home','screen-profile-install':'fnav-home','screen-profile-help':'fnav-home','screen-profile-feedback':'fnav-home','screen-profile-notifications':'fnav-home','screen-profile-notes':'fnav-home','screen-journal-entry':'fnav-home','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-session-detail':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions','screen-coach-zone-confirm':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   if(_prevScreen==='screen-train-session' && id!=='screen-train-session'){
     clearAllTrainBlockTimerIntervals();
@@ -5546,7 +5559,7 @@ var SEE_TIPS = {
   },
   'screen-drill': {
     id: 'drill-home',
-    text: 'Drill has three practices you can run any time: a quick check-in, a full pre-climb sequence, or a guided Exposure Drill.'
+    text: 'Mental has three practices you can run any time: a quick check-in, a full pre-climb sequence, or a guided Exposure Drill.'
   },
   'screen-train': {
     id: 'train-home',
@@ -6248,6 +6261,119 @@ function findCachedSession(sessionId){
   return null;
 }
 
+function zoneToScore(zone){
+  if(zone == null || zone === '') return 6.5;
+  if(typeof zone === 'number' && !isNaN(zone)) return Math.max(0, Math.min(12, zone));
+  var raw = String(zone).trim();
+  var n = parseFloat(raw);
+  if(!isNaN(n) && raw === String(n)) return Math.max(0, Math.min(12, n));
+  var z = raw.toLowerCase();
+  if(z === 'comfort') return 2;
+  if(z === 'panic') return 11;
+  return 6.5;
+}
+
+function sessionNeedsAthleteZoneRead(s){
+  return !!(s && s.logged_by_coach && !s.zone_confirmed_by_athlete);
+}
+
+function loggedByCoachTagHtml(s){
+  if(!s || !s.logged_by_coach) return '';
+  return '<span class="journal-coach-tag">Logged by coach</span>' +
+    (s.zone_confirmed_by_athlete ? ' <span style="font-style:italic;">(edited by you)</span>' : '');
+}
+
+function athleteZoneReadActionHtml(s){
+  if(!sessionNeedsAthleteZoneRead(s) || !s.id) return '';
+  return '<button type="button" class="coach-zone-read-btn" data-sid="'+s.id+'" onclick="event.stopPropagation();openCoachZoneConfirm(this.dataset.sid)">Set your own read</button>';
+}
+
+var _coachZoneConfirm = { sessId: null, coachZone: null, coachScore: null, athleteScore: null, returnScreen: null };
+
+function openCoachZoneConfirm(sessId){
+  if(!sessId) return;
+  var s = findCachedSession(sessId);
+  if(!s){
+    sbS('sessions', 'select=*&id=eq.' + sessId + '&limit=1').then(function(rows){
+      if(Array.isArray(rows) && rows[0]){
+        window._cachedSessions = (window._cachedSessions || []).concat([rows[0]]);
+        openCoachZoneConfirm(sessId);
+      } else {
+        showToast('Could not open this climb', true);
+      }
+    });
+    return;
+  }
+  if(!s.logged_by_coach){
+    showToast('This climb is already your log');
+    return;
+  }
+  if(s.zone_confirmed_by_athlete){
+    showToast('You already set your own read');
+    return;
+  }
+  var coachScore = zoneToScore(s.zone);
+  var overlay = document.getElementById('notes-preview-overlay');
+  if(overlay) overlay.remove();
+  _coachZoneConfirm = {
+    sessId: sessId,
+    coachZone: s.zone,
+    coachScore: coachScore,
+    athleteScore: coachScore,
+    returnScreen: (document.querySelector('.screen.active') || {}).id || 'screen-sessions'
+  };
+  showScreen('screen-coach-zone-confirm');
+  setTimeout(function(){
+    buildActivationGauge(
+      'coach-zone-confirm-gauge',
+      _coachZoneConfirm.athleteScore,
+      'manual',
+      true,
+      function(score){ _coachZoneConfirm.athleteScore = score; },
+      _coachZoneConfirm.coachScore,
+      { premium: true, snapHalf: true, flowDial: true }
+    );
+  }, 50);
+}
+
+function closeCoachZoneConfirm(){
+  var back = (_coachZoneConfirm && _coachZoneConfirm.returnScreen) || 'screen-sessions';
+  showScreen(back);
+}
+
+async function saveCoachZoneConfirm(){
+  if(!_coachZoneConfirm || !_coachZoneConfirm.sessId) return;
+  var score = _coachZoneConfirm.athleteScore;
+  if(score == null) score = _coachZoneConfirm.coachScore;
+  if(score == null) score = 6.5;
+  var zone = scoreToZone(score);
+  var payload = {
+    zone: zone,
+    zone_confidence: 'manual',
+    zone_confirmed_by_athlete: true
+  };
+  var res = await sbU('sessions', 'id=eq.' + _coachZoneConfirm.sessId, payload);
+  if(sbFailed(res)){ showToast('Could not save your read - try again', true); return; }
+  function patch(arr){
+    if(!Array.isArray(arr)) return;
+    arr.forEach(function(row){
+      if(row && row.id === _coachZoneConfirm.sessId){
+        row.zone = zone;
+        row.zone_confidence = 'manual';
+        row.zone_confirmed_by_athlete = true;
+      }
+    });
+  }
+  patch(window._cachedSessions);
+  patch(window._cachedClimbs);
+  patch(window._rhSessions);
+  showToast('Your read saved');
+  var back = _coachZoneConfirm.returnScreen || 'screen-sessions';
+  showScreen(back);
+  if(back === 'screen-sessions') loadClimbLog();
+  if(back === 'screen-route-history' && window._rhClimbId) openClimbExposure(window._rhClimbId);
+}
+
 function previewSessionNotes(sessionId){
   // Overlay includes #session-coach-notes; loadSessionCoachNotesThread fills it.
   var s = findCachedSession(sessionId);
@@ -6274,7 +6400,10 @@ function renderSessionNotesOverlay(s, sessionId){
   if(s.route_name || s.grade_value){
     rows += '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;">' +
       escTrainHtml([s.route_name, s.grade_value, s.climbing_type].filter(Boolean).join(' · ') || 'This climb') +
-      (s.logged_by_coach ? '<span class="journal-coach-tag">Logged by coach</span>' : '') + '</div>';
+      loggedByCoachTagHtml(s) + '</div>';
+  }
+  if(sessionNeedsAthleteZoneRead(s)){
+    rows += '<div style="margin-bottom:12px;">' + athleteZoneReadActionHtml(s) + '</div>';
   }
   if(s.went_well) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What went well</div><div style="font-size:13px;color:var(--text);">'+escTrainHtml(s.went_well)+'</div></div>';
   if(s.still_learning) rows += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">What to work on</div><div style="font-size:13px;color:var(--text);">'+escTrainHtml(s.still_learning)+'</div></div>';
@@ -12938,7 +13067,8 @@ function climbRow(s,resultLabels){
     +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">'
     +'<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 7px;border-radius:99px;'+pillStyle+'">'+(conf?zoneName(s.zone):zoneName(s.zone)+' ~')+'</span>'
     +routeLabel
-    +(s.logged_by_coach?'<span class="journal-coach-tag">Logged by coach</span>':'')
+    +loggedByCoachTagHtml(s)
+    +athleteZoneReadActionHtml(s)
     +'</div>'
     +'</div>'
     +'</div>';
@@ -14765,7 +14895,7 @@ function buildTableRow(s){
   return '<tr data-sid="'+sid+'" '+rowAttrs+'>'
     + '<td><span class="cl-grade">' + (s.grade_value||'—') + '</span></td>'
     + '<td><span class="cl-terrain">' + (s.climbing_type||'—') + '</span></td>'
-    + '<td>' + zonePillHtml + (s.logged_by_coach?'<span class="journal-coach-tag">Logged by coach</span>':'') + '</td>'
+    + '<td>' + zonePillHtml + loggedByCoachTagHtml(s) + athleteZoneReadActionHtml(s) + '</td>'
     + '<td style="color:var(--muted2);font-size:11px;white-space:nowrap;">' + dateStr + (s.climb_id?' <span style="color:var(--muted2);font-size:12px;">›</span>':'') + '</td>'
     + '</tr>';
 }
@@ -15912,7 +16042,7 @@ function renderRouteAttemptsList(sessList){
     var rowAttrs=hasRefl?'onclick="toggleRouteRefl(this,\''+reflId+'\',\''+chevId+'\',\''+lblId+'\');return false;" style="cursor:pointer;-webkit-tap-highlight-color:transparent;"':'';
     var chevron=hasRefl?'<span id="'+chevId+'" style="font-size:11px;color:var(--muted);margin-left:4px;display:inline-block;transition:transform .2s;">›</span>':'';
     var notesLabel=hasRefl?'<span id="'+lblId+'" style="font-size:10px;color:var(--muted);margin-left:6px;font-weight:400;">View notes</span>':'';
-    html+='<div '+rowAttrs+' style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'      +'<div style="display:flex;align-items:center;gap:10px;">'      +'<div style="width:3px;border-radius:99px;background:'+c+';align-self:stretch;min-height:32px;flex-shrink:0;"></div>'      +'<div style="flex:1;">'      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+result+notesLabel+chevron+'</div>'      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+d+'</div>'      +'</div>'      +'<span style="'+pillStyle+'">'+(s.zone||'—')+'</span>'      +'<button data-sid="'+s.id+'" onclick="event.stopPropagation();editClimbFromLog(this.dataset.sid,\'route-history\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 8px;display:flex;align-items:center;gap:4px;-webkit-tap-highlight-color:transparent;" title="Edit this attempt">✏<span style="font-size:11px;">Edit</span></button>'      +'</div>';
+    html+='<div '+rowAttrs+' style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">'      +'<div style="display:flex;align-items:center;gap:10px;">'      +'<div style="width:3px;border-radius:99px;background:'+c+';align-self:stretch;min-height:32px;flex-shrink:0;"></div>'      +'<div style="flex:1;">'      +'<div style="font-size:13px;font-weight:600;color:var(--text);">'+result+notesLabel+chevron+loggedByCoachTagHtml(s)+'</div>'      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+d+'</div>'      +athleteZoneReadActionHtml(s)      +'</div>'      +'<span style="'+pillStyle+'">'+(s.zone||'—')+'</span>'      +'<button data-sid="'+s.id+'" onclick="event.stopPropagation();editClimbFromLog(this.dataset.sid,\'route-history\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 8px;display:flex;align-items:center;gap:4px;-webkit-tap-highlight-color:transparent;" title="Edit this attempt">✏<span style="font-size:11px;">Edit</span></button>'      +'</div>';
     if(hasRefl){
       html+='<div id="'+reflId+'" style="display:none;padding:8px 0 4px 13px;font-size:12px;color:var(--muted);line-height:1.6;">';
       if(s.went_well&&s.went_well.trim())    html+='<div><strong>What went well:</strong> '+s.went_well+'</div>';
@@ -16668,7 +16798,8 @@ function runButtonAudit(options){
     'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes',
     'toggleClimbProject', 'startAddRouteBetaNote', 'cancelAddRouteBetaNote', 'saveNewRouteBetaNote',
     'startEditRouteBetaNote', 'cancelEditRouteBetaNote', 'saveEditRouteBetaNote', 'deleteRouteBetaNote',
-    'deleteAttempt', 'deleteRoute', 'deleteJournalEntry', 'confirmDeleteAccount'
+    'deleteAttempt', 'deleteRoute', 'deleteJournalEntry', 'confirmDeleteAccount',
+    'openCoachZoneConfirm', 'saveCoachZoneConfirm'
   ];
 
   function shouldSkip(onclick){
@@ -17051,19 +17182,21 @@ async function runSEETests(){
     }
   }catch(e){ fail('Auth screen content height', e.message); }
 
-  // B3: Nav has 3 tabs (Home, Climb Log, Train)
+  // B3: Nav has 4 tabs (Home, Climb Log, Train, Mental)
   try{
     var navBtns = document.querySelectorAll('.footer-btn');
     var navIds = Array.prototype.map.call(navBtns, function(b){ return b.id; });
     var firstNav = navBtns[0] && navBtns[0].id;
-    var threeOk = navBtns.length === 3 && firstNav === 'fnav-home'
-      && navIds[1] === 'fnav-sessions' && navIds[2] === 'fnav-train'
+    var fourOk = navBtns.length === 4 && firstNav === 'fnav-home'
+      && navIds[1] === 'fnav-sessions' && navIds[2] === 'fnav-train' && navIds[3] === 'fnav-mental'
+      && /Mental/.test((document.getElementById('fnav-mental') || {}).textContent || '')
+      && /showScreen\('screen-drill'\)/.test((document.getElementById('fnav-mental') || {}).getAttribute('onclick') || '')
       && !document.getElementById('fnav-drill')
       && !document.getElementById('fnav-research')
       && !document.getElementById('fnav-profile');
-    if(threeOk){ pass('Nav has 3 tabs'); }
-    else { fail('Nav has 3 tabs', 'Found ' + navBtns.length + ' tabs ids=' + navIds.join(',')); }
-  }catch(e){ fail('Nav has 3 tabs', e.message); }
+    if(fourOk){ pass('Nav has 4 tabs'); }
+    else { fail('Nav has 4 tabs', 'Found ' + navBtns.length + ' tabs ids=' + navIds.join(',')); }
+  }catch(e){ fail('Nav has 4 tabs', e.message); }
 
   try{
     var home = document.getElementById('screen-home');
@@ -17075,11 +17208,10 @@ async function runSEETests(){
     var researchCard = document.getElementById('home-card-research');
     var profileCard = document.getElementById('home-card-profile');
     var markupOk = !!(home && dueList && logCard && trainCard && goalsCard
-      && drillCard && researchCard && profileCard
+      && !drillCard && researchCard && profileCard
       && /startLogFlow/.test(logCard.getAttribute('onclick') || '')
       && /screen-train/.test(trainCard.getAttribute('onclick') || '')
       && /screen-train-goals/.test(goalsCard.getAttribute('onclick') || '')
-      && /showScreen\('screen-drill'\)/.test(drillCard.getAttribute('onclick') || '')
       && /showScreen\('screen-research'\)/.test(researchCard.getAttribute('onclick') || '')
       && /openProfile\(\)/.test(profileCard.getAttribute('onclick') || '')
       && !/showScreen\('screen-profile'\)/.test(profileCard.getAttribute('onclick') || ''));
@@ -17110,22 +17242,27 @@ async function runSEETests(){
     var homeIcons = !!(document.querySelector('#home-card-log .te-icon')
       && document.querySelector('#home-card-train .te-icon')
       && document.querySelector('#home-card-goals .te-icon')
-      && document.querySelector('#home-card-drill .te-icon')
       && document.querySelector('#home-card-research .te-icon')
       && document.querySelector('#home-card-profile .te-icon'));
-    var remapIds = [
-      'screen-drill','screen-prepare-climb','screen-prepare-result','screen-research',
+    var homeRemapIds = [
+      'screen-research',
       'screen-profile','screen-profile-journal','screen-profile-account','screen-profile-data',
       'screen-profile-install','screen-profile-help','screen-profile-feedback',
       'screen-profile-notifications','screen-profile-notes','screen-journal-entry'
     ];
-    var remapOk = remapIds.every(function(id){
+    var mentalRemapIds = [
+      'screen-drill','screen-drill-reveal','screen-drill-hold','screen-prepare-climb','screen-prepare-result'
+    ];
+    var remapOk = homeRemapIds.every(function(id){
       return showSrc.indexOf("'" + id + "':'fnav-home'") !== -1;
+    }) && mentalRemapIds.every(function(id){
+      return showSrc.indexOf("'" + id + "':'fnav-mental'") !== -1;
     }) && showSrc.indexOf("'fnav-drill'") === -1
       && showSrc.indexOf("'fnav-research'") === -1
       && showSrc.indexOf("'fnav-profile'") === -1
       && showSrc.indexOf("'screen-sessions':'fnav-sessions'") !== -1
-      && showSrc.indexOf("'screen-train':'fnav-train'") !== -1;
+      && showSrc.indexOf("'screen-train':'fnav-train'") !== -1
+      && showSrc.indexOf("'screen-drill':'fnav-mental'") !== -1;
     var dueHandlers = /startTrainSessionFromAssignment/.test(String(trainCardHtml))
       && /trainMarkComplete/.test(String(trainCardHtml))
       && /wireTrainCheckboxes/.test(String(loadHomeScreen));
@@ -17173,31 +17310,114 @@ async function runSEETests(){
 
   try{
     var prevId = (document.querySelector('.screen.active')||{}).id || 'screen-home';
-    var remapIds = [
-      'screen-drill','screen-prepare-climb','screen-prepare-result','screen-research',
+    var homeRemapIds = [
+      'screen-research',
       'screen-profile','screen-profile-journal','screen-profile-account','screen-profile-data',
       'screen-profile-install','screen-profile-help','screen-profile-feedback',
       'screen-profile-notifications','screen-profile-notes','screen-journal-entry'
     ];
-    var highlightOk = remapIds.every(function(id){
+    var mentalRemapIds = [
+      'screen-drill','screen-drill-reveal','screen-drill-hold','screen-prepare-climb','screen-prepare-result'
+    ];
+    var homeOk = homeRemapIds.every(function(id){
       if(!document.getElementById(id)) return false;
       showScreen(id);
       var homeBtn = document.getElementById('fnav-home');
       var active = document.querySelector('.footer-btn.active');
       return !!(homeBtn && active === homeBtn);
     });
+    var mentalOk = mentalRemapIds.every(function(id){
+      if(!document.getElementById(id)) return false;
+      showScreen(id);
+      var mentalBtn = document.getElementById('fnav-mental');
+      var active = document.querySelector('.footer-btn.active');
+      return !!(mentalBtn && active === mentalBtn);
+    });
     showScreen('screen-sessions');
     var sessionsLit = (document.querySelector('.footer-btn.active')||{}).id === 'fnav-sessions';
     showScreen('screen-train');
     var trainLit = (document.querySelector('.footer-btn.active')||{}).id === 'fnav-train';
     showScreen(prevId);
-    if(highlightOk && sessionsLit && trainLit){
-      pass('Nav highlight remaps Drill/Research/Profile screens to Home');
+    if(homeOk && mentalOk && sessionsLit && trainLit){
+      pass('Nav highlight remaps Mental screens to Mental and Research/Profile to Home');
     } else {
-      fail('Nav highlight remaps Drill/Research/Profile screens to Home',
-        'highlight=' + highlightOk + ' sessions=' + sessionsLit + ' train=' + trainLit);
+      fail('Nav highlight remaps Mental screens to Mental and Research/Profile to Home',
+        'home=' + homeOk + ' mental=' + mentalOk + ' sessions=' + sessionsLit + ' train=' + trainLit);
     }
-  }catch(e){ fail('Nav highlight remaps Drill/Research/Profile screens to Home', e.message); }
+  }catch(e){ fail('Nav highlight remaps Mental screens to Mental and Research/Profile to Home', e.message); }
+
+  try{
+    var drillHead = document.querySelector('#screen-drill .content div[style*="font-size:26px"]');
+    var tipOk = !!(SEE_TIPS && SEE_TIPS['screen-drill']
+      && SEE_TIPS['screen-drill'].text.indexOf('Mental has three practices') === 0
+      && /quick check-in/.test(SEE_TIPS['screen-drill'].text)
+      && /full pre-climb sequence/.test(SEE_TIPS['screen-drill'].text)
+      && /Exposure Drill/.test(SEE_TIPS['screen-drill'].text)
+      && SEE_TIPS['screen-drill'].text.indexOf('Drill has three') === -1);
+    var headerOk = !!(drillHead && drillHead.textContent === 'Mental');
+    var internalsOk = typeof startPrepare === 'function' && typeof startPrepareClimb === 'function'
+      && typeof startExposureDrill === 'function' && typeof loadDrillState === 'function'
+      && !!document.getElementById('screen-drill');
+    if(tipOk && headerOk && internalsOk){
+      pass('Mental label is user-facing only; drill internals unchanged');
+    } else {
+      fail('Mental label is user-facing only; drill internals unchanged',
+        'tip=' + tipOk + ' header=' + headerOk + ' internals=' + internalsOk);
+    }
+  }catch(e){ fail('Mental label is user-facing only; drill internals unchanged', e.message); }
+
+  try{
+    var confirmEl = document.getElementById('screen-coach-zone-confirm');
+    var gaugeEl = document.getElementById('coach-zone-confirm-gauge');
+    var saveBtn = document.getElementById('coach-zone-confirm-save');
+    var legendEl = document.getElementById('coach-zone-confirm-legend');
+    var screenTxt = confirmEl ? (confirmEl.textContent || '') : '';
+    var noSomatic = screenTxt.indexOf('Quick check-in') === -1
+      && screenTxt.indexOf('Prepare for a climb') === -1
+      && screenTxt.indexOf('Exposure Drill') === -1
+      && !document.querySelector('#screen-coach-zone-confirm #zc-somatic-rows')
+      && !document.querySelector('#screen-coach-zone-confirm [onclick*="startPrepare"]');
+    var fnsOk = typeof sessionNeedsAthleteZoneRead === 'function'
+      && typeof loggedByCoachTagHtml === 'function'
+      && typeof athleteZoneReadActionHtml === 'function'
+      && typeof openCoachZoneConfirm === 'function'
+      && typeof saveCoachZoneConfirm === 'function'
+      && typeof zoneToScore === 'function';
+    var needPending = sessionNeedsAthleteZoneRead({ logged_by_coach: true, zone_confirmed_by_athlete: false });
+    var needDone = !sessionNeedsAthleteZoneRead({ logged_by_coach: true, zone_confirmed_by_athlete: true });
+    var needSelf = !sessionNeedsAthleteZoneRead({ logged_by_coach: false, zone_confirmed_by_athlete: false });
+    var pendingTag = loggedByCoachTagHtml({ logged_by_coach: true, zone_confirmed_by_athlete: false });
+    var editedTag = loggedByCoachTagHtml({ logged_by_coach: true, zone_confirmed_by_athlete: true });
+    var tagOk = /Logged by coach/.test(pendingTag) && pendingTag.indexOf('(edited by you)') === -1
+      && /Logged by coach/.test(editedTag) && /\(edited by you\)/.test(editedTag)
+      && /font-style:italic/.test(editedTag);
+    var actionOk = /Set your own read/.test(athleteZoneReadActionHtml({ id: 's1', logged_by_coach: true, zone_confirmed_by_athlete: false }))
+      && athleteZoneReadActionHtml({ id: 's1', logged_by_coach: true, zone_confirmed_by_athlete: true }) === '';
+    var saveSrc = String(saveCoachZoneConfirm);
+    var saveOk = /zone_confirmed_by_athlete:\s*true/.test(saveSrc)
+      && /scoreToZone/.test(saveSrc)
+      && saveSrc.indexOf('logged_by_coach') === -1
+      && /sbU\('sessions'/.test(saveSrc);
+    var openSrc = String(openCoachZoneConfirm);
+    var gaugeOk = /buildActivationGauge/.test(openSrc)
+      && /coach-zone-confirm-gauge/.test(openSrc)
+      && /premium:\s*true/.test(openSrc)
+      && /snapHalf:\s*true/.test(openSrc)
+      && /flowDial:\s*true/.test(openSrc)
+      && zoneToScore('comfort') === 2 && zoneToScore('panic') === 11 && zoneToScore('learning') === 6.5;
+    var copyOk = /Set your own read/.test(screenTxt)
+      && /ghost needle/.test(screenTxt)
+      && !/\b(suggests|indicates|should|target|ideal)\b/i.test(screenTxt);
+    if(confirmEl && gaugeEl && saveBtn && legendEl && noSomatic && fnsOk && needPending && needDone && needSelf && tagOk && actionOk && saveOk && gaugeOk && copyOk){
+      pass('Athlete can set their own read on coach-logged climbs');
+    } else {
+      fail('Athlete can set their own read on coach-logged climbs',
+        'dom=' + !!(confirmEl && gaugeEl && saveBtn) + ' somatic=' + noSomatic +
+        ' fns=' + fnsOk + ' need=' + needPending + needDone + needSelf +
+        ' tag=' + tagOk + ' action=' + actionOk + ' save=' + saveOk +
+        ' gauge=' + gaugeOk + ' copy=' + copyOk);
+    }
+  }catch(e){ fail('Athlete can set their own read on coach-logged climbs', e.message); }
 
   // B4: No purple stray icon (&#128100; outside nav)
   try{
