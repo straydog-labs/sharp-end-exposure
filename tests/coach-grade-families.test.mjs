@@ -169,6 +169,8 @@ assert.ok(sysProg.ropedGradeSeries.some((s) =>
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 assert.ok(/Bouldering/.test(dash));
 assert.ok(/Roped climbing/.test(dash));
+assert.ok(/function insightChartTitleWithHelp\(title, helpText\)/.test(dash));
+assert.ok(/class="insight-chart-help"/.test(dash));
 assert.ok(/No bouldering sessions in this window/.test(dash));
 assert.ok(/No roped sessions in this window/.test(dash));
 assert.ok(/data-roped-filter/.test(dash));
