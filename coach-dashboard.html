@@ -361,6 +361,19 @@
     font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
     color:var(--text-secondary);margin:12px 0 6px;
   }
+  .insight-chart-help{margin:12px 0 6px;}
+  .insight-chart-help > summary{
+    cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);padding:0;list-style:none;
+  }
+  .insight-chart-help > summary::-webkit-details-marker{display:none;}
+  .insight-chart-help > summary::before{content:'▸ ';}
+  .insight-chart-help[open] > summary::before{content:'▾ ';}
+  .insight-chart-help > summary:hover{color:var(--text);}
+  .insight-chart-help > div{
+    font-size:12px;font-weight:400;letter-spacing:0;text-transform:none;
+    color:var(--text-secondary);margin-top:6px;line-height:1.45;
+  }
   .progress-week-bars{display:flex;gap:4px;align-items:flex-end;margin:10px 0 4px;}
   .progress-week-col{flex:1;min-width:0;}
   .progress-week-col .zone-bar-track{height:10px;border-radius:5px;}
@@ -2536,14 +2549,22 @@
       grid + lines + labels + '</svg>';
   }
 
-  function renderGradeFamilyChartHtml(title, seriesList, axis, labels, emptyMsg, extraTopHtml, extraNote){
+  function insightChartTitleWithHelp(title, helpText){
+    return '<details class="insight-chart-help">' +
+      '<summary>' + escapeHtml(title) + '</summary>' +
+      '<div>' + escapeHtml(helpText) + '</div>' +
+    '</details>';
+  }
+
+  function renderGradeFamilyChartHtml(title, seriesList, axis, labels, emptyMsg, extraTopHtml, extraNote, helpText){
+    var titleHtml = insightChartTitleWithHelp(title, helpText);
     if(!seriesList || !seriesList.length || !axis || !axis.ticks || !axis.ticks.length){
-      return '<div class="insight-chart-title">' + escapeHtml(title) + '</div>' +
+      return titleHtml +
         (extraTopHtml || '') +
         '<div class="empty-state">' + escapeHtml(emptyMsg) + '</div>' +
         (extraNote || '');
     }
-    return '<div class="insight-chart-title">' + escapeHtml(title) + '</div>' +
+    return titleHtml +
       (extraTopHtml || '') +
       renderSharedAxisSvg(seriesList.map(function(s){
         return {
@@ -2609,7 +2630,10 @@
 
     var zoneSvg = '';
     if(series.hasZoneTrend){
-      zoneSvg = '<div class="insight-chart-title">Zone share (%)</div>' +
+      zoneSvg = insightChartTitleWithHelp(
+        'Zone share (%)',
+        'The percent of that week\'s sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A 0% or missing zone just means no sessions were logged in it that week — not an assessment of the athlete. Comfort/Learning/Panic come from the athlete\'s own in-the-moment activation rating, not from grade or send/fall outcome.'
+      ) +
         renderSharedAxisSvg([
           { color: '#7ec87a', xs: series.labels, values: series.zonePoints.map(function(p){ return p.total ? p.comfort : null; }) },
           { color: '#f5a623', xs: series.labels, values: series.zonePoints.map(function(p){ return p.total ? p.learning : null; }) },
@@ -2648,7 +2672,8 @@
       series.labels,
       boulderEmpty,
       '',
-      ''
+      '',
+      'The athlete\'s logged bouldering grade over time, plotted by terrain type. A gap in a line means nothing was logged on that terrain that week — not a drop in ability.'
     );
     var ropedSvg = renderGradeFamilyChartHtml(
       'Roped climbing',
@@ -2657,7 +2682,8 @@
       series.labels,
       ropedEmpty,
       ropedFilterChipsHtml(series.ropedDiscipline),
-      offNote
+      offNote,
+      'The athlete\'s logged roped-climbing grade over time, plotted by terrain type, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A gap in a line means nothing was logged on that terrain (or in that discipline) that week — not a drop in ability.'
     );
 
     return '<div class="form-note">' + series.sessionCount +
