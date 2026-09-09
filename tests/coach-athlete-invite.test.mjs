@@ -98,6 +98,7 @@ assert.ok(/Invite an athlete/.test(dash));
 assert.ok(/Send this link to your athlete/.test(dash));
 assert.ok(/linked to you automatically once they sign up/.test(dash));
 assert.ok(/id="invite-link-input"/.test(dash));
+assert.ok(/textarea id="invite-link-input"/.test(dash));
 assert.ok(/id="invite-link-copy"/.test(dash));
 assert.ok(/id="invite-join-banner"/.test(dash));
 assert.ok(/id="coach-invite-welcome"/.test(dash));
