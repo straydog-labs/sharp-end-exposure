@@ -4878,7 +4878,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index250'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index251'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -4994,24 +4994,31 @@ function initAuth(){
       (async function(){
         await flushPendingProfile();
         await redeemPendingInvite();
-        var uid = session && session.user ? session.user.id : null;
-        if(uid){
-          var existing = await sbS('sessions','select=id&is_baseline=eq.true&user_id=eq.'+uid+'&limit=1');
-          if(!Array.isArray(existing) || existing.length === 0){
-            // No baseline for this user — route to baseline setup
-            showScreen('screen-baseline');
-            _authRoutingResolve();
-            return;
+        var finishSignedInRoute = async function(){
+          var uid = session && session.user ? session.user.id : null;
+          if(uid){
+            var existing = await sbS('sessions','select=id&is_baseline=eq.true&user_id=eq.'+uid+'&limit=1');
+            if(!Array.isArray(existing) || existing.length === 0){
+              // No baseline for this user — route to baseline setup
+              showScreen('screen-baseline');
+              _authRoutingResolve();
+              return;
+            }
+            // Baseline confirmed via database — keep the local flag in sync with
+            // verified server truth, not just local completion history (Fix 3)
+            try{ localStorage.setItem('see_baseline_complete','1'); }catch(e){}
           }
-          // Baseline confirmed via database — keep the local flag in sync with
-          // verified server truth, not just local completion history (Fix 3)
-          try{ localStorage.setItem('see_baseline_complete','1'); }catch(e){}
+          if(!consumeTrainChatDeepLink()){
+            showScreen('screen-home'); loadHomeScreen();
+          }
+          syncPushSubscriptionIfGranted();
+          _authRoutingResolve();
+        };
+        if(holdForCoachInviteWelcome(finishSignedInRoute)){
+          _authRoutingResolve();
+          return;
         }
-        if(!consumeTrainChatDeepLink()){
-          showScreen('screen-home'); loadHomeScreen();
-        }
-        syncPushSubscriptionIfGranted();
-        _authRoutingResolve();
+        await finishSignedInRoute();
       })();
     } else if(event === 'PASSWORD_RECOVERY'){
       // Bug fix, build 177: PASSWORD_RECOVERY was previously totally
@@ -17195,7 +17202,8 @@ function runButtonAudit(options){
     'toggleClimbProject', 'startAddRouteBetaNote', 'cancelAddRouteBetaNote', 'saveNewRouteBetaNote',
     'startEditRouteBetaNote', 'cancelEditRouteBetaNote', 'saveEditRouteBetaNote', 'deleteRouteBetaNote',
     'deleteAttempt', 'deleteRoute', 'deleteJournalEntry', 'confirmDeleteAccount',
-    'openCoachZoneConfirm', 'saveCoachZoneConfirm', 'openResearchSheet'
+    'openCoachZoneConfirm', 'saveCoachZoneConfirm', 'openResearchSheet',
+    'openCoachInviteAthlete', 'finishCoachInviteProfile'
   ];
 
   function shouldSkip(onclick){
@@ -17605,6 +17613,14 @@ async function runSEETests(){
       && /invite_token/.test(String(flushPendingProfile))
       && /consumeInviteDeepLink\(\)/.test(String(routeOnLoad))
       && /routePendingInviteSignup\(\)/.test(String(routeOnLoad))
+      && /_redeemInviteInFlight/.test(String(redeemPendingInvite))
+      && /_redeemInviteDone/.test(String(redeemPendingInvite))
+      && /role === 'coach'/.test(String(redeemPendingInvite))
+      && typeof showCoachInviteWelcome === 'function'
+      && typeof finishCoachInviteProfile === 'function'
+      && typeof openCoachInviteAthlete === 'function'
+      && /coach-dashboard\.html\?invite=open/.test(String(openCoachInviteAthlete))
+      && /holdForCoachInviteWelcome/.test(String(routeOnLoad) + String(initAuth))
       && INVITE_USED_MSG === 'That invite link looks like it\'s already been used.';
     try{ sessionStorage.removeItem('see_pending_invite'); }catch(e){}
     history.replaceState(null, '', location.pathname + '?invite=tok-abc&keep=1' + location.hash);
@@ -17689,12 +17705,57 @@ async function runSEETests(){
       && rpcCalls[0].p_user_id === 'u-bob'
       && readPendingInvite() === '';
 
-    if(srcOk && deepOk && usedOk && signupRedeemOk && stashedEmail && flushOk){
+    _redeemInviteDone = {};
+    _redeemInviteInFlight = {};
+    rpcCalls = [];
+    var fetchStarts = 0;
+    window._authUser = { id: 'u-dup' };
+    window._authToken = 'jwt-dup';
+    try{ sessionStorage.setItem('see_pending_invite', 'tok-dup'); }catch(e){}
+    window.fetch = async function(url, opts){
+      if(String(url).indexOf('redeem_invite') !== -1){
+        fetchStarts++;
+        rpcCalls.push(JSON.parse(opts.body || '{}'));
+        await new Promise(function(r){ setTimeout(r, 40); });
+        return { ok: true, status: 200, json: async function(){ return { ok: true, role: 'athlete' }; } };
+      }
+      return { ok: true, status: 200, json: async function(){ return {}; } };
+    };
+    var pair = await Promise.all([redeemPendingInvite(), redeemPendingInvite(), redeemPendingInvite('tok-dup')]);
+    var again = await redeemPendingInvite();
+    var onceOk = fetchStarts === 1
+      && pair[0] && pair[0].ok === true && pair[1] && pair[1].ok === true && pair[2] && pair[2].ok === true
+      && again && again.ok === true
+      && !document.getElementById('coach-invite-welcome');
+
+    _redeemInviteDone = {};
+    _redeemInviteInFlight = {};
+    try{ sessionStorage.setItem('see_pending_invite', 'tok-coach'); }catch(e){}
+    window._authUser = { id: 'u-coach' };
+    window._authToken = 'jwt-coach';
+    window.fetch = async function(url, opts){
+      if(String(url).indexOf('redeem_invite') !== -1){
+        return { ok: true, status: 200, json: async function(){ return { ok: true, role: 'coach' }; } };
+      }
+      return { ok: true, status: 200, json: async function(){ return {}; } };
+    };
+    await redeemPendingInvite();
+    var modal = document.getElementById('coach-invite-welcome');
+    var inviteBtn = document.getElementById('coach-invite-welcome-invite');
+    var finishBtn = document.getElementById('coach-invite-welcome-finish');
+    var coachModalOk = !!(modal && inviteBtn && finishBtn
+      && inviteBtn.textContent === 'Invite an athlete'
+      && finishBtn.textContent === 'Finish your profile');
+    finishCoachInviteProfile();
+    var dismissedOk = !document.getElementById('coach-invite-welcome') && _coachInviteWelcomeOpen === false;
+
+    if(srcOk && deepOk && usedOk && signupRedeemOk && stashedEmail && flushOk && onceOk && coachModalOk && dismissedOk){
       pass('Invite link stashes token, redeems after signup, and does not block used tokens');
     } else {
       fail('Invite link stashes token, redeems after signup, and does not block used tokens',
         'src=' + srcOk + ' deep=' + deepOk + ' used=' + usedOk + ' signup=' + signupRedeemOk
-        + ' email=' + stashedEmail + ' flush=' + flushOk + ' rpc=' + rpcCalls.length);
+        + ' email=' + stashedEmail + ' flush=' + flushOk + ' once=' + onceOk + ' coach=' + coachModalOk
+        + ' dismiss=' + dismissedOk + ' rpc=' + rpcCalls.length + ' starts=' + fetchStarts);
     }
   }catch(e){
     fail('Invite link stashes token, redeems after signup, and does not block used tokens', e.message);
@@ -17720,6 +17781,12 @@ async function runSEETests(){
       setAuthMode('signin');
     }catch(e2){}
     try{ if(origScreen) showScreen(origScreen); }catch(e2){}
+    try{
+      var welcome = document.getElementById('coach-invite-welcome');
+      if(welcome) welcome.remove();
+      _coachInviteWelcomeOpen = false;
+      _coachInviteWelcomeContinue = null;
+    }catch(e2){}
   }
 
   // A6: Helper tips system (build 195)
@@ -20903,33 +20970,99 @@ function routePendingInviteSignup(){
   return true;
 }
 
+var _redeemInviteInFlight = {};
+var _redeemInviteDone = {};
+var _coachInviteWelcomeOpen = false;
+var _coachInviteWelcomeContinue = null;
+
+function redeemInviteCacheKey(userId, token){
+  return String(userId || '') + ':' + String(token || '');
+}
+
+function showCoachInviteWelcome(){
+  if(document.getElementById('coach-invite-welcome')){
+    _coachInviteWelcomeOpen = true;
+    return;
+  }
+  _coachInviteWelcomeOpen = true;
+  var overlay = document.createElement('div');
+  overlay.id = 'coach-invite-welcome';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-labelledby', 'coach-invite-welcome-title');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:center;justify-content:center;padding:24px;';
+  overlay.innerHTML = ''
+    + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px 20px;max-width:360px;width:100%;box-sizing:border-box;">'
+    + '<div id="coach-invite-welcome-title" style="font-size:18px;font-weight:700;margin-bottom:8px;">You\'re a coach</div>'
+    + '<div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:18px;">Invite an athlete now, or finish setting up your profile first.</div>'
+    + '<button type="button" id="coach-invite-welcome-invite" onclick="openCoachInviteAthlete()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:inherit;font-size:15px;font-weight:700;padding:13px;cursor:pointer;margin-bottom:8px;">Invite an athlete</button>'
+    + '<button type="button" id="coach-invite-welcome-finish" onclick="finishCoachInviteProfile()" style="width:100%;background:none;border:none;color:var(--muted);font-family:inherit;font-size:14px;font-weight:600;padding:10px;cursor:pointer;">Finish your profile</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+}
+
+function dismissCoachInviteWelcome(){
+  var el = document.getElementById('coach-invite-welcome');
+  if(el) el.remove();
+  _coachInviteWelcomeOpen = false;
+}
+
+function openCoachInviteAthlete(){
+  window.location.href = 'coach-dashboard.html?invite=open';
+}
+
+function finishCoachInviteProfile(){
+  dismissCoachInviteWelcome();
+  var cont = _coachInviteWelcomeContinue;
+  _coachInviteWelcomeContinue = null;
+  if(typeof cont === 'function') cont();
+}
+
+function holdForCoachInviteWelcome(cont){
+  if(!_coachInviteWelcomeOpen) return false;
+  if(!_coachInviteWelcomeContinue && typeof cont === 'function') _coachInviteWelcomeContinue = cont;
+  return true;
+}
+
 async function redeemPendingInvite(tokenOverride){
   var token = String(tokenOverride || readPendingInvite() || '').trim();
   var userId = window._authUser && window._authUser.id;
   if(!token || !userId) return null;
-  try{
-    var r = await fetch(SB_URL + '/rest/v1/rpc/redeem_invite', {
-      method: 'POST',
-      headers: getSBHeaders(),
-      body: JSON.stringify({ p_token: token, p_user_id: userId })
-    });
-    var body = await r.json().catch(function(){ return {}; });
-    if(!r.ok){
-      console.error('redeem_invite HTTP error:', r.status, body);
-      return body && typeof body === 'object' ? body : { ok: false };
-    }
-    if(body && body.ok === false){
-      showToast(INVITE_USED_MSG, true);
+  var key = redeemInviteCacheKey(userId, token);
+  if(Object.prototype.hasOwnProperty.call(_redeemInviteDone, key)) return _redeemInviteDone[key];
+  if(_redeemInviteInFlight[key]) return _redeemInviteInFlight[key];
+  var promise = (async function(){
+    try{
+      var r = await fetch(SB_URL + '/rest/v1/rpc/redeem_invite', {
+        method: 'POST',
+        headers: getSBHeaders(),
+        body: JSON.stringify({ p_token: token, p_user_id: userId })
+      });
+      var body = await r.json().catch(function(){ return {}; });
+      if(!r.ok){
+        console.error('redeem_invite HTTP error:', r.status, body);
+        return body && typeof body === 'object' ? body : { ok: false };
+      }
+      if(body && body.ok === false){
+        showToast(INVITE_USED_MSG, true);
+        clearPendingInvite();
+        _redeemInviteDone[key] = body;
+        return body;
+      }
       clearPendingInvite();
-      return body;
+      try{ refreshCoachDashToggle(); }catch(e){}
+      var result = body || { ok: true };
+      _redeemInviteDone[key] = result;
+      if(result.ok === true && result.role === 'coach') showCoachInviteWelcome();
+      return result;
+    }catch(e){
+      console.error('redeem_invite', e && e.message ? e.message : e);
+      return { ok: false };
+    }finally{
+      delete _redeemInviteInFlight[key];
     }
-    clearPendingInvite();
-    try{ refreshCoachDashToggle(); }catch(e){}
-    return body || { ok: true };
-  }catch(e){
-    console.error('redeem_invite', e && e.message ? e.message : e);
-    return { ok: false };
-  }
+  })();
+  _redeemInviteInFlight[key] = promise;
+  return promise;
 }
 
 function setAuthMode(mode){
@@ -21555,20 +21688,24 @@ async function routeOnLoad(){
   var hasSeenBaseline = localStorage.getItem('see_baseline_complete');
   // Check auth session async — but always show SOMETHING immediately
   if(supabaseClient){
-    supabaseClient.auth.getSession().then(function(res){
+    supabaseClient.auth.getSession().then(async function(res){
       var session = res && res.data && res.data.session ? res.data.session : null;
       window._authUser = session ? session.user : null;
       window._authToken = session ? session.access_token : null;
       if(session){
         // Authenticated - go to Home
-        redeemPendingInvite();
-        if(!hasSeenBaseline){
-          showScreen('screen-baseline');
-        } else if(!consumeTrainChatDeepLink()){
-          showScreen('screen-home');
-          loadHomeScreen();
-        }
-        syncPushSubscriptionIfGranted();
+        await redeemPendingInvite();
+        var finishLoadRoute = function(){
+          if(!hasSeenBaseline){
+            showScreen('screen-baseline');
+          } else if(!consumeTrainChatDeepLink()){
+            showScreen('screen-home');
+            loadHomeScreen();
+          }
+          syncPushSubscriptionIfGranted();
+        };
+        if(holdForCoachInviteWelcome(finishLoadRoute)) return;
+        finishLoadRoute();
       } else if(routePendingInviteSignup()){
         // Invite link: unsigned user goes to Create account, not Sign in
       } else if(!dismissed){
