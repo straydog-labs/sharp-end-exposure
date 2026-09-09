@@ -1346,12 +1346,14 @@
         if(isCoach){
           renderCoachView(token, user);
         } else {
+          _openInviteDeepLink = false;
           renderAthleteView(token, user);
         }
       })
       .catch(function(){
         // coach_flags unreadable/unreachable — fail safe to athlete view,
         // never assume coach access on an error.
+        _openInviteDeepLink = false;
         renderAthleteView(token, user);
       });
   }
@@ -1472,6 +1474,7 @@
         '<div class="panel" id="detail-panel"><div class="stub">Select an athlete from the roster to get started.</div></div>' +
       '</div>';
 
+    wireCoachInviteUi(token, user);
     loadRoster(token, user);
 
     document.getElementById('detail-panel').addEventListener('click', function(e){
@@ -1498,8 +1501,6 @@
     document.getElementById('open-gym-climbs').addEventListener('click', function(){
       openGymClimbsCatalog(token, user);
     });
-
-    wireCoachInviteUi(token, user);
 
     document.getElementById('link-athlete-submit').addEventListener('click', function(){
       var input = document.getElementById('link-athlete-email');
@@ -1566,6 +1567,14 @@
   var _inviteCtx = null;
   var _coachInvites = [];
   var _inviteJoinPending = null;
+  var _openInviteDeepLink = false;
+  try {
+    if(window.CoachAthleteInvite && typeof window.CoachAthleteInvite.consumeOpenInviteParam === 'function'){
+      _openInviteDeepLink = !!window.CoachAthleteInvite.consumeOpenInviteParam(window.location, window.history);
+    }
+  } catch (err) {
+    _openInviteDeepLink = false;
+  }
 
   function wireCoachInviteUi(token, user){
     _inviteCtx = { token: token, user: user };
@@ -1752,21 +1761,35 @@
 
   function refreshCoachInviteUi(token, user, roster){
     if(!window.CoachAthleteInvite) return;
+    var openInvite = _openInviteDeepLink;
+    _openInviteDeepLink = false;
     loadCoachInvites(token, user).then(function(invites){
       var seenIds = window.CoachAthleteInvite.seenBannerInviteIds(user.id);
       var joins = window.CoachAthleteInvite.joinBanners(invites, roster, seenIds);
       if(joins.length){
         paintInviteJoinBanner(joins[0]);
         closeInviteWelcome(false);
+      } else {
+        hideInviteJoinBanner();
+      }
+      if(openInvite){
+        closeInviteWelcome(true);
+        generateCoachAthleteInvite();
         return;
       }
-      hideInviteJoinBanner();
+      if(joins.length) return;
       if(window.CoachAthleteInvite.shouldShowWelcome({
         seenWelcome: window.CoachAthleteInvite.hasSeenWelcome(user.id),
         inviteCount: invites.length,
         rosterCount: (roster || []).length
       })){
         openInviteWelcome();
+      }
+    }).catch(function(){
+      /* invite list failed — still honor the deep link once roster is up */
+      if(openInvite){
+        closeInviteWelcome(true);
+        generateCoachAthleteInvite();
       }
     });
   }
@@ -1808,6 +1831,7 @@
       loadRosterInsights(token, _coachRoster);
       refreshCoachInviteUi(token, user, _coachRoster);
     }).catch(function(err){
+      _openInviteDeepLink = false;
       var isMissingFn = err && (err.code === 'PGRST202' || err.code === '42883');
       listEl.innerHTML =
         '<div class="roster-empty" style="color:var(--danger);">' +

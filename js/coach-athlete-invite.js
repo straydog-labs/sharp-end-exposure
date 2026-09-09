@@ -60,6 +60,29 @@
     return base + '?invite=' + encodeURIComponent(String(token || ''));
   }
 
+  // Coach-dashboard deep link from the athlete app's post-signup
+  // "Invite an athlete" choice. Only the sentinel value "open" — a real
+  // invite token is left alone (those belong on index.html).
+  function consumeOpenInviteParam(loc, historyApi) {
+    loc = loc || (typeof global.location !== 'undefined' ? global.location : null);
+    if (!loc) return false;
+    var search = '';
+    try { search = String(loc.search || ''); } catch (err) { return false; }
+    var params;
+    try { params = new URLSearchParams(search); } catch (err) { return false; }
+    if (params.get('invite') !== 'open') return false;
+    params.delete('invite');
+    var qs = params.toString();
+    var path = String(loc.pathname || '') + (qs ? '?' + qs : '') + String(loc.hash || '');
+    try {
+      var hist = historyApi || (typeof global.history !== 'undefined' ? global.history : null);
+      if (hist && typeof hist.replaceState === 'function') {
+        hist.replaceState(hist.state || null, '', path);
+      }
+    } catch (err) { /* ignore */ }
+    return true;
+  }
+
   function storageGet(key, fallback) {
     try {
       if (!global.localStorage) return fallback;
@@ -213,6 +236,7 @@
     buildInsertPayload: buildInsertPayload,
     athleteAppBaseUrl: athleteAppBaseUrl,
     inviteUrl: inviteUrl,
+    consumeOpenInviteParam: consumeOpenInviteParam,
     hasSeenWelcome: hasSeenWelcome,
     markWelcomeSeen: markWelcomeSeen,
     seenBannerInviteIds: seenBannerInviteIds,

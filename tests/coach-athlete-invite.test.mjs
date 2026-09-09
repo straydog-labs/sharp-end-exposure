@@ -29,6 +29,33 @@ assert.strictEqual(
   'https://straydog-labs.github.io/sharp-end-exposure/?invite=tok-1'
 );
 
+const replaced = [];
+const locOpen = {
+  pathname: '/sharp-end-exposure/coach-dashboard.html',
+  search: '?invite=open&keep=1',
+  hash: ''
+};
+assert.strictEqual(Inv.consumeOpenInviteParam(locOpen, {
+  state: null,
+  replaceState: function (s, t, path) { replaced.push(path); }
+}), true);
+assert.strictEqual(replaced[0], '/sharp-end-exposure/coach-dashboard.html?keep=1');
+
+const locToken = {
+  pathname: '/sharp-end-exposure/coach-dashboard.html',
+  search: '?invite=tok-abc',
+  hash: ''
+};
+assert.strictEqual(Inv.consumeOpenInviteParam(locToken, {
+  replaceState: function () { throw new Error('must not strip a real token'); }
+}), false);
+
+assert.strictEqual(Inv.consumeOpenInviteParam({
+  pathname: '/coach-dashboard.html',
+  search: '',
+  hash: ''
+}, { replaceState: function () {} }), false);
+
 assert.strictEqual(Inv.shouldShowWelcome({
   seenWelcome: false,
   inviteCount: 0,
@@ -111,9 +138,14 @@ assert.ok(/function createAthleteInvite/.test(dash));
 assert.ok(/rest\/v1\/invites/.test(dash));
 assert.ok(/Pick something else/.test(dash));
 assert.ok(!/openResearchSheet/.test(dash));
+assert.ok(/consumeOpenInviteParam/.test(dash));
+assert.ok(/_openInviteDeepLink/.test(dash));
+assert.ok(/invite'\) !== 'open'|invite' !== 'open'/.test(
+  readFileSync(join(__dirname, '../js/coach-athlete-invite.js'), 'utf8')
+));
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index250'/.test(index));
-assert.ok(/APP_VERSION = 'index250'/.test(sw));
+assert.ok(/var app_version = 'index251'/.test(index));
+assert.ok(/APP_VERSION = 'index251'/.test(sw));
 
 console.log('coach-athlete-invite tests: ok');
