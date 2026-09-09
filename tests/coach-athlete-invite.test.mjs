@@ -60,9 +60,13 @@ assert.strictEqual(Inv.findReusableAthleteInvite([
 assert.strictEqual(Inv.findReusableAthleteInvite([]), null);
 
 assert.strictEqual(Inv.coachTipStorageKey('add-athlete'), 'coach_tip_seen_add-athlete');
+assert.strictEqual(Inv.coachTipStorageKey('coach-guide'), 'coach_tip_seen_coach-guide');
 assert.ok(Inv.COACH_TIPS['add-athlete']);
 assert.ok(Inv.COACH_TIPS['add-athlete'].text.indexOf('New to SEE? Get a link') === 0);
 assert.ok(/Already have an account\? Just enter their email instead\./.test(Inv.COACH_TIPS['add-athlete'].text));
+assert.ok(Inv.COACH_TIPS['coach-guide']);
+assert.ok(/This tile stays at the top of your roster/.test(Inv.COACH_TIPS['coach-guide'].text));
+assert.ok(/isn.t a one-time walkthrough/.test(Inv.COACH_TIPS['coach-guide'].text));
 
 const tipStore = {};
 globalThis.localStorage = {
@@ -76,6 +80,12 @@ assert.strictEqual(tipStore['coach_tip_seen_add-athlete'], '1');
 assert.strictEqual(Inv.coachTipSeen('add-athlete'), true);
 Inv.clearCoachTipSeen('add-athlete');
 assert.strictEqual(Inv.coachTipSeen('add-athlete'), false);
+assert.strictEqual(Inv.coachTipSeen('coach-guide'), false);
+Inv.markCoachTipSeen('coach-guide');
+assert.strictEqual(tipStore['coach_tip_seen_coach-guide'], '1');
+assert.strictEqual(Inv.coachTipSeen('coach-guide'), true);
+Inv.clearCoachTipSeen('coach-guide');
+assert.strictEqual(Inv.coachTipSeen('coach-guide'), false);
 
 const url = Inv.inviteUrl('tok-1', {
   origin: 'https://straydog-labs.github.io',
@@ -215,7 +225,7 @@ assert.ok(/invite'\) !== 'open'|invite' !== 'open'/.test(
 ));
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index252'/.test(index));
-assert.ok(/APP_VERSION = 'index252'/.test(sw));
+assert.ok(/var app_version = 'index253'/.test(index));
+assert.ok(/APP_VERSION = 'index253'/.test(sw));
 
 console.log('coach-athlete-invite tests: ok');

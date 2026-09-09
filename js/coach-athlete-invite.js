@@ -25,6 +25,10 @@
     'add-athlete': {
       id: 'add-athlete',
       text: 'New to SEE? Get a link, send it however you want — they sign up and land on your roster automatically. Already have an account? Just enter their email instead.'
+    },
+    'coach-guide': {
+      id: 'coach-guide',
+      text: 'This tile stays at the top of your roster. Open the Coach guide anytime for adding athletes, insights, logging at the wall, and assignments — it isn’t a one-time walkthrough.'
     }
   };
 

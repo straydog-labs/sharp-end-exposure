@@ -585,6 +585,23 @@
   .completed-group summary:hover{color:var(--text);}
   .completed-group .assign-card{margin-top:10px;}
 
+  .coach-guide-block{
+    margin:0 0 18px;padding:0 0 16px;border-bottom:1px solid var(--border);
+  }
+  .coach-guide-head{display:flex;align-items:stretch;justify-content:space-between;gap:8px;margin-bottom:10px;}
+  .coach-guide-tile{
+    display:block;flex:1;min-width:0;
+    background:rgba(232,146,82,.08);border:1px solid rgba(232,146,82,.38);
+    border-radius:12px;padding:12px 14px;text-decoration:none;color:inherit;
+  }
+  .coach-guide-tile:hover{border-color:var(--accent);}
+  .coach-guide-tile-kicker{
+    font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:4px;
+  }
+  .coach-guide-tile-title{font-size:15px;font-weight:700;letter-spacing:-.02em;}
+  .coach-guide-tile-sub{font-size:12px;color:var(--text-secondary);margin-top:3px;line-height:1.4;}
+  .coach-guide-block .coach-tip-info{align-self:flex-start;margin-top:8px;}
   .link-athlete-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);}
   .add-athlete-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
   .add-athlete-head .panel-title{margin-bottom:0;}
@@ -1461,6 +1478,21 @@
       '<div class="page-sub">Athletes linked to you. Tap an athlete for assignments, session notes, and chat.</div>' +
       '<div class="coach-layout">' +
         '<div class="panel" id="roster-panel">' +
+          '<div class="coach-guide-block" id="coach-guide-section">' +
+            '<div class="coach-guide-head">' +
+              '<a id="coach-guide-tile" class="coach-guide-tile" href="https://straydog-labs.github.io/see-guide-site/coach-guide.html" target="_blank" rel="noopener">' +
+                '<div class="coach-guide-tile-kicker">Reference</div>' +
+                '<div class="coach-guide-tile-title">Coach guide</div>' +
+                '<div class="coach-guide-tile-sub">Roster, insights, logging, assignments ↗</div>' +
+              '</a>' +
+              '<button type="button" class="coach-tip-info" id="coach-guide-tip-replay" aria-label="What is the Coach guide?">ⓘ</button>' +
+            '</div>' +
+            '<div id="coach-tip-coach-guide" class="coach-tip-card" hidden>' +
+              '<div class="coach-tip-label">Tip</div>' +
+              '<div class="coach-tip-text" id="coach-tip-coach-guide-body"></div>' +
+              '<button type="button" class="coach-tip-got-it" id="coach-tip-coach-guide-dismiss">Got it</button>' +
+            '</div>' +
+          '</div>' +
           '<div class="panel-title">Athletes</div>' +
           '<div class="roster-stats" id="roster-stats">' +
             '<div class="roster-stat"><div class="roster-stat-val" id="stat-athletes">—</div><div class="roster-stat-label">Athletes</div></div>' +
@@ -1517,6 +1549,7 @@
       '</div>';
 
     wireCoachInviteUi(token, user);
+    wireCoachGuideTip();
     loadRoster(token, user);
 
     document.getElementById('detail-panel').addEventListener('click', function(e){
@@ -1695,6 +1728,45 @@
     if(body && tip) body.textContent = tip.text;
     if(!window.CoachAthleteInvite || window.CoachAthleteInvite.coachTipSeen('add-athlete')) return;
     showCoachAddAthleteTip();
+  }
+
+  function showCoachGuideTip(){
+    var card = document.getElementById('coach-tip-coach-guide');
+    var body = document.getElementById('coach-tip-coach-guide-body');
+    var tip = window.CoachAthleteInvite && window.CoachAthleteInvite.COACH_TIPS['coach-guide'];
+    if(body && tip) body.textContent = tip.text;
+    if(card) card.hidden = false;
+  }
+
+  function hideCoachGuideTip(){
+    var card = document.getElementById('coach-tip-coach-guide');
+    if(card) card.hidden = true;
+  }
+
+  function mountCoachGuideTip(){
+    var body = document.getElementById('coach-tip-coach-guide-body');
+    var tip = window.CoachAthleteInvite && window.CoachAthleteInvite.COACH_TIPS['coach-guide'];
+    if(body && tip) body.textContent = tip.text;
+    if(!window.CoachAthleteInvite || window.CoachAthleteInvite.coachTipSeen('coach-guide')) return;
+    showCoachGuideTip();
+  }
+
+  function wireCoachGuideTip(){
+    mountCoachGuideTip();
+    var tipDismiss = document.getElementById('coach-tip-coach-guide-dismiss');
+    if(tipDismiss){
+      tipDismiss.addEventListener('click', function(){
+        if(window.CoachAthleteInvite) window.CoachAthleteInvite.markCoachTipSeen('coach-guide');
+        hideCoachGuideTip();
+      });
+    }
+    var tipReplay = document.getElementById('coach-guide-tip-replay');
+    if(tipReplay){
+      tipReplay.addEventListener('click', function(){
+        if(window.CoachAthleteInvite) window.CoachAthleteInvite.clearCoachTipSeen('coach-guide');
+        showCoachGuideTip();
+      });
+    }
   }
 
   function athleteInviteAppUrl(tokenStr){
