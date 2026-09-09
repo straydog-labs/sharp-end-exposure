@@ -4878,7 +4878,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index248'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index249'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -5135,11 +5135,14 @@ async function sbU(table,filter,payload){
 async function sbInsertSession(payload){
   var p = Object.assign({}, payload || {});
   var raw = await sbI('sessions', p);
-  if(isSbHttpFail(raw) && p.take_high_point){
+  // Presence, not truthiness: a missing/renamed column fails for null the
+  // same as for a real value (the outage was a null take_high_point on every
+  // non-took save, which never tripped the old truthy-only strip).
+  if(isSbHttpFail(raw) && Object.prototype.hasOwnProperty.call(p, 'take_high_point')){
     delete p.take_high_point;
     raw = await sbI('sessions', p);
   }
-  if(isSbHttpFail(raw) && p.gym_climb_id){
+  if(isSbHttpFail(raw) && Object.prototype.hasOwnProperty.call(p, 'gym_climb_id')){
     delete p.gym_climb_id;
     raw = await sbI('sessions', p);
   }
@@ -18080,6 +18083,10 @@ async function runSEETests(){
       && flushSrc.indexOf('fresh.length !== q.length') === -1
       && !/filter\(function\(e\)\{ return !e\.ts/.test(flushSrc);
     var eOk = /take_high_point/.test(insertSrc) && /gym_climb_id/.test(insertSrc)
+      && /hasOwnProperty\.call\(p,\s*'take_high_point'\)/.test(insertSrc)
+      && /hasOwnProperty\.call\(p,\s*'gym_climb_id'\)/.test(insertSrc)
+      && !/&& p\.take_high_point/.test(insertSrc)
+      && !/&& p\.gym_climb_id/.test(insertSrc)
       && /sbInsertSession/.test(flushSrc);
     var fOk = !!document.getElementById('update-banner')
       && /controllerchange/.test(swSrc) && /updatefound/.test(swSrc)
@@ -18097,6 +18104,40 @@ async function runSEETests(){
         'shape=' + shapeOk + ' A=' + aOk + ' B=' + bOk + ' C=' + cOk + ' D=' + dOk + ' E=' + eOk + ' F=' + fOk + ' stale=' + staleKept);
     }
   }catch(e){ fail('Offline queue distinguishes network vs HTTP, retries, never silently deletes', e.message); }
+
+  try{
+    var origInsertSbI = sbI;
+    var insertCalls = [];
+    sbI = async function(table, payload){
+      insertCalls.push({ table: table, keys: Object.keys(payload || {}), takePresent: Object.prototype.hasOwnProperty.call(payload || {}, 'take_high_point'), gymPresent: Object.prototype.hasOwnProperty.call(payload || {}, 'gym_climb_id'), takeVal: payload && payload.take_high_point, gymVal: payload && payload.gym_climb_id });
+      if(Object.prototype.hasOwnProperty.call(payload || {}, 'take_high_point')){
+        return sbFail('http', {status:400, message:"PGRST204 Could not find the 'take_high_point' column of 'sessions' in the schema cache", table:table});
+      }
+      if(Object.prototype.hasOwnProperty.call(payload || {}, 'gym_climb_id')){
+        return sbFail('http', {status:400, message:"PGRST204 Could not find the 'gym_climb_id' column of 'sessions' in the schema cache", table:table});
+      }
+      return { id: 'sess-stripped', device_id: payload && payload.device_id };
+    };
+    var nullPayload = { device_id: 'dev-strip', take_high_point: null, gym_climb_id: null };
+    var stripped = await sbInsertSession(nullPayload);
+    var strippedOk = insertCalls.length === 3
+      && insertCalls[0].takePresent === true && insertCalls[0].takeVal === null
+      && insertCalls[1].takePresent === false && insertCalls[1].gymPresent === true && insertCalls[1].gymVal === null
+      && insertCalls[2].takePresent === false && insertCalls[2].gymPresent === false
+      && stripped && stripped.id === 'sess-stripped'
+      && !Object.prototype.hasOwnProperty.call(nullPayload, 'take_high_point')
+      && !Object.prototype.hasOwnProperty.call(nullPayload, 'gym_climb_id');
+    sbI = origInsertSbI;
+    if(strippedOk){
+      pass('sbInsertSession strips null unknown columns and retries');
+    } else {
+      fail('sbInsertSession strips null unknown columns and retries',
+        'calls=' + insertCalls.length + ' id=' + (stripped && stripped.id) + ' keys=' + JSON.stringify(insertCalls));
+    }
+  }catch(e){
+    try{ sbI = origInsertSbI; }catch(e2){}
+    fail('sbInsertSession strips null unknown columns and retries', e.message);
+  }
 
   try{
     var origS = window.sbS, origI = window.sbI, origInsert = window.sbInsertSession;
