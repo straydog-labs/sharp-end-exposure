@@ -4878,15 +4878,63 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index247'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index248'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
+var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
 function getSBHeaders(){
+  // Signed-in writes must never silently fall back to the anon key — that
+  // makes RLS reject the row and surfaces as a generic save failure.
+  if(window._authUser){
+    return {
+      'Content-Type':'application/json',
+      'apikey':SB_KEY,
+      'Authorization':'Bearer '+(window._authToken || '')
+    };
+  }
   return {
     'Content-Type':'application/json',
     'apikey':SB_KEY,
-    'Authorization':'Bearer '+(window._authToken || SB_KEY)
+    'Authorization':'Bearer '+SB_KEY
   };
+}
+
+async function refreshAuthSession(){
+  if(!supabaseClient || !supabaseClient.auth || typeof supabaseClient.auth.getSession !== 'function') return null;
+  try{
+    var res = await supabaseClient.auth.getSession();
+    var session = res && res.data && res.data.session ? res.data.session : null;
+    window._authUser = session ? session.user : null;
+    window._authToken = session ? session.access_token : null;
+    return session;
+  }catch(e){
+    console.error('refreshAuthSession', e && e.message ? e.message : e);
+    return null;
+  }
+}
+
+async function ensureWriteAuth(){
+  if(!window._authUser) return true;
+  if(window._authToken) return true;
+  await refreshAuthSession();
+  return !!window._authToken;
+}
+
+var _sessionExpiredToastAt = 0;
+function notifySessionExpired(){
+  var now = Date.now();
+  if(now - _sessionExpiredToastAt < 2000) return;
+  _sessionExpiredToastAt = now;
+  showToast(SESSION_EXPIRED_MSG, true);
+}
+
+function startAuthSessionWatchers(){
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'visible') refreshAuthSession();
+  });
+  window.addEventListener('focus', function(){
+    refreshAuthSession();
+  });
 }
 
 // ── Supabase Auth Client ──────────────────────────────
@@ -4993,12 +5041,32 @@ function sbFail(kind, extra){
 function sbFailed(r){ return !r || r.ok === false; }
 function isSbNetworkFail(r){ return !!(r && r.ok === false && r.kind === 'network'); }
 function isSbHttpFail(r){ return !!(r && r.ok === false && r.kind === 'http'); }
+function isSbAuthFail(r){ return !!(r && r.ok === false && r.kind === 'auth'); }
 
 async function sbI(table,payload,minimal){
   try{
+    if(!(await ensureWriteAuth())){
+      notifySessionExpired();
+      return sbFail('auth', {status:401, message:SESSION_EXPIRED_MSG, table:table});
+    }
     var prefer = minimal ? 'return=minimal' : 'return=representation';
-    const r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:{...getSBHeaders(),'Prefer':prefer},body:JSON.stringify(payload)});
+    var headers = Object.assign({}, getSBHeaders(), {'Prefer':prefer});
+    var r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:headers,body:JSON.stringify(payload)});
+    if(r.status === 401 && window._authUser){
+      window._authToken = null;
+      if(await ensureWriteAuth()){
+        headers = Object.assign({}, getSBHeaders(), {'Prefer':prefer});
+        r=await fetch(SB_URL+'/rest/v1/'+table,{method:'POST',headers:headers,body:JSON.stringify(payload)});
+      } else {
+        notifySessionExpired();
+        return sbFail('auth', {status:401, message:SESSION_EXPIRED_MSG, table:table});
+      }
+    }
     if(!r.ok){
+      if(r.status === 401){
+        notifySessionExpired();
+        return sbFail('auth', {status:401, message:SESSION_EXPIRED_MSG, table:table});
+      }
       const err=await r.json().catch(function(){return {};});
       console.error('sbI HTTP error:',r.status,table,err.message||err);
       return sbFail('http', {status:r.status, message:err.message||String(err), table:table});
@@ -5023,7 +5091,22 @@ async function sbS(table,params=''){
 }
 async function sbU(table,filter,payload){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{...getSBHeaders(),'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    if(!(await ensureWriteAuth())){
+      notifySessionExpired();
+      return sbFail('auth', {status:401, message:SESSION_EXPIRED_MSG, table:table});
+    }
+    var headers = Object.assign({}, getSBHeaders(), {'Prefer':'return=representation'});
+    var r=await fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:headers,body:JSON.stringify(payload)});
+    if(r.status === 401 && window._authUser){
+      window._authToken = null;
+      if(await ensureWriteAuth()){
+        headers = Object.assign({}, getSBHeaders(), {'Prefer':'return=representation'});
+        r=await fetch(SB_URL+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:headers,body:JSON.stringify(payload)});
+      } else {
+        notifySessionExpired();
+        return sbFail('auth', {status:401, message:SESSION_EXPIRED_MSG, table:table});
+      }
+    }
     // Bug fix, build 179: this was missing the same r.ok check sbI() already
     // has — an HTTP error response with a valid JSON error body (e.g. RLS
     // rejection, bad UUID) was returned as if it were a successful row,
@@ -5033,6 +5116,10 @@ async function sbU(table,filter,payload){
     // anything — found because the new checkbox-toggle rollback (build 179)
     // is the first caller that actually depends on a reliable null-on-failure.
     if(!r.ok){
+      if(r.status === 401){
+        notifySessionExpired();
+        return sbFail('auth', {status:401, message:SESSION_EXPIRED_MSG, table:table});
+      }
       const err=await r.json().catch(function(){return {};});
       console.error('sbU HTTP error:',r.status,table,err.message||err);
       return sbFail('http', {status:r.status, message:err.message||String(err), table:table});
@@ -7440,6 +7527,9 @@ async function logFlowSaveSession(){
     showScreen('screen-log-prompt');
     return;
   }
+  if(isSbAuthFail(raw)){
+    return;
+  }
   if(sbFailed(raw) || !(raw && raw.id)){
     showToast('Could not save this climb. Try again.', true);
     return;
@@ -7839,6 +7929,10 @@ async function logClimb(){
     showToast('Saved offline. Will sync when you are back online.');
     console.warn('[logClimb] network fail - queued offline');
     if(btn){btn.textContent='Log climb';btn.classList.add('ready');}
+    return;
+  }
+  if(isSbAuthFail(raw)){
+    if(btn){btn.textContent='Retry';btn.classList.add('ready');btn.style.background='rgba(232,68,68,.8)';}
     return;
   }
   if(sbFailed(raw) || !(raw && raw.id)){
@@ -17360,6 +17454,94 @@ async function runSEETests(){
     else { fail('Supabase auth client initialised', 'supabaseClient is null'); }
   }catch(e){ fail('Supabase auth client initialised', e.message); }
 
+  try{
+    var prevUser = window._authUser;
+    var prevToken = window._authToken;
+    var prevClient = supabaseClient;
+    var origFetch = window.fetch;
+    var srcOk = typeof refreshAuthSession === 'function'
+      && typeof ensureWriteAuth === 'function'
+      && typeof startAuthSessionWatchers === 'function'
+      && typeof isSbAuthFail === 'function'
+      && /visibilitychange/.test(String(startAuthSessionWatchers))
+      && /focus/.test(String(startAuthSessionWatchers))
+      && /getSession/.test(String(refreshAuthSession))
+      && /ensureWriteAuth/.test(String(sbI))
+      && /ensureWriteAuth/.test(String(sbU))
+      && String(getSBHeaders).indexOf('_authToken || SB_KEY') === -1
+      && /startAuthSessionWatchers\(\)/.test(document.documentElement.innerHTML)
+      && SESSION_EXPIRED_MSG === 'Your session expired, please sign in again.';
+    window._authUser = { id: 'u-expired' };
+    window._authToken = null;
+    var hdrs = getSBHeaders();
+    var noAnonFallback = (hdrs.Authorization || '').indexOf(SB_KEY) === -1;
+    var getSessionCalls = 0;
+    var fetchAuth = [];
+    supabaseClient = { auth: { getSession: async function(){
+      getSessionCalls++;
+      var session = { user: { id: 'u-expired' }, access_token: 'recovered-token' };
+      return { data: { session: session } };
+    }}};
+    window.fetch = async function(url, opts){
+      fetchAuth.push(((opts && opts.headers) || {}).Authorization || '');
+      return { ok: true, status: 200, json: async function(){ return [{ id: 'sess-recovered' }]; } };
+    };
+    var recovered = await sbI('sessions', { test: true });
+    var recoveredOk = getSessionCalls >= 1
+      && recovered && recovered.id === 'sess-recovered'
+      && fetchAuth[0] === 'Bearer recovered-token';
+    window._authUser = { id: 'u-expired' };
+    window._authToken = 'stale-token';
+    getSessionCalls = 0;
+    fetchAuth = [];
+    var fetchCount = 0;
+    window.fetch = async function(url, opts){
+      fetchCount++;
+      fetchAuth.push(((opts && opts.headers) || {}).Authorization || '');
+      if(fetchCount === 1){
+        return { ok: false, status: 401, json: async function(){ return { message: 'JWT expired' }; } };
+      }
+      return { ok: true, status: 200, json: async function(){ return [{ id: 'sess-retried' }]; } };
+    };
+    var retried = await sbU('sessions', 'id=eq.1', { zone: 'learning' });
+    var retryOk = fetchCount === 2
+      && fetchAuth[0] === 'Bearer stale-token'
+      && fetchAuth[1] === 'Bearer recovered-token'
+      && retried && retried.id === 'sess-retried';
+    window._authUser = { id: 'u-expired' };
+    window._authToken = null;
+    getSessionCalls = 0;
+    fetchAuth = [];
+    supabaseClient = { auth: { getSession: async function(){
+      getSessionCalls++;
+      return { data: { session: null } };
+    }}};
+    window.fetch = async function(){
+      fetchAuth.push('fetched');
+      return { ok: true, status: 200, json: async function(){ return [{ id: 'should-not' }]; } };
+    };
+    var expired = await sbI('sessions', { test: true });
+    var expiredOk = isSbAuthFail(expired)
+      && expired.message === SESSION_EXPIRED_MSG
+      && fetchAuth.length === 0
+      && getSessionCalls >= 1;
+    window._authUser = prevUser;
+    window._authToken = prevToken;
+    supabaseClient = prevClient;
+    window.fetch = origFetch;
+    if(srcOk && noAnonFallback && recoveredOk && retryOk && expiredOk){
+      pass('Stale auth token refreshes session instead of anon-key writes');
+    } else {
+      fail('Stale auth token refreshes session instead of anon-key writes',
+        'src=' + srcOk + ' noAnon=' + noAnonFallback + ' recovered=' + recoveredOk
+        + ' retry=' + retryOk + ' expired=' + expiredOk + ' calls=' + getSessionCalls);
+    }
+  }catch(e){
+    try{ window.fetch = origFetch; }catch(e2){}
+    try{ window._authUser = prevUser; window._authToken = prevToken; supabaseClient = prevClient; }catch(e3){}
+    fail('Stale auth token refreshes session instead of anon-key writes', e.message);
+  }
+
   // A5: Sign-up requires first/last name and creates profiles row (build 194)
   try{
     var firstEl = document.getElementById('auth-first-name');
@@ -21074,6 +21256,7 @@ spSetGradeSys(_savedGradeSys);
 // Flush any pending offline saves
 setTimeout(flushOfflineQueue, 1000);
 startOfflineQueueWatchers();
+startAuthSessionWatchers();
 // Init auth first — then route appropriately
 initAuth();
 // Route on load — check localStorage first (instant), then check auth session
