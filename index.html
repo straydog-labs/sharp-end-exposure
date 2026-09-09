@@ -4878,7 +4878,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index249'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index250'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -4993,6 +4993,7 @@ function initAuth(){
       // Check Supabase for existing baseline tied to this user_id
       (async function(){
         await flushPendingProfile();
+        await redeemPendingInvite();
         var uid = session && session.user ? session.user.id : null;
         if(uid){
           var existing = await sbS('sessions','select=id&is_baseline=eq.true&user_id=eq.'+uid+'&limit=1');
@@ -17575,6 +17576,152 @@ async function runSEETests(){
     }
   }catch(e){ fail('Sign-up requires first and last name', e.message); }
 
+  try{
+    var origHref = location.href;
+    var origInvite = null;
+    var origPendingProfile = null;
+    try{ origInvite = sessionStorage.getItem('see_pending_invite'); }catch(e){}
+    try{ origPendingProfile = sessionStorage.getItem('see_pending_profile'); }catch(e){}
+    var origUser = window._authUser;
+    var origToken = window._authToken;
+    var origFetch = window.fetch;
+    var origSbI = sbI;
+    var origSignUp = supabaseClient && supabaseClient.auth ? supabaseClient.auth.signUp : null;
+    var origScreen = (document.querySelector('.screen.active') || {}).id || null;
+    var srcOk = typeof consumeInviteDeepLink === 'function'
+      && typeof routePendingInviteSignup === 'function'
+      && typeof redeemPendingInvite === 'function'
+      && typeof readPendingInvite === 'function'
+      && /params\.get\('invite'\)/.test(String(consumeInviteDeepLink))
+      && /history\.replaceState/.test(String(consumeInviteDeepLink))
+      && SEE_PENDING_INVITE_KEY === 'see_pending_invite'
+      && /SEE_PENDING_INVITE_KEY/.test(String(stashPendingInvite) + String(readPendingInvite))
+      && /redeem_invite/.test(String(redeemPendingInvite))
+      && /p_token/.test(String(redeemPendingInvite))
+      && /p_user_id/.test(String(redeemPendingInvite))
+      && /redeemPendingInvite/.test(String(authSignUp))
+      && /invite_token/.test(String(authSignUp))
+      && /redeemPendingInvite/.test(String(flushPendingProfile))
+      && /invite_token/.test(String(flushPendingProfile))
+      && /consumeInviteDeepLink\(\)/.test(String(routeOnLoad))
+      && /routePendingInviteSignup\(\)/.test(String(routeOnLoad))
+      && INVITE_USED_MSG === 'That invite link looks like it\'s already been used.';
+    try{ sessionStorage.removeItem('see_pending_invite'); }catch(e){}
+    history.replaceState(null, '', location.pathname + '?invite=tok-abc&keep=1' + location.hash);
+    window._authUser = null;
+    var consumed = consumeInviteDeepLink();
+    var stashed = readPendingInvite() === 'tok-abc';
+    var qs = new URLSearchParams(location.search);
+    var stripped = qs.get('invite') == null && qs.get('keep') === '1';
+    var routed = routePendingInviteSignup();
+    var signupEl = document.getElementById('auth-mode-signup');
+    var signupShown = !!(signupEl && signupEl.style.display === 'block');
+    var deepOk = consumed && stashed && stripped && routed && signupShown;
+
+    var rpcCalls = [];
+    window._authUser = { id: 'u-new' };
+    window._authToken = 'jwt-new';
+    try{ sessionStorage.setItem('see_pending_invite', 'tok-used'); }catch(e){}
+    window.fetch = async function(url, opts){
+      if(String(url).indexOf('redeem_invite') !== -1){
+        rpcCalls.push(JSON.parse(opts.body || '{}'));
+        return { ok: true, status: 200, json: async function(){ return { ok: false }; } };
+      }
+      return origFetch.apply(this, arguments);
+    };
+    var used = await redeemPendingInvite();
+    var usedOk = used && used.ok === false
+      && rpcCalls.length === 1
+      && rpcCalls[0].p_token === 'tok-used'
+      && rpcCalls[0].p_user_id === 'u-new'
+      && readPendingInvite() === '';
+
+    try{ sessionStorage.setItem('see_pending_invite', 'tok-live'); }catch(e){}
+    rpcCalls = [];
+    if(supabaseClient && supabaseClient.auth){
+      supabaseClient.auth.signUp = async function(){
+        return { data: { user: { id: 'u-ada', identities: [{ id: 'i1' }] }, session: { access_token: 'jwt-ada' } }, error: null };
+      };
+    }
+    sbI = async function(table, payload){
+      if(table === 'profiles' && payload && payload.invite_token) return sbFail('http', { status: 400, message: 'unknown column', table: table });
+      return { id: 'profile-1' };
+    };
+    window.fetch = async function(url, opts){
+      if(String(url).indexOf('redeem_invite') !== -1){
+        rpcCalls.push(JSON.parse(opts.body || '{}'));
+        return { ok: true, status: 200, json: async function(){ return { ok: true }; } };
+      }
+      return { ok: true, status: 200, json: async function(){ return {}; } };
+    };
+    setAuthMode('signup');
+    document.getElementById('auth-first-name').value = 'Ada';
+    document.getElementById('auth-last-name').value = 'Lovelace';
+    document.getElementById('auth-email').value = 'ada@example.com';
+    document.getElementById('auth-password').value = 'password123';
+    window._authUser = null;
+    window._authToken = null;
+    await authSignUp();
+    var signupRedeemOk = rpcCalls.length === 1
+      && rpcCalls[0].p_token === 'tok-live'
+      && rpcCalls[0].p_user_id === 'u-ada'
+      && readPendingInvite() === '';
+
+    try{ sessionStorage.setItem('see_pending_invite', 'tok-email'); }catch(e){}
+    rpcCalls = [];
+    if(supabaseClient && supabaseClient.auth){
+      supabaseClient.auth.signUp = async function(){
+        return { data: { user: { id: 'u-bob', identities: [{ id: 'i1' }] }, session: null }, error: null };
+      };
+    }
+    await authSignUp();
+    var pendingRaw = null;
+    try{ pendingRaw = sessionStorage.getItem('see_pending_profile'); }catch(e){}
+    var pendingObj = null;
+    try{ pendingObj = pendingRaw ? JSON.parse(pendingRaw) : null; }catch(e){}
+    var stashedEmail = pendingObj && pendingObj.invite_token === 'tok-email' && pendingObj.user_id === 'u-bob'
+      && readPendingInvite() === 'tok-email' && rpcCalls.length === 0;
+    window._authUser = { id: 'u-bob' };
+    window._authToken = 'jwt-bob';
+    await flushPendingProfile();
+    var flushOk = rpcCalls.length === 1
+      && rpcCalls[0].p_token === 'tok-email'
+      && rpcCalls[0].p_user_id === 'u-bob'
+      && readPendingInvite() === '';
+
+    if(srcOk && deepOk && usedOk && signupRedeemOk && stashedEmail && flushOk){
+      pass('Invite link stashes token, redeems after signup, and does not block used tokens');
+    } else {
+      fail('Invite link stashes token, redeems after signup, and does not block used tokens',
+        'src=' + srcOk + ' deep=' + deepOk + ' used=' + usedOk + ' signup=' + signupRedeemOk
+        + ' email=' + stashedEmail + ' flush=' + flushOk + ' rpc=' + rpcCalls.length);
+    }
+  }catch(e){
+    fail('Invite link stashes token, redeems after signup, and does not block used tokens', e.message);
+  } finally {
+    try{ window.fetch = origFetch; }catch(e2){}
+    try{ sbI = origSbI; }catch(e2){}
+    try{ if(supabaseClient && supabaseClient.auth && origSignUp) supabaseClient.auth.signUp = origSignUp; }catch(e2){}
+    try{ window._authUser = origUser; window._authToken = origToken; }catch(e2){}
+    try{ history.replaceState(null, '', origHref); }catch(e2){}
+    try{
+      if(origInvite) sessionStorage.setItem('see_pending_invite', origInvite);
+      else sessionStorage.removeItem('see_pending_invite');
+    }catch(e2){}
+    try{
+      if(origPendingProfile) sessionStorage.setItem('see_pending_profile', origPendingProfile);
+      else sessionStorage.removeItem('see_pending_profile');
+    }catch(e2){}
+    try{
+      document.getElementById('auth-first-name').value = '';
+      document.getElementById('auth-last-name').value = '';
+      document.getElementById('auth-email').value = '';
+      document.getElementById('auth-password').value = '';
+      setAuthMode('signin');
+    }catch(e2){}
+    try{ if(origScreen) showScreen(origScreen); }catch(e2){}
+  }
+
   // A6: Helper tips system (build 195)
   try{
     var tipFns = ['mountTipForScreen','dismissTip','turnOffAllTips','toggleTipsEnabled','replayTutorialTips','tipsEnabled'];
@@ -20718,6 +20865,73 @@ function clearAuthError(){
 }
 
 
+var SEE_PENDING_INVITE_KEY = 'see_pending_invite';
+var INVITE_USED_MSG = 'That invite link looks like it\'s already been used.';
+
+function readPendingInvite(){
+  try{ return String(sessionStorage.getItem(SEE_PENDING_INVITE_KEY) || '').trim(); }catch(e){ return ''; }
+}
+function stashPendingInvite(token){
+  token = String(token || '').trim();
+  if(!token) return;
+  try{ sessionStorage.setItem(SEE_PENDING_INVITE_KEY, token); }catch(e){}
+}
+function clearPendingInvite(){
+  try{ sessionStorage.removeItem(SEE_PENDING_INVITE_KEY); }catch(e){}
+}
+
+function consumeInviteDeepLink(){
+  try{
+    var params = new URLSearchParams(location.search);
+    var token = (params.get('invite') || '').trim();
+    if(!token) return false;
+    stashPendingInvite(token);
+    params.delete('invite');
+    var qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function routePendingInviteSignup(){
+  if(!readPendingInvite()) return false;
+  if(window._authUser) return false;
+  showScreen('screen-auth');
+  setAuthMode('signup');
+  return true;
+}
+
+async function redeemPendingInvite(tokenOverride){
+  var token = String(tokenOverride || readPendingInvite() || '').trim();
+  var userId = window._authUser && window._authUser.id;
+  if(!token || !userId) return null;
+  try{
+    var r = await fetch(SB_URL + '/rest/v1/rpc/redeem_invite', {
+      method: 'POST',
+      headers: getSBHeaders(),
+      body: JSON.stringify({ p_token: token, p_user_id: userId })
+    });
+    var body = await r.json().catch(function(){ return {}; });
+    if(!r.ok){
+      console.error('redeem_invite HTTP error:', r.status, body);
+      return body && typeof body === 'object' ? body : { ok: false };
+    }
+    if(body && body.ok === false){
+      showToast(INVITE_USED_MSG, true);
+      clearPendingInvite();
+      return body;
+    }
+    clearPendingInvite();
+    try{ refreshCoachDashToggle(); }catch(e){}
+    return body || { ok: true };
+  }catch(e){
+    console.error('redeem_invite', e && e.message ? e.message : e);
+    return { ok: false };
+  }
+}
+
 function setAuthMode(mode){
   var tabSignin=document.getElementById('auth-tab-signin');
   var tabSignup=document.getElementById('auth-tab-signup');
@@ -20790,16 +21004,23 @@ async function authSignUp(){
         first_name: firstName,
         last_name: lastName
       };
+      var inviteToken = readPendingInvite();
+      if(inviteToken) profilePayload.invite_token = inviteToken;
       // Sync token before profiles insert so RLS (auth.uid() = user_id) can pass.
       if(res.data.session){
         window._authUser = res.data.user;
         window._authToken = res.data.session.access_token;
-        var profileSaved = await sbI('profiles', profilePayload);
+        var profileSaved = await sbI('profiles', {
+          user_id: profilePayload.user_id,
+          first_name: profilePayload.first_name,
+          last_name: profilePayload.last_name
+        });
         if(sbFailed(profileSaved)){
           console.error('[authSignUp] profiles insert failed');
           try{ sessionStorage.setItem('see_pending_profile', JSON.stringify(profilePayload)); }catch(e){}
         }
         showToast('Account created!');
+        await redeemPendingInvite(inviteToken);
         // onAuthStateChange handles routing
       } else {
         // Email confirmation pending — no JWT yet for RLS. Stash names and
@@ -20815,27 +21036,31 @@ async function flushPendingProfile(){
   if(!window._authToken || window._authToken === SB_KEY) return;
   var raw = null;
   try{ raw = sessionStorage.getItem('see_pending_profile'); }catch(e){}
-  if(!raw) return;
   var pending = null;
-  try{ pending = JSON.parse(raw); }catch(e){ pending = null; }
-  if(!pending || !pending.user_id || !pending.first_name || !pending.last_name) return;
-  if(window._authUser && window._authUser.id && pending.user_id !== window._authUser.id) return;
-  var saved = await sbI('profiles', {
-    user_id: pending.user_id,
-    first_name: pending.first_name,
-    last_name: pending.last_name
-  });
-  if(!sbFailed(saved)){
-    try{ sessionStorage.removeItem('see_pending_profile'); }catch(e){}
-    return;
+  if(raw){
+    try{ pending = JSON.parse(raw); }catch(e){ pending = null; }
   }
-  // Insert may have failed because the row already exists — clear stash if so
-  var existing = await sbS('profiles', 'select=user_id&user_id=eq.'+pending.user_id+'&limit=1');
-  if(Array.isArray(existing) && existing.length > 0){
-    try{ sessionStorage.removeItem('see_pending_profile'); }catch(e){}
-  } else {
-    console.error('[flushPendingProfile] profiles insert failed');
+  if(pending && pending.user_id && pending.first_name && pending.last_name){
+    if(!(window._authUser && window._authUser.id && pending.user_id !== window._authUser.id)){
+      var saved = await sbI('profiles', {
+        user_id: pending.user_id,
+        first_name: pending.first_name,
+        last_name: pending.last_name
+      });
+      if(!sbFailed(saved)){
+        try{ sessionStorage.removeItem('see_pending_profile'); }catch(e){}
+      } else {
+        // Insert may have failed because the row already exists — clear stash if so
+        var existing = await sbS('profiles', 'select=user_id&user_id=eq.'+pending.user_id+'&limit=1');
+        if(Array.isArray(existing) && existing.length > 0){
+          try{ sessionStorage.removeItem('see_pending_profile'); }catch(e){}
+        } else {
+          console.error('[flushPendingProfile] profiles insert failed');
+        }
+      }
+    }
   }
+  await redeemPendingInvite(pending && pending.invite_token);
 }
 
 async function authGoogle(){
@@ -21300,11 +21525,11 @@ startAuthSessionWatchers();
 initAuth();
 // Route on load — check localStorage first (instant), then check auth session
 async function routeOnLoad(){
-  // Consent gate — must run before anything else in this function. screen-auth,
-  // screen-baseline, and screen-sessions are all reachable as "first screen"
-  // outcomes below, so the check has to sit above all of them, not inside any
-  // one branch. Missing or outdated key (version bumps to see_consent_v2 etc.
-  // when re-consent is needed) both fail this the same way: absent key.
+  consumeInviteDeepLink();
+  // Consent gate still runs before auth/home/baseline routing. Invite tokens
+  // are stashed first so a consent screen does not drop ?invite= from the URL.
+  // screen-auth, screen-baseline, and screen-sessions are all reachable as
+  // first-screen outcomes below, so the check sits above every branch.
   var _consentAck = null;
   try{ _consentAck = localStorage.getItem('see_consent_v1'); }catch(e){}
   if(!_consentAck){
@@ -21336,6 +21561,7 @@ async function routeOnLoad(){
       window._authToken = session ? session.access_token : null;
       if(session){
         // Authenticated - go to Home
+        redeemPendingInvite();
         if(!hasSeenBaseline){
           showScreen('screen-baseline');
         } else if(!consumeTrainChatDeepLink()){
@@ -21343,6 +21569,8 @@ async function routeOnLoad(){
           loadHomeScreen();
         }
         syncPushSubscriptionIfGranted();
+      } else if(routePendingInviteSignup()){
+        // Invite link: unsigned user goes to Create account, not Sign in
       } else if(!dismissed){
         // Not authed, not dismissed — show auth
         showScreen('screen-auth');
@@ -21354,7 +21582,9 @@ async function routeOnLoad(){
       }
     }).catch(function(){
       // Auth check failed — fall back to localStorage only
-      if(!dismissed){
+      if(routePendingInviteSignup()){
+        return;
+      } else if(!dismissed){
         showScreen('screen-auth');
       } else if(!hasSeenBaseline){
         showScreen('screen-baseline');
@@ -21365,7 +21595,9 @@ async function routeOnLoad(){
     });
   } else {
     // No auth client — localStorage only
-    if(!dismissed){
+    if(routePendingInviteSignup()){
+      return;
+    } else if(!dismissed){
       showScreen('screen-auth');
     } else if(!hasSeenBaseline){
       showScreen('screen-baseline');
