@@ -1755,22 +1755,22 @@
     var msg = document.getElementById('invite-athlete-msg');
     var value = input ? input.value : '';
     if(!value) return;
-    function ok(){
-      if(btn){
-        btn.textContent = 'Copied!';
-        setTimeout(function(){ btn.textContent = 'Copy invite link'; }, 1800);
-      }
+    function markCopied(){
+      if(!btn) return;
+      btn.textContent = 'Copied!';
+      setTimeout(function(){ btn.textContent = 'Copy invite link'; }, 1800);
     }
     function fallbackCopy(){
       var wasHidden = input.hidden;
       input.hidden = false;
       input.select();
-      try{ document.execCommand('copy'); ok(); }
+      try{ document.execCommand('copy'); }
       catch(err){ if(msg) msg.innerHTML = '<div class="form-note">Use view link, then copy the URL.</div>'; }
       if(wasHidden) input.hidden = true;
     }
+    markCopied();
     if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(value).then(ok).catch(fallbackCopy);
+      navigator.clipboard.writeText(value).catch(fallbackCopy);
       return;
     }
     fallbackCopy();
