@@ -20,6 +20,13 @@
   ];
   var WELCOME_KEY_PREFIX = 'see.coachInviteWelcome.v1.';
   var BANNER_KEY_PREFIX = 'see.coachInviteJoinBanner.v1.';
+  var TIP_KEY_PREFIX = 'coach_tip_seen_';
+  var COACH_TIPS = {
+    'add-athlete': {
+      id: 'add-athlete',
+      text: 'New to SEE? Get a link, send it however you want — they sign up and land on your roster automatically. Already have an account? Just enter their email instead.'
+    }
+  };
 
   function randomToken() {
     if (global.crypto && typeof global.crypto.randomUUID === 'function') {
@@ -41,8 +48,27 @@
     return {
       role: 'athlete',
       coach_id: coachId,
-      token: String(token || '')
+      token: String(token || ''),
+      status: 'pending'
     };
+  }
+
+  function inviteIsPendingUnused(inv) {
+    if (!inv || !inv.token) return false;
+    var role = String(inv.role || '').toLowerCase();
+    if (role && role !== 'athlete') return false;
+    if (inv.used_at || inv.used_by) return false;
+    var status = String(inv.status || 'pending').toLowerCase();
+    return status === 'pending';
+  }
+
+  function findReusableAthleteInvite(invites) {
+    var list = Array.isArray(invites) ? invites : [];
+    var i;
+    for (i = 0; i < list.length; i++) {
+      if (inviteIsPendingUnused(list[i])) return list[i];
+    }
+    return null;
   }
 
   function athleteAppBaseUrl(loc) {
@@ -114,6 +140,25 @@
 
   function markWelcomeSeen(userId) {
     storageSet(welcomeStorageKey(userId), '1');
+  }
+
+  function coachTipStorageKey(tipId) {
+    return TIP_KEY_PREFIX + String(tipId || '');
+  }
+
+  function coachTipSeen(tipId) {
+    return storageGet(coachTipStorageKey(tipId), '') === '1';
+  }
+
+  function markCoachTipSeen(tipId) {
+    storageSet(coachTipStorageKey(tipId), '1');
+  }
+
+  function clearCoachTipSeen(tipId) {
+    try {
+      if (!global.localStorage) return;
+      global.localStorage.removeItem(coachTipStorageKey(tipId));
+    } catch (err) { /* private mode */ }
   }
 
   function seenBannerInviteIds(userId) {
@@ -234,6 +279,13 @@
     STARTER_NAMES: STARTER_NAMES,
     randomToken: randomToken,
     buildInsertPayload: buildInsertPayload,
+    inviteIsPendingUnused: inviteIsPendingUnused,
+    findReusableAthleteInvite: findReusableAthleteInvite,
+    COACH_TIPS: COACH_TIPS,
+    coachTipSeen: coachTipSeen,
+    markCoachTipSeen: markCoachTipSeen,
+    clearCoachTipSeen: clearCoachTipSeen,
+    coachTipStorageKey: coachTipStorageKey,
     athleteAppBaseUrl: athleteAppBaseUrl,
     inviteUrl: inviteUrl,
     consumeOpenInviteParam: consumeOpenInviteParam,

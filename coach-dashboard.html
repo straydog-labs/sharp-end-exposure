@@ -586,12 +586,43 @@
   .completed-group .assign-card{margin-top:10px;}
 
   .link-athlete-box{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);}
+  .add-athlete-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .add-athlete-head .panel-title{margin-bottom:0;}
+  .coach-tip-info{
+    background:none;border:none;color:var(--text-secondary);font-size:16px;line-height:1;cursor:pointer;
+    padding:2px 4px;font-family:'Space Grotesk',sans-serif;
+  }
+  .coach-tip-info:hover{color:var(--accent);}
+  .coach-tip-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:14px 16px;margin:0 0 14px;
+  }
+  .coach-tip-label{
+    font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:8px;
+  }
+  .coach-tip-text{font-size:13.5px;color:var(--text);line-height:1.55;margin-bottom:12px;font-weight:500;}
+  .coach-tip-got-it{
+    background:var(--accent);border:none;border-radius:6px;color:#0d0d0d;
+    font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:8px 16px;cursor:pointer;
+  }
+  .add-athlete-path{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+  .add-athlete-path:first-of-type{margin-top:4px;padding-top:0;border-top:none;}
+  .add-athlete-path-label{
+    font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-secondary);margin-bottom:8px;
+  }
   .invite-link-row{display:flex;flex-direction:column;gap:8px;align-items:stretch;margin-top:10px;}
   .invite-link-row textarea{
     width:100%;min-height:64px;resize:none;background:var(--bg);border:1px solid var(--border);border-radius:6px;
     padding:9px 11px;color:var(--text);font-family:'Space Mono',monospace;font-size:12px;outline:none;
     word-break:break-all;line-height:1.45;
   }
+  .invite-link-view{
+    background:none;border:none;color:var(--text-secondary);font-family:'Space Grotesk',sans-serif;
+    font-size:12px;font-weight:600;cursor:pointer;padding:0;text-align:left;
+  }
+  .invite-link-view:hover{color:var(--accent);}
   .invite-join-banner{
     display:none;background:rgba(232,146,82,.12);border:1px solid rgba(232,146,82,.4);
     border-radius:12px;padding:12px 14px;margin:0 0 14px;cursor:pointer;text-align:left;
@@ -1451,24 +1482,35 @@
             '<button type="button" class="btn-cancel" id="open-gym-climbs" style="width:100%;">Gym climb catalog</button>' +
             '<div class="form-note">Climbs you author — wall, angle, steepness, terrain. CSV import supported. Only you can edit your rows.</div>' +
           '</div>' +
-          '<div class="link-athlete-box">' +
-            '<div class="panel-title" style="margin-bottom:10px;">Invite an athlete</div>' +
-            '<div class="form-note">New to SEE? Send a link — they sign up and join your roster automatically.</div>' +
-            '<div class="form-actions" style="margin-top:10px;"><button type="button" class="btn-primary" id="invite-athlete-open">Invite an athlete</button></div>' +
-            '<div id="invite-link-panel" style="display:none;margin-top:12px;">' +
-              '<div class="form-note">Send this link to your athlete — they\'ll be linked to you automatically once they sign up.</div>' +
-              '<div class="invite-link-row">' +
-                '<textarea id="invite-link-input" rows="3" readonly></textarea>' +
-                '<button type="button" class="btn-primary" id="invite-link-copy">Copy</button>' +
-              '</div>' +
+          '<div class="link-athlete-box" id="add-athlete-section">' +
+            '<div class="add-athlete-head">' +
+              '<div class="panel-title">Add an athlete</div>' +
+              '<button type="button" class="coach-tip-info" id="add-athlete-tip-replay" aria-label="What do these options mean?">ⓘ</button>' +
             '</div>' +
-            '<div id="invite-athlete-msg"></div>' +
-          '</div>' +
-          '<div class="link-athlete-box">' +
-            '<div class="panel-title" style="margin-bottom:10px;">Link athlete</div>' +
-            '<div class="form-row"><label for="link-athlete-email">Athlete email</label><input id="link-athlete-email" type="email" placeholder="athlete@example.com"></div>' +
-            '<div class="form-actions"><button class="btn-primary" id="link-athlete-submit">Link athlete</button></div>' +
-            '<div id="link-athlete-msg"></div>' +
+            '<div id="coach-tip-add-athlete" class="coach-tip-card" hidden>' +
+              '<div class="coach-tip-label">Tip</div>' +
+              '<div class="coach-tip-text" id="coach-tip-add-athlete-body"></div>' +
+              '<button type="button" class="coach-tip-got-it" id="coach-tip-add-athlete-dismiss">Got it</button>' +
+            '</div>' +
+            '<p class="form-note add-athlete-explainer">New to SEE? Get a link and send it however you want. Already on SEE? Enter their email.</p>' +
+            '<div class="add-athlete-path">' +
+              '<div class="add-athlete-path-label">New to SEE</div>' +
+              '<div class="form-actions"><button type="button" class="btn-primary" id="invite-athlete-open">Get invite link</button></div>' +
+              '<div id="invite-link-panel" style="display:none;margin-top:12px;">' +
+                '<div class="invite-link-row">' +
+                  '<button type="button" class="btn-primary" id="invite-link-copy">Copy invite link</button>' +
+                  '<button type="button" class="invite-link-view" id="invite-link-view">view link</button>' +
+                  '<textarea id="invite-link-input" rows="3" readonly hidden></textarea>' +
+                '</div>' +
+              '</div>' +
+              '<div id="invite-athlete-msg"></div>' +
+            '</div>' +
+            '<div class="add-athlete-path">' +
+              '<div class="add-athlete-path-label">Already has an account</div>' +
+              '<div class="form-row"><label for="link-athlete-email">Athlete email</label><input id="link-athlete-email" type="email" placeholder="athlete@example.com"></div>' +
+              '<div class="form-actions"><button class="btn-primary" id="link-athlete-submit">Link athlete</button></div>' +
+              '<div id="link-athlete-msg"></div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
         '<div class="panel" id="detail-panel"><div class="stub">Select an athlete from the roster to get started.</div></div>' +
@@ -1613,6 +1655,46 @@
         openJoinedAthleteAssignWizard(pending.athlete);
       });
     }
+    var viewBtn = document.getElementById('invite-link-view');
+    if(viewBtn){
+      viewBtn.addEventListener('click', toggleInviteLinkView);
+    }
+    mountCoachAddAthleteTip();
+    var tipDismiss = document.getElementById('coach-tip-add-athlete-dismiss');
+    if(tipDismiss){
+      tipDismiss.addEventListener('click', function(){
+        if(window.CoachAthleteInvite) window.CoachAthleteInvite.markCoachTipSeen('add-athlete');
+        hideCoachAddAthleteTip();
+      });
+    }
+    var tipReplay = document.getElementById('add-athlete-tip-replay');
+    if(tipReplay){
+      tipReplay.addEventListener('click', function(){
+        if(window.CoachAthleteInvite) window.CoachAthleteInvite.clearCoachTipSeen('add-athlete');
+        showCoachAddAthleteTip();
+      });
+    }
+  }
+
+  function showCoachAddAthleteTip(){
+    var card = document.getElementById('coach-tip-add-athlete');
+    var body = document.getElementById('coach-tip-add-athlete-body');
+    var tip = window.CoachAthleteInvite && window.CoachAthleteInvite.COACH_TIPS['add-athlete'];
+    if(body && tip) body.textContent = tip.text;
+    if(card) card.hidden = false;
+  }
+
+  function hideCoachAddAthleteTip(){
+    var card = document.getElementById('coach-tip-add-athlete');
+    if(card) card.hidden = true;
+  }
+
+  function mountCoachAddAthleteTip(){
+    var body = document.getElementById('coach-tip-add-athlete-body');
+    var tip = window.CoachAthleteInvite && window.CoachAthleteInvite.COACH_TIPS['add-athlete'];
+    if(body && tip) body.textContent = tip.text;
+    if(!window.CoachAthleteInvite || window.CoachAthleteInvite.coachTipSeen('add-athlete')) return;
+    showCoachAddAthleteTip();
   }
 
   function athleteInviteAppUrl(tokenStr){
@@ -1649,55 +1731,87 @@
   function showInviteLinkPanel(url){
     var panel = document.getElementById('invite-link-panel');
     var input = document.getElementById('invite-link-input');
-    if(input) input.value = url || '';
+    var viewToggle = document.getElementById('invite-link-view');
+    if(input){
+      input.value = url || '';
+      input.hidden = true;
+    }
+    if(viewToggle) viewToggle.textContent = 'view link';
     if(panel) panel.style.display = '';
+  }
+
+  function toggleInviteLinkView(){
+    var input = document.getElementById('invite-link-input');
+    var toggle = document.getElementById('invite-link-view');
+    if(!input || !toggle) return;
+    var showing = !input.hidden;
+    input.hidden = showing;
+    toggle.textContent = showing ? 'view link' : 'hide link';
   }
 
   function copyCoachInviteLink(){
     var input = document.getElementById('invite-link-input');
+    var btn = document.getElementById('invite-link-copy');
     var msg = document.getElementById('invite-athlete-msg');
     var value = input ? input.value : '';
     if(!value) return;
     function ok(){
-      if(msg) msg.innerHTML = '<div class="form-success">Link copied.</div>';
-      showCoachToast('Invite link copied.');
+      if(btn){
+        btn.textContent = 'Copied!';
+        setTimeout(function(){ btn.textContent = 'Copy invite link'; }, 1800);
+      }
+    }
+    function fallbackCopy(){
+      var wasHidden = input.hidden;
+      input.hidden = false;
+      input.select();
+      try{ document.execCommand('copy'); ok(); }
+      catch(err){ if(msg) msg.innerHTML = '<div class="form-note">Use view link, then copy the URL.</div>'; }
+      if(wasHidden) input.hidden = true;
     }
     if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(value).then(ok).catch(function(){
-        input.select();
-        try{ document.execCommand('copy'); ok(); }
-        catch(err){ if(msg) msg.innerHTML = '<div class="form-note">Copy the link above and send it.</div>'; }
-      });
+      navigator.clipboard.writeText(value).then(ok).catch(fallbackCopy);
       return;
     }
-    input.select();
-    try{ document.execCommand('copy'); ok(); }
-    catch(err){ if(msg) msg.innerHTML = '<div class="form-note">Copy the link above and send it.</div>'; }
+    fallbackCopy();
   }
 
   function generateCoachAthleteInvite(){
     var btn = document.getElementById('invite-athlete-open');
     var msg = document.getElementById('invite-athlete-msg');
-    if(btn){ btn.disabled = true; btn.textContent = 'Creating...'; }
+    var ctx = _inviteCtx;
+    if(btn){ btn.disabled = true; btn.textContent = 'Getting link…'; }
     if(msg) msg.innerHTML = '';
-    return createAthleteInvite().then(function(row){
-      if(btn){ btn.disabled = false; btn.textContent = 'Invite an athlete'; }
+    function restoreBtn(){
+      if(btn){ btn.disabled = false; btn.textContent = 'Get invite link'; }
+    }
+    function showRow(row){
+      restoreBtn();
       var tokenStr = row && row.token;
       if(!tokenStr){
         if(msg) msg.innerHTML = '<div class="form-error">Invite was created but no token came back.</div>';
         return;
       }
-      if(window.CoachAthleteInvite && _inviteCtx){
-        window.CoachAthleteInvite.markWelcomeSeen(_inviteCtx.user.id);
+      if(window.CoachAthleteInvite && ctx){
+        window.CoachAthleteInvite.markWelcomeSeen(ctx.user.id);
       }
-      _coachInvites.unshift(row);
       showInviteLinkPanel(athleteInviteAppUrl(tokenStr));
       if(msg) msg.innerHTML = '';
-      var input = document.getElementById('invite-link-input');
-      if(input) input.focus();
-      showCoachToast('Invite link ready — copy and send it.');
-    }).catch(function(err){
-      if(btn){ btn.disabled = false; btn.textContent = 'Invite an athlete'; }
+    }
+    if(!ctx || !window.CoachAthleteInvite){
+      restoreBtn();
+      if(msg) msg.innerHTML = '<div class="form-error">Could not create an invite.</div>';
+      return Promise.resolve();
+    }
+    return loadCoachInvites(ctx.token, ctx.user).then(function(invites){
+      var existing = window.CoachAthleteInvite.findReusableAthleteInvite(invites);
+      if(existing) return existing;
+      return createAthleteInvite().then(function(row){
+        if(row) _coachInvites.unshift(row);
+        return row;
+      });
+    }).then(showRow).catch(function(err){
+      restoreBtn();
       if(msg){
         msg.innerHTML = '<div class="form-error">Could not create an invite. ' +
           escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';

@@ -17,8 +17,65 @@ const payload = Inv.buildInsertPayload('coach-1', 'abc123');
 assert.deepStrictEqual(payload, {
   role: 'athlete',
   coach_id: 'coach-1',
-  token: 'abc123'
+  token: 'abc123',
+  status: 'pending'
 });
+
+assert.ok(Inv.inviteIsPendingUnused({
+  token: 'tok',
+  role: 'athlete',
+  status: 'pending'
+}));
+assert.ok(Inv.inviteIsPendingUnused({
+  token: 'legacy',
+  role: 'athlete'
+}), 'empty status is treated as pending');
+assert.ok(!Inv.inviteIsPendingUnused({
+  token: 'used',
+  role: 'athlete',
+  status: 'pending',
+  used_at: '2026-09-01',
+  used_by: 'a1'
+}));
+assert.ok(!Inv.inviteIsPendingUnused({
+  token: 'spent',
+  role: 'athlete',
+  status: 'used'
+}));
+assert.ok(!Inv.inviteIsPendingUnused({
+  token: 'coach-role',
+  role: 'coach',
+  status: 'pending'
+}));
+
+const reusable = Inv.findReusableAthleteInvite([
+  { token: 'used', role: 'athlete', used_at: '2026-09-01', used_by: 'a1', status: 'pending' },
+  { token: 'spent', role: 'athlete', status: 'used' },
+  { token: 'keep-me', role: 'athlete', status: 'pending' }
+]);
+assert.strictEqual(reusable.token, 'keep-me');
+assert.strictEqual(Inv.findReusableAthleteInvite([
+  { token: 'used', role: 'athlete', used_at: 'x', used_by: 'y', status: 'pending' }
+]), null);
+assert.strictEqual(Inv.findReusableAthleteInvite([]), null);
+
+assert.strictEqual(Inv.coachTipStorageKey('add-athlete'), 'coach_tip_seen_add-athlete');
+assert.ok(Inv.COACH_TIPS['add-athlete']);
+assert.ok(Inv.COACH_TIPS['add-athlete'].text.indexOf('New to SEE? Get a link') === 0);
+assert.ok(/Already have an account\? Just enter their email instead\./.test(Inv.COACH_TIPS['add-athlete'].text));
+
+const tipStore = {};
+globalThis.localStorage = {
+  getItem: function (k) { return Object.prototype.hasOwnProperty.call(tipStore, k) ? tipStore[k] : null; },
+  setItem: function (k, v) { tipStore[k] = String(v); },
+  removeItem: function (k) { delete tipStore[k]; }
+};
+assert.strictEqual(Inv.coachTipSeen('add-athlete'), false);
+Inv.markCoachTipSeen('add-athlete');
+assert.strictEqual(tipStore['coach_tip_seen_add-athlete'], '1');
+assert.strictEqual(Inv.coachTipSeen('add-athlete'), true);
+Inv.clearCoachTipSeen('add-athlete');
+assert.strictEqual(Inv.coachTipSeen('add-athlete'), false);
 
 const url = Inv.inviteUrl('tok-1', {
   origin: 'https://straydog-labs.github.io',
@@ -120,17 +177,30 @@ const index = readFileSync(join(__dirname, '../index.html'), 'utf8');
 const staging = readFileSync(join(__dirname, '../index-staging.html'), 'utf8');
 
 assert.ok(/js\/coach-athlete-invite\.js/.test(dash));
+assert.ok(/id="add-athlete-section"/.test(dash));
+assert.ok(/Add an athlete/.test(dash));
+assert.ok(/New to SEE/.test(dash));
+assert.ok(/Already has an account/.test(dash));
+assert.ok(/Get invite link/.test(dash));
+assert.ok(/Copy invite link/.test(dash));
+assert.ok(/id="invite-link-view"/.test(dash) && />view link</.test(dash));
 assert.ok(/id="invite-athlete-open"/.test(dash));
 assert.ok(/Invite an athlete/.test(dash));
-assert.ok(/Send this link to your athlete/.test(dash));
-assert.ok(/linked to you automatically once they sign up/.test(dash));
+assert.ok(/land on your roster automatically/.test(dash));
 assert.ok(/id="invite-link-input"/.test(dash));
-assert.ok(/textarea id="invite-link-input"/.test(dash));
+assert.ok(/textarea id="invite-link-input" rows="3" readonly hidden/.test(dash));
 assert.ok(/id="invite-link-copy"/.test(dash));
 assert.ok(/id="invite-join-banner"/.test(dash));
 assert.ok(/id="coach-invite-welcome"/.test(dash));
+assert.ok(/id="add-athlete-tip-replay"/.test(dash));
+assert.ok(/id="coach-tip-add-athlete"/.test(dash));
+assert.ok(/id="coach-tip-add-athlete-dismiss"/.test(dash));
+assert.ok(/findReusableAthleteInvite/.test(dash));
+assert.ok(/mountCoachAddAthleteTip/.test(dash));
+assert.ok(/Copied!/.test(dash));
 assert.ok(/link_athlete_by_email/.test(dash));
 assert.ok(/id="link-athlete-submit"/.test(dash) && /Link athlete/.test(dash));
+assert.ok(/id="link-athlete-email"/.test(dash));
 assert.ok(/createCoachLibraryAssignment/.test(dash));
 assert.ok(/starterShortlist/.test(dash));
 assert.ok(/Pick something else/.test(dash));
@@ -145,7 +215,7 @@ assert.ok(/invite'\) !== 'open'|invite' !== 'open'/.test(
 ));
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index251'/.test(index));
-assert.ok(/APP_VERSION = 'index251'/.test(sw));
+assert.ok(/var app_version = 'index252'/.test(index));
+assert.ok(/APP_VERSION = 'index252'/.test(sw));
 
 console.log('coach-athlete-invite tests: ok');
