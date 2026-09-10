@@ -992,7 +992,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .see-sys-banner .see-sys-banner-msg{flex:1;font-size:13px;font-weight:600;color:var(--text);line-height:1.35;text-align:left;}
 .see-sys-banner button{background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;padding:8px 10px;cursor:pointer;white-space:nowrap;}
 .see-sys-banner button.see-sys-banner-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text);}
-#update-banner{bottom:auto;top:calc(56px + env(safe-area-inset-top, 0px));}
 .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface3) 50%,var(--surface) 75%);background-size:200% 100%;animation:skeleton-shimmer 1.4s infinite;border-radius:var(--r-sm);}
 @keyframes skeleton-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 .save-ind{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;min-height:16px;}
@@ -1054,9 +1053,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <div id="sync-banner" class="see-sys-banner" hidden>
   <button type="button" id="sync-banner-msg" class="see-sys-banner-msg" onclick="retryOfflineQueue()" style="background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;">Climbs pending sync. Tap to retry.</button>
   <button type="button" id="sync-banner-view" class="see-sys-banner-secondary" onclick="viewOfflineQueue()">View</button>
-</div>
-<div id="update-banner" class="see-sys-banner" hidden>
-  <button type="button" id="update-banner-msg" class="see-sys-banner-msg" onclick="applySeeUpdate()" style="background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;">Update available. Tap to refresh.</button>
 </div>
 
 <!-- LOADING STATE — shown only while routeOnLoad() awaits the real auth/baseline
@@ -4878,7 +4874,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index256'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index257'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -17191,7 +17187,7 @@ function runButtonAudit(options){
     'saveEditedClimb', 'launchLogWithClimb', 'startLogFlow', 'afterQ4', 'openEditSheet',
     'showNotesEditor', 'celebrateHomeLink', 'logFlowLogAnother', 'logFlowDoneHome',
     'submitBaseline', 'saveRouteDetails', 'deleteSession', 'flushOfflineQueue', 'resolveClimbIdForQueue',
-    'retryOfflineQueue', 'viewOfflineQueue', 'applySeeUpdate',
+    'retryOfflineQueue', 'viewOfflineQueue',
     'loadClimbLog', 'loadTrainAssignments', 'loadWorkoutLibrary', 'loadExampleClimbLog', 'loadDrillRouteOptions',
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
@@ -18302,9 +18298,10 @@ async function runSEETests(){
       && !/&& p\.take_high_point/.test(insertSrc)
       && !/&& p\.gym_climb_id/.test(insertSrc)
       && /sbInsertSession/.test(flushSrc);
-    var fOk = !!document.getElementById('update-banner')
+    var fOk = !document.getElementById('update-banner')
       && /controllerchange/.test(swSrc) && /updatefound/.test(swSrc)
-      && /applySeeUpdate/.test((document.getElementById('update-banner-msg')||{}).getAttribute('onclick') || '');
+      && /markSeeUpdatePending/.test(swSrc)
+      && /visibilitychange/.test(String(startSeeUpdateWatchers));
     var prevQ = readOfflineQueue();
     writeOfflineQueue([{type:'session', payload:{test:true}, routeName:'Stale', ts: Date.now() - 90000000}]);
     var banner = document.getElementById('sync-banner');
@@ -18318,6 +18315,83 @@ async function runSEETests(){
         'shape=' + shapeOk + ' A=' + aOk + ' B=' + bOk + ' C=' + cOk + ' D=' + dOk + ' E=' + eOk + ' F=' + fOk + ' stale=' + staleKept);
     }
   }catch(e){ fail('Offline queue distinguishes network vs HTTP, retries, never silently deletes', e.message); }
+
+  try{
+    var srcOk = typeof markSeeUpdatePending === 'function'
+      && typeof shouldSeeUpdateReloadNow === 'function'
+      && typeof applySeeUpdateReload === 'function'
+      && typeof toastSeeUpdateIfReloaded === 'function'
+      && typeof isSeeUpdateReloadUnsafe === 'function'
+      && !document.getElementById('update-banner')
+      && typeof showUpdateBanner === 'undefined'
+      && typeof applySeeUpdate === 'undefined'
+      && /visibilitychange/.test(String(startSeeUpdateWatchers))
+      && /keydown/.test(String(startSeeUpdateWatchers))
+      && /pointerdown/.test(String(startSeeUpdateWatchers))
+      && /touchstart/.test(String(startSeeUpdateWatchers))
+      && /reg\.waiting/.test(String(registerSEEServiceWorker))
+      && /updatefound/.test(String(registerSEEServiceWorker))
+      && /controllerchange/.test(String(registerSEEServiceWorker))
+      && /markSeeUpdatePending/.test(String(registerSEEServiceWorker))
+      && /_seeHadController/.test(String(registerSEEServiceWorker))
+      && SEE_UPDATE_TOAST_MSG === 'Updated to the latest version'
+      && SEE_UPDATE_IDLE_MS === 60000
+      && SEE_UPDATE_FOREGROUND_MS === 120000
+      && !!document.getElementById('sync-banner');
+    var prevPending = _seeUpdatePending;
+    var prevReloading = _seeUpdateReloading;
+    var prevBusy = _logFlowSaveBusy;
+    var prevFlush = window._flushOfflineQueueBusy;
+    var prevInput = _seeUpdateLastInputAt;
+    var prevAt = _seeUpdatePendingAt;
+    var origApply = applySeeUpdateReload;
+    var applied = 0;
+    applySeeUpdateReload = function(){ applied++; };
+    _seeUpdatePending = true;
+    _seeUpdateReloading = false;
+    _logFlowSaveBusy = true;
+    window._flushOfflineQueueBusy = false;
+    var unsafeOk = isSeeUpdateReloadUnsafe() === true && shouldSeeUpdateReloadNow() === false;
+    _logFlowSaveBusy = false;
+    window._flushOfflineQueueBusy = true;
+    var flushUnsafeOk = isSeeUpdateReloadUnsafe() === true && shouldSeeUpdateReloadNow() === false;
+    window._flushOfflineQueueBusy = false;
+    _seeUpdateLastInputAt = Date.now() - 200000;
+    _seeUpdatePendingAt = Date.now() - 200000;
+    var idleOk = shouldSeeUpdateReloadNow() === true;
+    _seeUpdateReloading = true;
+    var noDouble = shouldSeeUpdateReloadNow() === false;
+    _seeUpdateReloading = false;
+    _seeUpdatePending = false;
+    var notPending = shouldSeeUpdateReloadNow() === false;
+    applied = 0;
+    markSeeUpdatePending();
+    var pendingSet = _seeUpdatePending === true && applied >= 0;
+    _seeUpdatePending = prevPending;
+    _seeUpdateReloading = prevReloading;
+    _logFlowSaveBusy = prevBusy;
+    window._flushOfflineQueueBusy = prevFlush;
+    _seeUpdateLastInputAt = prevInput;
+    _seeUpdatePendingAt = prevAt;
+    applySeeUpdateReload = origApply;
+    try{ sessionStorage.setItem(SEE_UPDATE_RELOAD_KEY, '1'); }catch(e){}
+    toastSeeUpdateIfReloaded();
+    var toastEl = document.getElementById('toast-el');
+    var toasted = !!(toastEl && /Updated to the latest version/.test(toastEl.textContent || ''));
+    var flagCleared = false;
+    try{ flagCleared = sessionStorage.getItem(SEE_UPDATE_RELOAD_KEY) == null; }catch(e){ flagCleared = true; }
+    if(srcOk && unsafeOk && flushUnsafeOk && idleOk && noDouble && notPending && pendingSet && toasted && flagCleared){
+      pass('App updates auto-reload on hide or idle with a confirmation toast');
+    } else {
+      fail('App updates auto-reload on hide or idle with a confirmation toast',
+        'src=' + srcOk + ' unsafe=' + unsafeOk + ' flush=' + flushUnsafeOk + ' idle=' + idleOk
+        + ' noDouble=' + noDouble + ' notPending=' + notPending + ' pendingSet=' + pendingSet
+        + ' toast=' + toasted + ' flag=' + flagCleared + ' vis=' + document.visibilityState);
+    }
+  }catch(e){
+    try{ applySeeUpdateReload = origApply; }catch(e2){}
+    fail('App updates auto-reload on hide or idle with a confirmation toast', e.message);
+  }
 
   try{
     var origInsertSbI = sbI;
@@ -21997,34 +22071,100 @@ function consumeTrainChatDeepLink(){
   }
 }
 
-function showUpdateBanner(){
-  var el = document.getElementById('update-banner');
-  if(el) el.hidden = false;
+var SEE_UPDATE_RELOAD_KEY = 'see_auto_reloaded';
+var SEE_UPDATE_TOAST_MSG = 'Updated to the latest version';
+var SEE_UPDATE_IDLE_MS = 60000;
+var SEE_UPDATE_FOREGROUND_MS = 120000;
+var _seeUpdatePending = false;
+var _seeUpdatePendingAt = 0;
+var _seeUpdateLastInputAt = Date.now();
+var _seeUpdateReloading = false;
+var _seeUpdateWatchersBound = false;
+var _seeHadController = (typeof navigator !== 'undefined' && navigator.serviceWorker)
+  ? !!navigator.serviceWorker.controller
+  : false;
+
+function isSeeUpdateReloadUnsafe(){
+  if(window._flushOfflineQueueBusy) return true;
+  if(typeof _logFlowSaveBusy !== 'undefined' && _logFlowSaveBusy) return true;
+  if(typeof _logClimbSaveBusy !== 'undefined' && _logClimbSaveBusy) return true;
+  if(typeof _editSaveBusy !== 'undefined' && _editSaveBusy) return true;
+  return false;
 }
 
-function applySeeUpdate(){
+function shouldSeeUpdateReloadNow(){
+  if(!_seeUpdatePending || _seeUpdateReloading) return false;
+  if(isSeeUpdateReloadUnsafe()) return false;
+  if(document.visibilityState === 'hidden') return true;
+  var now = Date.now();
+  return (now - _seeUpdateLastInputAt) >= SEE_UPDATE_IDLE_MS
+    && (now - _seeUpdatePendingAt) >= SEE_UPDATE_FOREGROUND_MS;
+}
+
+function applySeeUpdateReload(){
+  if(!shouldSeeUpdateReloadNow()) return;
+  _seeUpdateReloading = true;
+  try{ sessionStorage.setItem(SEE_UPDATE_RELOAD_KEY, '1'); }catch(e){}
   location.reload();
 }
 
+function maybeApplySeeUpdate(){
+  if(shouldSeeUpdateReloadNow()) applySeeUpdateReload();
+}
+
+function markSeeUpdatePending(){
+  if(!_seeUpdatePending) _seeUpdatePendingAt = Date.now();
+  _seeUpdatePending = true;
+  startSeeUpdateWatchers();
+  maybeApplySeeUpdate();
+}
+
+function startSeeUpdateWatchers(){
+  if(_seeUpdateWatchersBound) return;
+  _seeUpdateWatchersBound = true;
+  document.addEventListener('visibilitychange', function(){
+    if(!_seeUpdatePending) return;
+    if(document.visibilityState === 'hidden') maybeApplySeeUpdate();
+  });
+  function bumpSeeUpdateIdle(){ _seeUpdateLastInputAt = Date.now(); }
+  window.addEventListener('keydown', bumpSeeUpdateIdle, true);
+  window.addEventListener('pointerdown', bumpSeeUpdateIdle, true);
+  window.addEventListener('touchstart', bumpSeeUpdateIdle, true);
+  setInterval(function(){
+    if(_seeUpdatePending) maybeApplySeeUpdate();
+  }, 15000);
+}
+
+function toastSeeUpdateIfReloaded(){
+  var flag = null;
+  try{ flag = sessionStorage.getItem(SEE_UPDATE_RELOAD_KEY); }catch(e){}
+  if(flag !== '1') return;
+  try{ sessionStorage.removeItem(SEE_UPDATE_RELOAD_KEY); }catch(e){}
+  showToast(SEE_UPDATE_TOAST_MSG);
+}
+
 function registerSEEServiceWorker(){
+  toastSeeUpdateIfReloaded();
   if(typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
   var proto = (window.location && window.location.protocol) || '';
   if(proto !== 'https:' && proto !== 'http:') return;
+  startSeeUpdateWatchers();
   var swUrl = 'sw.js?v=' + encodeURIComponent(app_version);
   navigator.serviceWorker.register(swUrl, { scope: './', updateViaCache: 'none' }).then(function(reg){
-    if(reg.waiting) showUpdateBanner();
+    if(reg.waiting) markSeeUpdatePending();
     reg.addEventListener('updatefound', function(){
       var w = reg.installing;
       if(!w) return;
       w.addEventListener('statechange', function(){
-        if(w.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner();
+        if(w.state === 'installed' && navigator.serviceWorker.controller) markSeeUpdatePending();
       });
     });
   }).catch(function(){});
   if(!window._seeControllerChangeBound && navigator.serviceWorker.addEventListener){
     window._seeControllerChangeBound = true;
     navigator.serviceWorker.addEventListener('controllerchange', function(){
-      showUpdateBanner();
+      if(_seeHadController) markSeeUpdatePending();
+      _seeHadController = true;
     });
   }
   if(!window._seePushSwMsgBound){
