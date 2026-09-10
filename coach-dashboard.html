@@ -122,6 +122,11 @@
     color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;
   }
   #personal-dash-btn:hover{border-color:var(--accent);background:rgba(232,146,82,.08);}
+  #founder-dash-btn{
+    background:transparent;border:1px solid var(--border);border-radius:8px;padding:7px 14px;
+    color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;
+  }
+  #founder-dash-btn:hover{border-color:var(--accent);background:rgba(232,146,82,.08);}
 
   #main{max-width:1100px;margin:0 auto;padding:32px 24px calc(60px + env(safe-area-inset-bottom, 0px));}
   .page-title{font-size:20px;font-weight:700;margin-bottom:4px;}
@@ -969,6 +974,7 @@
         <span id="whoami"></span>
         <a id="coach-guide-link" href="https://straydog-labs.github.io/see-guide-site/coach-guide.html" target="_blank" rel="noopener">Guide / Help</a>
         <button type="button" id="personal-dash-btn" title="Go to your personal athlete dashboard">My dashboard</button>
+        <button type="button" id="founder-dash-btn" hidden aria-hidden="true" title="Open the founder back-office">Founder</button>
         <button id="signout-btn">Sign out</button>
       </div>
     </div>
@@ -1370,6 +1376,7 @@
       emailInput.value = '';
       passwordInput.value = '';
       mainEl.innerHTML = '';
+      hideFounderDashBtn();
     });
   });
 
@@ -1380,6 +1387,49 @@
     window.location.href = 'index.html';
   });
 
+  document.getElementById('founder-dash-btn').addEventListener('click', function(){
+    window.location.href = 'founder-dashboard.html';
+  });
+
+  function hideFounderDashBtn(){
+    var btn = document.getElementById('founder-dash-btn');
+    if(!btn) return;
+    btn.hidden = true;
+    btn.setAttribute('aria-hidden', 'true');
+  }
+
+  function showFounderDashBtn(){
+    var btn = document.getElementById('founder-dash-btn');
+    if(!btn) return;
+    btn.hidden = false;
+    btn.setAttribute('aria-hidden', 'false');
+  }
+
+  // Same gate as founder-dashboard.html: foundash_whoami (SECURITY DEFINER)
+  // checks auth.uid() ∈ foundash_admins. The table itself is not client-
+  // readable (REVOKE ALL + no RLS policies), so a direct row select would
+  // fail closed for everyone, including founders. Fail closed on errors.
+  function revealFounderTabIfAdmin(token){
+    hideFounderDashBtn();
+    if(!token) return;
+    fetch(SB_URL + '/rest/v1/rpc/foundash_whoami', {
+      method: 'POST',
+      headers: sbHeaders(token),
+      body: '{}'
+    }).then(function(res){
+      return res.json().then(function(body){
+        return { okHttp: res.ok, body: body };
+      }, function(){ return { okHttp: false, body: null }; });
+    }).then(function(result){
+      var body = result && result.body;
+      if(result && result.okHttp && body && body.ok === true && body.is_admin === true){
+        showFounderDashBtn();
+      }
+    }).catch(function(){
+      hideFounderDashBtn();
+    });
+  }
+
   function enterApp(session){
     if(!session){ return; }
     var user = session.user;
@@ -1387,6 +1437,7 @@
     loginEl.classList.add('hidden');
     appEl.classList.add('visible');
     whoamiEl.textContent = user.email;
+    revealFounderTabIfAdmin(token);
 
     sbSelect(token, 'coach_flags', 'select=is_coach&user_id=eq.' + user.id)
       .then(function(rows){
