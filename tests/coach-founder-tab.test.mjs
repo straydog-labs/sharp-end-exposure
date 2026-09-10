@@ -20,9 +20,12 @@ const signoutAt = topbar[0].indexOf('id="signout-btn"');
 assert.ok(personalAt !== -1 && founderAt !== -1 && personalAt < founderAt, 'Founder sits next to My dashboard');
 assert.ok(founderAt < signoutAt, 'Founder sits before Sign out');
 
-assert.ok(/window\.location\.href = 'founder-dashboard\.html'/.test(dash));
+assert.ok(/#founder-dash-btn:not\(\[hidden\]\)\{display:inline-block;\}/.test(dash));
+assert.ok(/id="founder-dash-btn"[^>]*href="founder-dashboard\.html"/.test(dash));
+assert.ok(/id="founder-dash-btn"[^>]*target="_blank"/.test(dash));
+assert.ok(/id="founder-dash-btn"[^>]*rel="noopener"/.test(dash));
+assert.ok(!/window\.location\.href = 'founder-dashboard\.html'/.test(dash));
 assert.ok(/window\.location\.href = 'index\.html'/.test(dash));
-assert.ok(!/id="founder-dash-btn"[\s\S]{0,200}target="_blank"/.test(dash));
 
 assert.ok(/foundash_whoami/.test(dash));
 assert.ok(/rest\/v1\/rpc\/foundash_whoami/.test(dash));
