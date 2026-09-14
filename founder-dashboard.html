@@ -247,6 +247,29 @@
     color:var(--text-secondary);
     margin-top:1px;
   }
+  .status-row-actions{margin-left:auto;display:flex;gap:6px;flex-shrink:0;}
+  .panel-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;}
+  .panel-title-row .panel-title{margin-bottom:0;}
+  .metric-card.clickable{cursor:pointer;transition:border-color .15s;}
+  .metric-card.clickable:hover{border-color:var(--accent);}
+  .metric-caption{font-size:10.5px;color:var(--text-secondary);margin-top:6px;line-height:1.35;}
+  .bo-chip.role-coach{color:#8ab4f8;border-color:rgba(138,180,248,.45);}
+  .bo-chip.role-athlete{color:#7fbf3f;border-color:rgba(59,109,17,.5);}
+  .bo-chip.role-both{color:var(--accent);border-color:rgba(200,98,42,.5);}
+  .bo-chip.role-signed{color:#bbb;border-color:var(--border);}
+  .bo-table tr.click-row{cursor:pointer;}
+  .bo-table tr.click-row:hover td{background:rgba(255,255,255,.03);}
+  .users-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+  .users-toolbar .bo-form-row{margin:0;flex:1;min-width:220px;}
+  .users-toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-secondary);user-select:none;}
+  .users-toggle input{accent-color:var(--accent);}
+  .ops-modal.wide{width:720px;max-height:90vh;overflow:auto;}
+  .todo-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .todo-row:last-child{border-bottom:none;}
+  .todo-row.done .todo-name{text-decoration:line-through;color:var(--text-secondary);}
+  .todo-name{font-size:13.5px;font-weight:600;flex:1;}
+  .todo-meta{font-size:11.5px;color:var(--text-secondary);margin-top:3px;}
+  .fin-runway-note{font-size:12px;color:var(--text-secondary);margin-top:8px;line-height:1.45;}
 
   .stub{
     background:var(--surface);
@@ -772,7 +795,7 @@
       <nav id="nav"></nav>
       <div class="sidebar-footer">
         <div class="mono">v0.3.0 · foundash</div>
-        <div>Last updated 2026-09-10</div>
+        <div>Last updated 2026-09-14</div>
       </div>
     </div>
 
@@ -787,14 +810,17 @@
           <div class="metric-card">
             <div class="metric-num mono" id="metric-sessions">···</div>
             <div class="metric-label">Total sessions logged</div>
+            <div class="metric-caption" id="metric-sessions-caption"></div>
           </div>
           <div class="metric-card">
             <div class="metric-num mono" id="metric-climbs">···</div>
             <div class="metric-label">Total climbs tracked</div>
+            <div class="metric-caption" id="metric-climbs-caption"></div>
           </div>
-          <div class="metric-card">
+          <div class="metric-card clickable" id="metric-users-card" role="button" tabindex="0" title="Open All Users">
             <div class="metric-num mono" id="metric-users">···</div>
-            <div class="metric-label">Active users</div>
+            <div class="metric-label">Active users (30d)</div>
+            <div class="metric-caption" id="metric-users-caption"></div>
           </div>
           <div class="metric-card">
             <div class="metric-num mono" id="metric-falls">···</div>
@@ -812,17 +838,186 @@
 
         <div class="col-grid">
           <div class="panel">
-            <div class="panel-title">Relationships</div>
+            <div class="panel-title-row">
+              <div class="panel-title">Relationships</div>
+              <button type="button" class="bo-btn" data-status-add="relationships">+ Add</button>
+            </div>
             <div id="panel-relationships"></div>
           </div>
           <div class="panel">
-            <div class="panel-title">Business status</div>
+            <div class="panel-title-row">
+              <div class="panel-title">Business status</div>
+              <button type="button" class="bo-btn" data-status-add="business">+ Add</button>
+            </div>
             <div id="panel-business"></div>
           </div>
           <div class="panel">
-            <div class="panel-title">Build status</div>
+            <div class="panel-title-row">
+              <div class="panel-title">Build status</div>
+              <button type="button" class="bo-btn" data-status-add="build">+ Add</button>
+            </div>
             <div id="panel-build"></div>
           </div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+          <div class="panel-title-row">
+            <div class="panel-title">To-do</div>
+            <button type="button" class="bo-btn" id="overview-todo-goto">Open To-do →</button>
+          </div>
+          <div id="overview-todo-preview" class="bo-empty">Sign in as Foundash admin to load the general task list.</div>
+        </div>
+      </section>
+
+      <!-- ---------- FOUNDASH: ALL USERS ---------- -->
+      <section id="section-all-users" class="section-view">
+        <div class="page-title">All Users</div>
+        <div class="page-sub">Every account in the project — role, activity, and coaching links. Admin JWT required.</div>
+        <div id="users-admin-auth"></div>
+        <div id="users-privileged" style="display:none;">
+          <div id="users-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="users-toolbar">
+            <div class="bo-form-row">
+              <label for="users-search">Search name or email</label>
+              <input id="users-search" type="search" placeholder="Start typing…">
+            </div>
+            <label class="users-toggle">
+              <input type="checkbox" id="users-hide-test" checked>
+              Hide test / seed accounts
+            </label>
+            <button type="button" class="bo-btn" id="users-refresh-btn">Refresh</button>
+          </div>
+          <div class="panel" style="margin-bottom:0;overflow-x:auto;">
+            <table class="bo-table" id="users-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Signed up</th>
+                  <th>Sessions</th>
+                  <th>Climbs</th>
+                  <th>Last activity</th>
+                  <th>Linked</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="8" class="bo-empty">Loading···</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="schema-note">RPC: <code>foundash_list_all_users()</code> · row click opens <code>foundash_user_detail</code>.</div>
+        </div>
+      </section>
+
+      <!-- ---------- FOUNDASH: TO-DO ---------- -->
+      <section id="section-todo" class="section-view">
+        <div class="page-title">To-do</div>
+        <div class="page-sub">General founder tasks — separate from the Pine Creek / clinic checklist in Ops.</div>
+        <div id="todo-admin-auth"></div>
+        <div id="todo-privileged" style="display:none;">
+          <div id="todo-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-title">Add task</div>
+            <div class="bo-actions" style="align-items:flex-end;">
+              <div class="bo-form-row" style="flex:2;min-width:200px;margin:0;">
+                <label for="todo-new-name">Task</label>
+                <input id="todo-new-name" placeholder="e.g. Send Wes follow-up">
+              </div>
+              <div class="bo-form-row" style="flex:1;min-width:120px;margin:0;">
+                <label for="todo-new-due">Due</label>
+                <input id="todo-new-due" placeholder="This week">
+              </div>
+              <div class="bo-form-row" style="width:120px;margin:0;">
+                <label for="todo-new-pri">Priority</label>
+                <select id="todo-new-pri">
+                  <option value="HIGH">HIGH</option>
+                  <option value="MED" selected>MED</option>
+                  <option value="LOW">LOW</option>
+                </select>
+              </div>
+              <button type="button" class="bo-btn primary" id="todo-add-btn">Add</button>
+            </div>
+          </div>
+          <div class="panel" style="margin-bottom:0;">
+            <div class="panel-title">Open &amp; done</div>
+            <div id="todo-list"><div class="bo-empty">Loading···</div></div>
+          </div>
+          <div class="schema-note">RPCs: <code>foundash_ops_get</code> / <code>_add_task</code> / <code>_set_task</code> / <code>_delete_task</code> with <code>project = general</code>.</div>
+        </div>
+      </section>
+
+      <!-- ---------- FOUNDASH: FINANCE / BURN ---------- -->
+      <section id="section-finance" class="section-view">
+        <div class="page-title">Finance / Burn</div>
+        <div class="page-sub">Manual revenue and expense ledger — company cash, not the Pine Creek clinic budget.</div>
+        <div id="finance-admin-auth"></div>
+        <div id="finance-privileged" style="display:none;">
+          <div id="finance-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="metric-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+            <div class="metric-card">
+              <div class="metric-num mono" id="fin-cash">—</div>
+              <div class="metric-label">Cash on hand</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-num mono" id="fin-burn">—</div>
+              <div class="metric-label">Avg monthly burn</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-num mono" id="fin-runway">—</div>
+              <div class="metric-label">Runway (months)</div>
+              <div class="fin-runway-note" id="fin-runway-note">Cash ÷ average monthly expenses (last 90 days, or all history if shorter).</div>
+            </div>
+          </div>
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-title">Set cash on hand</div>
+            <div class="bo-actions" style="align-items:flex-end;">
+              <div class="bo-form-row" style="width:200px;margin:0;">
+                <label for="fin-cash-input">Amount ($)</label>
+                <input id="fin-cash-input" type="number" step="0.01" placeholder="0.00">
+              </div>
+              <button type="button" class="bo-btn primary" id="fin-cash-save">Save cash</button>
+            </div>
+          </div>
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="panel-title">Add entry</div>
+            <div class="bo-actions" style="align-items:flex-end;flex-wrap:wrap;">
+              <div class="bo-form-row" style="width:150px;margin:0;">
+                <label for="fin-new-date">Date</label>
+                <input id="fin-new-date" type="date">
+              </div>
+              <div class="bo-form-row" style="width:120px;margin:0;">
+                <label for="fin-new-type">Type</label>
+                <select id="fin-new-type">
+                  <option value="expense">Expense</option>
+                  <option value="revenue">Revenue</option>
+                </select>
+              </div>
+              <div class="bo-form-row" style="width:130px;margin:0;">
+                <label for="fin-new-amount">Amount ($)</label>
+                <input id="fin-new-amount" type="number" min="0" step="0.01" placeholder="0.00">
+              </div>
+              <div class="bo-form-row" style="flex:1;min-width:160px;margin:0;">
+                <label for="fin-new-desc">Description</label>
+                <input id="fin-new-desc" placeholder="e.g. Stripe payout">
+              </div>
+              <div class="bo-form-row" style="width:140px;margin:0;">
+                <label for="fin-new-cat">Category</label>
+                <input id="fin-new-cat" placeholder="general">
+              </div>
+              <button type="button" class="bo-btn primary" id="fin-add-btn">Add</button>
+            </div>
+          </div>
+          <div class="panel" style="margin-bottom:0;overflow-x:auto;">
+            <div class="panel-title">Ledger</div>
+            <table class="bo-table">
+              <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Category</th><th>Amount</th><th></th></tr></thead>
+              <tbody id="fin-ledger-body">
+                <tr><td colspan="6" class="bo-empty">Loading···</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="schema-note">RPCs: <code>foundash_finance_get</code> / <code>_add_entry</code> / <code>_delete_entry</code> / <code>_set_cash</code>. Bookkeeping only — no payment processing.</div>
         </div>
       </section>
 
@@ -1777,6 +1972,40 @@
   </div>
 </div>
 
+<!-- User detail + payments -->
+<div class="ops-modal-backdrop" id="user-detail-modal">
+  <div class="ops-modal wide">
+    <div class="panel-title-row" style="margin-bottom:8px;">
+      <h3 id="user-detail-title" style="margin:0;">User</h3>
+      <button type="button" class="bo-btn" id="user-detail-close">Close</button>
+    </div>
+    <div id="user-detail-body"><div class="bo-empty">Loading···</div></div>
+  </div>
+</div>
+
+<!-- Status row editor -->
+<div class="ops-modal-backdrop" id="status-edit-modal">
+  <div class="ops-modal">
+    <h3 id="status-edit-title">Edit status</h3>
+    <input type="hidden" id="status-edit-id">
+    <input type="hidden" id="status-edit-panel">
+    <div class="bo-form-row"><label for="status-edit-name">Name</label><input id="status-edit-name" required></div>
+    <div class="bo-form-row"><label for="status-edit-detail">Detail</label><textarea id="status-edit-detail"></textarea></div>
+    <div class="bo-form-row"><label for="status-edit-dot">Dot</label>
+      <select id="status-edit-dot">
+        <option value="green">Green — live / done</option>
+        <option value="amber">Amber — in progress</option>
+        <option value="red">Red — blocked</option>
+        <option value="gray">Gray — not started</option>
+      </select>
+    </div>
+    <div class="bo-actions" style="justify-content:flex-end;margin-top:8px;">
+      <button type="button" class="bo-btn" id="status-edit-cancel">Cancel</button>
+      <button type="button" class="bo-btn primary" id="status-edit-save">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   'use strict';
@@ -1821,6 +2050,9 @@
   // Five Foundash primary sections first; legacy founder tools kept below.
   var SECTIONS = [
     {id:'overview', icon:'⌂', label:'Founder Overview', group:'foundash'},
+    {id:'all-users', icon:'⌕', label:'All Users', group:'foundash'},
+    {id:'todo', icon:'☑', label:'To-do', group:'foundash'},
+    {id:'finance', icon:'$', label:'Finance / Burn', group:'foundash'},
     {id:'ops-center', icon:'🏔', label:'Ops / Command Center', group:'foundash'},
     {id:'coaching-roster', icon:'👥', label:'Coaching Roster', group:'foundash'},
     {id:'athlete-training', icon:'🧗', label:'Athlete Training', group:'foundash'},
@@ -1866,6 +2098,9 @@
       el.classList.toggle('active', el.id === 'section-' + id);
     });
     if(id === 'overview') loadOverview();
+    if(id === 'all-users') loadAllUsers();
+    if(id === 'todo') loadTodo();
+    if(id === 'finance') loadFinance();
     if(id === 'see-live') loadSeeLive();
     if(id === 'investor-view') loadInvestorView();
     if(id === 'analytics') loadAnalytics();
@@ -1919,11 +2154,9 @@
     });
   }
 
-  // Anon-readable metrics only. users/falls/journal go through
-  // foundash_overview_counts() (admin JWT) — see getOverviewCounts below.
+  // Days-since is anon-readable. Sessions / climbs / users come from
+  // foundash_overview_counts() (filtered real users) — see loadOverviewPrivilegedCounts.
   var OVERVIEW_ANON_METRICS = [
-    { id: 'metric-sessions', fetcher: function(){ return sbCount('sessions', '&deleted_at=is.null'); } },
-    { id: 'metric-climbs', fetcher: function(){ return sbCount('climbs', '&deleted_at=is.null'); } },
     { id: 'metric-days', fetcher: sbDaysSinceFirst }
   ];
 
@@ -1940,23 +2173,88 @@
           el.textContent = '—';
         });
       });
+      bindOverviewClicks();
     }
     loadOverviewPrivilegedCounts();
+    loadLiveStatusPanels();
+    loadOverviewTodoPreview();
+  }
+
+  function bindOverviewClicks(){
+    var card = document.getElementById('metric-users-card');
+    if(card && !card._bound){
+      card._bound = true;
+      card.addEventListener('click', function(){ showSection('all-users'); });
+      card.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); showSection('all-users'); }
+      });
+    }
+    var todoBtn = document.getElementById('overview-todo-goto');
+    if(todoBtn && !todoBtn._bound){
+      todoBtn._bound = true;
+      todoBtn.addEventListener('click', function(){ showSection('todo'); });
+    }
+    document.querySelectorAll('[data-status-add]').forEach(function(btn){
+      if(btn._bound) return;
+      btn._bound = true;
+      btn.addEventListener('click', function(){
+        openStatusEditor(btn.getAttribute('data-status-add'), null);
+      });
+    });
+  }
+
+  function pickNum(obj, keys){
+    if(!obj) return null;
+    for(var i = 0; i < keys.length; i++){
+      var v = obj[keys[i]];
+      if(v !== null && v !== undefined && v !== ''){
+        var n = Number(v);
+        if(!isNaN(n)) return n;
+      }
+    }
+    return null;
+  }
+
+  function setMetricCaption(id, text){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = text || '';
   }
 
   function loadOverviewPrivilegedCounts(){
-    ['metric-users', 'metric-falls', 'metric-journal'].forEach(function(id){
+    ['metric-users', 'metric-falls', 'metric-journal', 'metric-sessions', 'metric-climbs'].forEach(function(id){
       var el = document.getElementById(id);
       if(el) el.textContent = '···';
     });
     getOverviewCounts().then(function(data){
-      setMetric('metric-users', data.active_users);
-      setMetric('metric-falls', data.falls_logged);
-      setMetric('metric-journal', data.journal_entries);
+      var users = pickNum(data, ['active_users', 'active_users_30d', 'users_30d']);
+      var sessions = pickNum(data, ['total_sessions', 'sessions_logged', 'sessions', 'filtered_sessions']);
+      var climbs = pickNum(data, ['total_climbs', 'climbs_tracked', 'climbs', 'filtered_climbs']);
+      setMetric('metric-users', users);
+      setMetric('metric-falls', pickNum(data, ['falls_logged', 'falls']));
+      setMetric('metric-journal', pickNum(data, ['journal_entries', 'journal']));
+      setMetric('metric-sessions', sessions);
+      setMetric('metric-climbs', climbs);
+      var usersAll = pickNum(data, ['active_users_all_time', 'users_all_time', 'all_time_active_users', 'unfiltered_active_users']);
+      var sessAll = pickNum(data, ['total_sessions_all_time', 'sessions_all_time', 'all_time_sessions', 'unfiltered_sessions']);
+      var climbAll = pickNum(data, ['total_climbs_all_time', 'climbs_all_time', 'all_time_climbs', 'unfiltered_climbs']);
+      setMetricCaption('metric-users-caption', (usersAll !== null && usersAll !== users) ? ('All-time unfiltered: ' + Number(usersAll).toLocaleString()) : 'Real users only (excl. test/seed + founder admin)');
+      setMetricCaption('metric-sessions-caption', (sessAll !== null && sessAll !== sessions) ? ('All-time unfiltered: ' + Number(sessAll).toLocaleString()) : 'Real users only');
+      setMetricCaption('metric-climbs-caption', (climbAll !== null && climbAll !== climbs) ? ('All-time unfiltered: ' + Number(climbAll).toLocaleString()) : 'Real users only');
     }).catch(function(){
       setMetric('metric-users', null);
       setMetric('metric-falls', null);
       setMetric('metric-journal', null);
+      // Fallback: anon totals so the tiles aren't blank without admin JWT
+      sbCount('sessions', '&deleted_at=is.null').then(function(v){
+        setMetric('metric-sessions', v);
+        setMetricCaption('metric-sessions-caption', 'Unfiltered · sign in for real-user counts');
+      }).catch(function(){ setMetric('metric-sessions', null); });
+      sbCount('climbs', '&deleted_at=is.null').then(function(v){
+        setMetric('metric-climbs', v);
+        setMetricCaption('metric-climbs-caption', 'Unfiltered · sign in for real-user counts');
+      }).catch(function(){ setMetric('metric-climbs', null); });
+      setMetricCaption('metric-users-caption', 'Sign in as Foundash admin to load');
     });
   }
 
@@ -2764,43 +3062,188 @@
 
   renderKanban();
 
-  /* ===================== OVERVIEW: HARDCODED STATUS PANELS ===================== */
-  function renderStatusRows(containerId, rows){
-    var container = document.getElementById(containerId);
-    container.innerHTML = rows.map(function(r){
-      return '<div class="status-row">' +
-        '<div class="status-dot dot-' + r.dot + '"></div>' +
-        '<div><div class="status-name">' + r.name + '</div>' +
-        '<div class="status-detail">' + r.detail + '</div></div>' +
-        '</div>';
-    }).join('');
+  /* ===================== OVERVIEW: LIVE STATUS PANELS ===================== */
+  var STATUS_DEFAULTS = {
+    relationships: [
+      { name: 'Jess Webster (PC client)', detail: 'First paying coaching client — $200/mo', dot: 'green' },
+      { name: 'Crux Wilderness', detail: '$15K veteran clinic — signed, invoiced, paid in full. Site now Pine Creek (moved from Red Rocks); USFS commercial guiding permit not yet confirmed started.', dot: 'green' },
+      { name: 'Alma / Rock Zen', detail: 'Formal partnership still undrafted', dot: 'amber' },
+      { name: 'Wes Shih (Sender One)', detail: 'Sole beta tester; walkthrough held, coaching his own private client starting this week', dot: 'amber' },
+      { name: 'Garnett (CWA)', detail: 'Not yet contacted', dot: 'gray' },
+      { name: 'Arno Ilgner (RWW)', detail: 'IP agreement still needed', dot: 'red' }
+    ],
+    business: [
+      { name: 'LLC + 3 DBAs', detail: 'Formed — Guiding, Honey & Light, SEE (a 4th DBA, "Prusik," is under consideration, not filed)', dot: 'green' },
+      { name: 'Mercury + Stripe + Dropbox Sign', detail: 'Banking, card payments, e-sign live', dot: 'green' },
+      { name: 'Core legal docs', detail: 'Coaching Agreement, Waiver, Crux CSA finalized', dot: 'green' },
+      { name: 'Veracity insurance', detail: 'Premium confirmed $3,501/yr all-in; payment method (finance vs. pay in full) is the last step before binding', dot: 'amber' },
+      { name: 'SEE paywall / tiers', detail: 'Conceptual only, not built', dot: 'red' },
+      { name: 'Business domain / email', detail: 'Live — john@straydog-guiding.com, straydog-guiding.com', dot: 'green' }
+    ],
+    build: [
+      { name: 'Activation-first SEE', detail: 'Live on staging/production', dot: 'green' },
+      { name: 'Coaching data layer', detail: 'Supabase tables + RLS live', dot: 'green' },
+      { name: 'Coaching UI', detail: 'Live — full coach + athlete flows shipped (roster insights, assign wizard, Train sessions, Founder tab)', dot: 'green' },
+      { name: 'Known app bugs', detail: 'device_id, clipping, baseline route (unconfirmed repro on all three)', dot: 'red' },
+      { name: 'Train / Reflect pillars', detail: 'Live — full session builder, per-block timers, interval auto-cycle, warm-up/cool-down structure', dot: 'green' }
+    ]
+  };
+  var statusCache = { relationships: STATUS_DEFAULTS.relationships.slice(), business: STATUS_DEFAULTS.business.slice(), build: STATUS_DEFAULTS.build.slice() };
+  var statusLive = false;
+  var statusSeeded = false;
+
+  function normalizeStatusPayload(data){
+    var out = { relationships: [], business: [], build: [] };
+    if(!data) return out;
+    var panels = data.panels || data.status || data;
+    ['relationships', 'business', 'build'].forEach(function(k){
+      var rows = panels[k];
+      if(!Array.isArray(rows)) rows = [];
+      out[k] = rows;
+    });
+    var flat = data.rows || data.items || data.status_rows || [];
+    if(Array.isArray(flat) && flat.length){
+      ['relationships', 'business', 'build'].forEach(function(k){
+        var f = flat.filter(function(r){ return (r.panel || r.section) === k; });
+        if(f.length) out[k] = f;
+      });
+    }
+    return out;
   }
 
-  renderStatusRows('panel-relationships', [
-    { name: 'Jess Webster (PC client)', detail: 'First paying coaching client — $200/mo', dot: 'green' },
-    { name: 'Crux Wilderness', detail: '$15K veteran clinic — signed, invoiced, paid in full. Site now Pine Creek (moved from Red Rocks); USFS commercial guiding permit not yet confirmed started.', dot: 'green' },
-    { name: 'Alma / Rock Zen', detail: 'Formal partnership still undrafted', dot: 'amber' },
-    { name: 'Wes Shih (Sender One)', detail: 'Sole beta tester; walkthrough held, coaching his own private client starting this week', dot: 'amber' },
-    { name: 'Garnett (CWA)', detail: 'Not yet contacted', dot: 'gray' },
-    { name: 'Arno Ilgner (RWW)', detail: 'IP agreement still needed', dot: 'red' }
-  ]);
+  function renderStatusRows(containerId, rows, editable){
+    var container = document.getElementById(containerId);
+    if(!container) return;
+    var panel = containerId.replace('panel-', '');
+    if(!rows || !rows.length){
+      container.innerHTML = '<div class="bo-empty">No items yet.</div>';
+      return;
+    }
+    container.innerHTML = rows.map(function(r, i){
+      var id = r.id || '';
+      var actions = editable
+        ? '<div class="status-row-actions">' +
+            '<button type="button" class="bo-btn" data-status-edit="' + escapeHtml(panel) + '" data-idx="' + i + '">Edit</button>' +
+            (id ? '<button type="button" class="bo-btn danger" data-status-del="' + escapeHtml(id) + '">Delete</button>' : '') +
+          '</div>'
+        : '';
+      return '<div class="status-row">' +
+        '<div class="status-dot dot-' + escapeHtml(r.dot || 'gray') + '"></div>' +
+        '<div><div class="status-name">' + escapeHtml(r.name || '') + '</div>' +
+        '<div class="status-detail">' + escapeHtml(r.detail || '') + '</div></div>' +
+        actions +
+        '</div>';
+    }).join('');
+    if(editable){
+      container.querySelectorAll('[data-status-edit]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var p = btn.getAttribute('data-status-edit');
+          var idx = parseInt(btn.getAttribute('data-idx'), 10);
+          openStatusEditor(p, statusCache[p][idx]);
+        });
+      });
+      container.querySelectorAll('[data-status-del]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var id = btn.getAttribute('data-status-del');
+          if(!id || !confirm('Delete this status row?')) return;
+          sbRpc('foundash_status_delete', { p_id: id }).then(function(){
+            loadLiveStatusPanels(true);
+          }).catch(function(err){
+            alert('Could not delete — ' + ((err && (err.message || err.error)) || 'error'));
+          });
+        });
+      });
+    }
+  }
 
-  renderStatusRows('panel-business', [
-    { name: 'LLC + 3 DBAs', detail: 'Formed — Guiding, Honey & Light, SEE (a 4th DBA, "Prusik," is under consideration, not filed)', dot: 'green' },
-    { name: 'Mercury + Stripe + Dropbox Sign', detail: 'Banking, card payments, e-sign live', dot: 'green' },
-    { name: 'Core legal docs', detail: 'Coaching Agreement, Waiver, Crux CSA finalized', dot: 'green' },
-    { name: 'Veracity insurance', detail: 'Premium confirmed $3,501/yr all-in; payment method (finance vs. pay in full) is the last step before binding', dot: 'amber' },
-    { name: 'SEE paywall / tiers', detail: 'Conceptual only, not built', dot: 'red' },
-    { name: 'Business domain / email', detail: 'Live — john@straydog-guiding.com, straydog-guiding.com', dot: 'green' }
-  ]);
+  function paintStatusPanels(editable){
+    renderStatusRows('panel-relationships', statusCache.relationships, editable);
+    renderStatusRows('panel-business', statusCache.business, editable);
+    renderStatusRows('panel-build', statusCache.build, editable);
+  }
 
-  renderStatusRows('panel-build', [
-    { name: 'Activation-first SEE', detail: 'Live on staging/production', dot: 'green' },
-    { name: 'Coaching data layer', detail: 'Supabase tables + RLS live', dot: 'green' },
-    { name: 'Coaching UI', detail: 'Live — full coach + athlete flows shipped (roster insights, assign wizard, Train sessions, Founder tab)', dot: 'green' },
-    { name: 'Known app bugs', detail: 'device_id, clipping, baseline route (unconfirmed repro on all three)', dot: 'red' },
-    { name: 'Train / Reflect pillars', detail: 'Live — full session builder, per-block timers, interval auto-cycle, warm-up/cool-down structure', dot: 'green' }
-  ]);
+  function loadLiveStatusPanels(force){
+    paintStatusPanels(statusLive);
+    ensureAdminForRpc().then(function(ok){
+      if(!ok) return;
+      return sbRpc('foundash_status_get', {}).then(function(data){
+        if(!data || data.ok === false) throw data || { message: 'status get failed' };
+        var norm = normalizeStatusPayload(data);
+        var empty = !norm.relationships.length && !norm.business.length && !norm.build.length;
+        if(empty && !statusSeeded){
+          statusSeeded = true;
+          return seedStatusDefaults().then(function(){ return loadLiveStatusPanels(true); });
+        }
+        if(!empty){
+          statusCache = norm;
+          statusLive = true;
+        }
+        paintStatusPanels(true);
+      });
+    }).catch(function(){
+      paintStatusPanels(false);
+    });
+  }
+
+  function seedStatusDefaults(){
+    var jobs = [];
+    ['relationships', 'business', 'build'].forEach(function(panel){
+      (STATUS_DEFAULTS[panel] || []).forEach(function(row, i){
+        jobs.push(sbRpc('foundash_status_upsert', {
+          p_panel: panel,
+          p_name: row.name,
+          p_detail: row.detail,
+          p_dot: row.dot,
+          p_sort_order: (i + 1) * 10
+        }));
+      });
+    });
+    return Promise.all(jobs.map(function(p){ return p.catch(function(){ return null; }); }));
+  }
+
+  function openStatusEditor(panel, row){
+    ensureAdminForRpc().then(function(ok){
+      if(!ok){
+        alert('Sign in as Foundash admin to edit status panels.');
+        showSection('coach-mgmt');
+        return;
+      }
+      document.getElementById('status-edit-title').textContent = row && row.id ? 'Edit status' : 'Add status';
+      document.getElementById('status-edit-id').value = (row && row.id) || '';
+      document.getElementById('status-edit-panel').value = panel;
+      document.getElementById('status-edit-name').value = (row && row.name) || '';
+      document.getElementById('status-edit-detail').value = (row && row.detail) || '';
+      document.getElementById('status-edit-dot').value = (row && row.dot) || 'amber';
+      document.getElementById('status-edit-modal').classList.add('open');
+    });
+  }
+
+  (function bindStatusModal(){
+    var modal = document.getElementById('status-edit-modal');
+    if(!modal) return;
+    document.getElementById('status-edit-cancel').addEventListener('click', function(){ modal.classList.remove('open'); });
+    modal.addEventListener('click', function(e){ if(e.target === modal) modal.classList.remove('open'); });
+    document.getElementById('status-edit-save').addEventListener('click', function(){
+      var payload = {
+        p_panel: document.getElementById('status-edit-panel').value,
+        p_name: document.getElementById('status-edit-name').value.trim(),
+        p_detail: document.getElementById('status-edit-detail').value.trim(),
+        p_dot: document.getElementById('status-edit-dot').value
+      };
+      var id = document.getElementById('status-edit-id').value;
+      if(id) payload.p_id = id;
+      if(!payload.p_name){ alert('Name required'); return; }
+      sbRpc('foundash_status_upsert', payload).then(function(data){
+        if(data && data.ok === false) throw data;
+        modal.classList.remove('open');
+        loadLiveStatusPanels(true);
+      }).catch(function(err){
+        alert('Could not save — ' + ((err && (err.message || err.error)) || 'error'));
+      });
+    });
+  })();
+
+  paintStatusPanels(false);
 
   /* ===================== FOUNDASH HELPERS ===================== */
   // Privileged RPCs require a real Supabase session whose auth.uid() is in
@@ -2981,6 +3424,9 @@
         coachesLoaded = false;
         customWorkoutsLoaded = false;
         opsCenterLoaded = false;
+        allUsersLoaded = false;
+        todoLoaded = false;
+        financeLoaded = false;
         overviewCountsPromise = null;
         refreshPrivilegedMetrics();
         // Re-render whichever privileged section is active
@@ -3014,6 +3460,9 @@
         }
         rosterLoaded = false;
         coachesLoaded = false;
+        allUsersLoaded = false;
+        todoLoaded = false;
+        financeLoaded = false;
         refreshPrivilegedMetrics();
         var active = document.querySelector('.nav-item.active');
         if(active) showSection(active.dataset.section);
@@ -3105,6 +3554,544 @@
         }
         setPrivilegedVisible(authId, privilegedId, true);
         onReady();
+      });
+    });
+  }
+
+  /* ===================== ALL USERS ===================== */
+  var allUsersLoaded = false;
+  var allUsersCache = [];
+
+  function userField(u, keys, fallback){
+    for(var i = 0; i < keys.length; i++){
+      if(u[keys[i]] !== undefined && u[keys[i]] !== null && u[keys[i]] !== '') return u[keys[i]];
+    }
+    return fallback;
+  }
+  function userIsTest(u){
+    return !!(u.is_test || u.is_seed || u.is_test_or_seed || u.test_account || u.is_demo || u.exclude_from_metrics);
+  }
+  function fmtShortDate(v){
+    if(!v) return '—';
+    var d = new Date(v);
+    if(isNaN(d.getTime())) return String(v).slice(0, 10);
+    return d.toISOString().slice(0, 10);
+  }
+  function roleChip(role){
+    var r = String(role || 'signed-up-only').toLowerCase();
+    var cls = r.indexOf('both') !== -1 ? 'role-both' : r.indexOf('coach') !== -1 ? 'role-coach' : r.indexOf('athlete') !== -1 ? 'role-athlete' : 'role-signed';
+    var label = role || 'signed-up-only';
+    return '<span class="bo-chip ' + cls + '">' + escapeHtml(label) + '</span>';
+  }
+  function linkedLabel(u){
+    var coaches = u.linked_coaches || u.coaches || u.coach_names || [];
+    var athletes = u.linked_athletes || u.athletes || u.athlete_names || [];
+    function names(arr){
+      if(!arr) return [];
+      if(!Array.isArray(arr)) return [String(arr)];
+      return arr.map(function(x){
+        if(x && typeof x === 'object') return x.name || x.email || x.user_id || '';
+        return String(x);
+      }).filter(Boolean);
+    }
+    var c = names(coaches);
+    var a = names(athletes);
+    var bits = [];
+    if(c.length) bits.push('Coach: ' + c.join(', '));
+    if(a.length) bits.push('Athlete: ' + a.join(', '));
+    return bits.join(' · ') || '—';
+  }
+
+  function loadAllUsers(force){
+    requireAdmin('users-admin-auth', 'users-privileged', 'All Users', function(){
+      if(allUsersLoaded && !force){ renderAllUsersTable(); return; }
+      var banner = document.getElementById('users-sql-banner');
+      if(banner) banner.style.display = 'none';
+      var tbody = document.getElementById('users-tbody');
+      if(tbody) tbody.innerHTML = '<tr><td colspan="8" class="bo-empty">Loading···</td></tr>';
+      sbRpc('foundash_list_all_users', {}).then(function(data){
+        if(!data || data.ok === false){
+          if(data && (data.error === 'not_admin' || data.error === 'not_authenticated')){
+            if(tbody) tbody.innerHTML = '<tr><td colspan="8" class="bo-empty">Unauthorized — admin session required.</td></tr>';
+            return;
+          }
+          throw data || { message: 'list users failed' };
+        }
+        allUsersLoaded = true;
+        allUsersCache = data.users || data.rows || data.accounts || [];
+        bindAllUsersToolbar();
+        renderAllUsersTable();
+      }).catch(function(err){
+        if(isMissingRpc(err)){
+          if(banner){
+            banner.style.display = 'block';
+            banner.className = 'bo-warn';
+            banner.innerHTML = '<b>All Users</b> needs <code>foundash_list_all_users</code> applied in Supabase.';
+          }
+          if(tbody) tbody.innerHTML = '<tr><td colspan="8" class="bo-empty">RPC not available yet.</td></tr>';
+          return;
+        }
+        if(tbody) tbody.innerHTML = '<tr><td colspan="8" class="bo-empty" style="color:var(--danger);">Failed — ' +
+          escapeHtml((err && (err.message || err.error)) || 'unknown') + '</td></tr>';
+      });
+    });
+  }
+
+  function bindAllUsersToolbar(){
+    var search = document.getElementById('users-search');
+    var hide = document.getElementById('users-hide-test');
+    var refresh = document.getElementById('users-refresh-btn');
+    if(search && !search._bound){
+      search._bound = true;
+      search.addEventListener('input', renderAllUsersTable);
+    }
+    if(hide && !hide._bound){
+      hide._bound = true;
+      hide.addEventListener('change', renderAllUsersTable);
+    }
+    if(refresh && !refresh._bound){
+      refresh._bound = true;
+      refresh.addEventListener('click', function(){ loadAllUsers(true); });
+    }
+  }
+
+  function renderAllUsersTable(){
+    var tbody = document.getElementById('users-tbody');
+    if(!tbody) return;
+    var q = ((document.getElementById('users-search') || {}).value || '').trim().toLowerCase();
+    var hideTest = !!(document.getElementById('users-hide-test') || {}).checked;
+    var rows = allUsersCache.filter(function(u){
+      if(hideTest && userIsTest(u)) return false;
+      if(!q) return true;
+      var name = String(userField(u, ['name', 'display_name', 'full_name'], '')).toLowerCase();
+      var email = String(userField(u, ['email'], '')).toLowerCase();
+      return name.indexOf(q) !== -1 || email.indexOf(q) !== -1;
+    });
+    if(!rows.length){
+      tbody.innerHTML = '<tr><td colspan="8" class="bo-empty">No users match.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function(u, i){
+      var uid = userField(u, ['user_id', 'id'], '');
+      return '<tr class="click-row" data-user-id="' + escapeHtml(uid) + '" data-idx="' + i + '">' +
+        '<td>' + escapeHtml(userField(u, ['name', 'display_name', 'full_name'], '—')) + '</td>' +
+        '<td class="mono">' + escapeHtml(userField(u, ['email'], '—')) + '</td>' +
+        '<td>' + roleChip(userField(u, ['role'], 'signed-up-only')) + '</td>' +
+        '<td class="mono">' + escapeHtml(fmtShortDate(userField(u, ['signup_date', 'created_at', 'signed_up_at'], ''))) + '</td>' +
+        '<td class="mono">' + escapeHtml(String(userField(u, ['session_count', 'sessions'], 0))) + '</td>' +
+        '<td class="mono">' + escapeHtml(String(userField(u, ['climb_count', 'climbs'], 0))) + '</td>' +
+        '<td class="mono">' + escapeHtml(fmtShortDate(userField(u, ['last_activity', 'last_seen_at', 'last_session_at'], ''))) + '</td>' +
+        '<td>' + escapeHtml(linkedLabel(u)) + '</td>' +
+      '</tr>';
+    }).join('');
+    tbody.querySelectorAll('tr.click-row').forEach(function(tr){
+      tr.addEventListener('click', function(){
+        openUserDetail(tr.getAttribute('data-user-id'));
+      });
+    });
+  }
+
+  function openUserDetail(userId){
+    var modal = document.getElementById('user-detail-modal');
+    var body = document.getElementById('user-detail-body');
+    var title = document.getElementById('user-detail-title');
+    if(!modal || !body) return;
+    var cached = allUsersCache.find(function(u){ return String(userField(u, ['user_id', 'id'], '')) === String(userId); });
+    title.textContent = cached ? (userField(cached, ['name', 'display_name', 'email'], 'User')) : 'User';
+    body.innerHTML = '<div class="bo-empty">Loading···</div>';
+    modal.classList.add('open');
+    sbRpc('foundash_user_detail', { p_user_id: userId }).then(function(data){
+      if(!data || data.ok === false) throw data || { message: 'detail failed' };
+      renderUserDetail(userId, data, cached);
+    }).catch(function(err){
+      body.innerHTML = '<div class="bo-err">Could not load detail — ' +
+        escapeHtml((err && (err.message || err.error)) || 'error') + '</div>';
+    });
+  }
+
+  function renderUserDetail(userId, data, cached){
+    var body = document.getElementById('user-detail-body');
+    var title = document.getElementById('user-detail-title');
+    var name = userField(data, ['name', 'display_name'], userField(cached || {}, ['name', 'email'], 'User'));
+    title.textContent = name;
+    var sessions = data.recent_sessions || data.sessions || [];
+    var payments = data.payments || data.ledger || [];
+    var sessHtml = sessions.length
+      ? '<table class="bo-table"><thead><tr><th>Date</th><th>Route</th><th>Zone</th></tr></thead><tbody>' +
+        sessions.slice(0, 12).map(function(s){
+          return '<tr><td class="mono">' + escapeHtml(fmtShortDate(s.created_at || s.date)) + '</td>' +
+            '<td>' + escapeHtml(s.route_name || s.name || '—') + '</td>' +
+            '<td>' + escapeHtml(s.zone || s.activation_zone || '—') + '</td></tr>';
+        }).join('') + '</tbody></table>'
+      : '<div class="bo-empty">No recent sessions.</div>';
+    var payHtml = payments.length
+      ? '<table class="bo-table"><thead><tr><th>Date</th><th>Amount</th><th>Note</th><th></th></tr></thead><tbody>' +
+        payments.map(function(p){
+          var pid = p.id || '';
+          return '<tr><td class="mono">' + escapeHtml(fmtShortDate(p.payment_date || p.date)) + '</td>' +
+            '<td class="mono">' + escapeHtml(opsMoney(p.amount)) + '</td>' +
+            '<td>' + escapeHtml(p.description || p.note || '') + '</td>' +
+            '<td>' + (pid ? '<button type="button" class="bo-btn danger" data-pay-del="' + escapeHtml(pid) + '">Delete</button>' : '') + '</td></tr>';
+        }).join('') + '</tbody></table>'
+      : '<div class="bo-empty">No payments logged.</div>';
+    body.innerHTML =
+      '<div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">' +
+        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(data, ['session_count', 'sessions'], 0)).toLocaleString() + '</div><div class="metric-label">Sessions</div></div>' +
+        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(data, ['climb_count', 'climbs'], 0)).toLocaleString() + '</div><div class="metric-label">Climbs</div></div>' +
+        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(data, ['falls', 'falls_logged'], 0)).toLocaleString() + '</div><div class="metric-label">Falls</div></div>' +
+        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(data, ['journal_entries', 'journal'], 0)).toLocaleString() + '</div><div class="metric-label">Journal</div></div>' +
+      '</div>' +
+      '<div class="panel-title">Recent sessions</div>' + sessHtml +
+      '<div class="panel-title" style="margin-top:18px;">Payments ledger</div>' +
+      '<div class="schema-note" style="margin:0 0 10px;">Bookkeeping only — not live billing.</div>' +
+      payHtml +
+      '<div class="bo-actions" style="margin-top:12px;align-items:flex-end;">' +
+        '<div class="bo-form-row" style="width:150px;margin:0;"><label for="pay-date">Date</label><input type="date" id="pay-date"></div>' +
+        '<div class="bo-form-row" style="width:120px;margin:0;"><label for="pay-amt">Amount ($)</label><input type="number" step="0.01" id="pay-amt"></div>' +
+        '<div class="bo-form-row" style="flex:1;margin:0;"><label for="pay-note">Note</label><input id="pay-note" placeholder="e.g. PC coaching Sep"></div>' +
+        '<button type="button" class="bo-btn primary" id="pay-add-btn">Add</button>' +
+      '</div>';
+    var dateEl = document.getElementById('pay-date');
+    if(dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
+    var addBtn = document.getElementById('pay-add-btn');
+    if(addBtn){
+      addBtn.addEventListener('click', function(){
+        var payload = {
+          p_user_id: userId,
+          p_payment_date: document.getElementById('pay-date').value,
+          p_amount: parseFloat(document.getElementById('pay-amt').value) || 0,
+          p_description: (document.getElementById('pay-note').value || '').trim()
+        };
+        if(!payload.p_payment_date || !payload.p_amount){ alert('Date and amount required'); return; }
+        sbRpc('foundash_add_user_payment', payload).then(function(res){
+          if(res && res.ok === false) throw res;
+          openUserDetail(userId);
+        }).catch(function(err){
+          alert('Could not add payment — ' + ((err && (err.message || err.error)) || 'error'));
+        });
+      });
+    }
+    body.querySelectorAll('[data-pay-del]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if(!confirm('Delete this payment entry?')) return;
+        sbRpc('foundash_delete_user_payment', { p_id: btn.getAttribute('data-pay-del') }).then(function(){
+          openUserDetail(userId);
+        }).catch(function(err){
+          alert('Could not delete — ' + ((err && (err.message || err.error)) || 'error'));
+        });
+      });
+    });
+  }
+
+  (function bindUserDetailModal(){
+    var modal = document.getElementById('user-detail-modal');
+    if(!modal) return;
+    var close = document.getElementById('user-detail-close');
+    if(close) close.addEventListener('click', function(){ modal.classList.remove('open'); });
+    modal.addEventListener('click', function(e){ if(e.target === modal) modal.classList.remove('open'); });
+  })();
+
+  /* ===================== GENERAL TO-DO ===================== */
+  var todoLoaded = false;
+  var todoItems = [];
+
+  function isGeneralTask(t){
+    return String(t.project || '').toLowerCase() === 'general';
+  }
+  function isClinicTask(t){
+    return !isGeneralTask(t);
+  }
+
+  function loadTodo(force){
+    requireAdmin('todo-admin-auth', 'todo-privileged', 'To-do', function(){
+      if(todoLoaded && !force){ renderTodoList(); return; }
+      fetchTodoBundle(force);
+    });
+  }
+
+  function fetchTodoBundle(force){
+    var banner = document.getElementById('todo-sql-banner');
+    if(banner) banner.style.display = 'none';
+    return sbRpc('foundash_ops_get', {}).then(function(data){
+      if(!data || data.ok === false) throw data || { message: 'ops get failed' };
+      opsCenterLoaded = true;
+      opsTasks = data.tasks || [];
+      opsExpenses = data.expenses || opsExpenses;
+      opsContacts = data.contacts || opsContacts;
+      if(data.budget) OPS_BUDGET = Number(data.budget) || OPS_BUDGET;
+      opsPayment = !!data.payment_received;
+      todoItems = opsTasks.filter(isGeneralTask);
+      todoLoaded = true;
+      renderTodoList();
+      renderOverviewTodoPreview();
+      if(typeof renderOpsAll === 'function' && document.getElementById('ops-task-phases')){
+        try { renderOpsAll(); } catch(e) {}
+      }
+    }).catch(function(err){
+      if(isMissingRpc(err)){
+        if(banner){
+          banner.style.display = 'block';
+          banner.innerHTML = '<b>To-do</b> needs the expanded <code>foundash_ops_*</code> RPCs (with <code>project</code>).';
+        }
+        var list = document.getElementById('todo-list');
+        if(list) list.innerHTML = '<div class="bo-empty">RPC not available yet.</div>';
+        return;
+      }
+      var list2 = document.getElementById('todo-list');
+      if(list2) list2.innerHTML = '<div class="bo-empty" style="color:var(--danger);">Failed — ' +
+        escapeHtml((err && (err.message || err.error)) || 'unknown') + '</div>';
+    });
+  }
+
+  function loadOverviewTodoPreview(){
+    var el = document.getElementById('overview-todo-preview');
+    if(!el) return;
+    ensureAdminForRpc().then(function(ok){
+      if(!ok){
+        el.innerHTML = '<div class="bo-empty">Sign in as Foundash admin to load the general task list.</div>';
+        return;
+      }
+      if(todoLoaded){ renderOverviewTodoPreview(); return; }
+      fetchTodoBundle();
+    });
+  }
+
+  function renderOverviewTodoPreview(){
+    var el = document.getElementById('overview-todo-preview');
+    if(!el) return;
+    var open = todoItems.filter(function(t){ return !t.done; }).slice(0, 5);
+    if(!open.length){
+      el.innerHTML = '<div class="bo-empty">No open general tasks.</div>';
+      return;
+    }
+    el.innerHTML = open.map(function(t){
+      return '<div class="todo-row"><div><div class="todo-name">' + escapeHtml(t.name) + '</div>' +
+        '<div class="todo-meta">' + escapeHtml(t.due || t.priority || '') + '</div></div></div>';
+    }).join('');
+  }
+
+  function bindTodoUi(){
+    var add = document.getElementById('todo-add-btn');
+    if(add && !add._bound){
+      add._bound = true;
+      add.addEventListener('click', addTodoItem);
+    }
+  }
+
+  function addTodoItem(){
+    var name = (document.getElementById('todo-new-name').value || '').trim();
+    if(!name){ alert('Task name required'); return; }
+    var payload = {
+      p_name: name,
+      p_project: 'general',
+      p_phase: 'now_aug_2026',
+      p_priority: document.getElementById('todo-new-pri').value || 'MED',
+      p_due: (document.getElementById('todo-new-due').value || '').trim(),
+      p_notes: ''
+    };
+    sbRpc('foundash_ops_add_task', payload).then(function(data){
+      if(data && data.ok === false) throw data;
+      document.getElementById('todo-new-name').value = '';
+      document.getElementById('todo-new-due').value = '';
+      todoLoaded = false;
+      opsCenterLoaded = false;
+      loadTodo(true);
+    }).catch(function(err){
+      alert('Could not add task — ' + ((err && (err.message || err.error)) || 'error'));
+    });
+  }
+
+  function renderTodoList(){
+    bindTodoUi();
+    var root = document.getElementById('todo-list');
+    if(!root) return;
+    if(!todoItems.length){
+      root.innerHTML = '<div class="bo-empty">No general tasks yet.</div>';
+      return;
+    }
+    var sorted = todoItems.slice().sort(function(a, b){
+      if(!!a.done !== !!b.done) return a.done ? 1 : -1;
+      return String(a.created_at || '') < String(b.created_at || '') ? 1 : -1;
+    });
+    root.innerHTML = sorted.map(function(t){
+      return '<div class="todo-row ' + (t.done ? 'done' : '') + '">' +
+        '<input type="checkbox" class="todo-check" data-id="' + escapeHtml(t.id) + '" ' + (t.done ? 'checked' : '') + '>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div class="todo-name">' + escapeHtml(t.name) + '</div>' +
+          '<div class="todo-meta">' + escapeHtml((t.priority || '') + (t.due ? ' · ' + t.due : '')) + '</div>' +
+          '<input class="todo-notes-edit" data-id="' + escapeHtml(t.id) + '" value="' + escapeHtml(t.notes || '') + '" placeholder="Notes" style="margin-top:6px;width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-family:inherit;font-size:13px;">' +
+        '</div>' +
+        '<button type="button" class="bo-btn danger todo-del" data-id="' + escapeHtml(t.id) + '">Delete</button>' +
+      '</div>';
+    }).join('');
+    root.querySelectorAll('.todo-check').forEach(function(cb){
+      cb.addEventListener('change', function(){
+        var id = cb.getAttribute('data-id');
+        sbRpc('foundash_ops_set_task', { p_id: id, p_done: cb.checked, p_status: cb.checked ? 'Done' : 'In Progress' })
+          .then(function(){ todoLoaded = false; opsCenterLoaded = false; loadTodo(true); })
+          .catch(function(err){ alert('Could not update — ' + ((err && (err.message || err.error)) || 'error')); });
+      });
+    });
+    root.querySelectorAll('.todo-notes-edit').forEach(function(inp){
+      inp.addEventListener('change', function(){
+        var id = inp.getAttribute('data-id');
+        var t = todoItems.find(function(x){ return x.id === id; });
+        if(!t) return;
+        t.notes = inp.value;
+        sbRpc('foundash_ops_set_task', { p_id: id, p_notes: t.notes }).catch(function(){ /* keep local */ });
+      });
+    });
+    root.querySelectorAll('.todo-del').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if(!confirm('Delete this task?')) return;
+        sbRpc('foundash_ops_delete_task', { p_id: btn.getAttribute('data-id') }).then(function(){
+          todoLoaded = false; opsCenterLoaded = false; loadTodo(true);
+        }).catch(function(err){
+          alert('Could not delete — ' + ((err && (err.message || err.error)) || 'error'));
+        });
+      });
+    });
+  }
+
+  /* ===================== FINANCE / BURN ===================== */
+  var financeLoaded = false;
+  var financeEntries = [];
+  var financeCash = 0;
+
+  function loadFinance(force){
+    requireAdmin('finance-admin-auth', 'finance-privileged', 'Finance / Burn', function(){
+      if(financeLoaded && !force){ renderFinance(); return; }
+      bindFinanceUi();
+      var banner = document.getElementById('finance-sql-banner');
+      if(banner) banner.style.display = 'none';
+      sbRpc('foundash_finance_get', {}).then(function(data){
+        if(!data || data.ok === false) throw data || { message: 'finance get failed' };
+        financeLoaded = true;
+        financeEntries = data.entries || data.ledger || data.rows || [];
+        financeCash = pickNum(data, ['cash_on_hand', 'cash', 'cashOnHand']) || 0;
+        var cashInp = document.getElementById('fin-cash-input');
+        if(cashInp && !cashInp.value) cashInp.value = financeCash;
+        renderFinance();
+      }).catch(function(err){
+        if(isMissingRpc(err)){
+          if(banner){
+            banner.style.display = 'block';
+            banner.innerHTML = '<b>Finance / Burn</b> needs <code>foundash_finance_*</code> RPCs applied in Supabase.';
+          }
+          return;
+        }
+        var body = document.getElementById('fin-ledger-body');
+        if(body) body.innerHTML = '<tr><td colspan="6" class="bo-empty" style="color:var(--danger);">Failed — ' +
+          escapeHtml((err && (err.message || err.error)) || 'unknown') + '</td></tr>';
+      });
+    });
+  }
+
+  function bindFinanceUi(){
+    var add = document.getElementById('fin-add-btn');
+    var cashBtn = document.getElementById('fin-cash-save');
+    var dateEl = document.getElementById('fin-new-date');
+    if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+    if(add && !add._bound){
+      add._bound = true;
+      add.addEventListener('click', addFinanceEntry);
+    }
+    if(cashBtn && !cashBtn._bound){
+      cashBtn._bound = true;
+      cashBtn.addEventListener('click', function(){
+        var amt = parseFloat(document.getElementById('fin-cash-input').value);
+        if(isNaN(amt)){ alert('Enter a cash amount'); return; }
+        sbRpc('foundash_finance_set_cash', { p_cash_on_hand: amt }).then(function(data){
+          if(data && data.ok === false) throw data;
+          financeCash = amt;
+          renderFinance();
+        }).catch(function(err){
+          alert('Could not save cash — ' + ((err && (err.message || err.error)) || 'error'));
+        });
+      });
+    }
+  }
+
+  function addFinanceEntry(){
+    var payload = {
+      p_entry_date: document.getElementById('fin-new-date').value,
+      p_entry_type: document.getElementById('fin-new-type').value,
+      p_amount: parseFloat(document.getElementById('fin-new-amount').value) || 0,
+      p_description: (document.getElementById('fin-new-desc').value || '').trim(),
+      p_category: (document.getElementById('fin-new-cat').value || 'general').trim() || 'general',
+      p_notes: '',
+      p_recurring: false
+    };
+    if(!payload.p_entry_date || !payload.p_amount){ alert('Date and amount required'); return; }
+    sbRpc('foundash_finance_add_entry', payload).then(function(data){
+      if(data && data.ok === false) throw data;
+      document.getElementById('fin-new-amount').value = '';
+      document.getElementById('fin-new-desc').value = '';
+      financeLoaded = false;
+      loadFinance(true);
+    }).catch(function(err){
+      alert('Could not add entry — ' + ((err && (err.message || err.error)) || 'error'));
+    });
+  }
+
+  function entryType(e){
+    return String(e.entry_type || e.kind || e.type || '').toLowerCase();
+  }
+  function avgMonthlyBurn(entries){
+    var now = Date.now();
+    var cutoff = now - 90 * 86400000;
+    var exp = (entries || []).filter(function(e){ return entryType(e) === 'expense'; });
+    var recent = exp.filter(function(e){
+      var d = Date.parse(e.entry_date || e.date || '');
+      return !isNaN(d) && d >= cutoff;
+    });
+    var use = recent.length ? recent : exp;
+    var sum = use.reduce(function(s, e){ return s + Number(e.amount || 0); }, 0);
+    if(!use.length) return 0;
+    if(recent.length) return sum / 3;
+    var dates = use.map(function(e){ return Date.parse(e.entry_date || e.date || '') || now; });
+    var spanMo = Math.max(1, (Math.max.apply(null, dates) - Math.min.apply(null, dates)) / (30 * 86400000));
+    return sum / spanMo;
+  }
+
+  function renderFinance(){
+    bindFinanceUi();
+    var cashEl = document.getElementById('fin-cash');
+    var burnEl = document.getElementById('fin-burn');
+    var runEl = document.getElementById('fin-runway');
+    var burn = avgMonthlyBurn(financeEntries);
+    if(cashEl) cashEl.textContent = opsMoney(financeCash);
+    if(burnEl) burnEl.textContent = opsMoney(burn);
+    var runway = burn > 0 ? (financeCash / burn) : null;
+    if(runEl) runEl.textContent = runway === null ? (financeCash > 0 ? '∞' : '—') : runway.toFixed(1);
+    var body = document.getElementById('fin-ledger-body');
+    if(!body) return;
+    if(!financeEntries.length){
+      body.innerHTML = '<tr><td colspan="6" class="bo-empty">No ledger entries yet.</td></tr>';
+      return;
+    }
+    var sorted = financeEntries.slice().sort(function(a, b){
+      return String(b.entry_date || b.date) > String(a.entry_date || a.date) ? 1 : -1;
+    });
+    body.innerHTML = sorted.map(function(e){
+      var t = entryType(e) || 'expense';
+      return '<tr>' +
+        '<td class="mono">' + escapeHtml(fmtShortDate(e.entry_date || e.date)) + '</td>' +
+        '<td><span class="bo-chip">' + escapeHtml(t) + '</span></td>' +
+        '<td>' + escapeHtml(e.description || e.note || '') + '</td>' +
+        '<td>' + escapeHtml(e.category || '') + '</td>' +
+        '<td class="mono">' + escapeHtml(opsMoney(e.amount)) + '</td>' +
+        '<td>' + (e.id ? '<button type="button" class="bo-btn danger" data-fin-del="' + escapeHtml(e.id) + '">Delete</button>' : '') + '</td>' +
+      '</tr>';
+    }).join('');
+    body.querySelectorAll('[data-fin-del]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if(!confirm('Delete this ledger entry?')) return;
+        sbRpc('foundash_finance_delete_entry', { p_id: btn.getAttribute('data-fin-del') }).then(function(){
+          financeLoaded = false; loadFinance(true);
+        }).catch(function(err){
+          alert('Could not delete — ' + ((err && (err.message || err.error)) || 'error'));
+        });
       });
     });
   }
@@ -4077,9 +5064,10 @@
   function renderOpsOverview(){
     var days = document.getElementById('ops-m-days');
     if(days) days.textContent = String(opsDaysUntil());
-    var done = opsTasks.filter(function(t){ return t.done; }).length;
+    var clinicTasks = (opsTasks || []).filter(isClinicTask);
+    var done = clinicTasks.filter(function(t){ return t.done; }).length;
     var tasksEl = document.getElementById('ops-m-tasks');
-    if(tasksEl) tasksEl.textContent = done + ' / ' + opsTasks.length;
+    if(tasksEl) tasksEl.textContent = done + ' / ' + clinicTasks.length;
     var rem = OPS_BUDGET - opsExpenseTotal();
     var bud = document.getElementById('ops-m-budget');
     if(bud) bud.textContent = opsMoney(rem);
@@ -4095,7 +5083,7 @@
     if(expTotal) expTotal.textContent = opsMoney(opsExpenseTotal());
     if(expRem) expRem.textContent = opsMoney(rem);
 
-    var urgent = opsTasks.filter(function(t){
+    var urgent = clinicTasks.filter(function(t){
       return !t.done && (t.status === 'Urgent' || t.status === 'In Progress');
     });
     var box = document.getElementById('ops-overview-urgent');
@@ -4121,7 +5109,7 @@
     var root = document.getElementById('ops-task-phases');
     if(!root) return;
     root.innerHTML = OPS_PHASE_ORDER.map(function(phase){
-      var list = opsTasks.filter(function(t){ return t.phase === phase; });
+      var list = opsTasks.filter(function(t){ return t.phase === phase && isClinicTask(t); });
       if(!list.length) return '';
       return '<div class="ops-phase panel" style="margin-bottom:16px;">' +
         '<div class="ops-phase-title">' + escapeHtml(OPS_PHASE_LABEL[phase] || phase) + '</div>' +
