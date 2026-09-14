@@ -263,6 +263,9 @@
   .users-toolbar .bo-form-row{margin:0;flex:1;min-width:220px;}
   .users-toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-secondary);user-select:none;}
   .users-toggle input{accent-color:var(--accent);}
+  .users-coach-cell{white-space:nowrap;vertical-align:middle;}
+  .users-coach-toggle-label{cursor:pointer;margin:0;}
+  .users-coach-status{font-size:11px;color:var(--text-secondary);min-height:1em;}
   .ops-modal.wide{width:720px;max-height:90vh;overflow:auto;}
   .todo-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
   .todo-row:last-child{border-bottom:none;}
@@ -894,6 +897,7 @@
                   <th>Name</th>
                   <th>Email</th>
                   <th>Role</th>
+                  <th>Coach</th>
                   <th>Signed up</th>
                   <th>Sessions</th>
                   <th>Climbs</th>
@@ -902,7 +906,7 @@
                 </tr>
               </thead>
               <tbody id="users-tbody">
-                <tr><td colspan="8" class="bo-empty">Loading···</td></tr>
+                <tr><td colspan="9" class="bo-empty">Loading···</td></tr>
               </tbody>
             </table>
           </div>
@@ -3608,11 +3612,11 @@
       var banner = document.getElementById('users-sql-banner');
       if(banner) banner.style.display = 'none';
       var tbody = document.getElementById('users-tbody');
-      if(tbody) tbody.innerHTML = '<tr><td colspan="8" class="bo-empty">Loading···</td></tr>';
+      if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">Loading···</td></tr>';
       sbRpc('foundash_list_all_users', {}).then(function(data){
         if(!data || data.ok === false){
           if(data && (data.error === 'not_admin' || data.error === 'not_authenticated')){
-            if(tbody) tbody.innerHTML = '<tr><td colspan="8" class="bo-empty">Unauthorized — admin session required.</td></tr>';
+            if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">Unauthorized — admin session required.</td></tr>';
             return;
           }
           throw data || { message: 'list users failed' };
@@ -3628,10 +3632,10 @@
             banner.className = 'bo-warn';
             banner.innerHTML = '<b>All Users</b> needs <code>foundash_list_all_users</code> applied in Supabase.';
           }
-          if(tbody) tbody.innerHTML = '<tr><td colspan="8" class="bo-empty">RPC not available yet.</td></tr>';
+          if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">RPC not available yet.</td></tr>';
           return;
         }
-        if(tbody) tbody.innerHTML = '<tr><td colspan="8" class="bo-empty" style="color:var(--danger);">Failed — ' +
+        if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="bo-empty" style="color:var(--danger);">Failed — ' +
           escapeHtml((err && (err.message || err.error)) || 'unknown') + '</td></tr>';
       });
     });
@@ -3668,15 +3672,25 @@
       return name.indexOf(q) !== -1 || email.indexOf(q) !== -1;
     });
     if(!rows.length){
-      tbody.innerHTML = '<tr><td colspan="8" class="bo-empty">No users match.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">No users match.</td></tr>';
       return;
     }
     tbody.innerHTML = rows.map(function(u, i){
       var uid = userField(u, ['user_id', 'id'], '');
+      var email = userField(u, ['email'], '');
+      var isCoach = userIsCoach(u);
       return '<tr class="click-row" data-user-id="' + escapeHtml(uid) + '" data-idx="' + i + '">' +
         '<td>' + escapeHtml(userField(u, ['name', 'display_name', 'full_name'], '—')) + '</td>' +
-        '<td class="mono">' + escapeHtml(userField(u, ['email'], '—')) + '</td>' +
-        '<td>' + roleChip(userField(u, ['role'], 'signed-up-only')) + '</td>' +
+        '<td class="mono">' + escapeHtml(email || '—') + '</td>' +
+        '<td class="users-role-cell">' + roleChip(userField(u, ['role'], 'signed-up-only')) + '</td>' +
+        '<td class="users-coach-cell">' +
+          '<label class="users-toggle users-coach-toggle-label">' +
+            '<input type="checkbox" class="users-coach-toggle" data-user-id="' + escapeHtml(uid) +
+              '" data-email="' + escapeHtml(email) + '" ' + (isCoach ? 'checked' : '') +
+              ' aria-label="Coach">' +
+            '<span class="users-coach-status" aria-live="polite"></span>' +
+          '</label>' +
+        '</td>' +
         '<td class="mono">' + escapeHtml(fmtShortDate(userField(u, ['signup_date', 'created_at', 'signed_up_at'], ''))) + '</td>' +
         '<td class="mono">' + escapeHtml(String(userField(u, ['session_count', 'sessions'], 0))) + '</td>' +
         '<td class="mono">' + escapeHtml(String(userField(u, ['climb_count', 'climbs'], 0))) + '</td>' +
@@ -3685,9 +3699,172 @@
       '</tr>';
     }).join('');
     tbody.querySelectorAll('tr.click-row').forEach(function(tr){
-      tr.addEventListener('click', function(){
+      tr.addEventListener('click', function(e){
+        if(e.target && e.target.closest && e.target.closest('.users-coach-cell')) return;
         openUserDetail(tr.getAttribute('data-user-id'));
       });
+    });
+    tbody.querySelectorAll('.users-coach-cell').forEach(function(td){
+      td.addEventListener('click', function(e){ e.stopPropagation(); });
+    });
+    tbody.querySelectorAll('.users-coach-toggle').forEach(function(cb){
+      cb.addEventListener('click', function(e){ e.stopPropagation(); });
+      cb.addEventListener('change', function(e){
+        e.stopPropagation();
+        toggleAllUsersCoach(cb);
+      });
+    });
+  }
+
+  function userIsCoach(u){
+    if(!u) return false;
+    if(u.is_coach === true) return true;
+    if(u.is_coach === false) return false;
+    var r = String(userField(u, ['role'], '')).toLowerCase();
+    return r.indexOf('coach') !== -1 || r.indexOf('both') !== -1;
+  }
+  function userIsAthlete(u){
+    if(!u) return false;
+    if(u.is_athlete === true) return true;
+    var r = String(userField(u, ['role'], '')).toLowerCase();
+    return r.indexOf('athlete') !== -1 || r.indexOf('both') !== -1;
+  }
+  function deriveRoleAfterCoachToggle(u, isCoach){
+    var athlete = userIsAthlete(u);
+    if(isCoach && athlete) return 'both';
+    if(isCoach) return 'coach';
+    if(athlete) return 'athlete';
+    return 'signed-up-only';
+  }
+  function linkedAthleteCount(u){
+    if(!u) return 0;
+    if(u.athlete_count != null && u.athlete_count !== ''){
+      var n = parseInt(u.athlete_count, 10);
+      if(!isNaN(n)) return n;
+    }
+    var athletes = u.linked_athletes || u.athletes || u.athlete_names || [];
+    if(Array.isArray(athletes)) return athletes.length;
+    if(athletes) return 1;
+    return 0;
+  }
+  function findAllUsersRow(userId){
+    var rows = document.querySelectorAll('#users-tbody tr.click-row');
+    var id = String(userId);
+    for(var i = 0; i < rows.length; i++){
+      if(rows[i].getAttribute('data-user-id') === id) return rows[i];
+    }
+    return null;
+  }
+  function setCoachRowPending(tr, pending, text){
+    if(!tr) return;
+    var cb = tr.querySelector('.users-coach-toggle');
+    var st = tr.querySelector('.users-coach-status');
+    if(cb) cb.disabled = !!pending;
+    if(st) st.textContent = pending ? (text || 'Saving…') : '';
+  }
+  function applyAllUsersCoachResult(userId, isCoach){
+    var u = allUsersCache.find(function(row){
+      return String(userField(row, ['user_id', 'id'], '')) === String(userId);
+    });
+    if(u){
+      u.role = deriveRoleAfterCoachToggle(u, isCoach);
+      u.is_coach = isCoach;
+    }
+    var tr = findAllUsersRow(userId);
+    if(!tr) return;
+    var roleCell = tr.querySelector('.users-role-cell');
+    if(roleCell){
+      roleCell.innerHTML = roleChip(u ? userField(u, ['role'], 'signed-up-only') : (isCoach ? 'coach' : 'signed-up-only'));
+    }
+    var cb = tr.querySelector('.users-coach-toggle');
+    if(cb) cb.checked = !!isCoach;
+  }
+  function toggleAllUsersCoach(cb){
+    var email = (cb.getAttribute('data-email') || '').trim();
+    var userId = cb.getAttribute('data-user-id');
+    var wantCoach = !!cb.checked;
+    var tr = cb.closest('tr');
+    var u = allUsersCache.find(function(row){
+      return String(userField(row, ['user_id', 'id'], '')) === String(userId);
+    });
+    if(!email){
+      cb.checked = !wantCoach;
+      alert('No email on this row — cannot update coach status.');
+      return;
+    }
+    var force = false;
+    if(!wantCoach){
+      var athleteCount = linkedAthleteCount(u || {});
+      if(athleteCount > 0){
+        var ok = confirm(
+          email + ' still has ' + athleteCount + ' active athlete link(s).\n\n' +
+          'Revoking sets is_coach = false. Existing coach_athlete_links are NOT deleted, but the coach can no longer use coach tools / link new athletes.\n\n' +
+          'Revoke anyway?'
+        );
+        if(!ok){ cb.checked = true; return; }
+        force = true;
+      } else if(!confirm('Revoke coach status for ' + email + '?')){
+        cb.checked = true;
+        return;
+      }
+    }
+
+    setCoachRowPending(tr, true, wantCoach ? 'Granting…' : 'Revoking…');
+    var rpc = wantCoach
+      ? sbRpc('foundash_grant_coach', { p_email: email })
+      : sbRpc('foundash_revoke_coach', { p_email: email, p_force: force });
+
+    function finishOk(){
+      applyAllUsersCoachResult(userId, wantCoach);
+      setCoachRowPending(tr, false, '');
+      var st = tr && tr.querySelector('.users-coach-status');
+      if(st) st.textContent = wantCoach ? 'Granted' : 'Revoked';
+      setTimeout(function(){
+        if(st && (st.textContent === 'Granted' || st.textContent === 'Revoked')) st.textContent = '';
+      }, 1400);
+      coachesLoaded = false;
+    }
+    function finishFail(msg){
+      cb.checked = !wantCoach;
+      setCoachRowPending(tr, false, '');
+      alert(msg);
+    }
+
+    rpc.then(function(data){
+      if(data && data.ok){
+        finishOk();
+        return;
+      }
+      if(!wantCoach && data && data.error === 'has_linked_athletes'){
+        var forceOk = confirm(
+          'Blocked: ' + (data.athlete_count || linkedAthleteCount(u || {})) + ' active linked athlete(s).\n\n' +
+          (data.message || 'Force revoke?') + '\n\nForce revoke?'
+        );
+        if(!forceOk){
+          cb.checked = true;
+          setCoachRowPending(tr, false, '');
+          return;
+        }
+        setCoachRowPending(tr, true, 'Revoking…');
+        return sbRpc('foundash_revoke_coach', { p_email: email, p_force: true }).then(function(data2){
+          if(data2 && data2.ok){
+            finishOk();
+          } else {
+            finishFail('Revoke failed — ' + ((data2 && data2.error) || 'unknown'));
+          }
+        });
+      }
+      var err = data && data.error;
+      var human = err === 'no_account'
+        ? 'No account with that email — they need to sign up in the SEE app first.'
+        : (err === 'not_admin' || err === 'not_authenticated'
+          ? 'Unauthorized — Foundash admin session required.'
+          : (err === 'not_a_coach'
+            ? 'That account is not currently a coach.'
+            : ('Could not update coach status — ' + (err || 'unknown'))));
+      finishFail(human);
+    }).catch(function(err){
+      finishFail('Failed — ' + ((err && (err.message || err.error)) || 'unknown error'));
     });
   }
 
