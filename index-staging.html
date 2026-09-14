@@ -22189,6 +22189,86 @@ else window.addEventListener('load', registerSEEServiceWorker);
 
 routeOnLoad();
 
+(function(){
+  var PTR_THRESHOLD = 70;   // px of pull required to trigger a refresh
+  var PTR_MAX = 110;        // px of visual travel cap (with resistance)
+  var startY = null, pulling = false, active = false, currentPull = 0, indicator = null;
+
+  function isInsideNestedScroller(el){
+    while(el && el !== document.body && el !== document.documentElement){
+      if(el.nodeType === 1){
+        var cs = window.getComputedStyle(el);
+        if(cs.position === 'fixed') return true;
+        if((cs.overflowY === 'auto' || cs.overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  function atTop(){
+    return (document.scrollingElement || document.documentElement).scrollTop <= 0;
+  }
+
+  function ensureIndicator(){
+    if(indicator) return indicator;
+    indicator = document.createElement('div');
+    indicator.id = 'ptr-indicator';
+    indicator.setAttribute('aria-hidden','true');
+    indicator.style.cssText = 'position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:center;height:56px;transform:translateY(-56px);z-index:9999;pointer-events:none;color:var(--accent);';
+    indicator.innerHTML = '<div style="width:24px;height:24px;border-radius:50%;border:2.5px solid rgba(255,255,255,.2);border-top-color:currentColor;box-sizing:border-box;"></div>';
+    document.body.appendChild(indicator);
+    return indicator;
+  }
+
+  function resetIndicator(){
+    if(!indicator) return;
+    indicator.style.transition = 'transform .2s ease';
+    indicator.style.transform = 'translateY(-56px)';
+  }
+
+  document.addEventListener('touchstart', function(e){
+    if(e.touches.length !== 1 || !atTop() || isInsideNestedScroller(e.target)){
+      startY = null; pulling = false; return;
+    }
+    startY = e.touches[0].clientY;
+    pulling = true;
+    active = false;
+  }, {passive:true});
+
+  document.addEventListener('touchmove', function(e){
+    if(!pulling || startY == null) return;
+    var dy = e.touches[0].clientY - startY;
+    if(dy <= 0 || !atTop()){ pulling = false; if(active) resetIndicator(); active = false; return; }
+    active = true;
+    currentPull = Math.min(dy * 0.5, PTR_MAX);
+    var ind = ensureIndicator();
+    ind.style.transition = 'none';
+    ind.style.transform = 'translateY(' + (currentPull - 56) + 'px) rotate(' + Math.round(currentPull * 3) + 'deg)';
+    e.preventDefault();
+  }, {passive:false});
+
+  function finishPull(){
+    if(!pulling){ return; }
+    pulling = false;
+    if(active && currentPull >= PTR_THRESHOLD){
+      if(indicator){
+        indicator.style.transition = 'transform .15s ease';
+        indicator.style.transform = 'translateY(8px)';
+      }
+      if(typeof showToast === 'function') showToast('Refreshing…');
+      setTimeout(function(){ location.reload(); }, 200);
+    } else {
+      resetIndicator();
+    }
+    active = false;
+    currentPull = 0;
+  }
+
+  document.addEventListener('touchend', finishPull, {passive:true});
+  document.addEventListener('touchcancel', finishPull, {passive:true});
+})();
+
 </script>
 </body>
 </html>
