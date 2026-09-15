@@ -3244,8 +3244,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
           <div class="insight-label" style="margin-bottom:0;">Practice mix</div>
           <div id="psyche-radar-range" style="display:flex;gap:6px;">
-            <button type="button" class="psyche-range-chip selected" onclick="setPsycheRadarRange(7,this)">7 days</button>
-            <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(30,this)">30 days</button>
+            <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(7,this)">7 days</button>
+            <button type="button" class="psyche-range-chip selected" onclick="setPsycheRadarRange(30,this)">30 days</button>
             <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(90,this)">90 days</button>
           </div>
         </div>
@@ -14491,7 +14491,7 @@ function buildPsycheRadar(counts){
   var max = 0;
   axes.forEach(function(a){ max = Math.max(max, counts[a.key] || 0); });
   var scale = Math.max(max, 1);
-  var cx = 130, cy = 130, maxR = 78;
+  var cx = 170, cy = 158, maxR = 70;
   var n = axes.length;
   var angleStep = (2 * Math.PI) / n;
   var startAngle = -Math.PI / 2;
@@ -14518,13 +14518,17 @@ function buildPsycheRadar(counts){
     return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5"/>';
   }).join('');
   var labelHtml = axes.map(function(a, i){
-    var p = axisPoint(i, maxR + 24);
-    var anchor = p.x < cx - 12 ? 'end' : p.x > cx + 12 ? 'start' : 'middle';
+    var p = axisPoint(i, maxR + 30);
     var nVal = counts[a.key] || 0;
-    return '<text x="' + p.x.toFixed(1) + '" y="' + p.y.toFixed(1) + '" text-anchor="' + anchor + '" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">' + a.label + '</text>'
-      + '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 12).toFixed(1) + '" text-anchor="' + anchor + '" font-family="Space Mono,monospace" font-size="9" fill="var(--muted)">' + nVal + '</text>';
+    var anchor = 'middle';
+    var x = p.x;
+    var y = p.y;
+    if(p.x < cx - 20){ anchor = 'end'; x = Math.max(8, p.x); }
+    else if(p.x > cx + 20){ anchor = 'start'; x = Math.min(332, p.x); }
+    else { y = p.y < cy ? p.y + 2 : p.y + 4; }
+    return '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anchor + '" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">' + a.label + ' ' + nVal + '</text>';
   }).join('');
-  el.innerHTML = '<svg width="100%" viewBox="0 0 260 270" style="display:block;max-width:300px;margin:0 auto;">'
+  el.innerHTML = '<svg width="100%" viewBox="0 0 340 320" style="display:block;max-width:340px;margin:0 auto;">'
     + ringHtml + axisHtml + polyHtml + dotHtml + labelHtml
     + '</svg>';
 }
