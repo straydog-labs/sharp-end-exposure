@@ -126,7 +126,6 @@
   }
   .sidebar-word span{color:var(--accent);}
   .nav-divider{border-top:1px solid var(--border);margin:0 20px 8px;}
-  nav{flex:1;}
   .nav-item{
     display:flex;
     align-items:center;
@@ -146,6 +145,23 @@
     background:rgba(200,98,42,.08);
   }
   .nav-icon{width:18px;text-align:center;font-size:14px;}
+  nav{flex:1;overflow-y:auto;}
+  .nav-group-toggle{
+    display:flex;align-items:center;gap:8px;width:100%;
+    background:transparent;border:0;cursor:pointer;text-align:left;
+    font:inherit;color:inherit;letter-spacing:.12em;
+  }
+  .nav-group-toggle:hover{color:var(--text);opacity:1;}
+  .nav-group-chevron{
+    display:inline-block;width:10px;font-size:10px;line-height:1;
+    transform:rotate(0deg);transition:transform .15s ease;
+  }
+  .nav-group.open .nav-group-chevron{transform:rotate(90deg);}
+  .nav-group-items{display:none;}
+  .nav-group.open .nav-group-items{display:block;}
+  @media (prefers-reduced-motion: reduce){
+    .nav-group-chevron{transition:none;}
+  }
   .sidebar-footer{
     padding:12px 20px 0;
     border-top:1px solid var(--border);
@@ -257,6 +273,29 @@
   .bo-chip.role-athlete{color:#7fbf3f;border-color:rgba(59,109,17,.5);}
   .bo-chip.role-both{color:var(--accent);border-color:rgba(200,98,42,.5);}
   .bo-chip.role-signed{color:#bbb;border-color:var(--border);}
+  .bo-chip.role-test{color:#c9a0e8;border-color:rgba(201,160,232,.45);}
+  .bo-chip.role-signed-active{color:#d8c48a;border-color:rgba(216,196,138,.45);}
+  .bo-chip.role-signed-idle{color:#bbb;border-color:var(--border);}
+  button.users-role-chip{
+    cursor:pointer;font-family:inherit;background:transparent;
+  }
+  button.users-role-chip:hover{filter:brightness(1.15);}
+  button.users-role-chip.role-filter-on{
+    box-shadow:0 0 0 1px var(--accent);
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  .users-role-filter{
+    display:flex;align-items:center;gap:6px;
+    font-size:12.5px;color:var(--text-secondary);
+    background:rgba(255,255,255,.04);border:1px solid var(--border);
+    border-radius:99px;padding:4px 10px;white-space:nowrap;
+  }
+  .users-role-filter[hidden]{display:none;}
+  .users-role-filter-clear{
+    background:transparent;border:0;color:var(--text);
+    cursor:pointer;font-size:16px;line-height:1;padding:0 2px;
+  }
   .bo-table tr.click-row{cursor:pointer;}
   .bo-table tr.click-row:hover td{background:rgba(255,255,255,.03);}
   .users-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
@@ -797,8 +836,8 @@
       <div class="nav-divider"></div>
       <nav id="nav"></nav>
       <div class="sidebar-footer">
-        <div class="mono">v0.3.0 · foundash</div>
-        <div>Last updated 2026-09-14</div>
+        <div class="mono">v0.3.1 · foundash</div>
+        <div>Last updated 2026-09-15</div>
       </div>
     </div>
 
@@ -884,10 +923,7 @@
               <label for="users-search">Search name or email</label>
               <input id="users-search" type="search" placeholder="Start typing…">
             </div>
-            <label class="users-toggle">
-              <input type="checkbox" id="users-hide-test" checked>
-              Hide test / seed accounts
-            </label>
+            <div id="users-role-filter" class="users-role-filter" hidden></div>
             <button type="button" class="bo-btn" id="users-refresh-btn">Refresh</button>
           </div>
           <div class="panel" style="margin-bottom:0;overflow-x:auto;">
@@ -2051,50 +2087,92 @@
   });
 
   /* ===================== NAV / ROUTING ===================== */
-  // Five Foundash primary sections first; legacy founder tools kept below.
   var SECTIONS = [
-    {id:'overview', icon:'⌂', label:'Founder Overview', group:'foundash'},
-    {id:'all-users', icon:'⌕', label:'All Users', group:'foundash'},
-    {id:'todo', icon:'☑', label:'To-do', group:'foundash'},
-    {id:'finance', icon:'$', label:'Finance / Burn', group:'foundash'},
-    {id:'ops-center', icon:'🏔', label:'Ops / Command Center', group:'foundash'},
-    {id:'coaching-roster', icon:'👥', label:'Coaching Roster', group:'foundash'},
-    {id:'athlete-training', icon:'🧗', label:'Athlete Training', group:'foundash'},
-    {id:'custom-workouts', icon:'⚙', label:'Custom Workouts', group:'foundash'},
-    {id:'audit-log', icon:'📋', label:'System / Audit Log', group:'foundash'},
-    {id:'investor-view', icon:'◇', label:'Investor View', group:'foundash'},
-    {id:'coach-mgmt', icon:'🔑', label:'Coach Management', group:'foundash'},
-    {id:'analytics', icon:'📊', label:'Analytics', group:'tools'},
-    {id:'see-live', icon:'●', label:'SEE Live', group:'tools'},
-    {id:'demo-center', icon:'◎', label:'Demo Center', group:'tools'},
-    {id:'roadmap', icon:'↦', label:'Roadmap', group:'tools'},
-    {id:'build-queue', icon:'▣', label:'Build Queue', group:'tools'}
+    {id:'overview', icon:'⌂', label:'Founder Overview'},
+    {id:'all-users', icon:'⌕', label:'All Users'},
+    {id:'todo', icon:'☑', label:'To-do'},
+    {id:'finance', icon:'$', label:'Finance / Burn'},
+    {id:'ops-center', icon:'🏔', label:'Ops / Command Center'},
+    {id:'coaching-roster', icon:'👥', label:'Coaching Roster'},
+    {id:'athlete-training', icon:'🧗', label:'Athlete Training'},
+    {id:'custom-workouts', icon:'⚙', label:'Custom Workouts'},
+    {id:'audit-log', icon:'📋', label:'System / Audit Log'},
+    {id:'investor-view', icon:'◇', label:'Investor View'},
+    {id:'coach-mgmt', icon:'🔑', label:'Coach Management'},
+    {id:'analytics', icon:'📊', label:'Analytics'},
+    {id:'see-live', icon:'●', label:'SEE Live'},
+    {id:'demo-center', icon:'◎', label:'Demo Center'},
+    {id:'roadmap', icon:'↦', label:'Roadmap'},
+    {id:'build-queue', icon:'▣', label:'Build Queue'}
   ];
+  var NAV_CATEGORIES = [
+    {id:'overview-users', label:'Overview & Users', ids:['overview','all-users','coaching-roster','coach-mgmt']},
+    {id:'operations', label:'Operations', ids:['todo','ops-center','athlete-training','custom-workouts','audit-log']},
+    {id:'business', label:'Business', ids:['finance','investor-view','analytics']},
+    {id:'dev-tools', label:'Dev Tools', ids:['see-live','demo-center','roadmap','build-queue']}
+  ];
+  var _navExpanded = {};
+
+  function sectionById(id){
+    for(var i = 0; i < SECTIONS.length; i++){
+      if(SECTIONS[i].id === id) return SECTIONS[i];
+    }
+    return null;
+  }
+  function categoryForSection(id){
+    for(var i = 0; i < NAV_CATEGORIES.length; i++){
+      if(NAV_CATEGORIES[i].ids.indexOf(id) !== -1) return NAV_CATEGORIES[i];
+    }
+    return null;
+  }
+  function setNavCategoryExpanded(catId, expanded){
+    _navExpanded[catId] = !!expanded;
+    var group = document.querySelector('.nav-group[data-nav-group="' + catId + '"]');
+    if(!group) return;
+    group.classList.toggle('open', !!expanded);
+    var header = group.querySelector('.nav-group-toggle');
+    if(header) header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+  function expandNavCategoryForSection(id){
+    var cat = categoryForSection(id);
+    if(cat) setNavCategoryExpanded(cat.id, true);
+  }
 
   var navEl = document.getElementById('nav');
-  var lastGroup = null;
-  SECTIONS.forEach(function(s){
-    if(s.group !== lastGroup){
-      var label = document.createElement('div');
-      label.className = 'nav-group-label';
-      label.textContent = s.group === 'foundash' ? 'Back office' : 'Founder tools';
-      navEl.appendChild(label);
-      if(s.group === 'tools'){
-        var div = document.createElement('div');
-        div.className = 'nav-divider';
-        navEl.insertBefore(div, label);
-      }
-      lastGroup = s.group;
-    }
-    var item = document.createElement('div');
-    item.className = 'nav-item' + (s.id === 'overview' ? ' active' : '');
-    item.dataset.section = s.id;
-    item.innerHTML = '<span class="nav-icon">' + s.icon + '</span><span>' + s.label + '</span>';
-    item.addEventListener('click', function(){ showSection(s.id); });
-    navEl.appendChild(item);
+  NAV_CATEGORIES.forEach(function(cat){
+    var group = document.createElement('div');
+    group.className = 'nav-group';
+    group.dataset.navGroup = cat.id;
+    var header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'nav-group-label nav-group-toggle';
+    header.setAttribute('aria-expanded', 'false');
+    header.setAttribute('aria-controls', 'nav-group-items-' + cat.id);
+    header.innerHTML = '<span class="nav-group-chevron" aria-hidden="true">▸</span><span>' + cat.label + '</span>';
+    header.addEventListener('click', function(){
+      setNavCategoryExpanded(cat.id, !_navExpanded[cat.id]);
+    });
+    var items = document.createElement('div');
+    items.className = 'nav-group-items';
+    items.id = 'nav-group-items-' + cat.id;
+    cat.ids.forEach(function(sid){
+      var s = sectionById(sid);
+      if(!s) return;
+      var item = document.createElement('div');
+      item.className = 'nav-item' + (s.id === 'overview' ? ' active' : '');
+      item.dataset.section = s.id;
+      item.innerHTML = '<span class="nav-icon">' + s.icon + '</span><span>' + s.label + '</span>';
+      item.addEventListener('click', function(){ showSection(s.id); });
+      items.appendChild(item);
+    });
+    group.appendChild(header);
+    group.appendChild(items);
+    navEl.appendChild(group);
   });
+  expandNavCategoryForSection('overview');
 
   function showSection(id){
+    expandNavCategoryForSection(id);
     document.querySelectorAll('.nav-item').forEach(function(el){
       el.classList.toggle('active', el.dataset.section === id);
     });
@@ -3565,6 +3643,7 @@
   /* ===================== ALL USERS ===================== */
   var allUsersLoaded = false;
   var allUsersCache = [];
+  var _usersRoleFilter = null;
 
   function userField(u, keys, fallback){
     for(var i = 0; i < keys.length; i++){
@@ -3575,17 +3654,40 @@
   function userIsTest(u){
     return !!(u.is_test || u.is_seed || u.is_test_or_seed || u.test_account || u.is_demo || u.exclude_from_metrics);
   }
+  function isTestAccount(u){
+    if(userIsTest(u)) return true;
+    var email = String(userField(u, ['email'], '')).toLowerCase();
+    if(!email) return false;
+    if(email.indexOf('rls-probe-') === 0) return true;
+    if(email.indexOf('tf-verify-') === 0) return true;
+    if(email.indexOf('+test') !== -1) return true;
+    if(email.length >= 9 && email.slice(-9) === '@test.com') return true;
+    if(email.length >= 12 && email.slice(-12) === '@example.com') return true;
+    return false;
+  }
   function fmtShortDate(v){
     if(!v) return '—';
     var d = new Date(v);
     if(isNaN(d.getTime())) return String(v).slice(0, 10);
     return d.toISOString().slice(0, 10);
   }
+  function roleChipClass(label){
+    var r = String(label || '').toLowerCase();
+    if(r === 'test account') return 'role-test';
+    if(r.indexOf('both') !== -1) return 'role-both';
+    if(r.indexOf('coach') !== -1) return 'role-coach';
+    if(r.indexOf('athlete') !== -1) return 'role-athlete';
+    if(r.indexOf('no activity') !== -1) return 'role-signed-idle';
+    if(r.indexOf('active') !== -1) return 'role-signed-active';
+    return 'role-signed';
+  }
   function roleChip(role){
-    var r = String(role || 'signed-up-only').toLowerCase();
-    var cls = r.indexOf('both') !== -1 ? 'role-both' : r.indexOf('coach') !== -1 ? 'role-coach' : r.indexOf('athlete') !== -1 ? 'role-athlete' : 'role-signed';
-    var label = role || 'signed-up-only';
-    return '<span class="bo-chip ' + cls + '">' + escapeHtml(label) + '</span>';
+    var label = role || 'Signed up · no activity';
+    var cls = roleChipClass(label);
+    var on = _usersRoleFilter === label;
+    return '<button type="button" class="bo-chip users-role-chip ' + cls + (on ? ' role-filter-on' : '') +
+      '" data-role-filter="' + escapeHtml(label) + '" aria-pressed="' + (on ? 'true' : 'false') +
+      '" title="Filter table to this role">' + escapeHtml(label) + '</button>';
   }
   function linkedLabel(u){
     var coaches = u.linked_coaches || u.coaches || u.coach_names || [];
@@ -3643,29 +3745,65 @@
 
   function bindAllUsersToolbar(){
     var search = document.getElementById('users-search');
-    var hide = document.getElementById('users-hide-test');
     var refresh = document.getElementById('users-refresh-btn');
+    var filterEl = document.getElementById('users-role-filter');
     if(search && !search._bound){
       search._bound = true;
       search.addEventListener('input', renderAllUsersTable);
-    }
-    if(hide && !hide._bound){
-      hide._bound = true;
-      hide.addEventListener('change', renderAllUsersTable);
     }
     if(refresh && !refresh._bound){
       refresh._bound = true;
       refresh.addEventListener('click', function(){ loadAllUsers(true); });
     }
+    if(filterEl && !filterEl._bound){
+      filterEl._bound = true;
+      filterEl.addEventListener('click', function(e){
+        if(e.target && e.target.closest && e.target.closest('.users-role-filter-clear')){
+          _usersRoleFilter = null;
+          renderAllUsersTable();
+        }
+      });
+    }
+  }
+
+  function setUsersRoleFilter(label){
+    var next = label || null;
+    _usersRoleFilter = (_usersRoleFilter === next) ? null : next;
+    renderAllUsersTable();
+  }
+  function renderUsersRoleFilterChip(){
+    var el = document.getElementById('users-role-filter');
+    if(!el) return;
+    if(!_usersRoleFilter){
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML = 'Role: ' + escapeHtml(_usersRoleFilter) +
+      ' <button type="button" class="users-role-filter-clear" aria-label="Clear role filter">×</button>';
+  }
+  function bindUsersRoleChipClicks(root){
+    if(!root) return;
+    root.querySelectorAll('.users-role-cell').forEach(function(td){
+      td.addEventListener('click', function(e){ e.stopPropagation(); });
+    });
+    root.querySelectorAll('.users-role-chip').forEach(function(chip){
+      chip.addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        setUsersRoleFilter(chip.getAttribute('data-role-filter'));
+      });
+    });
   }
 
   function renderAllUsersTable(){
     var tbody = document.getElementById('users-tbody');
     if(!tbody) return;
+    renderUsersRoleFilterChip();
     var q = ((document.getElementById('users-search') || {}).value || '').trim().toLowerCase();
-    var hideTest = !!(document.getElementById('users-hide-test') || {}).checked;
     var rows = allUsersCache.filter(function(u){
-      if(hideTest && userIsTest(u)) return false;
+      if(_usersRoleFilter && resolveDisplayRole(u) !== _usersRoleFilter) return false;
       if(!q) return true;
       var name = String(userField(u, ['name', 'display_name', 'full_name'], '')).toLowerCase();
       var email = String(userField(u, ['email'], '')).toLowerCase();
@@ -3682,7 +3820,7 @@
       return '<tr class="click-row" data-user-id="' + escapeHtml(uid) + '" data-idx="' + i + '">' +
         '<td>' + escapeHtml(userField(u, ['name', 'display_name', 'full_name'], '—')) + '</td>' +
         '<td class="mono">' + escapeHtml(email || '—') + '</td>' +
-        '<td class="users-role-cell">' + roleChip(userField(u, ['role'], 'signed-up-only')) + '</td>' +
+        '<td class="users-role-cell">' + roleChip(resolveDisplayRole(u)) + '</td>' +
         '<td class="users-coach-cell">' +
           '<label class="users-toggle users-coach-toggle-label">' +
             '<input type="checkbox" class="users-coach-toggle" data-user-id="' + escapeHtml(uid) +
@@ -3701,6 +3839,7 @@
     tbody.querySelectorAll('tr.click-row').forEach(function(tr){
       tr.addEventListener('click', function(e){
         if(e.target && e.target.closest && e.target.closest('.users-coach-cell')) return;
+        if(e.target && e.target.closest && e.target.closest('.users-role-cell')) return;
         openUserDetail(tr.getAttribute('data-user-id'));
       });
     });
@@ -3714,6 +3853,7 @@
         toggleAllUsersCoach(cb);
       });
     });
+    bindUsersRoleChipClicks(tbody);
   }
 
   function userIsCoach(u){
@@ -3735,6 +3875,16 @@
     if(isCoach) return 'coach';
     if(athlete) return 'athlete';
     return 'signed-up-only';
+  }
+  function resolveDisplayRole(u){
+    if(isTestAccount(u)) return 'Test account';
+    if(userIsCoach(u) && userIsAthlete(u)) return 'both';
+    if(userIsCoach(u)) return 'coach';
+    if(userIsAthlete(u)) return 'athlete';
+    var sessions = parseInt(userField(u, ['session_count', 'sessions'], 0), 10) || 0;
+    var climbs = parseInt(userField(u, ['climb_count', 'climbs'], 0), 10) || 0;
+    if(sessions > 0 || climbs > 0) return 'Signed up · active';
+    return 'Signed up · no activity';
   }
   function linkedAthleteCount(u){
     if(!u) return 0;
@@ -3774,7 +3924,8 @@
     if(!tr) return;
     var roleCell = tr.querySelector('.users-role-cell');
     if(roleCell){
-      roleCell.innerHTML = roleChip(u ? userField(u, ['role'], 'signed-up-only') : (isCoach ? 'coach' : 'signed-up-only'));
+      roleCell.innerHTML = roleChip(u ? resolveDisplayRole(u) : (isCoach ? 'coach' : 'Signed up · no activity'));
+      bindUsersRoleChipClicks(roleCell);
     }
     var cb = tr.querySelector('.users-coach-toggle');
     if(cb) cb.checked = !!isCoach;

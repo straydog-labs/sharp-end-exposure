@@ -27,7 +27,11 @@ assert.ok(/function toggleAllUsersCoach/.test(html));
 assert.ok(/function applyAllUsersCoachResult/.test(html));
 assert.ok(/function setCoachRowPending/.test(html));
 assert.ok(/function userIsCoach/.test(html));
+assert.ok(/function resolveDisplayRole/.test(html));
+assert.ok(/function isTestAccount/.test(html));
 assert.ok(/Granting…/.test(html) && /Revoking…/.test(html));
+assert.ok(!/id="users-hide-test"/.test(html), 'hide-test checkbox removed');
+assert.ok(/id="users-role-filter"/.test(html), 'role filter chrome present');
 
 const toggleFn = html.match(/function toggleAllUsersCoach\(cb\)\{[\s\S]*?\n  function openUserDetail/);
 assert.ok(toggleFn, 'toggleAllUsersCoach extracted');
@@ -46,6 +50,7 @@ assert.ok(applyFn, 'applyAllUsersCoachResult extracted');
 assert.ok(/users-role-cell/.test(applyFn[0]), 'ROLE badge is refreshed on the same row');
 assert.ok(/u\.is_coach = isCoach/.test(applyFn[0]));
 assert.ok(/deriveRoleAfterCoachToggle/.test(applyFn[0]));
+assert.ok(/resolveDisplayRole/.test(applyFn[0]), 'ROLE badge uses resolveDisplayRole');
 
 assert.ok(/e\.stopPropagation\(\)/.test(html.match(/tbody\.querySelectorAll\('\.users-coach-toggle'\)[\s\S]{0,400}/)[0]));
 assert.ok(/closest\('\.users-coach-cell'\)/.test(html));
@@ -59,14 +64,19 @@ const helpersStart = html.indexOf('function userIsCoach(u){');
 const helpersEnd = html.indexOf('function findAllUsersRow(userId){');
 assert.ok(helpersStart !== -1 && helpersEnd > helpersStart);
 const userFieldSrc = html.match(/function userField\(u, keys, fallback\)\{[\s\S]*?\n  \}/)[0];
+const userIsTestSrc = html.match(/function userIsTest\(u\)\{[\s\S]*?\n  \}/)[0];
+const isTestAccountSrc = html.match(/function isTestAccount\(u\)\{[\s\S]*?\n  \}/)[0];
 const helpersSrc = html.slice(helpersStart, helpersEnd);
-const check = spawnSync('node', ['--check'], { input: userFieldSrc + '\n' + helpersSrc, encoding: 'utf8' });
+const check = spawnSync('node', ['--check'], {
+  input: userFieldSrc + '\n' + userIsTestSrc + '\n' + isTestAccountSrc + '\n' + helpersSrc,
+  encoding: 'utf8'
+});
 assert.strictEqual(check.status, 0, check.stderr || 'helpers failed node --check');
 
 const vm = spawnSync('node', [], {
   encoding: 'utf8',
   input:
-    userFieldSrc + '\n' + helpersSrc + '\n' +
+    userFieldSrc + '\n' + userIsTestSrc + '\n' + isTestAccountSrc + '\n' + helpersSrc + '\n' +
     `function assert(c, m){ if(!c) throw new Error(m); }
      assert(userIsCoach({ role: 'coach' }) === true, 'role coach');
      assert(userIsCoach({ role: 'both' }) === true, 'role both');
@@ -79,6 +89,20 @@ const vm = spawnSync('node', [], {
      assert(deriveRoleAfterCoachToggle({ role: 'coach' }, false) === 'signed-up-only', 'revoke coach');
      assert(linkedAthleteCount({ athlete_count: 3 }) === 3, 'athlete_count');
      assert(linkedAthleteCount({ linked_athletes: ['a', 'b'] }) === 2, 'linked_athletes');
+     assert(isTestAccount({ email: 'rls-probe-1@x.com' }) === true, 'rls-probe');
+     assert(isTestAccount({ email: 'tf-verify-bot@x.com' }) === true, 'tf-verify');
+     assert(isTestAccount({ email: 'anna+testcoach1@gmail.com' }) === true, '+test');
+     assert(isTestAccount({ email: 'foo@test.com' }) === true, '@test.com');
+     assert(isTestAccount({ email: 'foo@example.com' }) === true, '@example.com');
+     assert(isTestAccount({ email: 'anna.islamova@gmail.com' }) === false, 'real email');
+     assert(isTestAccount({ is_seed: true, email: 'real@gmail.com' }) === true, 'flag still counts');
+     assert(resolveDisplayRole({ email: 'a+test@x.com', role: 'coach' }) === 'Test account', 'test beats coach');
+     assert(resolveDisplayRole({ role: 'both' }) === 'both', 'both');
+     assert(resolveDisplayRole({ role: 'coach' }) === 'coach', 'coach');
+     assert(resolveDisplayRole({ role: 'athlete' }) === 'athlete', 'athlete');
+     assert(resolveDisplayRole({ role: 'signed-up-only', session_count: 1 }) === 'Signed up · active', 'active');
+     assert(resolveDisplayRole({ role: 'signed-up-only', climb_count: 2 }) === 'Signed up · active', 'climbs');
+     assert(resolveDisplayRole({ role: 'signed-up-only', session_count: 0, climb_count: 0 }) === 'Signed up · no activity', 'idle');
      console.log('helpers: ok');`
 });
 assert.strictEqual(vm.status, 0, vm.stderr || vm.stdout);
