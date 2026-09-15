@@ -170,6 +170,13 @@
     line-height:1.8;
   }
   .sidebar-footer .mono{color:var(--text-secondary);}
+  #sidebar-admin-session{
+    display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+    margin-bottom:8px;line-height:1.4;
+  }
+  #sidebar-admin-session[hidden]{display:none;}
+  #sidebar-admin-session b{color:var(--text);word-break:break-all;}
+  #sidebar-signout{padding:4px 8px;font-size:11px;}
 
   #main{
     flex:1;
@@ -306,6 +313,18 @@
   .users-coach-toggle-label{cursor:pointer;margin:0;}
   .users-coach-status{font-size:11px;color:var(--text-secondary);min-height:1em;}
   .ops-modal.wide{width:720px;max-height:90vh;overflow:auto;}
+  #user-detail-modal .nav-group{
+    border:1px solid var(--border);border-radius:8px;margin:0 0 10px;
+  }
+  #user-detail-modal .nav-group-label{
+    padding:12px 14px;font-size:13px;font-weight:700;letter-spacing:0;
+    text-transform:none;opacity:1;color:var(--text);
+  }
+  #user-detail-modal .nav-group-items{padding:0 12px 12px;}
+  #user-detail-modal .detail-acc-table-wrap{overflow-x:auto;}
+  #user-detail-modal .bo-table td.notes-clip{
+    max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
   .todo-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
   .todo-row:last-child{border-bottom:none;}
   .todo-row.done .todo-name{text-decoration:line-through;color:var(--text-secondary);}
@@ -836,6 +855,10 @@
       <div class="nav-divider"></div>
       <nav id="nav"></nav>
       <div class="sidebar-footer">
+        <div id="sidebar-admin-session" hidden>
+          <span>Signed in as <b id="sidebar-admin-email"></b></span>
+          <button type="button" class="bo-btn" id="sidebar-signout">Sign out</button>
+        </div>
         <div class="mono">v0.3.1 · foundash</div>
         <div>Last updated 2026-09-15</div>
       </div>
@@ -3489,6 +3512,53 @@
     });
   }
 
+  function updateSidebarAdminSession(){
+    var box = document.getElementById('sidebar-admin-session');
+    var emailEl = document.getElementById('sidebar-admin-email');
+    if(!box) return;
+    if(adminProfile && adminProfile.email){
+      if(emailEl) emailEl.textContent = adminProfile.email;
+      box.hidden = false;
+    } else {
+      if(emailEl) emailEl.textContent = '';
+      box.hidden = true;
+    }
+  }
+
+  function clearAdminSessionLocal(){
+    adminSession = null;
+    adminProfile = null;
+    rosterLoaded = false;
+    coachesLoaded = false;
+    customWorkoutsLoaded = false;
+    opsCenterLoaded = false;
+    allUsersLoaded = false;
+    todoLoaded = false;
+    financeLoaded = false;
+    overviewCountsPromise = null;
+    updateSidebarAdminSession();
+    refreshPrivilegedMetrics();
+  }
+
+  function signOutAdmin(){
+    if(!supabaseClient){
+      clearAdminSessionLocal();
+      var activeNow = document.querySelector('.nav-item.active');
+      if(activeNow) showSection(activeNow.dataset.section);
+      return;
+    }
+    supabaseClient.auth.signOut().then(function(){
+      clearAdminSessionLocal();
+      var active = document.querySelector('.nav-item.active');
+      if(active) showSection(active.dataset.section);
+    });
+  }
+
+  (function bindSidebarSignOut(){
+    var btn = document.getElementById('sidebar-signout');
+    if(btn) btn.addEventListener('click', function(){ signOutAdmin(); });
+  })();
+
   function renderAdminSessionBar(containerId){
     var el = document.getElementById(containerId);
     if(!el || !adminProfile) return;
@@ -3498,23 +3568,7 @@
         '<button class="bo-btn" id="admin-signout-' + containerId + '">Sign out</button>' +
       '</div>';
     document.getElementById('admin-signout-' + containerId).addEventListener('click', function(){
-      if(!supabaseClient) return;
-      supabaseClient.auth.signOut().then(function(){
-        adminSession = null;
-        adminProfile = null;
-        rosterLoaded = false;
-        coachesLoaded = false;
-        customWorkoutsLoaded = false;
-        opsCenterLoaded = false;
-        allUsersLoaded = false;
-        todoLoaded = false;
-        financeLoaded = false;
-        overviewCountsPromise = null;
-        refreshPrivilegedMetrics();
-        // Re-render whichever privileged section is active
-        var active = document.querySelector('.nav-item.active');
-        if(active) showSection(active.dataset.section);
-      });
+      signOutAdmin();
     });
   }
 
@@ -3559,16 +3613,19 @@
     if(!session){
       adminSession = null;
       adminProfile = null;
+      updateSidebarAdminSession();
       return Promise.resolve(false);
     }
     adminSession = session;
     return sbRpc('foundash_whoami', {}).then(function(data){
       if(data && data.ok){
         adminProfile = { email: data.email, user_id: data.user_id };
+        updateSidebarAdminSession();
         return true;
       }
       // Signed in but not an admin — drop session for privileged use
       adminProfile = null;
+      updateSidebarAdminSession();
       if(data && data.error === 'not_admin'){
         return false;
       }
@@ -3579,6 +3636,7 @@
       return false;
     }).catch(function(err){
       adminProfile = null;
+      updateSidebarAdminSession();
       if(isMissingRpc(err)){
         // SQL not applied yet — keep session so banners can still mention auth, but block as not ready
         adminSession = session;
@@ -4037,6 +4095,35 @@
     });
   }
 
+  function userDetailTableHtml(headers, rowsHtml, emptyMsg){
+    if(!rowsHtml) return '<div class="bo-empty">' + emptyMsg + '</div>';
+    return '<div class="detail-acc-table-wrap"><table class="bo-table"><thead><tr>' +
+      headers.map(function(h){ return '<th>' + h + '</th>'; }).join('') +
+      '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+  }
+
+  function userDetailAccordionHtml(key, title, innerHtml){
+    return '<div class="nav-group" data-acc="' + key + '">' +
+      '<button type="button" class="nav-group-label nav-group-toggle" aria-expanded="false" aria-controls="detail-acc-items-' + key + '">' +
+        '<span class="nav-group-chevron" aria-hidden="true">▸</span><span>' + escapeHtml(title) + '</span>' +
+      '</button>' +
+      '<div class="nav-group-items" id="detail-acc-items-' + key + '">' + innerHtml + '</div>' +
+    '</div>';
+  }
+
+  function bindUserDetailAccordions(root){
+    if(!root) return;
+    root.querySelectorAll('.nav-group[data-acc]').forEach(function(group){
+      var header = group.querySelector('.nav-group-toggle');
+      if(!header) return;
+      header.addEventListener('click', function(){
+        var open = !group.classList.contains('open');
+        group.classList.toggle('open', open);
+        header.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    });
+  }
+
   function renderUserDetail(userId, data, cached){
     var body = document.getElementById('user-detail-body');
     var title = document.getElementById('user-detail-title');
@@ -4048,16 +4135,43 @@
       'User'
     );
     title.textContent = name;
-    var sessions = data.recent_sessions || data.sessions || [];
+    var climbs = data.climbs || [];
+    var psyche = data.psyche || [];
+    var train = data.train || [];
     var payments = data.payments || data.ledger || [];
-    var sessHtml = sessions.length
-      ? '<table class="bo-table"><thead><tr><th>Date</th><th>Route</th><th>Zone</th></tr></thead><tbody>' +
-        sessions.slice(0, 12).map(function(s){
-          return '<tr><td class="mono">' + escapeHtml(fmtShortDate(s.created_at || s.date)) + '</td>' +
-            '<td>' + escapeHtml(s.route_name || s.name || '—') + '</td>' +
-            '<td>' + escapeHtml(s.zone || s.activation_zone || '—') + '</td></tr>';
-        }).join('') + '</tbody></table>'
-      : '<div class="bo-empty">No recent sessions.</div>';
+    var climbsHtml = userDetailTableHtml(
+      ['Date', 'Route', 'Grade', 'Type', 'Setting', 'Zone'],
+      climbs.length ? climbs.map(function(c){
+        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(c.created_at)) + '</td>' +
+          '<td>' + escapeHtml(c.route_name || '—') + '</td>' +
+          '<td>' + escapeHtml(c.grade_value || '—') + '</td>' +
+          '<td>' + escapeHtml(c.climbing_type || '—') + '</td>' +
+          '<td>' + escapeHtml(c.setting || '—') + '</td>' +
+          '<td>' + escapeHtml(c.zone || c.baseline_zone || '—') + '</td></tr>';
+      }).join('') : '',
+      'No climbs logged.'
+    );
+    var psycheHtml = userDetailTableHtml(
+      ['Date', 'Type', 'Detail'],
+      psyche.length ? psyche.map(function(row){
+        var isDrill = row.kind === 'drill';
+        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(row.created_at)) + '</td>' +
+          '<td>' + (isDrill ? 'Drill' : 'Check-in') + '</td>' +
+          '<td>' + escapeHtml(isDrill ? (row.drill_key || '—') : '—') + '</td></tr>';
+      }).join('') : '',
+      'No psyche activity logged.'
+    );
+    var trainHtml = userDetailTableHtml(
+      ['Date', 'Energy', 'Started', 'Ended', 'Notes'],
+      train.length ? train.map(function(t){
+        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(t.created_at)) + '</td>' +
+          '<td>' + escapeHtml(t.energy_type || '—') + '</td>' +
+          '<td class="mono">' + escapeHtml(t.started_at ? fmtShortDate(t.started_at) : '—') + '</td>' +
+          '<td class="mono">' + escapeHtml(t.ended_at ? fmtShortDate(t.ended_at) : '—') + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(t.notes || '') + '">' + escapeHtml(t.notes || '—') + '</td></tr>';
+      }).join('') : '',
+      'No training sessions logged.'
+    );
     var payHtml = payments.length
       ? '<table class="bo-table"><thead><tr><th>Date</th><th>Amount</th><th>Note</th><th></th></tr></thead><tbody>' +
         payments.map(function(p){
@@ -4069,13 +4183,16 @@
         }).join('') + '</tbody></table>'
       : '<div class="bo-empty">No payments logged.</div>';
     body.innerHTML =
-      '<div class="metric-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">' +
-        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['session_count', 'sessions'], 0)).toLocaleString() + '</div><div class="metric-label">Sessions</div></div>' +
+      '<div class="metric-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:16px;">' +
         '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['climb_count', 'climbs'], 0)).toLocaleString() + '</div><div class="metric-label">Climbs</div></div>' +
         '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['falls_count', 'falls', 'falls_logged'], 0)).toLocaleString() + '</div><div class="metric-label">Falls</div></div>' +
         '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['journal_count', 'journal_entries', 'journal'], 0)).toLocaleString() + '</div><div class="metric-label">Journal</div></div>' +
+        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['psyche_count'], 0)).toLocaleString() + '</div><div class="metric-label">Psyche</div></div>' +
+        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['train_count'], 0)).toLocaleString() + '</div><div class="metric-label">Train</div></div>' +
       '</div>' +
-      '<div class="panel-title">Recent sessions</div>' + sessHtml +
+      userDetailAccordionHtml('climbs', 'Climbs', climbsHtml) +
+      userDetailAccordionHtml('psyche', 'Psyche', psycheHtml) +
+      userDetailAccordionHtml('train', 'Train', trainHtml) +
       '<div class="panel-title" style="margin-top:18px;">Payments ledger</div>' +
       '<div class="schema-note" style="margin:0 0 10px;">Bookkeeping only — not live billing.</div>' +
       payHtml +
@@ -4085,6 +4202,7 @@
         '<div class="bo-form-row" style="flex:1;margin:0;"><label for="pay-note">Note</label><input id="pay-note" placeholder="e.g. PC coaching Sep"></div>' +
         '<button type="button" class="bo-btn primary" id="pay-add-btn">Add</button>' +
       '</div>';
+    bindUserDetailAccordions(body);
     var dateEl = document.getElementById('pay-date');
     if(dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
     var addBtn = document.getElementById('pay-add-btn');
