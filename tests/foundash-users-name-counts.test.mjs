@@ -31,13 +31,16 @@ assert.ok(detailFn, 'renderUserDetail extracted');
 assert.ok(/var profile = data\.profile \|\| \{\}/.test(detailFn), 'detail reads nested profile');
 assert.ok(/userField\(profile, \['first_name'\]/.test(detailFn), 'detail name from profile.first_name');
 assert.ok(/userField\(profile, \['last_name'\]/.test(detailFn), 'detail name from profile.last_name');
-assert.ok(/userField\(profile, \['session_count'/.test(detailFn), 'Sessions tile from profile.session_count');
 assert.ok(/userField\(profile, \['climb_count'/.test(detailFn), 'Climbs tile from profile.climb_count');
 assert.ok(/userField\(profile, \['falls_count'/.test(detailFn), 'Falls tile from profile.falls_count');
 assert.ok(/userField\(profile, \['journal_count'/.test(detailFn), 'Journal tile from profile.journal_count');
+assert.ok(/userField\(profile, \['psyche_count'/.test(detailFn), 'Psyche tile from profile.psyche_count');
+assert.ok(/userField\(profile, \['train_count'/.test(detailFn), 'Train tile from profile.train_count');
 assert.ok(!/userField\(data, \['session_count'/.test(detailFn), 'metrics no longer read top-level data');
 assert.ok(!/userField\(data, \['falls', 'falls_logged'\]/.test(detailFn), 'old falls key gone');
 assert.ok(!/userField\(data, \['journal_entries'/.test(detailFn), 'old journal_entries key gone');
+assert.ok(!/metric-label">Sessions/.test(detailFn), 'Sessions tile dropped from detail');
+assert.ok(!/Recent sessions/.test(detailFn), 'Recent sessions heading removed');
 
 const personSrc = html.match(/function personDisplayName\(firstName, lastName, email, fallback\)\{[\s\S]*?\n  \}/)[0];
 const userFieldSrc = html.match(/function userField\(u, keys, fallback\)\{[\s\S]*?\n  \}/)[0];
