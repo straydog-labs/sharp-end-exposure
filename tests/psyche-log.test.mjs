@@ -10,8 +10,8 @@ const sw = readFileSync(join(__dirname, '../sw.js'), 'utf8');
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index260'/.test(index));
-assert.ok(/APP_VERSION = 'index260'/.test(sw));
+assert.ok(/var app_version = 'index261'/.test(index));
+assert.ok(/APP_VERSION = 'index261'/.test(sw));
 
 assert.ok(/function startPrepare\(/.test(index));
 assert.ok(/function startPrepareClimb\(/.test(index));
@@ -41,7 +41,14 @@ assert.ok(/id="screen-psyche-talk"/.test(index));
 assert.ok(/'screen-psyche-bee':'fnav-mental'/.test(index));
 assert.ok(/'screen-psyche-talk':'fnav-mental'/.test(index));
 
-assert.ok(/id="psyche-stat-streak"/.test(index));
+assert.ok(/Log a practice to see your mix/.test(index));
+assert.ok(/total === 0/.test(index));
+assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Check-in</.test(index));
+assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Exposure</.test(index));
+assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Breath</.test(index));
+assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Relax</.test(index));
+assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Visualize</.test(index));
+assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Self-talk</.test(index));
 assert.ok(/id="psyche-radar-wrap"/.test(index));
 assert.ok(/setPsycheRadarRange\(7/.test(index));
 assert.ok(/setPsycheRadarRange\(30/.test(index));
