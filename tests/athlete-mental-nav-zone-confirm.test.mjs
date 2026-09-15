@@ -11,8 +11,8 @@ const sql = readFileSync(join(__dirname, '../sql/sessions-zone-confirmed-by-athl
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index259'/.test(index));
-assert.ok(/APP_VERSION = 'index259'/.test(sw));
+assert.ok(/var app_version = 'index260'/.test(index));
+assert.ok(/APP_VERSION = 'index260'/.test(sw));
 
 assert.ok(/id="fnav-mental"/.test(index));
 assert.ok(/showScreen\('screen-drill'\)/.test(index.match(/id="fnav-mental"[\s\S]{0,400}/)[0]));
@@ -32,6 +32,11 @@ assert.ok(/'screen-drill-reveal':'fnav-mental'/.test(index));
 assert.ok(/'screen-drill-hold':'fnav-mental'/.test(index));
 assert.ok(/'screen-prepare-climb':'fnav-mental'/.test(index));
 assert.ok(/'screen-prepare-result':'fnav-mental'/.test(index));
+assert.ok(/'screen-psyche-bee':'fnav-mental'/.test(index));
+assert.ok(/'screen-psyche-sigh':'fnav-mental'/.test(index));
+assert.ok(/'screen-psyche-pmr':'fnav-mental'/.test(index));
+assert.ok(/'screen-psyche-viz':'fnav-mental'/.test(index));
+assert.ok(/'screen-psyche-talk':'fnav-mental'/.test(index));
 assert.ok(/function startPrepare\(/.test(index));
 assert.ok(/function startPrepareClimb\(/.test(index));
 assert.ok(/function startExposureDrill\(/.test(index));

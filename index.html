@@ -815,6 +815,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .train-desc-md input[type=checkbox]{margin-right:6px;cursor:pointer;vertical-align:middle;}
 .train-desc-md li:has(>input[type=checkbox]:first-child){list-style:none;}
 .insight-label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+.psyche-range-chip{background:var(--surface2);border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.psyche-range-chip.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
+.psyche-cue-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:500;padding:10px 16px;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent;}
+.psyche-cue-chip.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
 .insight-text{font-size:15px;line-height:1.6;}
 
 /* ── TICK MARK ── */
@@ -3217,10 +3221,184 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="content">
     <!-- tip host: drill-home injected by mountTipForScreen (build 195) -->
-    <div style="margin-bottom:24px;"><div style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;">Psyche</div><div style="font-size:14px;color:var(--muted);">Three practices. Before, during, and after.</div></div>
+    <div style="margin-bottom:8px;"><div style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;">Psyche</div><div style="font-size:14px;color:var(--muted);">Check-in, train the mind, log the work.</div></div>
+    <div id="psyche-log-stats">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div class="insight-card" style="padding:16px;">
+          <div class="insight-label" style="margin-bottom:6px;">Streak</div>
+          <div id="psyche-stat-streak" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">consecutive days</div>
+        </div>
+        <div class="insight-card" style="padding:16px;">
+          <div class="insight-label" style="margin-bottom:6px;">This week</div>
+          <div id="psyche-stat-week" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">practices</div>
+        </div>
+      </div>
+      <div class="insight-card" style="padding:16px;margin-bottom:10px;">
+        <div class="insight-label" style="margin-bottom:6px;">Total logged</div>
+        <div id="psyche-stat-total" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">psyche practices</div>
+      </div>
+      <div class="insight-card" id="psyche-radar-card" style="margin-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <div class="insight-label" style="margin-bottom:0;">Practice mix</div>
+          <div id="psyche-radar-range" style="display:flex;gap:6px;">
+            <button type="button" class="psyche-range-chip selected" onclick="setPsycheRadarRange(7,this)">7 days</button>
+            <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(30,this)">30 days</button>
+            <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(90,this)">90 days</button>
+          </div>
+        </div>
+        <div id="psyche-radar-wrap"></div>
+      </div>
+    </div>
     <div style="background:var(--surface);border:1px solid var(--drill-a-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-a),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-a-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 12 Q6 8 9 12 Q12 16 15 12 Q18 8 21 12" stroke="var(--drill-a)" stroke-width="2" stroke-linecap="round" fill="none"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-a);margin-bottom:5px;">Before a climb</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Quick check-in</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">A somatic check-in at any point in your decision window. Days before, morning of, or at the base.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">2–3 min</div><button onclick="startPrepare()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
     <div style="background:var(--surface);border:1px solid var(--drill-b-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-b),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-b-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 20 L8 12 L12 16 L16 8 L21 20" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-b);margin-bottom:5px;">Full pre-climb sequence</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Prepare for a climb</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Breathwork, somatic check-in, route visualization, second check-in. The full sequence before committing.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">5–7 min</div><button onclick="startPrepareClimb()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
     <div style="background:var(--surface);border:1px solid var(--drill-c-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-c),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-c-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(107,140,174,0.4)" stroke-width="1.5"/><circle cx="12" cy="12" r="5" stroke="rgba(107,140,174,0.6)" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="var(--drill-c)"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-c);margin-bottom:5px;">Structured practice</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Exposure Drill</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Predict your zone, check in, climb, log post-climb. See how prediction and reality compare.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">Full session</div><button onclick="startExposureDrill()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
+    <div style="background:var(--surface);border:1px solid var(--drill-a-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-a),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-a-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 12h8M12 8v8" stroke="var(--drill-a)" stroke-width="1.5" stroke-linecap="round"/><path d="M5 12c2-5 4-5 7-5s5 0 7 5c-2 5-4 5-7 5s-5 0-7-5z" stroke="var(--drill-a)" stroke-width="2" fill="none"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-a);margin-bottom:5px;">Breathwork</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Bee Humming</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Plug your ears, close your eyes, inhale, then hum on a long exhale - like a bee.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">60-90 sec</div><button onclick="startPsycheBee()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
+    <div style="background:var(--surface);border:1px solid var(--drill-b-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-b),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-b-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 14c2-6 4 6 6 0s4 6 6 0 4 6 6 0" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round"/><path d="M4 18c2-3 4 3 6 0s4 3 6 0 4 3 6 0" stroke="var(--drill-b)" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-b);margin-bottom:5px;">Breathwork</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Cyclic Sighing</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Two inhales through the nose, then one long slow exhale through the mouth. Five cycles.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">~1 min</div><button onclick="startPsycheSigh()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
+    <div style="background:var(--surface);border:1px solid var(--drill-c-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-c),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-c-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 20V10M12 20V6M16 20V12" stroke="var(--drill-c)" stroke-width="2" stroke-linecap="round"/><path d="M6 8c2-3 4-3 6 0s4 3 6 0" stroke="var(--drill-c)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-c);margin-bottom:5px;">Relaxation</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Progressive Muscle Relaxation</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Tense each muscle group for 5 seconds, then release for 10. Feet to face.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">3-4 min</div><button onclick="startPsychePmr()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
+    <div style="background:var(--surface);border:1px solid var(--drill-a-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-a),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-a-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="var(--drill-a)" stroke-width="1.5"/><path d="M8 13c1.2 2 6.8 2 8 0" stroke="var(--drill-a)" stroke-width="1.5" stroke-linecap="round"/><circle cx="9.5" cy="10" r="1" fill="var(--drill-a)"/><circle cx="14.5" cy="10" r="1" fill="var(--drill-a)"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-a);margin-bottom:5px;">Visualization</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Project Visualization</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Mentally rehearse your project from start to finish - holds, crux, topping out.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">2-3 min</div><button onclick="startPsycheViz()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
+    <div style="background:var(--surface);border:1px solid var(--drill-b-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-b),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-b-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 8h9M5 12h6M5 16h8" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round"/><path d="M16 7l4 5-4 5" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-b);margin-bottom:5px;">Self-Talk</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Self-Talk Cue</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Pick a short cue phrase to repeat at the crux - brevity and timing are the point.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">~1 min</div><button onclick="startPsycheTalk()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
+  </div>
+</div>
+
+<div class="screen" id="screen-psyche-bee">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="exitPsycheDrill()">← Psyche</button>
+  </div>
+  <div class="content">
+    <div id="psyche-bee-intro">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-a);margin-bottom:8px;">Breathwork</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:12px;">Bee Humming</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px;">Plug your ears gently with your thumbs (or index fingers), close your eyes, take a slow inhale, then hum on a long exhale - like a bee. Repeat for 60-90 seconds.</div>
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Duration</div>
+      <div style="display:flex;gap:8px;margin-bottom:24px;">
+        <button type="button" class="psyche-range-chip selected" id="psyche-bee-dur-60" onclick="setPsycheBeeDuration(60,this)">60 sec</button>
+        <button type="button" class="psyche-range-chip" id="psyche-bee-dur-90" onclick="setPsycheBeeDuration(90,this)">90 sec</button>
+      </div>
+      <button type="button" onclick="beginPsycheBee()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;">Start humming →</button>
+    </div>
+    <div id="psyche-bee-run" style="display:none;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-a);margin-bottom:12px;">Humming</div>
+      <div id="psyche-bee-timer" style="font-size:56px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;margin-bottom:16px;">1:00</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px;">Ears plugged. Eyes closed. Hum on the exhale.</div>
+      <button type="button" onclick="finishPsycheBee(false)" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:14px;cursor:pointer;">End early</button>
+    </div>
+    <div id="psyche-bee-done" style="display:none;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-a);margin-bottom:12px;">Complete</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:10px;">Bee humming logged</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px;">Nitric oxide and vagal tone - a body-state shift, not just a calm feeling.</div>
+      <button type="button" onclick="showScreen('screen-drill')" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;">Back to Psyche</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-psyche-sigh">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="exitPsycheDrill()">← Psyche</button>
+  </div>
+  <div class="content">
+    <div id="psyche-sigh-intro">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-b);margin-bottom:8px;">Breathwork</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:12px;">Cyclic Sighing</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px;">Two inhales through the nose back-to-back (short, then a second deeper top-off), then one long slow exhale through the mouth. Repeat for 5 cycles (~1 minute).</div>
+      <button type="button" onclick="beginPsycheSigh()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;">Start 5 cycles →</button>
+    </div>
+    <div id="psyche-sigh-run" style="display:none;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-b);margin-bottom:8px;">Cycle <span id="psyche-sigh-count">1</span> of 5</div>
+      <div style="display:flex;justify-content:center;margin:20px 0;">
+        <div id="psyche-sigh-circle" style="width:120px;height:120px;border-radius:50%;background:rgba(61,184,201,.15);border:2px solid rgba(61,184,201,.45);display:flex;align-items:center;justify-content:center;transition:all .8s ease-in-out;">
+          <div id="psyche-sigh-label" style="font-size:15px;font-weight:700;color:var(--drill-b);">Ready</div>
+        </div>
+      </div>
+      <div id="psyche-sigh-hint" style="font-size:14px;color:var(--muted);line-height:1.6;">Nose inhale, then a top-off, then a long mouth exhale.</div>
+    </div>
+    <div id="psyche-sigh-done" style="display:none;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-b);margin-bottom:12px;">Complete</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:10px;">Five cycles logged</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px;">The long exhale is doing the work.</div>
+      <button type="button" onclick="showScreen('screen-drill')" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;">Back to Psyche</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-psyche-pmr">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="exitPsycheDrill()">← Psyche</button>
+  </div>
+  <div class="content">
+    <div id="psyche-pmr-intro">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-c);margin-bottom:8px;">Relaxation</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:12px;">Progressive Muscle Relaxation</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px;">Working through major muscle groups (feet → calves → thighs → glutes → abs → hands → arms → shoulders → face), tense each for 5 seconds then release for 10 seconds.</div>
+      <button type="button" onclick="beginPsychePmr()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;">Start sequence →</button>
+    </div>
+    <div id="psyche-pmr-run" style="display:none;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-c);margin-bottom:8px;"><span id="psyche-pmr-step">1</span> of 9</div>
+      <div id="psyche-pmr-group" style="font-size:28px;font-weight:700;margin-bottom:8px;">Feet</div>
+      <div id="psyche-pmr-phase" style="font-size:18px;font-weight:700;color:var(--accent);margin-bottom:8px;">Tense</div>
+      <div id="psyche-pmr-timer" style="font-size:48px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);line-height:1;margin-bottom:16px;">5</div>
+      <div id="psyche-pmr-hint" style="font-size:14px;color:var(--muted);line-height:1.6;">Squeeze and hold. Then let it go.</div>
+    </div>
+    <div id="psyche-pmr-done" style="display:none;text-align:center;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-c);margin-bottom:12px;">Complete</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:10px;">PMR logged</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px;">Tension you create on purpose is tension you can release on purpose.</div>
+      <button type="button" onclick="showScreen('screen-drill')" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;">Back to Psyche</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-psyche-viz">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="exitPsycheDrill()">← Psyche</button>
+  </div>
+  <div class="content">
+    <div id="psyche-viz-intro">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-a);margin-bottom:8px;">Visualization</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:12px;">Project Visualization</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px;">Close your eyes and mentally rehearse your project climb start to finish - see the holds, feel the movement, imagine the crux sequence and yourself executing it successfully. 2-3 minutes.</div>
+      <button type="button" onclick="beginPsycheViz()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;">Start rehearsal →</button>
+    </div>
+    <div id="psyche-viz-run" style="display:none;text-align:center;">
+      <div id="psyche-viz-prompt" style="font-size:22px;font-weight:700;line-height:1.35;margin-bottom:16px;">See the opening moves</div>
+      <div id="psyche-viz-timer" style="font-size:48px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;margin-bottom:16px;">2:30</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;">Eyes closed if that helps. Feel the movement, not just the pictures.</div>
+    </div>
+    <div id="psyche-viz-done" style="display:none;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-a);margin-bottom:8px;">Complete</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:10px;">Visualization logged</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px;">Optional: what did you see?</div>
+      <textarea id="psyche-viz-note" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:100px;line-height:1.6;box-sizing:border-box;margin-bottom:16px;" placeholder="Holds, crux, topping out..."></textarea>
+      <button type="button" onclick="finishPsycheViz()" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;">Save and finish</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-psyche-talk">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button class="back-btn" onclick="exitPsycheDrill()">← Psyche</button>
+  </div>
+  <div class="content">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--drill-b);margin-bottom:8px;">Self-Talk</div>
+    <div style="font-size:24px;font-weight:700;margin-bottom:12px;">Self-Talk Cue</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:20px;">Pick or write a short cue phrase (e.g. "trust your feet," "breathe and commit") to repeat at the crux.</div>
+    <div id="psyche-talk-chips" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+      <button type="button" class="psyche-cue-chip" onclick="selectPsycheCue(this,'trust your feet')">trust your feet</button>
+      <button type="button" class="psyche-cue-chip" onclick="selectPsycheCue(this,'breathe and commit')">breathe and commit</button>
+      <button type="button" class="psyche-cue-chip" onclick="selectPsycheCue(this,'quiet hips')">quiet hips</button>
+      <button type="button" class="psyche-cue-chip" onclick="selectPsycheCue(this,'look at the hold')">look at the hold</button>
+      <button type="button" class="psyche-cue-chip" onclick="selectPsycheCue(this,'soft hands')">soft hands</button>
+      <button type="button" class="psyche-cue-chip" onclick="selectPsycheCue(this,'one move at a time')">one move at a time</button>
+    </div>
+    <input id="psyche-talk-custom" type="text" maxlength="80" placeholder="Or write your own cue" oninput="onPsycheCueCustom(this)" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;box-sizing:border-box;margin-bottom:20px;">
+    <button type="button" id="psyche-talk-save" onclick="finishPsycheTalk()" disabled style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;opacity:.4;">Save cue</button>
   </div>
 </div>
 
@@ -3232,7 +3410,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="content">
     <div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Straydog Labs</div>
     <div class="screen-title" style="font-size:30px;letter-spacing:-.02em;">The Research</div>
-    <div style="font-size:14px;color:var(--muted);line-height:1.65;margin-top:-16px;">Ten studies across four themes. Every design decision maps directly to peer-reviewed science.</div>
+    <div style="font-size:14px;color:var(--muted);line-height:1.65;margin-top:-16px;">Peer-reviewed studies behind the practices. Every design decision maps directly to the science.</div>
 
     <!-- SCORING TRANSPARENCY CARD -->
     <div style="background:rgba(200,245,90,.05);border:1px solid rgba(200,245,90,.15);border-radius:var(--r-xl);padding:18px;margin-bottom:16px;">
@@ -3467,6 +3645,144 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div class="res-study-header"><span class="res-year">2010</span><span class="res-author">Fleming &amp; Hörst — Journal of Behavioral Health and Medicine</span></div>
       <div class="res-study-text">Applied behavior-analysis principles to sport climbing: advanced climbers link complex movement sequences more efficiently than beginners on identical routes, and "fluency training" (practicing moves for accuracy and speed together, not accuracy alone) measurably improved performance for non-elite climbers. <a href="https://www.researchgate.net/publication/275724897_Behavior_analysis_and_sports_climbing" target="_blank" rel="noopener">ResearchGate</a></div>
       <div class="res-apply">Skill work should train speed and accuracy together, not accuracy-then-speed - matches why Drill practice times movement, not just completion.</div>
+    </div>
+  </div>
+</div>
+
+<div class="res-card">
+  <div class="res-card-header" onclick="toggleRes(this)" style="text-align:left;">
+    <div class="res-card-icon">
+      <svg width="56" height="56" viewBox="0 0 64 64">
+        <rect width="64" height="64" fill="#081018"/>
+        <ellipse cx="32" cy="34" rx="16" ry="10" fill="none" stroke="#5ba3d9" stroke-width="1.6"/>
+        <path d="M16,34 C22,22 28,46 32,28 C36,46 42,22 48,34" fill="none" stroke="#5ba3d9" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="32" cy="18" r="3" fill="none" stroke="rgba(91,163,217,.7)" stroke-width="1.4"/>
+        <text x="32" y="56" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(91,163,217,.7)" letter-spacing=".06em">HUM</text>
+      </svg>
+    </div>
+    <div class="res-card-meta">
+      <div class="res-card-label">Breathwork &amp; vagal tone</div>
+      <div class="res-card-title">Humming vibrates the vagus nerve</div>
+      <div class="res-card-sub">Two separate, independent mechanisms make this work - not one.</div>
+    </div>
+    <div class="res-card-chevron">›</div>
+  </div>
+  <div class="res-card-body">
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">2002</span><span class="res-author">Weitzberg &amp; Lundberg, American Journal of Respiratory and Critical Care Medicine</span></div>
+      <div class="res-study-text">Finding: nasal nitric oxide increased 15-fold during humming compared to quiet exhalation.</div>
+      <div class="res-apply">nitric oxide is a vasodilator - this is the physiological basis for why a long humming exhale measurably changes your body state, not just a subjective calming feeling.</div>
+    </div>
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">2025</span><span class="res-author">Rohini et al., Annals of Neurosciences</span></div>
+      <div class="res-study-text">RCT, 90 post-COVID adults, Bhramari Pranayama vs Sheetali vs control. Finding: RMSSD (a heart-rate-variability marker of parasympathetic/vagal activity) improved by a mean of 5.5ms (p&lt;.01); FVC (lung function) improved from 3.2±0.5L to 3.7±0.4L over 6 months (p&lt;.001).</div>
+      <div class="res-apply">measurable autonomic nervous system shift, not just self-report - this is why the drill is framed as "vagus nerve," not "relaxation vibes."</div>
+    </div>
+  </div>
+</div>
+
+<div class="res-card">
+  <div class="res-card-header" onclick="toggleRes(this)" style="text-align:left;">
+    <div class="res-card-icon">
+      <svg width="56" height="56" viewBox="0 0 64 64">
+        <rect width="64" height="64" fill="#081412"/>
+        <path d="M10,40 C16,28 20,28 24,40 C28,52 32,20 40,36 C46,48 50,24 54,32" fill="none" stroke="#3db8c9" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="24" cy="40" r="2.5" fill="#3db8c9"/>
+        <circle cx="40" cy="36" r="2.5" fill="#3db8c9"/>
+        <text x="32" y="14" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(61,184,201,.7)" letter-spacing=".06em">SIGH</text>
+      </svg>
+    </div>
+    <div class="res-card-meta">
+      <div class="res-card-label">Breathwork &amp; mood</div>
+      <div class="res-card-title">The exhale is doing the work</div>
+      <div class="res-card-sub">A Stanford-run RCT found this specific pattern outperformed box breathing and meditation.</div>
+    </div>
+    <div class="res-card-chevron">›</div>
+  </div>
+  <div class="res-card-body">
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">2023</span><span class="res-author">Balban et al., Cell Reports Medicine</span></div>
+      <div class="res-study-text">RCT comparing cyclic sighing, box breathing, cyclic hyperventilation, and mindfulness meditation, daily 5-minute sessions over 1 month. Finding: cyclic sighing produced greater mood improvement and greater reduction in respiratory rate than mindfulness meditation (p&lt;.05 both).</div>
+      <div class="res-apply">the double-inhale-then-long-exhale pattern in this drill is the exact protocol tested - not an approximation.</div>
+    </div>
+  </div>
+</div>
+
+<div class="res-card">
+  <div class="res-card-header" onclick="toggleRes(this)" style="text-align:left;">
+    <div class="res-card-icon">
+      <svg width="56" height="56" viewBox="0 0 64 64">
+        <rect width="64" height="64" fill="#10140e"/>
+        <path d="M18,48 L18,22 M28,48 L28,16 M38,48 L38,24 M48,48 L48,20" stroke="#6b8cae" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M16,28 C24,18 40,18 48,28" fill="none" stroke="rgba(107,140,174,.45)" stroke-width="1.5" stroke-linecap="round"/>
+        <text x="32" y="58" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(107,140,174,.75)" letter-spacing=".06em">PMR</text>
+      </svg>
+    </div>
+    <div class="res-card-meta">
+      <div class="res-card-label">Relaxation &amp; competitive anxiety</div>
+      <div class="res-card-title">Tension you create on purpose is tension you can release on purpose</div>
+      <div class="res-card-sub">Athletes who did this predicted their own peak performance far more often.</div>
+    </div>
+    <div class="res-card-chevron">›</div>
+  </div>
+  <div class="res-card-body">
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">2020/2021</span><span class="res-author">Liu et al., Frontiers in Psychology</span></div>
+      <div class="res-study-text">24 collegiate track &amp; field athletes, 4-week intervention, two 30-min PMR sessions/week before competition. Finding: PRT group predicted a 77.78% likelihood of reaching their best competitive record, vs 53.33% for controls; somatic anxiety trended down continuously across the intervention in the PRT group only.</div>
+      <div class="res-apply">this isn't just "feels relaxing" - it changed actual competitive outcomes in a controlled comparison.</div>
+    </div>
+  </div>
+</div>
+
+<div class="res-card">
+  <div class="res-card-header" onclick="toggleRes(this)" style="text-align:left;">
+    <div class="res-card-icon">
+      <svg width="56" height="56" viewBox="0 0 64 64">
+        <rect width="64" height="64" fill="#120818"/>
+        <path d="M12,44 L24,20 L32,32 L40,16 L52,44" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12,44 L24,28 L32,36 L40,24 L52,44" fill="none" stroke="rgba(167,139,250,.35)" stroke-width="1.4" stroke-dasharray="3,3"/>
+        <circle cx="40" cy="16" r="2.5" fill="#a78bfa"/>
+        <text x="32" y="56" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(167,139,250,.7)" letter-spacing=".06em">IMAGE</text>
+      </svg>
+    </div>
+    <div class="res-card-meta">
+      <div class="res-card-label">Motor imagery</div>
+      <div class="res-card-title">Your nervous system doesn't fully distinguish imagining from doing</div>
+      <div class="res-card-sub">The evidence here is genuinely mixed - be honest about that in the copy, not oversold.</div>
+    </div>
+    <div class="res-card-chevron">›</div>
+  </div>
+  <div class="res-card-body">
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">Sport</span><span class="res-author">Climbing-specific imagery research (sport climbing training literature, mixed sample sizes from beginner to expert climbers)</span></div>
+      <div class="res-study-text">Finding: pure visualization training showed no significant performance edge over controls in beginners; but motivational imagery reliably reduced stress and improved self-efficacy, and imagery combining external-visual perspective with kinesthetic (felt-movement) imagery was the most effective combination, particularly for form/technique-focused tasks.</div>
+      <div class="res-apply">frame this drill honestly as a confidence/stress tool backed by evidence, not a guaranteed performance booster - avoid language that overclaims direct performance gains.</div>
+    </div>
+  </div>
+</div>
+
+<div class="res-card">
+  <div class="res-card-header" onclick="toggleRes(this)" style="text-align:left;">
+    <div class="res-card-icon">
+      <svg width="56" height="56" viewBox="0 0 64 64">
+        <rect width="64" height="64" fill="#140c08"/>
+        <path d="M14,22 h24 M14,32 h18 M14,42 h22" stroke="#e8763a" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M42,18 L54,32 L42,46" fill="none" stroke="#e8763a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="32" y="56" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="6" fill="rgba(232,118,58,.75)" letter-spacing=".06em">CUE</text>
+      </svg>
+    </div>
+    <div class="res-card-meta">
+      <div class="res-card-label">Attention control</div>
+      <div class="res-card-title">A short cue phrase measurably changes performance</div>
+      <div class="res-card-sub">One of the most replicated findings in sport psychology.</div>
+    </div>
+    <div class="res-card-chevron">›</div>
+  </div>
+  <div class="res-card-body">
+    <div class="res-study">
+      <div class="res-study-header"><span class="res-year">2011</span><span class="res-author">Hatzigeorgiadis, Zourbanos, Galanis &amp; Theodorakis, Perspectives on Psychological Science, 6(4), 348-356</span></div>
+      <div class="res-study-text">Meta-analysis across many sport-performance studies. Finding: self-talk (especially short, instructional cue phrases used at the moment of execution) produced a real, positive effect on sport performance, most reliably on precision/fine-motor tasks.</div>
+      <div class="res-apply">this is why the drill is a short cue phrase repeated at the crux, not a long mantra or general positive-thinking exercise - brevity and timing are what the research actually supports.</div>
     </div>
   </div>
 </div>
@@ -4874,7 +5190,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index259'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index260'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -5632,7 +5948,7 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-mental','screen-drill-reveal':'fnav-mental','screen-drill-hold':'fnav-mental','screen-prepare-climb':'fnav-mental','screen-prepare-result':'fnav-mental','screen-zone-predict':'fnav-mental','screen-prepare':'fnav-mental','screen-prepare-pause':'fnav-mental','screen-research':'fnav-home','screen-profile':'fnav-home','screen-profile-journal':'fnav-home','screen-profile-account':'fnav-home','screen-profile-data':'fnav-home','screen-profile-install':'fnav-home','screen-profile-help':'fnav-home','screen-profile-beta':'fnav-home','screen-profile-feedback':'fnav-home','screen-profile-notifications':'fnav-home','screen-profile-notes':'fnav-home','screen-journal-entry':'fnav-home','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-session-detail':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions','screen-coach-zone-confirm':'fnav-sessions'};
+  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-mental','screen-drill-reveal':'fnav-mental','screen-drill-hold':'fnav-mental','screen-psyche-bee':'fnav-mental','screen-psyche-sigh':'fnav-mental','screen-psyche-pmr':'fnav-mental','screen-psyche-viz':'fnav-mental','screen-psyche-talk':'fnav-mental','screen-prepare-climb':'fnav-mental','screen-prepare-result':'fnav-mental','screen-zone-predict':'fnav-mental','screen-prepare':'fnav-mental','screen-prepare-pause':'fnav-mental','screen-research':'fnav-home','screen-profile':'fnav-home','screen-profile-journal':'fnav-home','screen-profile-account':'fnav-home','screen-profile-data':'fnav-home','screen-profile-install':'fnav-home','screen-profile-help':'fnav-home','screen-profile-beta':'fnav-home','screen-profile-feedback':'fnav-home','screen-profile-notifications':'fnav-home','screen-profile-notes':'fnav-home','screen-journal-entry':'fnav-home','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-session-detail':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions','screen-coach-zone-confirm':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   if(_prevScreen==='screen-train-session' && id!=='screen-train-session'){
     clearAllTrainBlockTimerIntervals();
@@ -5659,7 +5975,10 @@ function showScreen(id){
   // Show/hide FAB — only visible on sessions screen
   var fab=document.getElementById('climb-log-fab');
   if(fab)fab.style.display=id==='screen-sessions'?'flex':'none';
-  if(id==='screen-drill')loadDrillRouteOptions();
+  if(id==='screen-drill'){ loadDrillRouteOptions(); loadPsycheLog(); }
+  if(_prevScreen && _prevScreen.indexOf('screen-psyche-')===0 && String(id).indexOf('screen-psyche-')!==0){
+    stopPsycheTimers();
+  }
   if(id==='screen-log'){startLogFlow();}
   if(id==='screen-sessions'){loadClimbLog();}
   // Nav voice FAB — hide on sessions (+ FAB is there), show elsewhere
@@ -5696,7 +6015,7 @@ var SEE_TIPS = {
   },
   'screen-drill': {
     id: 'drill-home',
-    text: 'Psyche has three practices you can run any time: a quick check-in, a full pre-climb sequence, or a guided Exposure Drill.'
+    text: 'Psyche has three practices you can run any time: a quick check-in, a full pre-climb sequence, or a guided Exposure Drill. Breathwork, visualization, relaxation, and self-talk drills log here too.'
   },
   'screen-train': {
     id: 'train-home',
@@ -8888,7 +9207,10 @@ function isAthleteStreakPsyche(s){
 function isAthleteStreakTraining(t){
   return !!(t && !t.deleted_at);
 }
-function collectAthleteStreakDays(climbs, trains, psyche){
+function isAthleteStreakPsycheDrill(d){
+  return !!(d && !d.deleted_at && d.drill_key);
+}
+function collectAthleteStreakDays(climbs, trains, psyche, psycheDrills){
   var keys = {};
   function add(iso){
     var k = athleteLocalDayKeyFromIso(iso);
@@ -8897,6 +9219,7 @@ function collectAthleteStreakDays(climbs, trains, psyche){
   (climbs || []).forEach(function(s){ if(isAthleteStreakClimb(s)) add(s.created_at); });
   (trains || []).forEach(function(t){ if(isAthleteStreakTraining(t)) add(t.created_at); });
   (psyche || []).forEach(function(s){ if(isAthleteStreakPsyche(s)) add(s.created_at); });
+  (psycheDrills || []).forEach(function(d){ if(isAthleteStreakPsycheDrill(d)) add(d.created_at); });
   return keys;
 }
 function computeAthleteStreak(daySet, fromDate){
@@ -9041,11 +9364,16 @@ async function loadHomeStreakBand(){
     'training_sessions',
     'select=id,created_at,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=40'
   );
+  var drillRows = await sbS(
+    'psyche_drills',
+    'select=id,created_at,drill_key,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=80'
+  );
   sessRows = Array.isArray(sessRows) ? sessRows : [];
   trainRows = Array.isArray(trainRows) ? trainRows : [];
+  drillRows = Array.isArray(drillRows) ? drillRows : [];
   var climbs = sessRows.filter(isAthleteStreakClimb);
   var psyche = sessRows.filter(isAthleteStreakPsyche);
-  var days = collectAthleteStreakDays(climbs, trainRows, psyche);
+  var days = collectAthleteStreakDays(climbs, trainRows, psyche, drillRows);
   var streak = computeAthleteStreak(days, new Date());
   var share = computeWeekZoneShare(climbs, new Date());
   painted = homeStreakBandHtml(streak, share);
@@ -14049,6 +14377,416 @@ function startExposureDrill(){
   showScreen('screen-zone-predict');
   buildActivationGauge('predict-gauge', 6, 'estimated', true, null);
 }
+
+// ═══════════════════════════════════════════════════════
+// PSYCHE LOG — hardcoded drills (psyche_drills table)
+// Existing 3 practices still log via sessions.is_checkin. Do not change them.
+// ═══════════════════════════════════════════════════════
+var _psycheRadarDays = 30;
+var _psycheTimer = null;
+var _psycheBeeDuration = 60;
+var _psycheBeeLeft = 60;
+var _psycheSigh = { cycle: 0, phase: 'in1' };
+var _psychePmr = { gi: 0, phase: 'tense', left: 5 };
+var _psycheVizLeft = 150;
+var _psycheTalkCue = '';
+var PSYCHE_PMR_GROUPS = ['Feet','Calves','Thighs','Glutes','Abs','Hands','Arms','Shoulders','Face'];
+var PSYCHE_VIZ_PROMPTS = [
+  { until: 100, text: 'See the opening moves' },
+  { until: 50, text: 'See the crux' },
+  { until: 0, text: 'See yourself topping out' }
+];
+
+function stopPsycheTimers(){
+  if(_psycheTimer){ clearInterval(_psycheTimer); _psycheTimer = null; }
+}
+
+function psycheFmtMmSs(sec){
+  sec = Math.max(0, Math.floor(sec));
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function psycheSetPhase(prefix, name){
+  ['intro','run','done'].forEach(function(p){
+    var el = document.getElementById('psyche-' + prefix + '-' + p);
+    if(el) el.style.display = p === name ? 'block' : 'none';
+  });
+}
+
+async function logPsycheDrill(drillKey, durationSeconds, metadata){
+  var payload = {
+    user_id: window._authUser ? window._authUser.id : null,
+    device_id: getDeviceId(),
+    drill_key: drillKey,
+    duration_seconds: durationSeconds == null ? null : durationSeconds,
+    metadata: metadata || {}
+  };
+  var saved = await sbI('psyche_drills', payload);
+  if(sbFailed(saved)){
+    showToast('Could not save - try again', true);
+    return null;
+  }
+  return saved;
+}
+
+function exitPsycheDrill(){
+  stopPsycheTimers();
+  showScreen('screen-drill');
+}
+
+function setPsycheRadarRange(days, btn){
+  _psycheRadarDays = days;
+  var wrap = document.getElementById('psyche-radar-range');
+  if(wrap){
+    wrap.querySelectorAll('.psyche-range-chip').forEach(function(b){ b.classList.remove('selected'); });
+  }
+  if(btn) btn.classList.add('selected');
+  loadPsycheLog();
+}
+
+function psycheActivityInWindow(iso, fromDate, days){
+  if(!iso) return false;
+  var t = new Date(iso);
+  if(isNaN(t.getTime())) return false;
+  var end = fromDate ? new Date(fromDate) : new Date();
+  var start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+  return t >= start && t <= end;
+}
+
+function psycheRadarCounts(checkins, drills, days, fromDate){
+  var counts = { checkin: 0, breath: 0, exposure: 0, viz: 0, relax: 0, talk: 0 };
+  (checkins || []).forEach(function(s){
+    if(!s || s.deleted_at || s.is_baseline || !s.is_checkin) return;
+    if(!psycheActivityInWindow(s.created_at, fromDate, days)) return;
+    // Existing 3 are not separately tagged in sessions. Count them on the
+    // Check-in axis (Quick check-in, Prepare for a climb, Exposure pre-checkin).
+    counts.checkin++;
+  });
+  (drills || []).forEach(function(d){
+    if(!isAthleteStreakPsycheDrill(d)) return;
+    if(!psycheActivityInWindow(d.created_at, fromDate, days)) return;
+    var k = d.drill_key;
+    if(k === 'bee_humming' || k === 'cyclic_sighing') counts.breath++;
+    else if(k === 'project_visualization') counts.viz++;
+    else if(k === 'pmr') counts.relax++;
+    else if(k === 'self_talk') counts.talk++;
+  });
+  return counts;
+}
+
+function buildPsycheRadar(counts){
+  var el = document.getElementById('psyche-radar-wrap');
+  if(!el) return;
+  var axes = [
+    { key: 'checkin', label: 'Check-in' },
+    { key: 'breath', label: 'Breath' },
+    { key: 'exposure', label: 'Exposure' },
+    { key: 'viz', label: 'Visualize' },
+    { key: 'relax', label: 'Relax' },
+    { key: 'talk', label: 'Self-talk' }
+  ];
+  counts = counts || {};
+  var max = 0;
+  axes.forEach(function(a){ max = Math.max(max, counts[a.key] || 0); });
+  var scale = Math.max(max, 1);
+  var cx = 130, cy = 130, maxR = 78;
+  var n = axes.length;
+  var angleStep = (2 * Math.PI) / n;
+  var startAngle = -Math.PI / 2;
+  function axisPoint(i, r){
+    var angle = startAngle + i * angleStep;
+    return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+  }
+  var rings = [0.25, 0.5, 0.75, 1.0];
+  var ringHtml = rings.map(function(r){
+    var pts = axes.map(function(_, i){ var p = axisPoint(i, maxR * r); return p.x + ',' + p.y; }).join(' ');
+    return '<polygon points="' + pts + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/>';
+  }).join('');
+  var axisHtml = axes.map(function(_, i){
+    var p = axisPoint(i, maxR);
+    return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p.x + '" y2="' + p.y + '" stroke="rgba(255,255,255,.08)" stroke-width="1"/>';
+  }).join('');
+  var dataPoints = axes.map(function(a, i){
+    var r = maxR * Math.max(0.06, (counts[a.key] || 0) / scale);
+    return axisPoint(i, r);
+  });
+  var polyPts = dataPoints.map(function(p){ return p.x + ',' + p.y; }).join(' ');
+  var polyHtml = '<polygon points="' + polyPts + '" fill="var(--accent)" fill-opacity=".15" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>';
+  var dotHtml = dataPoints.map(function(p){
+    return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5"/>';
+  }).join('');
+  var labelHtml = axes.map(function(a, i){
+    var p = axisPoint(i, maxR + 24);
+    var anchor = p.x < cx - 12 ? 'end' : p.x > cx + 12 ? 'start' : 'middle';
+    var nVal = counts[a.key] || 0;
+    return '<text x="' + p.x.toFixed(1) + '" y="' + p.y.toFixed(1) + '" text-anchor="' + anchor + '" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">' + a.label + '</text>'
+      + '<text x="' + p.x.toFixed(1) + '" y="' + (p.y + 12).toFixed(1) + '" text-anchor="' + anchor + '" font-family="Space Mono,monospace" font-size="9" fill="var(--muted)">' + nVal + '</text>';
+  }).join('');
+  el.innerHTML = '<svg width="100%" viewBox="0 0 260 270" style="display:block;max-width:300px;margin:0 auto;">'
+    + ringHtml + axisHtml + polyHtml + dotHtml + labelHtml
+    + '</svg>';
+}
+
+async function loadPsycheLog(){
+  var streakEl = document.getElementById('psyche-stat-streak');
+  var weekEl = document.getElementById('psyche-stat-week');
+  var totalEl = document.getElementById('psyche-stat-total');
+  if(!streakEl && !weekEl && !totalEl) return;
+  var now = new Date();
+  var week = athleteWeekBounds(now);
+  var checkins = [];
+  var drills = [];
+  if(window._authUser && window._authUser.id){
+    var uid = window._authUser.id;
+    var sessRows = await sbS(
+      'sessions',
+      'select=id,created_at,is_checkin,is_baseline,deleted_at,prepare_type&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=200'
+    );
+    var drillRows = await sbS(
+      'psyche_drills',
+      'select=id,created_at,drill_key,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=200'
+    );
+    sessRows = Array.isArray(sessRows) ? sessRows : [];
+    drillRows = Array.isArray(drillRows) ? drillRows : [];
+    checkins = sessRows.filter(isAthleteStreakPsyche);
+    drills = drillRows.filter(isAthleteStreakPsycheDrill);
+  }
+  var days = collectAthleteStreakDays([], [], checkins, drills);
+  var streak = computeAthleteStreak(days, now);
+  var allActs = checkins.concat(drills);
+  var weekN = allActs.filter(function(r){
+    var t = new Date(r.created_at);
+    return !isNaN(t.getTime()) && t >= week.start && t < week.end;
+  }).length;
+  if(streakEl) streakEl.textContent = streak;
+  if(weekEl) weekEl.textContent = weekN;
+  if(totalEl) totalEl.textContent = allActs.length;
+  var rangeDays = _psycheRadarDays || 30;
+  buildPsycheRadar(psycheRadarCounts(checkins, drills, rangeDays, now));
+}
+
+function startPsycheBee(){
+  stopPsycheTimers();
+  _psycheBeeDuration = 60;
+  _psycheBeeLeft = 60;
+  var d60 = document.getElementById('psyche-bee-dur-60');
+  var d90 = document.getElementById('psyche-bee-dur-90');
+  if(d60) d60.classList.add('selected');
+  if(d90) d90.classList.remove('selected');
+  psycheSetPhase('bee', 'intro');
+  showScreen('screen-psyche-bee');
+}
+function setPsycheBeeDuration(sec, btn){
+  _psycheBeeDuration = sec;
+  var wrap = btn && btn.parentNode;
+  if(wrap){
+    wrap.querySelectorAll('.psyche-range-chip').forEach(function(b){ b.classList.remove('selected'); });
+  }
+  if(btn) btn.classList.add('selected');
+}
+function beginPsycheBee(){
+  stopPsycheTimers();
+  _psycheBeeLeft = _psycheBeeDuration || 60;
+  var tEl = document.getElementById('psyche-bee-timer');
+  if(tEl) tEl.textContent = psycheFmtMmSs(_psycheBeeLeft);
+  psycheSetPhase('bee', 'run');
+  _psycheTimer = setInterval(function(){
+    _psycheBeeLeft--;
+    if(tEl) tEl.textContent = psycheFmtMmSs(_psycheBeeLeft);
+    if(_psycheBeeLeft <= 0) finishPsycheBee(true);
+  }, 1000);
+}
+async function finishPsycheBee(completed){
+  stopPsycheTimers();
+  var used = (_psycheBeeDuration || 60) - Math.max(0, _psycheBeeLeft);
+  if(completed) used = _psycheBeeDuration || 60;
+  await logPsycheDrill('bee_humming', used, {});
+  psycheSetPhase('bee', 'done');
+}
+
+function startPsycheSigh(){
+  stopPsycheTimers();
+  _psycheSigh = { cycle: 1, phase: 'in1' };
+  psycheSetPhase('sigh', 'intro');
+  showScreen('screen-psyche-sigh');
+}
+function beginPsycheSigh(){
+  stopPsycheTimers();
+  _psycheSigh = { cycle: 1, phase: 'in1', started: Date.now() };
+  psycheSetPhase('sigh', 'run');
+  runPsycheSighPhase();
+}
+function runPsycheSighPhase(){
+  var circle = document.getElementById('psyche-sigh-circle');
+  var label = document.getElementById('psyche-sigh-label');
+  var hint = document.getElementById('psyche-sigh-hint');
+  var countEl = document.getElementById('psyche-sigh-count');
+  if(countEl) countEl.textContent = String(_psycheSigh.cycle);
+  var phase = _psycheSigh.phase;
+  var dur = 1000;
+  if(phase === 'in1'){
+    if(label) label.textContent = 'Inhale';
+    if(hint) hint.textContent = 'Short inhale through the nose.';
+    if(circle){ circle.style.width = '140px'; circle.style.height = '140px'; }
+    dur = 1200;
+  } else if(phase === 'in2'){
+    if(label) label.textContent = 'Top-off';
+    if(hint) hint.textContent = 'Second, deeper inhale through the nose.';
+    if(circle){ circle.style.width = '168px'; circle.style.height = '168px'; }
+    dur = 1200;
+  } else {
+    if(label) label.textContent = 'Exhale';
+    if(hint) hint.textContent = 'Long slow exhale through the mouth.';
+    if(circle){ circle.style.width = '100px'; circle.style.height = '100px'; }
+    dur = 5000;
+  }
+  _psycheTimer = setTimeout(function(){
+    _psycheTimer = null;
+    if(_psycheSigh.phase === 'in1'){ _psycheSigh.phase = 'in2'; runPsycheSighPhase(); }
+    else if(_psycheSigh.phase === 'in2'){ _psycheSigh.phase = 'out'; runPsycheSighPhase(); }
+    else {
+      if(_psycheSigh.cycle >= 5){ finishPsycheSigh(); return; }
+      _psycheSigh.cycle++;
+      _psycheSigh.phase = 'in1';
+      runPsycheSighPhase();
+    }
+  }, dur);
+}
+async function finishPsycheSigh(){
+  stopPsycheTimers();
+  var secs = _psycheSigh.started ? Math.max(1, Math.round((Date.now() - _psycheSigh.started) / 1000)) : 60;
+  await logPsycheDrill('cyclic_sighing', secs, { cycles: 5 });
+  psycheSetPhase('sigh', 'done');
+}
+
+function startPsychePmr(){
+  stopPsycheTimers();
+  _psychePmr = { gi: 0, phase: 'tense', left: 5, started: 0 };
+  psycheSetPhase('pmr', 'intro');
+  showScreen('screen-psyche-pmr');
+}
+function beginPsychePmr(){
+  stopPsycheTimers();
+  _psychePmr = { gi: 0, phase: 'tense', left: 5, started: Date.now() };
+  psycheSetPhase('pmr', 'run');
+  paintPsychePmr();
+  _psycheTimer = setInterval(tickPsychePmr, 1000);
+}
+function paintPsychePmr(){
+  var g = PSYCHE_PMR_GROUPS[_psychePmr.gi] || 'Face';
+  var stepEl = document.getElementById('psyche-pmr-step');
+  var groupEl = document.getElementById('psyche-pmr-group');
+  var phaseEl = document.getElementById('psyche-pmr-phase');
+  var timerEl = document.getElementById('psyche-pmr-timer');
+  var hintEl = document.getElementById('psyche-pmr-hint');
+  if(stepEl) stepEl.textContent = String(_psychePmr.gi + 1);
+  if(groupEl) groupEl.textContent = g;
+  if(phaseEl) phaseEl.textContent = _psychePmr.phase === 'tense' ? 'Tense' : 'Release';
+  if(timerEl) timerEl.textContent = String(_psychePmr.left);
+  if(hintEl) hintEl.textContent = _psychePmr.phase === 'tense' ? 'Squeeze ' + g.toLowerCase() + ' and hold.' : 'Let ' + g.toLowerCase() + ' go completely.';
+}
+function tickPsychePmr(){
+  _psychePmr.left--;
+  if(_psychePmr.left > 0){ paintPsychePmr(); return; }
+  if(_psychePmr.phase === 'tense'){
+    _psychePmr.phase = 'release';
+    _psychePmr.left = 10;
+    paintPsychePmr();
+    return;
+  }
+  _psychePmr.gi++;
+  if(_psychePmr.gi >= PSYCHE_PMR_GROUPS.length){
+    finishPsychePmr();
+    return;
+  }
+  _psychePmr.phase = 'tense';
+  _psychePmr.left = 5;
+  paintPsychePmr();
+}
+async function finishPsychePmr(){
+  stopPsycheTimers();
+  var secs = _psychePmr.started ? Math.max(1, Math.round((Date.now() - _psychePmr.started) / 1000)) : 135;
+  await logPsycheDrill('pmr', secs, { groups: PSYCHE_PMR_GROUPS.length });
+  psycheSetPhase('pmr', 'done');
+}
+
+function startPsycheViz(){
+  stopPsycheTimers();
+  _psycheVizLeft = 150;
+  var note = document.getElementById('psyche-viz-note');
+  if(note) note.value = '';
+  psycheSetPhase('viz', 'intro');
+  showScreen('screen-psyche-viz');
+}
+function beginPsycheViz(){
+  stopPsycheTimers();
+  _psycheVizLeft = 150;
+  psycheSetPhase('viz', 'run');
+  paintPsycheViz();
+  _psycheTimer = setInterval(function(){
+    _psycheVizLeft--;
+    paintPsycheViz();
+    if(_psycheVizLeft <= 0){
+      stopPsycheTimers();
+      psycheSetPhase('viz', 'done');
+    }
+  }, 1000);
+}
+function paintPsycheViz(){
+  var tEl = document.getElementById('psyche-viz-timer');
+  var pEl = document.getElementById('psyche-viz-prompt');
+  if(tEl) tEl.textContent = psycheFmtMmSs(_psycheVizLeft);
+  var prompt = PSYCHE_VIZ_PROMPTS[PSYCHE_VIZ_PROMPTS.length - 1].text;
+  for(var i = 0; i < PSYCHE_VIZ_PROMPTS.length; i++){
+    if(_psycheVizLeft > PSYCHE_VIZ_PROMPTS[i].until){ prompt = PSYCHE_VIZ_PROMPTS[i].text; break; }
+  }
+  if(pEl) pEl.textContent = prompt;
+}
+async function finishPsycheViz(){
+  stopPsycheTimers();
+  var noteEl = document.getElementById('psyche-viz-note');
+  var note = noteEl ? String(noteEl.value || '').trim() : '';
+  var meta = {};
+  if(note) meta.note = note;
+  await logPsycheDrill('project_visualization', 150, meta);
+  showScreen('screen-drill');
+}
+
+function startPsycheTalk(){
+  stopPsycheTimers();
+  _psycheTalkCue = '';
+  var input = document.getElementById('psyche-talk-custom');
+  if(input) input.value = '';
+  document.querySelectorAll('#psyche-talk-chips .psyche-cue-chip').forEach(function(b){ b.classList.remove('selected'); });
+  var save = document.getElementById('psyche-talk-save');
+  if(save){ save.disabled = true; save.style.opacity = '.4'; }
+  showScreen('screen-psyche-talk');
+}
+function selectPsycheCue(btn, cue){
+  _psycheTalkCue = cue;
+  document.querySelectorAll('#psyche-talk-chips .psyche-cue-chip').forEach(function(b){ b.classList.remove('selected'); });
+  if(btn) btn.classList.add('selected');
+  var input = document.getElementById('psyche-talk-custom');
+  if(input) input.value = '';
+  var save = document.getElementById('psyche-talk-save');
+  if(save){ save.disabled = false; save.style.opacity = '1'; }
+}
+function onPsycheCueCustom(el){
+  var v = el && el.value ? String(el.value).trim() : '';
+  _psycheTalkCue = v;
+  document.querySelectorAll('#psyche-talk-chips .psyche-cue-chip').forEach(function(b){ b.classList.remove('selected'); });
+  var save = document.getElementById('psyche-talk-save');
+  if(save){ save.disabled = !v; save.style.opacity = v ? '1' : '.4'; }
+}
+async function finishPsycheTalk(){
+  var cue = String(_psycheTalkCue || '').trim();
+  if(!cue){ showToast('Pick or write a cue'); return; }
+  await logPsycheDrill('self_talk', null, { cue: cue });
+  showScreen('screen-drill');
+}
+
 function startDrillCheckin(){
   var rn=document.getElementById('drill-route-name');
   drillState.routeName=rn?rn.value.trim():'';
@@ -17188,7 +17926,8 @@ function runButtonAudit(options){
     'showNotesEditor', 'celebrateHomeLink', 'logFlowLogAnother', 'logFlowDoneHome',
     'submitBaseline', 'saveRouteDetails', 'deleteSession', 'flushOfflineQueue', 'resolveClimbIdForQueue',
     'retryOfflineQueue', 'viewOfflineQueue',
-    'loadClimbLog', 'loadTrainAssignments', 'loadWorkoutLibrary', 'loadExampleClimbLog', 'loadDrillRouteOptions',
+    'loadClimbLog', 'loadTrainAssignments', 'loadWorkoutLibrary', 'loadExampleClimbLog', 'loadDrillRouteOptions', 'loadPsycheLog',
+    'setPsycheRadarRange', 'logPsycheDrill', 'finishPsycheBee', 'finishPsycheSigh', 'finishPsychePmr', 'finishPsycheViz', 'finishPsycheTalk',
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
@@ -17942,6 +18681,7 @@ async function runSEETests(){
       && /loadHomeRecentActivity/.test(loadSrc)
       && /sbS\(\s*'sessions'/.test(String(loadHomeRecentActivity))
       && /sbS\(\s*'sessions'/.test(String(loadHomeStreakBand))
+      && /sbS\(\s*'psyche_drills'/.test(String(loadHomeStreakBand))
       && String(loadHomeStreakBand).indexOf('coach-athlete-insights') === -1
       && loadSrc.indexOf('coach-athlete-insights') === -1;
     var homeIcons = !!(document.querySelector('#home-card-log .te-icon')
@@ -17954,7 +18694,8 @@ async function runSEETests(){
       'screen-profile-notifications','screen-profile-notes','screen-journal-entry'
     ];
     var mentalRemapIds = [
-      'screen-drill','screen-drill-reveal','screen-drill-hold','screen-prepare-climb','screen-prepare-result'
+      'screen-drill','screen-drill-reveal','screen-drill-hold','screen-prepare-climb','screen-prepare-result',
+      'screen-psyche-bee','screen-psyche-sigh','screen-psyche-pmr','screen-psyche-viz','screen-psyche-talk'
     ];
     var remapOk = homeRemapIds.every(function(id){
       return showSrc.indexOf("'" + id + "':'fnav-home'") !== -1;
@@ -17984,10 +18725,13 @@ async function runSEETests(){
     var days = collectAthleteStreakDays(
       [{ created_at: '2026-09-08T18:00:00', is_checkin: false, is_baseline: false }],
       [{ created_at: '2026-09-07T12:00:00' }],
-      [{ created_at: '2026-09-06T09:00:00', is_checkin: true }]
+      [{ created_at: '2026-09-06T09:00:00', is_checkin: true }],
+      [{ created_at: '2026-09-08T10:00:00', drill_key: 'bee_humming' }]
     );
     var streakOk = computeAthleteStreak(days, today) === 3
       && computeAthleteStreak({ '2026-09-07': true }, today) === 0;
+    var drillOnly = collectAthleteStreakDays([], [], [], [{ created_at: '2026-09-08T10:00:00', drill_key: 'pmr' }]);
+    var drillStreakOk = computeAthleteStreak(drillOnly, today) === 1;
     var share = computeWeekZoneShare([
       { created_at: '2026-09-08T12:00:00', zone: 'comfort', is_checkin: false },
       { created_at: '2026-09-08T13:00:00', zone: 'comfort', is_checkin: false },
@@ -18023,11 +18767,11 @@ async function runSEETests(){
       && typeof renderRouteAttemptsList === 'function'
       && String(renderRouteAttemptsList).indexOf('climbAttemptRowHtml') !== -1
       && goalText === 'Lead 5.11';
-    if(streakOk && zoneOk && rowOk && originOk){
+    if(streakOk && drillStreakOk && zoneOk && rowOk && originOk){
       pass('Home streak, week zones, and recent-activity rows');
     } else {
       fail('Home streak, week zones, and recent-activity rows',
-        'streak=' + streakOk + ' zone=' + zoneOk + ' n=' + share.n + ' c=' + share.comfort +
+        'streak=' + streakOk + ' drill=' + drillStreakOk + ' zone=' + zoneOk + ' n=' + share.n + ' c=' + share.comfort +
         ' row=' + rowOk + ' origin=' + originOk + ' goal=' + goalText);
     }
   }catch(e){ fail('Home streak, week zones, and recent-activity rows', e.message); }
@@ -18073,7 +18817,8 @@ async function runSEETests(){
       'screen-profile-notifications','screen-profile-notes','screen-journal-entry'
     ];
     var mentalRemapIds = [
-      'screen-drill','screen-drill-reveal','screen-drill-hold','screen-prepare-climb','screen-prepare-result'
+      'screen-drill','screen-drill-reveal','screen-drill-hold','screen-prepare-climb','screen-prepare-result',
+      'screen-psyche-bee','screen-psyche-sigh','screen-psyche-pmr','screen-psyche-viz','screen-psyche-talk'
     ];
     var homeOk = homeRemapIds.every(function(id){
       if(!document.getElementById(id)) return false;
@@ -18114,7 +18859,14 @@ async function runSEETests(){
     var headerOk = !!(drillHead && drillHead.textContent === 'Psyche');
     var internalsOk = typeof startPrepare === 'function' && typeof startPrepareClimb === 'function'
       && typeof startExposureDrill === 'function' && typeof loadDrillState === 'function'
-      && !!document.getElementById('screen-drill') && !!document.getElementById('fnav-mental');
+      && typeof logPsycheDrill === 'function' && typeof loadPsycheLog === 'function'
+      && typeof startPsycheBee === 'function' && typeof startPsycheSigh === 'function'
+      && typeof startPsychePmr === 'function' && typeof startPsycheViz === 'function'
+      && typeof startPsycheTalk === 'function'
+      && !!document.getElementById('screen-drill') && !!document.getElementById('fnav-mental')
+      && !!document.getElementById('screen-psyche-bee') && !!document.getElementById('screen-psyche-sigh')
+      && !!document.getElementById('screen-psyche-pmr') && !!document.getElementById('screen-psyche-viz')
+      && !!document.getElementById('screen-psyche-talk');
     var backOk = Array.prototype.every.call(document.querySelectorAll('#screen-prepare-climb .back-btn, #screen-prepare .back-btn'), function(b){
       var txt = b.textContent || '';
       return txt.indexOf('Mental') === -1;
@@ -18126,6 +18878,61 @@ async function runSEETests(){
         'tip=' + tipOk + ' header=' + headerOk + ' internals=' + internalsOk + ' back=' + backOk);
     }
   }catch(e){ fail('Psyche label is user-facing only; drill internals unchanged', e.message); }
+
+  try{
+    var cardsOk = !!document.querySelector('#screen-drill [onclick="startPrepare()"]')
+      && !!document.querySelector('#screen-drill [onclick="startPrepareClimb()"]')
+      && !!document.querySelector('#screen-drill [onclick="startExposureDrill()"]')
+      && !!document.querySelector('#screen-drill [onclick="startPsycheBee()"]')
+      && !!document.querySelector('#screen-drill [onclick="startPsycheSigh()"]')
+      && !!document.querySelector('#screen-drill [onclick="startPsychePmr()"]')
+      && !!document.querySelector('#screen-drill [onclick="startPsycheViz()"]')
+      && !!document.querySelector('#screen-drill [onclick="startPsycheTalk()"]');
+    var dashOk = !!document.getElementById('psyche-stat-streak')
+      && !!document.getElementById('psyche-stat-week')
+      && !!document.getElementById('psyche-stat-total')
+      && !!document.getElementById('psyche-radar-wrap')
+      && !!document.getElementById('psyche-radar-range');
+    var logSrc = String(logPsycheDrill);
+    var logOk = /sbI\(\s*'psyche_drills'/.test(logSrc)
+      && /drill_key/.test(logSrc)
+      && logSrc.indexOf("sbI('sessions'") === -1
+      && String(startPrepare).indexOf('psyche_drills') === -1
+      && String(startPrepareClimb).indexOf('psyche_drills') === -1
+      && String(startExposureDrill).indexOf('psyche_drills') === -1;
+    var radar = psycheRadarCounts(
+      [{ created_at: '2026-09-08T12:00:00', is_checkin: true, is_baseline: false }],
+      [
+        { created_at: '2026-09-08T12:00:00', drill_key: 'bee_humming' },
+        { created_at: '2026-09-08T12:00:00', drill_key: 'cyclic_sighing' },
+        { created_at: '2026-09-08T12:00:00', drill_key: 'pmr' },
+        { created_at: '2026-09-08T12:00:00', drill_key: 'project_visualization' },
+        { created_at: '2026-09-08T12:00:00', drill_key: 'self_talk' }
+      ],
+      30,
+      new Date('2026-09-09T12:00:00')
+    );
+    var radarOk = radar.checkin === 1 && radar.breath === 2 && radar.viz === 1
+      && radar.relax === 1 && radar.talk === 1 && radar.exposure === 0
+      && typeof buildPsycheRadar === 'function';
+    var resBee = Array.prototype.some.call(document.querySelectorAll('#screen-research .res-card-title'), function(el){
+      return (el.textContent || '').indexOf('Humming vibrates the vagus nerve') !== -1;
+    });
+    var resCue = Array.prototype.some.call(document.querySelectorAll('#screen-research .res-card-title'), function(el){
+      return (el.textContent || '').indexOf('A short cue phrase measurably changes performance') !== -1;
+    });
+    var drillHomeHtml = (document.getElementById('screen-drill') || {}).innerHTML || '';
+    var noBuilder = drillHomeHtml.indexOf('build a drill') === -1
+      && drillHomeHtml.indexOf('Create a drill') === -1
+      && !document.getElementById('screen-coach-build-drill');
+    if(cardsOk && dashOk && logOk && radarOk && resBee && resCue && noBuilder){
+      pass('Psyche Log has 5 new drills, radar stats, and research cards');
+    } else {
+      fail('Psyche Log has 5 new drills, radar stats, and research cards',
+        'cards=' + cardsOk + ' dash=' + dashOk + ' log=' + logOk + ' radar=' + radarOk
+        + ' bee=' + resBee + ' cue=' + resCue + ' builder=' + noBuilder);
+    }
+  }catch(e){ fail('Psyche Log has 5 new drills, radar stats, and research cards', e.message); }
 
   try{
     var confirmEl = document.getElementById('screen-coach-zone-confirm');
