@@ -2841,7 +2841,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 <!-- ═══════════════════════════════════════
      PROFILE SCREEN — screen-profile
      Card landing (build 219) — same visual language as Train hub.
-     Groups: Journal, Account, Your data, Install SEE, Help, Feedback.
+     Groups: Journal, Account, Your data, Install SEE, SEE tutorial, Feedback.
 ═══════════════════════════════════════ -->
 <div class="screen" id="screen-profile">
   <div class="page-header">
@@ -2897,7 +2897,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <button type="button" class="train-energy-card" id="profile-card-beta" onclick="showScreen('screen-profile-beta')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div></div>
           <div class="te-label">Beta</div>
-          <div class="te-title">Help & Guides</div>
+          <div class="te-title">SEE tutorial</div>
           <div class="te-sub">Tips and how to use SEE</div>
         </button>
         <button type="button" class="train-energy-card" id="profile-card-feedback" onclick="showScreen('screen-profile-feedback')">
@@ -2952,7 +2952,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <a class="train-energy-card" id="profile-card-guide-anon" href="https://straydog-labs.github.io/see-guide-site/athlete-guide.html" target="_blank" rel="noopener">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg></div></div>
           <div class="te-label">Learn</div>
-          <div class="te-title">Guide / Help</div>
+          <div class="te-title">SEE tutorial</div>
           <div class="te-sub">How to use SEE</div>
         </a>
       </div>
@@ -3136,7 +3136,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <button class="back-btn" onclick="showScreen('screen-profile')">← Profile</button>
   </div>
   <div class="content">
-    <div class="screen-title">Help & Guides<span class="sub">Tips and how to use SEE.</span></div>
+    <div class="screen-title">SEE tutorial<span class="sub">Tips and how to use SEE.</span></div>
 
     <div class="profile-beta-row" id="profile-beta-tips-row">
       <div class="profile-beta-row-title">Helper tips</div>
@@ -3149,7 +3149,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <a class="profile-beta-row" id="profile-beta-athlete-guide" href="https://straydog-labs.github.io/see-guide-site/athlete-guide.html" target="_blank" rel="noopener">
-      <div class="profile-beta-row-title">User guide</div>
+      <div class="profile-beta-row-title">SEE tutorial</div>
       <div class="profile-beta-row-sub">How to use SEE ↗</div>
     </a>
 
@@ -5196,7 +5196,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index261'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index262'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -6029,7 +6029,7 @@ var SEE_TIPS = {
   },
   'screen-profile': {
     id: 'profile-home',
-    text: 'You can turn these tips off any time from Help.'
+    text: 'You can turn these tips off any time from SEE tutorial.'
   }
 };
 
@@ -21630,7 +21630,8 @@ async function runSEETests(){
     var coachTile = document.getElementById('profile-beta-coach-row');
     var betaOk = !!(betaCard && hub && hub.contains(betaCard)
       && /showScreen\('screen-profile-beta'\)/.test(betaCard.getAttribute('onclick') || '')
-      && /Help & Guides/.test(betaCard.textContent)
+      && /SEE tutorial/.test(betaCard.textContent)
+      && !/Help & Guides/.test(betaCard.textContent)
       && /Beta/.test(betaCard.textContent)
       && !document.getElementById('profile-card-help')
       && !document.getElementById('profile-card-guide')
@@ -21640,7 +21641,8 @@ async function runSEETests(){
       && athleteTile.getAttribute('href') === 'https://straydog-labs.github.io/see-guide-site/athlete-guide.html'
       && athleteTile.getAttribute('target') === '_blank'
       && /\bnoopener\b/.test(athleteTile.getAttribute('rel') || '')
-      && /User guide/.test(athleteTile.textContent)
+      && /SEE tutorial/.test(athleteTile.textContent)
+      && !/User guide/.test(athleteTile.textContent)
       && !athleteTile.hasAttribute('hidden'));
     var anonTile = document.getElementById('profile-card-guide-anon');
     var anonHelp = document.getElementById('profile-card-help-anon');
@@ -21649,7 +21651,8 @@ async function runSEETests(){
       && anonTile.getAttribute('href') === 'https://straydog-labs.github.io/see-guide-site/athlete-guide.html'
       && anonTile.getAttribute('target') === '_blank'
       && /\bnoopener\b/.test(anonTile.getAttribute('rel') || '')
-      && /Guide \/ Help/.test(anonTile.textContent)
+      && /SEE tutorial/.test(anonTile.textContent)
+      && !/Guide \/ Help/.test(anonTile.textContent)
       && anonTile.classList.contains('train-energy-card')
       && /showScreen\('screen-profile-help'\)/.test(anonHelp.getAttribute('onclick') || ''));
     var tipsOk = !!(document.getElementById('tips-enabled-toggle-beta')
