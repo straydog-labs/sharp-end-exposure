@@ -183,6 +183,35 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .saw-linkish{background:none;border:none;padding:8px 0;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
 .saw-msg{min-height:20px;margin-bottom:8px;font-size:13px;color:var(--panic);}
 .saw-msg.ok{color:var(--comfort);}
+.journal-composer{margin-bottom:10px;}
+.journal-composer-toolbar{display:flex;justify-content:flex-end;margin-bottom:6px;}
+.journal-expand-btn{
+  background:none;border:none;color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;
+  cursor:pointer;padding:4px 0;-webkit-tap-highlight-color:transparent;
+}
+#journal-entry-text,#je-edit-text{resize:vertical;}
+.journal-expand-overlay{
+  position:fixed;inset:0;z-index:240;background:var(--bg);
+  display:flex;flex-direction:column;
+  padding:calc(12px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-sizing:border-box;
+}
+.journal-expand-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;
+}
+.journal-expand-head .journal-expand-title{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+.journal-expand-overlay textarea{
+  flex:1;width:100%;min-height:0;resize:none;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);
+  color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;line-height:1.6;
+  padding:16px;outline:none;box-sizing:border-box;
+}
+.journal-expand-done{
+  margin-top:12px;width:100%;background:var(--accent);border:none;border-radius:var(--r-md);
+  color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;
+  padding:14px;cursor:pointer;
+}
 .wl-type-chip,.wl-cat-chip{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wl-type-chip.selected,.wl-cat-chip.selected{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 .screen-title{font-size:28px;font-weight:700;letter-spacing:-.025em;line-height:1.15;}
@@ -683,6 +712,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   pointer-events:all;
 }
 .log-flow-skip-link{
+  display:block;
+  width:100%;
+  text-align:center;
   background:none;
   border:none;
   color:var(--muted);
@@ -690,7 +722,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   font-size:14px;
   font-weight:600;
   padding:12px;
+  margin:0;
   cursor:pointer;
+  box-sizing:border-box;
   -webkit-tap-highlight-color:transparent;
 }
 .is-confirming{border-color:var(--panic)!important;color:var(--panic)!important;}
@@ -767,6 +801,30 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .log-btn{margin:0 20px 24px;background:var(--accent);border:none;border-radius:14px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:20px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;opacity:.25;pointer-events:none;width:calc(100% - 40px);}
 .log-btn.ready{opacity:1;pointer-events:all;}
 .log-btn.ready:active{transform:scale(.98);}
+/* Log-flow screens already pad the column. Side-margin on .log-btn left CTAs
+   20px off-center vs titles and skip links ("Home", "go deeper", "Skip naming"). */
+.log-flow-screen .log-btn,
+.log-flow-footer .log-btn{
+  width:100%;
+  max-width:none;
+  margin:0 0 10px;
+  box-sizing:border-box;
+}
+.log-flow-prompt-actions .log-btn,
+.log-flow-done-actions .log-btn{
+  margin:0;
+}
+.log-flow-skip-link{
+  display:block;
+  width:100%;
+  text-align:center;
+  margin:0;
+  box-sizing:border-box;
+}
+.log-flow-prompt-actions,
+.log-flow-done-actions{
+  align-items:stretch;
+}
 
 /* ── CARDS ── */
 .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:15px;}
@@ -2972,8 +3030,13 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div style="font-size:14px;color:var(--muted);line-height:1.6;">Sign in to keep a journal.</div>
     </div>
     <div id="journal-signed-in-content" style="display:none;margin-top:8px;">
-      <textarea id="journal-entry-text" placeholder="What's on your mind after today's climbing?"
-        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;box-sizing:border-box;margin-bottom:10px;"></textarea>
+      <div class="journal-composer">
+        <div class="journal-composer-toolbar">
+          <button type="button" class="journal-expand-btn" onclick="expandJournalComposer('journal-entry-text')">Expand</button>
+        </div>
+        <textarea id="journal-entry-text" placeholder="What's on your mind after today's climbing?"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:vertical;min-height:160px;line-height:1.6;box-sizing:border-box;"></textarea>
+      </div>
       <button onclick="saveJournalEntry()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 24px;cursor:pointer;">Save entry →</button>
       <div style="margin:20px 0;border-top:1px solid var(--border);"></div>
       <div id="journal-entries-list"><div style="text-align:center;padding:16px 0;font-size:13px;color:var(--muted);">No journal entries yet.</div></div>
@@ -3205,7 +3268,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <div id="je-edit-wrap" style="display:none;">
-      <textarea id="je-edit-text" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:160px;line-height:1.6;box-sizing:border-box;margin-bottom:12px;"></textarea>
+      <div class="journal-composer">
+        <div class="journal-composer-toolbar">
+          <button type="button" class="journal-expand-btn" onclick="expandJournalComposer('je-edit-text')">Expand</button>
+        </div>
+        <textarea id="je-edit-text" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:vertical;min-height:220px;line-height:1.6;box-sizing:border-box;margin-bottom:12px;"></textarea>
+      </div>
       <div style="display:flex;gap:8px;">
         <button onclick="saveEditJournalEntry()" style="flex:1;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;">Save</button>
         <button onclick="cancelEditJournalEntry()" style="flex:1;background:none;border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px;cursor:pointer;">Cancel</button>
@@ -5196,7 +5264,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index261'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index262'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -5942,6 +6010,7 @@ function DID(id,fn,ms){clearTimeout(_did[id]);_did[id]=setTimeout(fn,ms||400);}
 // ── SCREEN MANAGEMENT ────────────────────────────────
 var _prevScreen='screen-sessions';
 function showScreen(id){
+  if(document.getElementById('journal-expand-overlay')) closeJournalComposerExpand();
   var prev=document.querySelector('.screen.active');
   if(prev){_prevScreen=prev.id;prev.classList.remove('active');}
   var el=document.getElementById(id);
@@ -8955,11 +9024,50 @@ document.addEventListener('click',function(e){
 // ═══════════════════════════════════════════════════════
 var _journalEntriesCache = [];
 
+function journalComposerSourceText(sourceId){
+  var overlay = document.getElementById('journal-expand-overlay');
+  if(overlay && overlay.dataset.targetId === sourceId){
+    var big = document.getElementById('journal-expand-ta');
+    if(big) return big.value;
+  }
+  var el = document.getElementById(sourceId);
+  return el ? el.value : '';
+}
+function expandJournalComposer(sourceId){
+  var src = document.getElementById(sourceId);
+  if(!src) return;
+  closeJournalComposerExpand();
+  var overlay = document.createElement('div');
+  overlay.id = 'journal-expand-overlay';
+  overlay.className = 'journal-expand-overlay';
+  overlay.dataset.targetId = sourceId;
+  overlay.innerHTML = '<div class="journal-expand-head">'
+    + '<div class="journal-expand-title">Journal</div>'
+    + '<button type="button" class="journal-expand-btn" onclick="closeJournalComposerExpand()">Close</button>'
+    + '</div>'
+    + '<textarea id="journal-expand-ta" placeholder="What\'s on your mind after today\'s climbing?"></textarea>'
+    + '<button type="button" class="journal-expand-done" onclick="closeJournalComposerExpand()">Done</button>';
+  document.body.appendChild(overlay);
+  var big = document.getElementById('journal-expand-ta');
+  if(big){
+    big.value = src.value;
+    setTimeout(function(){ big.focus(); }, 50);
+  }
+}
+function closeJournalComposerExpand(){
+  var overlay = document.getElementById('journal-expand-overlay');
+  if(!overlay) return;
+  var targetId = overlay.dataset.targetId;
+  var big = document.getElementById('journal-expand-ta');
+  var src = targetId ? document.getElementById(targetId) : null;
+  if(src && big) src.value = big.value;
+  overlay.remove();
+}
+
 async function saveJournalEntry(){
   // Sign-in required (build 174) — no anonymous journaling, same as backoffs/falls
   if(!window._authUser){ showToast('Sign in to save journal entries'); return; }
-  var textEl = document.getElementById('journal-entry-text');
-  var text = textEl ? textEl.value.trim() : '';
+  var text = (journalComposerSourceText('journal-entry-text') || '').trim();
   if(!text){ showToast('Write something first'); return; }
   var payload = {
     user_id: window._authUser.id,
@@ -8968,6 +9076,8 @@ async function saveJournalEntry(){
   };
   var saved = await sbI('journal_entries', payload);
   if(sbFailed(saved)){ showToast('Could not save — try again', true); return; }
+  closeJournalComposerExpand();
+  var textEl = document.getElementById('journal-entry-text');
   if(textEl) textEl.value = '';
   showToast('Entry saved ✓');
   loadJournalEntries();
@@ -9047,6 +9157,7 @@ function startEditJournalEntry(){
 }
 
 function cancelEditJournalEntry(){
+  closeJournalComposerExpand();
   var viewWrap = document.getElementById('je-view-wrap');
   var editWrap = document.getElementById('je-edit-wrap');
   if(viewWrap) viewWrap.style.display = 'block';
@@ -9055,10 +9166,10 @@ function cancelEditJournalEntry(){
 
 async function saveEditJournalEntry(){
   if(!_journalOpenEntryId) return;
-  var editEl = document.getElementById('je-edit-text');
-  var text = editEl ? editEl.value.trim() : '';
+  var text = (journalComposerSourceText('je-edit-text') || '').trim();
   if(!text){ showToast('Write something first'); return; }
   await sbU('journal_entries', 'id=eq.'+_journalOpenEntryId, {entry_text: text});
+  closeJournalComposerExpand();
   showToast('Entry updated ✓');
   await loadJournalEntries();
   openJournalEntry(_journalOpenEntryId);
@@ -14519,13 +14630,14 @@ function buildPsycheRadar(counts){
   var dotHtml = '';
   if(total > 0){
     var dataPoints = axes.map(function(a, i){
-      var r = maxR * Math.max(0.06, (counts[a.key] || 0) / scale);
-      return axisPoint(i, r);
+      var nVal = counts[a.key] || 0;
+      var r = maxR * (nVal / scale);
+      return { p: axisPoint(i, r), n: nVal };
     });
-    var polyPts = dataPoints.map(function(p){ return p.x + ',' + p.y; }).join(' ');
+    var polyPts = dataPoints.map(function(d){ return d.p.x + ',' + d.p.y; }).join(' ');
     polyHtml = '<polygon points="' + polyPts + '" fill="var(--accent)" fill-opacity=".15" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>';
-    dotHtml = dataPoints.map(function(p){
-      return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5"/>';
+    dotHtml = dataPoints.filter(function(d){ return d.n > 0; }).map(function(d){
+      return '<circle cx="' + d.p.x.toFixed(1) + '" cy="' + d.p.y.toFixed(1) + '" r="5" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5"/>';
     }).join('');
   }
   var labelHtml = axes.map(function(a, i){
@@ -17947,7 +18059,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications',
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'expandJournalComposer', 'closeJournalComposerExpand', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications',
     'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes',
     'editClimbFromLog', 'addAttemptFromLog', 'openProfile',
     'toggleClimbProject', 'startAddRouteBetaNote', 'cancelAddRouteBetaNote', 'saveNewRouteBetaNote',
@@ -18932,9 +19044,16 @@ async function runSEETests(){
       && radar.relax === 1 && radar.talk === 1 && radar.exposure === 0
       && typeof buildPsycheRadar === 'function';
     var radarSrc = String(buildPsycheRadar);
+    var wrap = document.getElementById('psyche-radar-wrap');
+    var prevRadar = wrap ? wrap.innerHTML : '';
+    if(wrap) buildPsycheRadar({ checkin: 0, breath: 3, exposure: 2, viz: 1, relax: 0, talk: 0 });
+    var mixDots = wrap ? wrap.querySelectorAll('circle').length : 0;
+    if(wrap) wrap.innerHTML = prevRadar;
     var emptyRadarOk = /total === 0/.test(radarSrc)
       && /Log a practice to see your mix/.test(radarSrc)
-      && /Math\.max\(0\.06/.test(radarSrc);
+      && radarSrc.indexOf('Math.max(0.06') === -1
+      && /d\.n > 0/.test(radarSrc)
+      && mixDots === 3;
     var groupHeads = Array.prototype.map.call(
       document.querySelectorAll('#screen-drill .content > div[style*="color:var(--muted)"]'),
       function(el){ return (el.textContent || '').trim(); }
@@ -21596,6 +21715,23 @@ async function runSEETests(){
       && !document.querySelector('#screen-profile #profile-install-see')
       && !document.querySelector('#screen-profile #tips-enabled-toggle');
     var journalOnSub = !!document.querySelector('#screen-profile-journal #journal-entry-text');
+    var journalExpand = /expandJournalComposer\('journal-entry-text'\)/.test(
+      (document.getElementById('screen-profile-journal') || {}).innerHTML || ''
+    ) && /expandJournalComposer\('je-edit-text'\)/.test(
+      (document.getElementById('screen-journal-entry') || {}).innerHTML || ''
+    ) && typeof expandJournalComposer === 'function';
+    var srcTa = document.getElementById('journal-entry-text');
+    var prevVal = srcTa ? srcTa.value : '';
+    if(srcTa) srcTa.value = 'expand me';
+    expandJournalComposer('journal-entry-text');
+    var overlay = document.getElementById('journal-expand-overlay');
+    var big = document.getElementById('journal-expand-ta');
+    var opened = !!(overlay && big && big.value === 'expand me');
+    if(big) big.value = 'wrote from overlay';
+    closeJournalComposerExpand();
+    var wroteBack = !!(srcTa && srcTa.value === 'wrote from overlay' && !document.getElementById('journal-expand-overlay'));
+    if(srcTa) srcTa.value = prevVal;
+    var journalExpandOk = journalExpand && opened && wroteBack;
     var helpOnSub = !!document.querySelector('#screen-profile-help #tips-enabled-toggle')
       && !!document.querySelector('#screen-profile-beta #tips-enabled-toggle-beta')
       && /showScreen\('screen-profile-beta'\)/.test((document.getElementById('profile-card-beta') || {}).getAttribute('onclick') || '')
@@ -21614,12 +21750,13 @@ async function runSEETests(){
       && /min-width:\s*0/.test(startWrap.getAttribute('style') || '')
       && /min-width:\s*0/.test(endWrap.getAttribute('style') || '')
       && /saw-field input\[type=datetime-local\]\{min-width:0/.test(document.documentElement.innerHTML));
-    if(landing && cardsOk && screensOk && lean && journalOnSub && helpOnSub && hooksOk && dtMin){
+    if(landing && cardsOk && screensOk && lean && journalOnSub && journalExpandOk && helpOnSub && hooksOk && dtMin){
       pass('Profile card landing + session datetime min-width');
     } else {
       fail('Profile card landing + session datetime min-width',
         'cards=' + cardsOk + ' screens=' + screensOk + ' lean=' + lean +
-        ' journal=' + journalOnSub + ' help=' + helpOnSub + ' hooks=' + hooksOk + ' dt=' + dtMin);
+        ' journal=' + journalOnSub + ' expand=' + journalExpandOk +
+        ' help=' + helpOnSub + ' hooks=' + hooksOk + ' dt=' + dtMin);
     }
   }catch(e){ fail('Profile card landing + session datetime min-width', e.message); }
 

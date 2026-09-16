@@ -10,8 +10,8 @@ const sw = readFileSync(join(__dirname, '../sw.js'), 'utf8');
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index261'/.test(index));
-assert.ok(/APP_VERSION = 'index261'/.test(sw));
+assert.ok(/var app_version = 'index262'/.test(index));
+assert.ok(/APP_VERSION = 'index262'/.test(sw));
 
 assert.ok(/function startPrepare\(/.test(index));
 assert.ok(/function startPrepareClimb\(/.test(index));
@@ -43,6 +43,9 @@ assert.ok(/'screen-psyche-talk':'fnav-mental'/.test(index));
 
 assert.ok(/Log a practice to see your mix/.test(index));
 assert.ok(/total === 0/.test(index));
+const radarFn = index.match(/function buildPsycheRadar\(counts\)\{[\s\S]*?async function loadPsycheLog/)[0];
+assert.ok(/d\.n > 0/.test(radarFn));
+assert.ok(!/Math\.max\(0\.06/.test(radarFn));
 assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Check-in</.test(index));
 assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Exposure</.test(index));
 assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Breath</.test(index));
