@@ -8,7 +8,8 @@ const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.ok(/id="coach-guide-link"/.test(dash));
 assert.ok(/Guide \/ Help/.test(dash));
-assert.ok(/href="https:\/\/straydog-labs\.github\.io\/see-guide-site\/coach-guide\.html"/.test(dash));
+assert.ok(/href="\/sharp-end-exposure\/guide\/coach-guide\.html"/.test(dash));
+assert.ok(!/see-guide-site/.test(dash));
 assert.ok(/id="coach-guide-link"[^>]*target="_blank"/.test(dash));
 assert.ok(/id="coach-guide-link"[^>]*rel="noopener"/.test(dash));
 assert.ok(/<div id="topbar">[\s\S]*id="coach-guide-link"/.test(dash));
@@ -16,7 +17,7 @@ assert.ok(!/wes\s*shih|jessica\.somos/i.test(dash.match(/id="coach-guide-link"[\
 
 const tile = dash.match(/id="coach-guide-tile"[^>]*>[\s\S]*?<\/a>/);
 assert.ok(tile, 'sidebar Coach guide tile exists');
-assert.ok(/href="https:\/\/straydog-labs\.github\.io\/see-guide-site\/coach-guide\.html"/.test(tile[0]));
+assert.ok(/href="\/sharp-end-exposure\/guide\/coach-guide\.html"/.test(tile[0]));
 assert.ok(/target="_blank"/.test(tile[0]));
 assert.ok(/rel="noopener"/.test(tile[0]));
 assert.ok(/Coach guide/.test(tile[0]));
