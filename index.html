@@ -5196,7 +5196,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index263'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index264'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -5864,7 +5864,11 @@ function initGaugeDrag(container, initialScore, onScoreChange, gaugePrefix, dial
     var dx=clientX-rect.left-pivotX;
     var dyp=pivotBottomOffset-(clientY-rect.top);
     var ang=Math.atan2(dyp,dx)*180/Math.PI;
-    ang=Math.max(0,Math.min(180,ang));
+    if(ang<0){
+      ang = (dx>=0) ? 0 : 180;
+    } else {
+      ang = Math.min(180, ang);
+    }
     return 12*(1-ang/180);
   }
 
@@ -19017,6 +19021,38 @@ async function runSEETests(){
         ' gauge=' + gaugeOk + ' copy=' + copyOk);
     }
   }catch(e){ fail('Athlete can set their own read on coach-logged climbs', e.message); }
+
+  try{
+    var gaugeSrc = String(buildActivationGauge);
+    var ptr = gaugeSrc.match(/function scoreFromPointer\(clientX, clientY\)\{[\s\S]*?\n  \}/);
+    var ptrSrc = ptr ? ptr[0] : '';
+    var clampOk = /if\(ang<0\)/.test(ptrSrc)
+      && /\(dx>=0\) \? 0 : 180/.test(ptrSrc)
+      && ptrSrc.indexOf('Math.max(0,Math.min(180,ang))') === -1;
+    function scoreFromDxDy(dx, dyp){
+      var ang=Math.atan2(dyp,dx)*180/Math.PI;
+      if(ang<0){
+        ang = (dx>=0) ? 0 : 180;
+      } else {
+        ang = Math.min(180, ang);
+      }
+      return 12*(1-ang/180);
+    }
+    var leftBelow = scoreFromDxDy(-100, -40);
+    var rightBelow = scoreFromDxDy(100, -40);
+    var leftUp = scoreFromDxDy(-100, 8);
+    var rightUp = scoreFromDxDy(100, 8);
+    var top = scoreFromDxDy(0, 100);
+    var mathOk = leftBelow === 0 && rightBelow === 12
+      && leftUp < 1 && rightUp > 11 && Math.abs(top - 6) < 0.2;
+    if(clampOk && mathOk){
+      pass('Activation dial has hard stops at both ends');
+    } else {
+      fail('Activation dial has hard stops at both ends',
+        'clamp=' + clampOk + ' leftBelow=' + leftBelow + ' rightBelow=' + rightBelow
+        + ' leftUp=' + leftUp + ' rightUp=' + rightUp + ' top=' + top);
+    }
+  }catch(e){ fail('Activation dial has hard stops at both ends', e.message); }
 
   // B4: No purple stray icon (&#128100; outside nav)
   try{
