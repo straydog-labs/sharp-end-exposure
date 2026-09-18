@@ -1593,6 +1593,7 @@
               '<div id="invite-link-panel" style="display:none;margin-top:12px;">' +
                 '<div class="invite-link-row">' +
                   '<button type="button" class="btn-primary" id="invite-link-copy">Copy invite link</button>' +
+                  '<button type="button" class="btn-primary" id="invite-link-share">Share</button>' +
                   '<button type="button" class="invite-link-view" id="invite-link-view">view link</button>' +
                   '<textarea id="invite-link-input" rows="3" readonly hidden></textarea>' +
                 '</div>' +
@@ -1862,16 +1863,53 @@
     });
   }
 
+  function shareCoachInviteLink(){
+    var input = document.getElementById('invite-link-input');
+    var value = input ? input.value : '';
+    if(!value) return;
+    if(typeof navigator === 'undefined' || typeof navigator.share !== 'function') return;
+    try {
+      var result = navigator.share({
+        title: 'Join me on SEE',
+        text: 'Here\'s your invite to SEE',
+        url: value
+      });
+      if(result && typeof result.catch === 'function'){
+        result.catch(function(){});
+      }
+    } catch (err) {}
+  }
+
   function showInviteLinkPanel(url){
     var panel = document.getElementById('invite-link-panel');
     var input = document.getElementById('invite-link-input');
     var viewToggle = document.getElementById('invite-link-view');
+    var shareBtn = document.getElementById('invite-link-share');
+    var canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    if(shareBtn){
+      if(canShare){
+        shareBtn.hidden = false;
+        if(!shareBtn._bound){
+          shareBtn._bound = true;
+          shareBtn.addEventListener('click', shareCoachInviteLink);
+        }
+      } else if(shareBtn.parentNode){
+        shareBtn.parentNode.removeChild(shareBtn);
+      }
+    }
     if(input){
       input.value = url || '';
-      input.hidden = true;
+      input.hidden = false;
     }
-    if(viewToggle) viewToggle.textContent = 'view link';
+    if(viewToggle) viewToggle.textContent = 'hide link';
     if(panel) panel.style.display = '';
+    var openBtn = document.getElementById('invite-athlete-open');
+    if(openBtn){
+      openBtn.textContent = 'Link ready';
+      setTimeout(function(){
+        if(openBtn.textContent === 'Link ready') openBtn.textContent = 'Get invite link';
+      }, 1500);
+    }
   }
 
   function toggleInviteLinkView(){
