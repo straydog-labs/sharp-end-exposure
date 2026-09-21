@@ -10,14 +10,11 @@ const html = readFileSync(join(__dirname, '../founder-dashboard.html'), 'utf8');
 const tableFn = html.match(/function renderAllUsersTable\(\)\{[\s\S]*?\n  function /)[0];
 assert.ok(tableFn, 'renderAllUsersTable extracted');
 assert.ok(
-  /personDisplayName\(userField\(u, \['first_name'\], ''\), userField\(u, \['last_name'\], ''\), userField\(u, \['email'\], ''\), '—'\)/.test(tableFn),
-  'All Users Name cell uses first_name + last_name + email via personDisplayName'
+  /usersDisplayName\(u\)/.test(tableFn),
+  'All Users Name cell uses usersDisplayName (first+last+email)'
 );
 assert.ok(!/userField\(u, \['name', 'display_name', 'full_name'\]/.test(tableFn), 'Name cell no longer looks up name/display_name/full_name');
-assert.ok(
-  /personDisplayName\(userField\(u, \['first_name'\], ''\), userField\(u, \['last_name'\], ''\), '', ''\)/.test(tableFn),
-  'search haystack uses first_name + last_name'
-);
+assert.ok(/usersRowMatchesFilters/.test(tableFn), 'per-column filters replace combined search');
 
 const openFn = html.match(/function openUserDetail\(userId\)\{[\s\S]*?\n  function renderUserDetail/)[0];
 assert.ok(openFn, 'openUserDetail extracted');

@@ -283,30 +283,24 @@
   .bo-chip.role-test{color:#c9a0e8;border-color:rgba(201,160,232,.45);}
   .bo-chip.role-signed-active{color:#d8c48a;border-color:rgba(216,196,138,.45);}
   .bo-chip.role-signed-idle{color:#bbb;border-color:var(--border);}
-  button.users-role-chip{
-    cursor:pointer;font-family:inherit;background:transparent;
-  }
-  button.users-role-chip:hover{filter:brightness(1.15);}
-  button.users-role-chip.role-filter-on{
-    box-shadow:0 0 0 1px var(--accent);
-    border-color:var(--accent);
-    color:var(--accent);
-  }
-  .users-role-filter{
-    display:flex;align-items:center;gap:6px;
-    font-size:12.5px;color:var(--text-secondary);
-    background:rgba(255,255,255,.04);border:1px solid var(--border);
-    border-radius:99px;padding:4px 10px;white-space:nowrap;
-  }
-  .users-role-filter[hidden]{display:none;}
-  .users-role-filter-clear{
-    background:transparent;border:0;color:var(--text);
-    cursor:pointer;font-size:16px;line-height:1;padding:0 2px;
-  }
   .bo-table tr.click-row{cursor:pointer;}
   .bo-table tr.click-row:hover td{background:rgba(255,255,255,.03);}
   .users-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
-  .users-toolbar .bo-form-row{margin:0;flex:1;min-width:220px;}
+  .users-sort-th{
+    cursor:pointer;user-select:none;white-space:nowrap;
+  }
+  .users-sort-th:hover{color:var(--text);}
+  .users-sort-ind{display:inline-block;min-width:10px;margin-left:4px;font-size:9px;color:var(--accent);}
+  .users-filter-row td{
+    padding:6px 8px;vertical-align:top;background:rgba(255,255,255,.02);
+    border-bottom:1px solid var(--border);
+  }
+  .users-filter-row input, .users-filter-row select{
+    width:100%;min-width:0;background:var(--bg);border:1px solid var(--border);
+    border-radius:6px;padding:6px 8px;color:var(--text);
+    font-family:'Space Grotesk',sans-serif;font-size:12px;outline:none;
+  }
+  .users-filter-row input:focus, .users-filter-row select:focus{border-color:var(--accent);}
   .users-toggle{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-secondary);user-select:none;}
   .users-toggle input{accent-color:var(--accent);}
   .users-coach-cell{white-space:nowrap;vertical-align:middle;}
@@ -942,26 +936,48 @@
         <div id="users-privileged" style="display:none;">
           <div id="users-sql-banner" class="bo-warn" style="display:none;"></div>
           <div class="users-toolbar">
-            <div class="bo-form-row">
-              <label for="users-search">Search name or email</label>
-              <input id="users-search" type="search" placeholder="Start typing…">
-            </div>
-            <div id="users-role-filter" class="users-role-filter" hidden></div>
             <button type="button" class="bo-btn" id="users-refresh-btn">Refresh</button>
           </div>
           <div class="panel" style="margin-bottom:0;overflow-x:auto;">
             <table class="bo-table" id="users-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Coach</th>
-                  <th>Signed up</th>
-                  <th>Sessions</th>
-                  <th>Climbs</th>
-                  <th>Last activity</th>
-                  <th>Linked</th>
+                  <th class="users-sort-th" data-sort="name" tabindex="0" role="columnheader" aria-sort="none">Name <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="email" tabindex="0" role="columnheader" aria-sort="none">Email <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="role" tabindex="0" role="columnheader" aria-sort="none">Role <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="coach" tabindex="0" role="columnheader" aria-sort="none">Coach <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="signup" tabindex="0" role="columnheader" aria-sort="none">Signed up <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="sessions" tabindex="0" role="columnheader" aria-sort="none">Sessions <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="climbs" tabindex="0" role="columnheader" aria-sort="none">Climbs <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="lastActivity" tabindex="0" role="columnheader" aria-sort="none">Last activity <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="linked" tabindex="0" role="columnheader" aria-sort="none">Linked <span class="users-sort-ind" aria-hidden="true"></span></th>
+                </tr>
+                <tr class="users-filter-row">
+                  <td><input id="users-filter-name" type="search" placeholder="Filter…" aria-label="Filter name"></td>
+                  <td><input id="users-filter-email" type="search" placeholder="Filter…" aria-label="Filter email"></td>
+                  <td>
+                    <select id="users-filter-role" aria-label="Filter role">
+                      <option value="">All</option>
+                      <option value="coach">coach</option>
+                      <option value="athlete">athlete</option>
+                      <option value="both">both</option>
+                      <option value="Test account">Test account</option>
+                      <option value="Signed up · active">Signed up · active</option>
+                      <option value="Signed up · no activity">Signed up · no activity</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select id="users-filter-coach" aria-label="Filter coach">
+                      <option value="">All</option>
+                      <option value="coach">Coach</option>
+                      <option value="not">Not coach</option>
+                    </select>
+                  </td>
+                  <td><input id="users-filter-signup" type="search" placeholder="Filter…" aria-label="Filter signed up"></td>
+                  <td><input id="users-filter-sessions" type="search" placeholder="Filter…" aria-label="Filter sessions"></td>
+                  <td><input id="users-filter-climbs" type="search" placeholder="Filter…" aria-label="Filter climbs"></td>
+                  <td><input id="users-filter-last" type="search" placeholder="Filter…" aria-label="Filter last activity"></td>
+                  <td><input id="users-filter-linked" type="search" placeholder="Filter…" aria-label="Filter linked"></td>
                 </tr>
               </thead>
               <tbody id="users-tbody">
@@ -3702,6 +3718,9 @@
   var allUsersLoaded = false;
   var allUsersCache = [];
   var _usersRoleFilter = null;
+  var _usersCoachFilter = null;
+  var _usersTextFilters = { name:'', email:'', signup:'', sessions:'', climbs:'', lastActivity:'', linked:'' };
+  var _usersSort = { key: null, dir: 'asc' };
 
   function userField(u, keys, fallback){
     for(var i = 0; i < keys.length; i++){
@@ -3742,10 +3761,7 @@
   function roleChip(role){
     var label = role || 'Signed up · no activity';
     var cls = roleChipClass(label);
-    var on = _usersRoleFilter === label;
-    return '<button type="button" class="bo-chip users-role-chip ' + cls + (on ? ' role-filter-on' : '') +
-      '" data-role-filter="' + escapeHtml(label) + '" aria-pressed="' + (on ? 'true' : 'false') +
-      '" title="Filter table to this role">' + escapeHtml(label) + '</button>';
+    return '<span class="bo-chip ' + cls + '">' + escapeHtml(label) + '</span>';
   }
   function linkedLabel(u){
     var coaches = u.linked_coaches || u.coaches || u.coach_names || [];
@@ -3764,6 +3780,108 @@
     if(c.length) bits.push('Coach: ' + c.join(', '));
     if(a.length) bits.push('Athlete: ' + a.join(', '));
     return bits.join(' · ') || '—';
+  }
+
+  function usersDisplayName(u){
+    return personDisplayName(userField(u, ['first_name'], ''), userField(u, ['last_name'], ''), userField(u, ['email'], ''), '—');
+  }
+  function usersSignupRaw(u){
+    return userField(u, ['signup_date', 'created_at', 'signed_up_at'], '');
+  }
+  function usersLastActivityRaw(u){
+    return userField(u, ['last_activity', 'last_seen_at', 'last_session_at'], '');
+  }
+  function usersSessionCount(u){
+    return parseInt(userField(u, ['session_count', 'sessions'], 0), 10) || 0;
+  }
+  function usersClimbCount(u){
+    return parseInt(userField(u, ['climb_count', 'climbs'], 0), 10) || 0;
+  }
+  function usersDateMs(v){
+    if(!v) return 0;
+    var t = new Date(v).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+  function usersTextHay(s){
+    return String(s == null ? '' : s).toLowerCase();
+  }
+  function usersSubstringMatch(value, q){
+    if(!q) return true;
+    return usersTextHay(value).indexOf(q) !== -1;
+  }
+  function readUsersColFilters(){
+    function val(id){
+      var el = document.getElementById(id);
+      return el ? String(el.value || '').trim() : '';
+    }
+    _usersRoleFilter = val('users-filter-role') || null;
+    _usersCoachFilter = val('users-filter-coach') || null;
+    _usersTextFilters = {
+      name: val('users-filter-name').toLowerCase(),
+      email: val('users-filter-email').toLowerCase(),
+      signup: val('users-filter-signup').toLowerCase(),
+      sessions: val('users-filter-sessions').toLowerCase(),
+      climbs: val('users-filter-climbs').toLowerCase(),
+      lastActivity: val('users-filter-last').toLowerCase(),
+      linked: val('users-filter-linked').toLowerCase()
+    };
+  }
+  function usersRowMatchesFilters(u, textFilters, roleFilter, coachFilter){
+    var tf = textFilters || {};
+    if(roleFilter && resolveDisplayRole(u) !== roleFilter) return false;
+    if(coachFilter === 'coach' && !userIsCoach(u)) return false;
+    if(coachFilter === 'not' && userIsCoach(u)) return false;
+    if(!usersSubstringMatch(usersDisplayName(u), tf.name)) return false;
+    if(!usersSubstringMatch(userField(u, ['email'], ''), tf.email)) return false;
+    if(!usersSubstringMatch(fmtShortDate(usersSignupRaw(u)), tf.signup)) return false;
+    if(!usersSubstringMatch(String(usersSessionCount(u)), tf.sessions)) return false;
+    if(!usersSubstringMatch(String(usersClimbCount(u)), tf.climbs)) return false;
+    if(!usersSubstringMatch(fmtShortDate(usersLastActivityRaw(u)), tf.lastActivity)) return false;
+    if(!usersSubstringMatch(linkedLabel(u), tf.linked)) return false;
+    return true;
+  }
+  function usersSortValue(u, key){
+    if(key === 'name') return usersTextHay(usersDisplayName(u));
+    if(key === 'email') return usersTextHay(userField(u, ['email'], ''));
+    if(key === 'role') return usersTextHay(resolveDisplayRole(u));
+    if(key === 'coach') return userIsCoach(u) ? 1 : 0;
+    if(key === 'signup') return usersDateMs(usersSignupRaw(u));
+    if(key === 'lastActivity') return usersDateMs(usersLastActivityRaw(u));
+    if(key === 'sessions') return usersSessionCount(u);
+    if(key === 'climbs') return usersClimbCount(u);
+    if(key === 'linked') return linkedAthleteCount(u);
+    return '';
+  }
+  function usersSortCompare(a, b, sort){
+    if(!sort || !sort.key) return 0;
+    var av = usersSortValue(a, sort.key);
+    var bv = usersSortValue(b, sort.key);
+    var cmp = 0;
+    if(typeof av === 'number' && typeof bv === 'number'){
+      cmp = av - bv;
+    } else {
+      cmp = String(av).localeCompare(String(bv), undefined, { sensitivity: 'base', numeric: true });
+    }
+    return sort.dir === 'desc' ? -cmp : cmp;
+  }
+  function paintUsersSortHeaders(){
+    document.querySelectorAll('#users-table thead .users-sort-th').forEach(function(th){
+      var key = th.getAttribute('data-sort');
+      var ind = th.querySelector('.users-sort-ind');
+      var active = _usersSort.key === key;
+      th.setAttribute('aria-sort', active ? (_usersSort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      if(ind) ind.textContent = active ? (_usersSort.dir === 'asc' ? '▲' : '▼') : '';
+    });
+  }
+  function setUsersSort(key){
+    if(!key) return;
+    if(_usersSort.key === key){
+      _usersSort.dir = _usersSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      _usersSort.key = key;
+      _usersSort.dir = 'asc';
+    }
+    renderAllUsersTable();
   }
 
   function loadAllUsers(force){
@@ -3802,55 +3920,34 @@
   }
 
   function bindAllUsersToolbar(){
-    var search = document.getElementById('users-search');
     var refresh = document.getElementById('users-refresh-btn');
-    var filterEl = document.getElementById('users-role-filter');
-    if(search && !search._bound){
-      search._bound = true;
-      search.addEventListener('input', renderAllUsersTable);
-    }
     if(refresh && !refresh._bound){
       refresh._bound = true;
       refresh.addEventListener('click', function(){ loadAllUsers(true); });
     }
-    if(filterEl && !filterEl._bound){
-      filterEl._bound = true;
-      filterEl.addEventListener('click', function(e){
-        if(e.target && e.target.closest && e.target.closest('.users-role-filter-clear')){
-          _usersRoleFilter = null;
-          renderAllUsersTable();
-        }
-      });
-    }
+    bindAllUsersColFilters();
   }
 
-  function setUsersRoleFilter(label){
-    var next = label || null;
-    _usersRoleFilter = (_usersRoleFilter === next) ? null : next;
-    renderAllUsersTable();
-  }
-  function renderUsersRoleFilterChip(){
-    var el = document.getElementById('users-role-filter');
-    if(!el) return;
-    if(!_usersRoleFilter){
-      el.hidden = true;
-      el.innerHTML = '';
-      return;
-    }
-    el.hidden = false;
-    el.innerHTML = 'Role: ' + escapeHtml(_usersRoleFilter) +
-      ' <button type="button" class="users-role-filter-clear" aria-label="Clear role filter">×</button>';
-  }
-  function bindUsersRoleChipClicks(root){
-    if(!root) return;
-    root.querySelectorAll('.users-role-cell').forEach(function(td){
-      td.addEventListener('click', function(e){ e.stopPropagation(); });
+  function bindAllUsersColFilters(){
+    var table = document.getElementById('users-table');
+    if(!table || table._filtersBound) return;
+    table._filtersBound = true;
+    table.querySelectorAll('.users-filter-row input, .users-filter-row select').forEach(function(el){
+      el.addEventListener('input', renderAllUsersTable);
+      el.addEventListener('change', renderAllUsersTable);
+      el.addEventListener('click', function(e){ e.stopPropagation(); });
     });
-    root.querySelectorAll('.users-role-chip').forEach(function(chip){
-      chip.addEventListener('click', function(e){
+    table.querySelectorAll('.users-sort-th').forEach(function(th){
+      th.addEventListener('click', function(e){
         e.preventDefault();
         e.stopPropagation();
-        setUsersRoleFilter(chip.getAttribute('data-role-filter'));
+        setUsersSort(th.getAttribute('data-sort'));
+      });
+      th.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          setUsersSort(th.getAttribute('data-sort'));
+        }
       });
     });
   }
@@ -3858,15 +3955,15 @@
   function renderAllUsersTable(){
     var tbody = document.getElementById('users-tbody');
     if(!tbody) return;
-    renderUsersRoleFilterChip();
-    var q = ((document.getElementById('users-search') || {}).value || '').trim().toLowerCase();
+    bindAllUsersColFilters();
+    readUsersColFilters();
+    paintUsersSortHeaders();
     var rows = allUsersCache.filter(function(u){
-      if(_usersRoleFilter && resolveDisplayRole(u) !== _usersRoleFilter) return false;
-      if(!q) return true;
-      var name = personDisplayName(userField(u, ['first_name'], ''), userField(u, ['last_name'], ''), '', '').toLowerCase();
-      var email = String(userField(u, ['email'], '')).toLowerCase();
-      return name.indexOf(q) !== -1 || email.indexOf(q) !== -1;
+      return usersRowMatchesFilters(u, _usersTextFilters, _usersRoleFilter, _usersCoachFilter);
     });
+    if(_usersSort.key){
+      rows.sort(function(a, b){ return usersSortCompare(a, b, _usersSort); });
+    }
     if(!rows.length){
       tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">No users match.</td></tr>';
       return;
@@ -3876,7 +3973,7 @@
       var email = userField(u, ['email'], '');
       var isCoach = userIsCoach(u);
       return '<tr class="click-row" data-user-id="' + escapeHtml(uid) + '" data-idx="' + i + '">' +
-        '<td>' + escapeHtml(personDisplayName(userField(u, ['first_name'], ''), userField(u, ['last_name'], ''), userField(u, ['email'], ''), '—')) + '</td>' +
+        '<td>' + escapeHtml(usersDisplayName(u)) + '</td>' +
         '<td class="mono">' + escapeHtml(email || '—') + '</td>' +
         '<td class="users-role-cell">' + roleChip(resolveDisplayRole(u)) + '</td>' +
         '<td class="users-coach-cell">' +
@@ -3887,17 +3984,16 @@
             '<span class="users-coach-status" aria-live="polite"></span>' +
           '</label>' +
         '</td>' +
-        '<td class="mono">' + escapeHtml(fmtShortDate(userField(u, ['signup_date', 'created_at', 'signed_up_at'], ''))) + '</td>' +
-        '<td class="mono">' + escapeHtml(String(userField(u, ['session_count', 'sessions'], 0))) + '</td>' +
-        '<td class="mono">' + escapeHtml(String(userField(u, ['climb_count', 'climbs'], 0))) + '</td>' +
-        '<td class="mono">' + escapeHtml(fmtShortDate(userField(u, ['last_activity', 'last_seen_at', 'last_session_at'], ''))) + '</td>' +
+        '<td class="mono">' + escapeHtml(fmtShortDate(usersSignupRaw(u))) + '</td>' +
+        '<td class="mono">' + escapeHtml(String(usersSessionCount(u))) + '</td>' +
+        '<td class="mono">' + escapeHtml(String(usersClimbCount(u))) + '</td>' +
+        '<td class="mono">' + escapeHtml(fmtShortDate(usersLastActivityRaw(u))) + '</td>' +
         '<td>' + escapeHtml(linkedLabel(u)) + '</td>' +
       '</tr>';
     }).join('');
     tbody.querySelectorAll('tr.click-row').forEach(function(tr){
       tr.addEventListener('click', function(e){
         if(e.target && e.target.closest && e.target.closest('.users-coach-cell')) return;
-        if(e.target && e.target.closest && e.target.closest('.users-role-cell')) return;
         openUserDetail(tr.getAttribute('data-user-id'));
       });
     });
@@ -3911,7 +4007,6 @@
         toggleAllUsersCoach(cb);
       });
     });
-    bindUsersRoleChipClicks(tbody);
   }
 
   function userIsCoach(u){
@@ -3983,7 +4078,6 @@
     var roleCell = tr.querySelector('.users-role-cell');
     if(roleCell){
       roleCell.innerHTML = roleChip(u ? resolveDisplayRole(u) : (isCoach ? 'coach' : 'Signed up · no activity'));
-      bindUsersRoleChipClicks(roleCell);
     }
     var cb = tr.querySelector('.users-coach-toggle');
     if(cb) cb.checked = !!isCoach;

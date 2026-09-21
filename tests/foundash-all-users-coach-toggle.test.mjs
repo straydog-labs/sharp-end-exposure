@@ -9,9 +9,10 @@ const html = readFileSync(join(__dirname, '../founder-dashboard.html'), 'utf8');
 
 const usersTable = html.match(/<table class="bo-table" id="users-table">[\s\S]*?<\/table>/);
 assert.ok(usersTable, 'All Users table present');
-assert.ok(/<th>Role<\/th>\s*<th>Coach<\/th>/.test(usersTable[0]), 'Coach column sits after Role');
-assert.ok((usersTable[0].match(/<th>/g) || []).length === 9, 'All Users has 9 columns');
+assert.ok(/data-sort="role"[\s\S]*?data-sort="coach"/.test(usersTable[0]), 'Coach column sits after Role');
+assert.ok((usersTable[0].match(/<th /g) || []).length === 9, 'All Users has 9 sort headers');
 assert.ok(/colspan="9"/.test(usersTable[0]), 'loading rowspan matches 9 columns');
+assert.ok(/users-filter-row/.test(usersTable[0]), 'filter row in header');
 
 const colspans = html.match(/users-tbody[\s\S]{0,80}colspan="9"|colspan="9" class="bo-empty"/g);
 assert.ok(colspans && colspans.length >= 1, 'empty/loading states use colspan 9');
@@ -31,7 +32,8 @@ assert.ok(/function resolveDisplayRole/.test(html));
 assert.ok(/function isTestAccount/.test(html));
 assert.ok(/Granting…/.test(html) && /Revoking…/.test(html));
 assert.ok(!/id="users-hide-test"/.test(html), 'hide-test checkbox removed');
-assert.ok(/id="users-role-filter"/.test(html), 'role filter chrome present');
+assert.ok(/id="users-filter-role"/.test(html), 'role filter select present');
+assert.ok(!/id="users-role-filter"/.test(html), 'old chip chrome gone');
 
 const toggleFn = html.match(/function toggleAllUsersCoach\(cb\)\{[\s\S]*?\n  function openUserDetail/);
 assert.ok(toggleFn, 'toggleAllUsersCoach extracted');
@@ -51,6 +53,7 @@ assert.ok(/users-role-cell/.test(applyFn[0]), 'ROLE badge is refreshed on the sa
 assert.ok(/u\.is_coach = isCoach/.test(applyFn[0]));
 assert.ok(/deriveRoleAfterCoachToggle/.test(applyFn[0]));
 assert.ok(/resolveDisplayRole/.test(applyFn[0]), 'ROLE badge uses resolveDisplayRole');
+assert.ok(!/bindUsersRoleChipClicks/.test(applyFn[0]), 'inline toggle does not rebind chip filters');
 
 assert.ok(/e\.stopPropagation\(\)/.test(html.match(/tbody\.querySelectorAll\('\.users-coach-toggle'\)[\s\S]{0,400}/)[0]));
 assert.ok(/closest\('\.users-coach-cell'\)/.test(html));
