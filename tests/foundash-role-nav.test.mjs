@@ -8,15 +8,16 @@ const html = readFileSync(join(__dirname, '../founder-dashboard.html'), 'utf8');
 
 assert.ok(!/id="users-hide-test"/.test(html), 'Hide test checkbox is gone');
 assert.ok(!/Hide test \/ seed accounts/.test(html), 'Hide test label is gone');
-assert.ok(/id="users-role-filter"/.test(html), 'Role filter chrome next to search');
-assert.ok(/Role: /.test(html) && /users-role-filter-clear/.test(html), 'Role: label × chrome');
+assert.ok(/id="users-filter-role"/.test(html), 'Role filter is a header select');
+assert.ok(!/id="users-search"/.test(html), 'combined search box removed');
+assert.ok(!/id="users-role-filter"/.test(html), 'old chip container removed');
+assert.ok(!/function setUsersRoleFilter/.test(html));
+assert.ok(!/users-role-chip/.test(html));
 assert.ok(/var _usersRoleFilter = null/.test(html), 'module-level role filter');
 assert.ok(/function resolveDisplayRole\(u\)/.test(html));
 assert.ok(/function isTestAccount\(u\)/.test(html));
-assert.ok(/function setUsersRoleFilter/.test(html));
 assert.ok(/roleChip\(resolveDisplayRole\(u\)\)/.test(html), 'table uses resolveDisplayRole');
-assert.ok(/data-role-filter=/.test(html), 'chips carry filter value');
-assert.ok(/users-role-chip/.test(html));
+assert.ok(/users-filter-row/.test(html));
 
 assert.ok(/rls-probe-/.test(html) && /tf-verify-/.test(html));
 assert.ok(/\+test/.test(html));
