@@ -11,8 +11,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index264'/.test(index));
-assert.ok(/APP_VERSION = 'index264'/.test(sw));
+assert.ok(/var app_version = 'index265'/.test(index));
+assert.ok(/APP_VERSION = 'index265'/.test(sw));
 assert.ok(!/see-guide-site/.test(index));
 assert.ok(!/see-guide-site/.test(dash));
 
