@@ -11522,8 +11522,10 @@ async function hydrateTrainingBlockSessionLabels(){
     var name = item && item.name ? item.name : '';
     if(name && s._itemName !== name){ s._itemName = name; changed = true; }
     var a = s.assignment_id ? assignById[s.assignment_id] : null;
-    var done = !!(a && a.completed_at);
-    if(s._completed !== done){ s._completed = done; changed = true; }
+    if(a){
+      var done = !!a.completed_at;
+      if(s._completed !== done){ s._completed = done; changed = true; }
+    }
   });
   if(changed) renderTrainingBlockDetail(true);
 }
@@ -20862,7 +20864,8 @@ async function runSEETests(){
     var seeded = (_selfAssignWizard.sections || []).map(function(s){ return s.label; });
     var seedOk = seeded[0] === 'Warm-up' && seeded[1] === 'Workout' && seeded[2] === 'Cooldown';
     var listEl = document.getElementById('saw-sections-list');
-    var hasBuilder = !!(listEl && /Warm-up/.test(listEl.textContent || '') && document.getElementById('saw-section-add'));
+    var labelVals = listEl ? Array.prototype.map.call(listEl.querySelectorAll('.aw-section-label-input'), function(el){ return el.value; }) : [];
+    var hasBuilder = !!(listEl && labelVals[0] === 'Warm-up' && labelVals[1] === 'Workout' && labelVals[2] === 'Cooldown' && document.getElementById('saw-section-add'));
     var addEx = listEl && listEl.querySelector('.aw-section-add-ex');
     if(addEx) addEx.click();
     var firstSec = _selfAssignWizard.sections[0];
