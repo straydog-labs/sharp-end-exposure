@@ -1613,7 +1613,20 @@
             '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="panel" id="detail-panel"><div class="stub">Select an athlete from the roster to get started.</div></div>' +
+        '<div class="panel" id="detail-panel">' +
+          '<div class="see-card-grid" id="empty-landing-actions">' +
+            '<button type="button" class="see-card" id="empty-landing-add-athlete">' +
+              '<div class="te-label">Roster</div>' +
+              '<div class="te-title">Add athlete</div>' +
+              '<div class="te-sub">Invite a new athlete or link by email</div>' +
+            '</button>' +
+            '<button type="button" class="see-card" id="empty-landing-gym-climbs">' +
+              '<div class="te-label">Catalog</div>' +
+              '<div class="te-title">Gym climb catalog</div>' +
+              '<div class="te-sub">Climbs you author</div>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
       '</div>';
 
     wireCoachInviteUi(token, user);
@@ -1644,6 +1657,23 @@
     document.getElementById('open-gym-climbs').addEventListener('click', function(){
       openGymClimbsCatalog(token, user);
     });
+    var emptyAdd = document.getElementById('empty-landing-add-athlete');
+    if(emptyAdd){
+      emptyAdd.addEventListener('click', function(){
+        var section = document.getElementById('add-athlete-section');
+        if(section && section.scrollIntoView){
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        var inviteBtn = document.getElementById('invite-athlete-open');
+        if(inviteBtn) inviteBtn.focus();
+      });
+    }
+    var emptyGym = document.getElementById('empty-landing-gym-climbs');
+    if(emptyGym){
+      emptyGym.addEventListener('click', function(){
+        openGymClimbsCatalog(token, user);
+      });
+    }
 
     document.getElementById('link-athlete-submit').addEventListener('click', function(){
       var input = document.getElementById('link-athlete-email');
@@ -2611,6 +2641,14 @@
             sub +
           '</div>' +
         '</div>' +
+        '<div class="see-card-grid" id="athlete-hub-cards">' +
+          athleteHubCardHtml('assignments', 'Plan', 'Assignments', 'hub-assign-sub', 'Open plans') +
+          athleteHubCardHtml('goals', 'Focus', 'Training Goals', 'hub-goals-sub', 'Primary and secondary') +
+          athleteHubCardHtml('journal', 'Log', 'Session Notes', 'hub-journal-sub', 'Journal and replies') +
+          athleteHubCardHtml('notes', 'Private', "Coach's Notes", 'hub-notes-sub', 'Only you can see these') +
+          athleteHubCardHtml('baseline', 'Setup', 'Baseline', 'hub-baseline-sub', 'Terrain expectations') +
+          athleteHubCardHtml('chat', 'Message', 'Chat', 'hub-chat-sub', 'Message this athlete', true) +
+        '</div>' +
         '<button type="button" class="assign-launch" id="coach-log-launch" style="margin-bottom:14px;">' +
           '<span><span>Log a climb</span><span class="assign-launch-sub">Drag the dial, then save</span></span>' +
           '<span class="assign-launch-arrow">→</span>' +
@@ -2641,14 +2679,6 @@
           '<div class="team-zone-label">Projects</div>' +
           '<div class="team-zone-note">Climbs this athlete starred. Read-only — starring stays on the athlete side.</div>' +
           '<div id="athlete-projects-body"><div class="zone-bar-empty">Loading···</div></div>' +
-        '</div>' +
-        '<div class="see-card-grid" id="athlete-hub-cards">' +
-          athleteHubCardHtml('assignments', 'Plan', 'Assignments', 'hub-assign-sub', 'Open plans') +
-          athleteHubCardHtml('goals', 'Focus', 'Training Goals', 'hub-goals-sub', 'Primary and secondary') +
-          athleteHubCardHtml('journal', 'Log', 'Session Notes', 'hub-journal-sub', 'Journal and replies') +
-          athleteHubCardHtml('notes', 'Private', "Coach's Notes", 'hub-notes-sub', 'Only you can see these') +
-          athleteHubCardHtml('baseline', 'Setup', 'Baseline', 'hub-baseline-sub', 'Terrain expectations') +
-          athleteHubCardHtml('chat', 'Message', 'Chat', 'hub-chat-sub', 'Message this athlete', true) +
         '</div>' +
       '</div>' +
       '<div id="athlete-subview" style="display:none;">' +
