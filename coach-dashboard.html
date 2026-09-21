@@ -184,6 +184,13 @@
     font-size:12px;font-weight:700;cursor:pointer;line-height:1.2;
   }
   .roster-assign-btn:hover{border-color:var(--accent);background:rgba(232,146,82,.08);}
+  .roster-assign-btns{display:flex;flex-direction:column;align-items:stretch;gap:6px;}
+  .roster-quick-assign-btn{
+    background:transparent;border:1px solid var(--border);border-radius:8px;
+    padding:6px 12px;color:var(--text-secondary);font-family:'Space Grotesk',sans-serif;
+    font-size:11px;font-weight:600;cursor:pointer;line-height:1.2;
+  }
+  .roster-quick-assign-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(232,146,82,.08);}
 
   .detail-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
   .detail-title{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2;}
@@ -718,6 +725,13 @@
   .assign-launch:hover{opacity:.92;}
   .assign-launch-sub{display:block;font-size:12.5px;font-weight:600;opacity:.7;margin-top:2px;}
   .assign-launch-arrow{font-size:22px;line-height:1;}
+  .assign-launch-stack{display:flex;flex-direction:column;gap:8px;}
+  .assign-launch-secondary{
+    background:transparent;border:1px solid var(--border);color:var(--text);
+  }
+  .assign-launch-secondary:hover{opacity:1;border-color:var(--accent);background:rgba(232,146,82,.08);}
+  #assign-wizard-overlay.aw-quick .aw-prog,
+  #assign-wizard-overlay.aw-quick .aw-step-num{display:none;}
   .assign-inline-success{
     margin-top:10px;font-size:13px;color:#7fbf3f;background:rgba(63,109,17,.15);
     border:1px solid rgba(127,191,63,.35);border-radius:8px;padding:10px 12px;
@@ -2392,10 +2406,37 @@
   function rosterRowSideHtml(miniHtml, flagHtml, unreadOn){
     return (miniHtml || '') +
       (flagHtml || '') +
-      '<button type="button" class="roster-assign-btn">New assignment</button>';
+      '<div class="roster-assign-btns">' +
+        '<button type="button" class="roster-assign-btn">New assignment</button>' +
+        '<button type="button" class="roster-quick-assign-btn">Quick assignment</button>' +
+      '</div>';
   }
 
   var _rosterAuthCtx = null;
+
+  function primeAssignWizardFromRosterRow(btn){
+    var ctx = _rosterAuthCtx;
+    if(!btn || !ctx) return false;
+    var rowEl = btn.closest('.roster-row');
+    if(!rowEl) return false;
+    var athleteId = rowEl.getAttribute('data-athlete-id');
+    var src = null;
+    var idx = parseInt(rowEl.getAttribute('data-idx'), 10);
+    if(!isNaN(idx) && _coachRoster[idx] && _coachRoster[idx].athlete_id === athleteId){
+      src = _coachRoster[idx];
+    } else {
+      for(var i=0;i<_coachRoster.length;i++){
+        if(_coachRoster[i].athlete_id === athleteId){ src = _coachRoster[i]; break; }
+      }
+    }
+    _assignWizardCtx = {
+      token: ctx.token,
+      coachUser: ctx.user,
+      athleteId: athleteId,
+      athleteLabel: src ? athleteDisplayLabel(src) : (rowEl.getAttribute('data-athlete-label') || '')
+    };
+    return true;
+  }
 
   function wireRosterAssignButtons(listEl, token, user){
     if(token && user) _rosterAuthCtx = { token: token, user: user };
@@ -2405,25 +2446,16 @@
       btn.addEventListener('click', function(e){
         e.preventDefault();
         e.stopPropagation();
-        var rowEl = btn.closest('.roster-row');
-        if(!rowEl) return;
-        var athleteId = rowEl.getAttribute('data-athlete-id');
-        var src = null;
-        var idx = parseInt(rowEl.getAttribute('data-idx'), 10);
-        if(!isNaN(idx) && _coachRoster[idx] && _coachRoster[idx].athlete_id === athleteId){
-          src = _coachRoster[idx];
-        } else {
-          for(var i=0;i<_coachRoster.length;i++){
-            if(_coachRoster[i].athlete_id === athleteId){ src = _coachRoster[i]; break; }
-          }
-        }
-        _assignWizardCtx = {
-          token: ctx.token,
-          coachUser: ctx.user,
-          athleteId: athleteId,
-          athleteLabel: src ? athleteDisplayLabel(src) : (rowEl.getAttribute('data-athlete-label') || '')
-        };
+        if(!primeAssignWizardFromRosterRow(btn)) return;
         startAssignWizard();
+      });
+    });
+    Array.prototype.forEach.call(listEl.querySelectorAll('.roster-quick-assign-btn'), function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        if(!primeAssignWizardFromRosterRow(btn)) return;
+        startQuickAssignment();
       });
     });
   }
@@ -4389,7 +4421,8 @@
       sections: [],
       editingCustomWorkoutId: null,
       warmupCustomWorkoutItemId: null,
-      starterShortlist: false
+      starterShortlist: false,
+      quickMode: false
     };
     _coachLibSelectedId = null;
   }
@@ -4891,6 +4924,9 @@
     } else if(mode === 'repeat'){
       if(eyebrow) eyebrow.textContent = 'Repeat assignment';
       if(hero) hero.textContent = 'Adjust, then create a copy.';
+    } else if(mode === 'quick'){
+      if(eyebrow) eyebrow.textContent = 'Quick assignment';
+      if(hero) hero.textContent = 'Title and notes — no workout.';
     } else {
       if(eyebrow) eyebrow.textContent = 'New assignment';
       if(hero) hero.textContent = 'Assign a workout.';
@@ -5122,6 +5158,7 @@
     if(!overlay) return;
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('aw-quick');
     var keepLock = window.CoachStackNav
       ? window.CoachStackNav.bodyOverflowAfterWizardClose({
           mobile: coachNavIsMobile(),
@@ -5638,12 +5675,108 @@
     }).then(finishSuccess).catch(failCreate);
   }
 
+  function startQuickAssignment(){
+    var ctx = _assignWizardCtx;
+    if(!ctx) return;
+    resetAssignWizard();
+    _assignWizard.mode = 'quick';
+    _assignWizard.quickMode = true;
+    syncWizardShellMode();
+    openAssignWizardOverlay();
+    renderQuickAssignmentForm();
+  }
+
+  function renderQuickAssignmentForm(){
+    var overlay = document.getElementById('assign-wizard-overlay');
+    if(overlay) overlay.classList.add('aw-quick');
+    var body = document.getElementById('wiz-body');
+    var msgEl = document.getElementById('new-a-msg');
+    if(msgEl) msgEl.innerHTML = '';
+    setAssignWizardChrome(
+      'What should they do?',
+      'No linked workout — they will see the title, your notes, due date, and Mark complete.'
+    );
+    if(!body) return;
+    body.innerHTML =
+      '<div class="aw-field"><label for="quick-a-title">Title</label>' +
+        '<input id="quick-a-title" type="text" maxlength="120" placeholder="e.g. Pick a project" autocomplete="off"></div>' +
+      '<div class="aw-field"><label for="quick-a-desc">Coach\'s instructions</label>' +
+        '<textarea id="quick-a-desc" rows="8" placeholder="Optional. Tip: lines starting with &quot;- [ ]&quot; become checkboxes the athlete can tick off"></textarea></div>' +
+      '<div class="aw-field"><label for="quick-a-due">Due date</label>' +
+        '<input id="quick-a-due" type="date"></div>' +
+      '<div class="aw-field"><label for="quick-a-link">Resource link</label>' +
+        '<input id="quick-a-link" type="url" placeholder="Optional — YouTube, Google Drive, etc."></div>';
+    setAssignWizardFooter(
+      '<button type="button" class="aw-next" id="quick-a-submit">Create assignment</button>'
+    );
+    var submit = document.getElementById('quick-a-submit');
+    if(submit) submit.addEventListener('click', submitQuickAssignment);
+    var titleEl = document.getElementById('quick-a-title');
+    if(titleEl) titleEl.focus();
+  }
+
+  function submitQuickAssignment(){
+    var ctx = _assignWizardCtx;
+    if(!ctx) return;
+    var token = ctx.token;
+    var coachUser = ctx.coachUser;
+    var athleteId = ctx.athleteId;
+    var msgEl = document.getElementById('new-a-msg');
+    var btn = document.getElementById('quick-a-submit');
+    var titleEl = document.getElementById('quick-a-title');
+    var descEl = document.getElementById('quick-a-desc');
+    var dueEl = document.getElementById('quick-a-due');
+    var linkEl = document.getElementById('quick-a-link');
+    var title = titleEl ? (titleEl.value || '').trim() : '';
+    var instructions = descEl ? (descEl.value || '').trim() : '';
+    var due = dueEl ? dueEl.value : '';
+    var link = linkEl ? (linkEl.value || '').trim() : '';
+    if(!title){
+      if(msgEl) msgEl.innerHTML = '<div class="form-error">Title is required.</div>';
+      return;
+    }
+    if(link && !/^https?:\/\//i.test(link)){
+      if(msgEl) msgEl.innerHTML = '<div class="form-error">Resource link must start with http:// or https://</div>';
+      return;
+    }
+    var payload = {
+      coach_id: coachUser.id,
+      athlete_id: athleteId,
+      title: title,
+      description: instructions || null,
+      due_date: due || null,
+      resource_link: link || null
+    };
+    function finishSuccess(){
+      if(btn){ btn.disabled = false; btn.textContent = 'Create assignment'; }
+      if(_detailCtx && _detailCtx.athleteId === athleteId){
+        loadAssignments(token, coachUser, athleteId);
+      }
+      closeAssignWizardOverlay();
+      resetAssignWizard();
+      syncWizardShellMode();
+      showAssignSavedBanner('Assignment saved.');
+    }
+    function failCreate(err){
+      if(btn){ btn.disabled = false; btn.textContent = 'Create assignment'; }
+      if(msgEl){
+        msgEl.innerHTML = '<div class="form-error">Could not save. ' +
+          escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';
+      }
+    }
+    if(btn){ btn.disabled = true; btn.textContent = 'Creating...'; }
+    if(msgEl) msgEl.innerHTML = '';
+    createCoachLibraryAssignment(token, payload).then(finishSuccess).catch(failCreate);
+  }
+
   function startAssignWizard(opts){
     var ctx = _assignWizardCtx;
     if(!ctx) return;
     opts = opts || {};
     resetAssignWizard();
     if(opts.starterShortlist) _assignWizard.starterShortlist = true;
+    var overlay = document.getElementById('assign-wizard-overlay');
+    if(overlay) overlay.classList.remove('aw-quick');
     syncWizardShellMode();
     openAssignWizardOverlay();
     var body = document.getElementById('wiz-body');
@@ -5729,11 +5862,19 @@
     };
     var el = document.getElementById('detail-new-assignment');
     el.innerHTML =
-      '<button type="button" class="assign-launch" id="assign-launch-btn">' +
-        '<span><span>New assignment</span><span class="assign-launch-sub">Full-screen step flow</span></span>' +
-        '<span class="assign-launch-arrow">→</span>' +
-      '</button>';
+      '<div class="assign-launch-stack">' +
+        '<button type="button" class="assign-launch" id="assign-launch-btn">' +
+          '<span><span>New assignment</span><span class="assign-launch-sub">Full-screen step flow</span></span>' +
+          '<span class="assign-launch-arrow">→</span>' +
+        '</button>' +
+        '<button type="button" class="assign-launch assign-launch-secondary" id="assign-quick-btn">' +
+          '<span><span>Quick assignment</span><span class="assign-launch-sub">Title and notes — no workout</span></span>' +
+          '<span class="assign-launch-arrow">→</span>' +
+        '</button>' +
+      '</div>';
     document.getElementById('assign-launch-btn').addEventListener('click', startAssignWizard);
+    var quickBtn = document.getElementById('assign-quick-btn');
+    if(quickBtn) quickBtn.addEventListener('click', startQuickAssignment);
   }
 
   // Cancel closes the overlay without saving.
