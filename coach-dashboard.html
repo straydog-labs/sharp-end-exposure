@@ -857,10 +857,20 @@
   .aw-hint{
     font-size:13px;color:var(--text-secondary);line-height:1.55;margin-bottom:16px;
   }
+  .aw-path-wrap{margin-bottom:14px;}
   .aw-path{
-    font-size:13px;color:var(--text-secondary);line-height:1.45;margin-bottom:14px;
+    font-size:13px;color:var(--text-secondary);line-height:1.45;
   }
   .aw-path b{color:var(--text);font-weight:600;}
+  .aw-workout-details{
+    margin-top:6px;font-size:13px;color:var(--text-secondary);line-height:1.5;
+  }
+  .aw-workout-details summary{
+    cursor:pointer;font-weight:600;color:var(--text);font-size:12.5px;
+  }
+  .aw-workout-details-body{
+    margin-top:8px;white-space:pre-wrap;color:var(--text-secondary);
+  }
   .aw-choices{display:flex;flex-direction:column;gap:8px;width:100%;}
   .aw-chip{
     width:100%;text-align:left;background:var(--bg);border:1px solid var(--border);border-radius:14px;
@@ -5022,7 +5032,6 @@
     _coachLibSelectedId = item.id;
     _assignWizard.drillName = item.name || '';
     _assignWizard.libraryDescription = item.description || '';
-    _assignWizard.assignDescription = item.description || '';
     _assignWizard.createMode = false;
     _assignWizard.createEntryStep = null;
     _assignWizard.editingCustomWorkoutId = null;
@@ -5152,7 +5161,16 @@
       var wu = warmupCustomWorkoutRows().find(function(r){ return r.id === warmupId; });
       parts.push('Warm-up <b>' + escapeHtml((wu && wu.name) || 'attached') + '</b>');
     }
-    return parts.length ? '<div class="aw-path">' + parts.join(' · ') + '</div>' : '';
+    var desc = ((_assignWizard && _assignWizard.libraryDescription) || '').trim();
+    if(!parts.length && !desc) return '';
+    var html = parts.length ? '<div class="aw-path">' + parts.join(' · ') + '</div>' : '';
+    if(desc){
+      html += '<details class="aw-workout-details">' +
+        '<summary>Workout details</summary>' +
+        '<div class="aw-workout-details-body">' + escapeHtml(desc) + '</div>' +
+        '</details>';
+    }
+    return '<div class="aw-path-wrap">' + html + '</div>';
   }
 
   function setAssignWizardChrome(q, hint){
@@ -5459,7 +5477,7 @@
             Array.prototype.forEach.call(body.querySelectorAll('#new-a-focus-chips .aw-chip'), function(b){
               b.classList.toggle('selected', b === btn);
             });
-            var pathEl = body.querySelector('.aw-path');
+            var pathEl = body.querySelector('.aw-path-wrap') || body.querySelector('.aw-path');
             if(pathEl){
               var tmp = document.createElement('div');
               tmp.innerHTML = wizardPathSummaryHtml();
@@ -5509,7 +5527,6 @@
           _assignWizard.trainingFocus = focus;
           _assignWizard.drillName = name;
           _assignWizard.libraryDescription = libDesc;
-          _assignWizard.assignDescription = libDesc;
           goAssignWizardStep(3);
         });
         return;

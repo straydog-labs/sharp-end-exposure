@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import assert from 'assert';
+import vm from 'vm';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
@@ -52,5 +53,84 @@ const quick = dash.match(/function renderQuickAssignmentForm\(\)\{[\s\S]*?\n  fu
 assert.ok(quick);
 assert.ok(/Coach\\'s instructions/.test(quick[0]));
 assert.ok(/id="quick-a-desc"/.test(quick[0]));
+
+const pick = dash.match(/function applyWizardLibraryPick\(item\)\{[\s\S]*?\n  function enterCreateCustomWorkout/);
+assert.ok(pick, 'library pick handler');
+assert.ok(/_assignWizard\.libraryDescription = item\.description \|\| ''/.test(pick[0]));
+assert.ok(!/_assignWizard\.assignDescription = item\.description/.test(pick[0]), 'pick does not seed coach note');
+
+const createNext = dash.match(/var libDesc = \(document\.getElementById\('new-a-lib-desc'\)\.value \|\| ''\)\.trim\(\);[\s\S]*?goAssignWizardStep\(3\);/);
+assert.ok(createNext, 'custom-create next');
+assert.ok(/_assignWizard\.libraryDescription = libDesc/.test(createNext[0]));
+assert.ok(!/_assignWizard\.assignDescription = libDesc/.test(createNext[0]), 'create next does not seed coach note');
+
+const pathFn = dash.match(/function wizardPathSummaryHtml\(\)\{[\s\S]*?\n  function setAssignWizardChrome/);
+assert.ok(pathFn, 'path summary');
+assert.ok(/aw-workout-details/.test(pathFn[0]));
+assert.ok(/Workout details/.test(pathFn[0]));
+assert.ok(/libraryDescription/.test(pathFn[0]));
+assert.ok(/<details class="aw-workout-details">/.test(pathFn[0]));
+assert.ok(!/\bopen\b/.test(pathFn[0]), 'details collapsed by default');
+assert.ok(!/new-a-desc/.test(pathFn[0]), 'protocol expander is not the coach-note field');
+assert.ok(/white-space:pre-wrap/.test(dash));
+
+function extractFn(src, name, nextName){
+  const start = src.indexOf('function ' + name + '(');
+  const end = src.indexOf('function ' + nextName + '(', start + 1);
+  assert.ok(start >= 0 && end > start, 'extract ' + name);
+  return src.slice(start, end);
+}
+
+const ctx = {
+  _assignWizard: {
+    assignDescription: '',
+    libraryDescription: '',
+    drillName: '',
+    trainingFocus: null,
+    createMode: false,
+    createEntryStep: 1,
+    editingCustomWorkoutId: null,
+    libraryItemId: null,
+    customWorkoutItemId: null,
+    itemSource: null
+  },
+  _coachLibSelectedId: null,
+  isWarmUpLibraryItem: function(){ return false; },
+  itemTrainingFocus: function(){ return 'Boulders'; },
+  coachLibFocusLabel: function(f){ return f; },
+  goAssignWizardStep: function(){},
+  assignmentWarmupId: function(){ return null; },
+  warmupCustomWorkoutRows: function(){ return []; },
+  escapeHtml: function(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+};
+vm.createContext(ctx);
+vm.runInContext(extractFn(dash, 'applyWizardLibraryPick', 'enterCreateCustomWorkout'), ctx);
+vm.runInContext(extractFn(dash, 'wizardPathSummaryHtml', 'setAssignWizardChrome'), ctx);
+vm.runInContext(
+  'applyWizardLibraryPick({ id: "emom-1", name: "EMOM", description: "Set a timer for 8-10 minutes...", _source: "foundational", _focus: "Boulders" });',
+  ctx
+);
+assert.strictEqual(ctx._assignWizard.assignDescription, '', 'new pick leaves coach instructions blank');
+assert.strictEqual(ctx._assignWizard.libraryDescription, 'Set a timer for 8-10 minutes...');
+assert.strictEqual(ctx._assignWizard.drillName, 'EMOM');
+const pathHtml = vm.runInContext('wizardPathSummaryHtml()', ctx);
+assert.ok(/Boulders/.test(pathHtml) && /EMOM/.test(pathHtml));
+assert.ok(/<details class="aw-workout-details">/.test(pathHtml));
+assert.ok(/<summary>Workout details<\/summary>/.test(pathHtml));
+assert.ok(/Set a timer for 8-10 minutes\.\.\./.test(pathHtml));
+assert.ok(!/\sopen/.test(pathHtml), 'expander starts collapsed');
+assert.ok(!/id="new-a-desc"/.test(pathHtml));
+
+ctx._assignWizard.assignDescription = 'Stay on the 45';
+ctx._assignWizard.libraryDescription = 'Set a timer for 8-10 minutes...';
+const editPath = vm.runInContext('wizardPathSummaryHtml()', ctx);
+assert.ok(/Set a timer for 8-10 minutes\.\.\./.test(editPath));
+assert.ok(!/Stay on the 45/.test(editPath), 'expander is protocol, not the coach note');
 
 console.log('coach-wizard-instructions-sidebar tests: ok');
