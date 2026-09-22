@@ -262,6 +262,9 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 }
 .tb-block-name{font-size:16px;font-weight:700;}
 .tb-block-meta{font-size:13px;color:var(--muted);margin-top:4px;}
+.tb-reassign-weeks{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px;}
+.tb-reassign-week{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--text);}
+.tb-reassign-week input{width:18px;height:18px;accent-color:var(--accent);}
 .wl-type-chip,.wl-cat-chip{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wl-type-chip.selected,.wl-cat-chip.selected{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
 .screen-title{font-size:28px;font-weight:700;letter-spacing:-.025em;line-height:1.15;}
@@ -4069,6 +4072,15 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
       <button type="button" class="saw-secondary-btn" id="tb-place-cancel" onclick="cancelTrainingBlockPlace()">← Cancel</button>
     </div>
+    <div id="tb-reassign-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin:8px 0 16px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;" id="tb-reassign-heading">Reassign to other weeks</div>
+      <div id="tb-reassign-sub" style="font-size:13px;color:var(--muted);line-height:1.45;margin-bottom:12px;"></div>
+      <button type="button" class="saw-next" id="tb-reassign-all" onclick="applyBlockReassignToRemainingWeeks()">Apply to all remaining weeks</button>
+      <button type="button" class="saw-linkish" id="tb-reassign-choose" onclick="toggleBlockReassignWeekPicker()">Choose specific weeks</button>
+      <div id="tb-reassign-weeks" class="tb-reassign-weeks" style="display:none;"></div>
+      <button type="button" class="saw-next" id="tb-reassign-apply-selected" onclick="applyBlockReassignToSelectedWeeks()" style="display:none;">Apply to selected weeks</button>
+      <button type="button" class="saw-secondary-btn" id="tb-reassign-dismiss" onclick="hideBlockReassignPanel()">Not now</button>
+    </div>
     <div id="tb-week-list"></div>
     <button type="button" class="saw-secondary-btn" id="tb-delete-block" onclick="deleteCurrentTrainingBlock()" style="margin-top:18px;">Delete this block</button>
   </div>
@@ -5326,7 +5338,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index265'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index266'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -9270,6 +9282,7 @@ var _trainingBlocksCache = [];
 var _currentTrainingBlock = null;
 var _trainingBlockSessions = [];
 var _blockPlaceCtx = null;
+var _blockReassignCtx = null;
 
 function localIsoDate(d){
   d = d || new Date();
@@ -9306,6 +9319,43 @@ function formatBlockRangeLabel(startDateStr, weeks){
   var end = trainingBlockScheduledDate(startDateStr, weeks, 6);
   if(!start || !end) return (weeks || 0) + ' weeks';
   return weeks + ' weeks · ' + formatBlockDayLabel(start) + ' - ' + formatBlockDayLabel(end);
+}
+
+function formatBlockWeekListLabel(weeks){
+  weeks = Array.isArray(weeks) ? weeks.slice() : [];
+  if(!weeks.length) return '';
+  if(weeks.length === 1) return 'week ' + weeks[0];
+  if(weeks.length === 2) return 'weeks ' + weeks[0] + ' and ' + weeks[1];
+  return 'weeks ' + weeks.slice(0, -1).join(', ') + ', and ' + weeks[weeks.length - 1];
+}
+
+// Weeks on the same weekday that do not already have this linked template.
+// remaining = later weeks only (the one-click path); other = any other week.
+function trainingBlockWeeksMissingPlacement(block, sessions, opts){
+  opts = opts || {};
+  var weeks = parseInt(block && block.weeks, 10) || 0;
+  var sourceWeek = parseInt(opts.weekNumber, 10);
+  var sourceDay = parseInt(opts.dayOfWeek, 10);
+  var itemId = opts.itemId;
+  var remaining = [];
+  var other = [];
+  if(!weeks || !itemId || !isFinite(sourceWeek) || !isFinite(sourceDay)){
+    return { remaining: remaining, other: other };
+  }
+  var occupied = {};
+  (sessions || []).forEach(function(s){
+    if(!s || String(s.item_id) !== String(itemId)) return;
+    if(parseInt(s.day_of_week, 10) !== sourceDay) return;
+    occupied[parseInt(s.week_number, 10)] = true;
+  });
+  var w;
+  for(w = 1; w <= weeks; w++){
+    if(w === sourceWeek) continue;
+    if(occupied[w]) continue;
+    other.push(w);
+    if(w > sourceWeek) remaining.push(w);
+  }
+  return { remaining: remaining, other: other };
 }
 
 function assignmentItemKey(source, id){
@@ -11427,6 +11477,7 @@ async function openTrainingBlock(id){
   if(!block){ showToast('Could not open that block', true); return; }
   _currentTrainingBlock = block;
   _blockPlaceCtx = null;
+  hideBlockReassignPanel();
   var sessions = await sbS('training_block_sessions', 'select=*&block_id=eq.' + block.id + '&order=week_number.asc,day_of_week.asc');
   _trainingBlockSessions = Array.isArray(sessions) ? sessions : [];
   showScreen('screen-train-block-detail');
@@ -11521,6 +11572,10 @@ async function hydrateTrainingBlockSessionLabels(){
     var item = items[assignmentItemKey(s.item_source === 'custom' ? 'custom' : 'foundational', s.item_id)];
     var name = item && item.name ? item.name : '';
     if(name && s._itemName !== name){ s._itemName = name; changed = true; }
+    if(item && s._itemDescription !== (item.description || null)){
+      s._itemDescription = item.description || null;
+      changed = true;
+    }
     var a = s.assignment_id ? assignById[s.assignment_id] : null;
     if(a){
       var done = !!a.completed_at;
@@ -11556,12 +11611,29 @@ function openTrainingBlockPlace(weekNumber, dayOfWeek, opts){
         (first.item_source === 'custom'
           ? '<button type="button" class="saw-next" id="tb-act-edit" style="margin-bottom:8px;">Edit template</button>'
           : '') +
+        (trainingBlockWeeksMissingPlacement(_currentTrainingBlock, _trainingBlockSessions, {
+            itemId: first.item_id, weekNumber: weekNumber, dayOfWeek: dayOfWeek
+          }).other.length
+          ? '<button type="button" class="saw-next" id="tb-act-reassign" style="margin-bottom:8px;">Reassign to other weeks</button>'
+          : '') +
         '<button type="button" class="saw-linkish" id="tb-act-add">Add another session</button>' +
         (first.assignment_id
           ? '<button type="button" class="saw-secondary-btn" id="tb-act-remove">Remove from this day</button>'
           : '');
       var editBtn = document.getElementById('tb-act-edit');
       if(editBtn) editBtn.addEventListener('click', function(){ startBlockTemplateEdit(first.item_id); });
+      var reassignBtn = document.getElementById('tb-act-reassign');
+      if(reassignBtn) reassignBtn.addEventListener('click', function(){
+        offerReassignToOtherWeeks({
+          itemId: first.item_id,
+          itemSource: first.item_source,
+          title: first._itemName || 'Session',
+          description: first._itemDescription || null,
+          weekNumber: weekNumber,
+          dayOfWeek: dayOfWeek
+        });
+        cancelTrainingBlockPlace();
+      });
       var addBtn = document.getElementById('tb-act-add');
       if(addBtn) addBtn.addEventListener('click', function(){ openTrainingBlockPlace(weekNumber, dayOfWeek, {}); });
       var removeBtn = document.getElementById('tb-act-remove');
@@ -11658,6 +11730,17 @@ async function startBlockTemplateEdit(customId){
   _selfAssignWizard.assignDescription = item.description || '';
   _selfAssignWizard.sections = hydrateSelfAssignSections(item.sections);
   _selfAssignWizard.step = 2;
+  var fromPlace = _blockPlaceCtx || {};
+  var fromSession = (_trainingBlockSessions || []).find(function(s){ return s.item_id === customId; }) || {};
+  _blockReassignCtx = {
+    itemId: item.id,
+    itemSource: 'custom',
+    title: item.name || 'Session',
+    description: item.description || null,
+    weekNumber: fromPlace.weekNumber || fromSession.week_number || 1,
+    dayOfWeek: (fromPlace.dayOfWeek != null ? fromPlace.dayOfWeek : fromSession.day_of_week)
+  };
+  if(_blockReassignCtx.dayOfWeek == null || _blockReassignCtx.dayOfWeek === '') _blockReassignCtx.dayOfWeek = 0;
   showScreen('screen-self-assign');
   renderSelfAssignWizardBody();
 }
@@ -11680,12 +11763,21 @@ async function saveEditedSessionTemplate(){
     cached.description = _selfAssignWizard.libraryDescription;
     cached.sections = cleanedSelfAssignSections();
   }
+  var reassignMeta = {
+    itemId: _selfAssignWizard.editingCustomWorkoutId,
+    itemSource: 'custom',
+    title: _selfAssignWizard.drillName,
+    description: (_selfAssignWizard.libraryDescription || '').trim() || null,
+    weekNumber: _blockReassignCtx && _blockReassignCtx.weekNumber,
+    dayOfWeek: _blockReassignCtx && _blockReassignCtx.dayOfWeek
+  };
   showToast('Template updated');
   resetSelfAssignWizard();
   setSelfAssignFooter('');
   setSelfAssignMsg('');
   if(_currentTrainingBlock){
     await openTrainingBlock(_currentTrainingBlock.id);
+    offerReassignToOtherWeeks(reassignMeta);
   } else {
     showScreen('screen-train');
   }
@@ -11697,6 +11789,14 @@ async function placePickedItemOnBlock(item){
   var ctx = (_selfAssignWizard && _selfAssignWizard.blockPlace) || _blockPlaceCtx;
   if(!ctx || !_currentTrainingBlock){ showToast('Pick a day first', true); return; }
   var source = item._source === 'custom' ? 'custom' : 'foundational';
+  var reassignMeta = {
+    itemId: item.id,
+    itemSource: source,
+    title: item.name || 'Session',
+    description: item.description || null,
+    weekNumber: ctx.weekNumber,
+    dayOfWeek: ctx.dayOfWeek
+  };
   var ok = await placeTrainingBlockSession({
     itemId: item.id,
     itemSource: source,
@@ -11711,6 +11811,7 @@ async function placePickedItemOnBlock(item){
   setSelfAssignMsg('');
   await openTrainingBlock(_currentTrainingBlock.id);
   loadTrainAssignments();
+  offerReassignToOtherWeeks(reassignMeta);
 }
 
 async function submitBlockPlaceFromCreate(){
@@ -11731,6 +11832,14 @@ async function submitBlockPlaceFromCreate(){
   }
   _selfAssignLibCache = (_selfAssignLibCache || []).concat([canonicalizeWizardItem(customRow, 'custom')]);
   var ctx = _selfAssignWizard.blockPlace;
+  var reassignMeta = {
+    itemId: customRow.id,
+    itemSource: 'custom',
+    title: _selfAssignWizard.drillName,
+    description: (_selfAssignWizard.libraryDescription || '').trim() || null,
+    weekNumber: ctx.weekNumber,
+    dayOfWeek: ctx.dayOfWeek
+  };
   var ok = await placeTrainingBlockSession({
     itemId: customRow.id,
     itemSource: 'custom',
@@ -11745,8 +11854,10 @@ async function submitBlockPlaceFromCreate(){
   setSelfAssignFooter('');
   setSelfAssignMsg('');
   showToast('Placed on your block');
-  if(_currentTrainingBlock) await openTrainingBlock(_currentTrainingBlock.id);
-  else showScreen('screen-train-blocks');
+  if(_currentTrainingBlock){
+    await openTrainingBlock(_currentTrainingBlock.id);
+    offerReassignToOtherWeeks(reassignMeta);
+  } else showScreen('screen-train-blocks');
   loadTrainAssignments();
 }
 
@@ -11754,7 +11865,10 @@ async function placeTrainingBlockSession(opts){
   opts = opts || {};
   if(!window._authUser || !_currentTrainingBlock) return false;
   var due = trainingBlockScheduledDate(_currentTrainingBlock.start_date, opts.weekNumber, opts.dayOfWeek);
-  if(!due){ showToast('Could not compute that day', true); return false; }
+  if(!due){
+    if(!opts.silent) showToast('Could not compute that day', true);
+    return false;
+  }
   var assignOpts = {
     title: opts.title,
     description: opts.description || null,
@@ -11764,7 +11878,7 @@ async function placeTrainingBlockSession(opts){
   else assignOpts.libraryItemId = opts.itemId;
   var assigned = await insertAthleteSelfAssignment(assignOpts);
   if(sbFailed(assigned) || !assigned || !assigned.id){
-    showToast('Could not create the assignment', true);
+    if(!opts.silent) showToast('Could not create the assignment', true);
     return false;
   }
   var placed = await sbI('training_block_sessions', {
@@ -11777,11 +11891,160 @@ async function placeTrainingBlockSession(opts){
     assignment_id: assigned.id
   });
   if(sbFailed(placed) || !placed || !placed.id){
-    showToast('Assignment saved, but the block day failed. It still shows in Train.', true);
+    if(!opts.silent) showToast('Assignment saved, but the block day failed. It still shows in Train.', true);
     return false;
   }
   _blockPlaceCtx = null;
   return true;
+}
+
+function hideBlockReassignPanel(){
+  _blockReassignCtx = null;
+  var panel = document.getElementById('tb-reassign-panel');
+  if(panel) panel.style.display = 'none';
+  var weeksEl = document.getElementById('tb-reassign-weeks');
+  if(weeksEl){ weeksEl.style.display = 'none'; weeksEl.innerHTML = ''; }
+  var applySel = document.getElementById('tb-reassign-apply-selected');
+  if(applySel){
+    applySel.style.display = 'none';
+    applySel.disabled = false;
+    applySel.textContent = 'Apply to selected weeks';
+  }
+  var allBtn = document.getElementById('tb-reassign-all');
+  if(allBtn) allBtn.disabled = false;
+}
+
+function offerReassignToOtherWeeks(opts){
+  opts = opts || {};
+  var block = _currentTrainingBlock;
+  if(!block || !opts.itemId) return;
+  var eligible = trainingBlockWeeksMissingPlacement(block, _trainingBlockSessions, opts);
+  if(!eligible.other.length){
+    hideBlockReassignPanel();
+    return;
+  }
+  _blockReassignCtx = {
+    itemId: opts.itemId,
+    itemSource: opts.itemSource === 'custom' ? 'custom' : 'foundational',
+    title: opts.title || 'Session',
+    description: opts.description || null,
+    weekNumber: parseInt(opts.weekNumber, 10),
+    dayOfWeek: parseInt(opts.dayOfWeek, 10)
+  };
+  var panel = document.getElementById('tb-reassign-panel');
+  var heading = document.getElementById('tb-reassign-heading');
+  var sub = document.getElementById('tb-reassign-sub');
+  var allBtn = document.getElementById('tb-reassign-all');
+  var weeksEl = document.getElementById('tb-reassign-weeks');
+  var applySel = document.getElementById('tb-reassign-apply-selected');
+  if(!panel) return;
+  var name = opts.title || 'This workout';
+  if(heading) heading.textContent = 'Reassign to other weeks';
+  if(sub){
+    var remainBit = eligible.remaining.length
+      ? ' Apply to remaining ' + formatBlockWeekListLabel(eligible.remaining) + ', same day.'
+      : ' Pick earlier weeks to place it there too.';
+    sub.textContent = name + ' is on week ' + _blockReassignCtx.weekNumber + '.' + remainBit +
+      ' Same linked template — not a copy.';
+  }
+  if(allBtn){
+    if(eligible.remaining.length){
+      allBtn.style.display = 'block';
+      allBtn.disabled = false;
+      allBtn.textContent = eligible.remaining.length === 1
+        ? 'Apply to week ' + eligible.remaining[0]
+        : 'Apply to all remaining weeks';
+    } else {
+      allBtn.style.display = 'none';
+    }
+  }
+  if(weeksEl){ weeksEl.style.display = 'none'; weeksEl.innerHTML = ''; }
+  if(applySel){
+    applySel.style.display = 'none';
+    applySel.disabled = false;
+    applySel.textContent = 'Apply to selected weeks';
+  }
+  panel.style.display = 'block';
+  if(panel.scrollIntoView) panel.scrollIntoView({ block: 'nearest' });
+}
+
+function toggleBlockReassignWeekPicker(){
+  var ctx = _blockReassignCtx;
+  var weeksEl = document.getElementById('tb-reassign-weeks');
+  var applySel = document.getElementById('tb-reassign-apply-selected');
+  if(!ctx || !weeksEl || !_currentTrainingBlock) return;
+  if(weeksEl.style.display === 'block'){
+    weeksEl.style.display = 'none';
+    if(applySel) applySel.style.display = 'none';
+    return;
+  }
+  var eligible = trainingBlockWeeksMissingPlacement(_currentTrainingBlock, _trainingBlockSessions, ctx);
+  var defaultSet = {};
+  (eligible.remaining.length ? eligible.remaining : eligible.other).forEach(function(w){ defaultSet[w] = true; });
+  weeksEl.innerHTML = eligible.other.map(function(w){
+    var dateStr = trainingBlockScheduledDate(_currentTrainingBlock.start_date, w, ctx.dayOfWeek);
+    var checked = defaultSet[w] ? ' checked' : '';
+    return '<label class="tb-reassign-week"><input type="checkbox" data-week="' + w + '"' + checked + '> Week ' +
+      w + (dateStr ? ' · ' + escTrainHtml(formatBlockDayLabel(dateStr)) : '') + '</label>';
+  }).join('');
+  weeksEl.style.display = 'block';
+  if(applySel) applySel.style.display = 'block';
+}
+
+function selectedBlockReassignWeeks(){
+  var weeksEl = document.getElementById('tb-reassign-weeks');
+  if(!weeksEl) return [];
+  return Array.prototype.map.call(weeksEl.querySelectorAll('input[type="checkbox"]:checked'), function(el){
+    return parseInt(el.getAttribute('data-week'), 10);
+  }).filter(function(n){ return isFinite(n) && n >= 1; });
+}
+
+async function applyBlockReassignToRemainingWeeks(){
+  var ctx = _blockReassignCtx;
+  if(!ctx || !_currentTrainingBlock) return;
+  var eligible = trainingBlockWeeksMissingPlacement(_currentTrainingBlock, _trainingBlockSessions, ctx);
+  await applyBlockReassignToWeeks(eligible.remaining);
+}
+
+async function applyBlockReassignToSelectedWeeks(){
+  await applyBlockReassignToWeeks(selectedBlockReassignWeeks());
+}
+
+async function applyBlockReassignToWeeks(weeks){
+  var ctx = _blockReassignCtx;
+  if(!ctx || !_currentTrainingBlock) return;
+  var eligible = trainingBlockWeeksMissingPlacement(_currentTrainingBlock, _trainingBlockSessions, ctx);
+  var allow = {};
+  eligible.other.forEach(function(w){ allow[w] = true; });
+  weeks = (weeks || []).filter(function(w, i, arr){ return allow[w] && arr.indexOf(w) === i; });
+  if(!weeks.length){
+    showToast('Pick at least one week', true);
+    return;
+  }
+  var allBtn = document.getElementById('tb-reassign-all');
+  var applySel = document.getElementById('tb-reassign-apply-selected');
+  if(allBtn) allBtn.disabled = true;
+  if(applySel){ applySel.disabled = true; applySel.textContent = 'Applying...'; }
+  var placed = [];
+  var i;
+  for(i = 0; i < weeks.length; i++){
+    var ok = await placeTrainingBlockSession({
+      itemId: ctx.itemId,
+      itemSource: ctx.itemSource,
+      title: ctx.title,
+      description: ctx.description,
+      weekNumber: weeks[i],
+      dayOfWeek: ctx.dayOfWeek,
+      silent: true
+    });
+    if(ok) placed.push(weeks[i]);
+  }
+  var blockId = _currentTrainingBlock.id;
+  hideBlockReassignPanel();
+  await openTrainingBlock(blockId);
+  loadTrainAssignments();
+  if(placed.length) showToast('Placed on ' + formatBlockWeekListLabel(placed));
+  else showToast('Could not place on those weeks', true);
 }
 
 async function removeTrainingBlockPlacement(placement){
@@ -20908,13 +21171,22 @@ async function runSEETests(){
     });
     var cardOk = /Updated template/.test(cardLive) && /Training block/.test(cardLive)
       && /From coach/.test(cardCoach) && !/Training block/.test(cardCoach);
-    var blockFns = ['loadTrainingBlocks','createTrainingBlock','placeTrainingBlockSession','cleanedSelfAssignSections','seedDefaultSessionSections'];
+    var blockFns = ['loadTrainingBlocks','createTrainingBlock','placeTrainingBlockSession','cleanedSelfAssignSections','seedDefaultSessionSections','trainingBlockWeeksMissingPlacement','offerReassignToOtherWeeks','applyBlockReassignToWeeks'];
     var fnOk = blockFns.every(function(f){ return typeof window[f] === 'function'; });
-    if(liveOk && snapOk && datesOk && cardOk && fnOk){
+    var miss = trainingBlockWeeksMissingPlacement(
+      { weeks: 6 },
+      [{ item_id: 'cw-1', week_number: 1, day_of_week: 0 }, { item_id: 'cw-1', week_number: 4, day_of_week: 0 }],
+      { itemId: 'cw-1', weekNumber: 1, dayOfWeek: 0 }
+    );
+    var reassignOk = miss.remaining.join(',') === '2,3,5,6' && miss.other.join(',') === '2,3,5,6';
+    var applySrc = String(applyBlockReassignToWeeks);
+    var linkedOk = /placeTrainingBlockSession/.test(applySrc) && !/custom_workouts/.test(applySrc);
+    var panelOk = !!document.getElementById('tb-reassign-panel') && !!document.getElementById('tb-reassign-all');
+    if(liveOk && snapOk && datesOk && cardOk && fnOk && reassignOk && linkedOk && panelOk){
       pass('Training-block live title overlay leaves snapshots alone');
     } else {
       fail('Training-block live title overlay leaves snapshots alone',
-        'live=' + liveOk + ' snap=' + snapOk + ' dates=' + dateW1 + '/' + dateW4 + ' card=' + cardOk + ' fns=' + fnOk);
+        'live=' + liveOk + ' snap=' + snapOk + ' dates=' + dateW1 + '/' + dateW4 + ' card=' + cardOk + ' fns=' + fnOk + ' reassign=' + reassignOk + ' linked=' + linkedOk + ' panel=' + panelOk);
     }
   }catch(e){ fail('Training-block live title overlay leaves snapshots alone', e.message); }
 

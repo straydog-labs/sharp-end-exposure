@@ -13,8 +13,8 @@ const sql = readFileSync(join(root, 'sql/training-blocks.sql'), 'utf8');
 const coach = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index265'/.test(index));
-assert.ok(/APP_VERSION = 'index265'/.test(sw));
+assert.ok(/var app_version = 'index266'/.test(index));
+assert.ok(/APP_VERSION = 'index266'/.test(sw));
 
 assert.ok(/id="train-hub-card-blocks"/.test(index));
 assert.ok(/id="screen-train-blocks"/.test(index));
@@ -26,6 +26,19 @@ assert.ok(/function seedDefaultSessionSections\(/.test(index));
 assert.ok(/function applyLiveTitleDescriptionForBlockAssignments\(/.test(index));
 assert.ok(/function placeTrainingBlockSession\(/.test(index));
 assert.ok(/function insertAthleteSelfAssignment\(/.test(index));
+assert.ok(/function trainingBlockWeeksMissingPlacement\(/.test(index));
+assert.ok(/function offerReassignToOtherWeeks\(/.test(index));
+assert.ok(/function applyBlockReassignToWeeks\(/.test(index));
+assert.ok(/id="tb-reassign-panel"/.test(index));
+assert.ok(/Apply to all remaining weeks/.test(index));
+assert.ok(/Reassign to other weeks/.test(index));
+assert.ok(/Choose specific weeks/.test(index));
+assert.ok(/Same linked template/.test(index));
+const applyFn = extractFn(index, 'applyBlockReassignToWeeks');
+assert.ok(/placeTrainingBlockSession/.test(applyFn));
+assert.ok(/itemId: ctx\.itemId/.test(applyFn));
+assert.ok(!/custom_workouts/.test(applyFn), 'reassign is linked place, not a template copy');
+assert.ok(/offerReassignToOtherWeeks\(reassignMeta\)/.test(index));
 assert.ok(/sections:\s*cleanedSelfAssignSections\(\)/.test(index));
 assert.ok(/a\._fromTrainingBlock/.test(index));
 assert.ok(/Training block/.test(index));
@@ -58,6 +71,8 @@ function extractFn(src, name){
 const fns = [
   'localIsoDate',
   'trainingBlockScheduledDate',
+  'formatBlockWeekListLabel',
+  'trainingBlockWeeksMissingPlacement',
   'assignmentItemKey',
   'applyLiveTitleDescriptionForBlockAssignments',
   'parseSelfAssignDurationSec',
@@ -131,6 +146,42 @@ const vm = spawnSync('node', [], {
     );
     assert(w1.title === 'One edit' && w4.title === 'One edit', 'edit once updates both placements');
     assert(w1.description === 'Everywhere' && w4.description === 'Everywhere', 'desc both');
+
+    var missAll = trainingBlockWeeksMissingPlacement(
+      { weeks: 6 },
+      [{ item_id: 'cw-1', week_number: 1, day_of_week: 0 }],
+      { itemId: 'cw-1', weekNumber: 1, dayOfWeek: 0 }
+    );
+    assert(missAll.remaining.join(',') === '2,3,4,5,6', 'remaining later weeks');
+    assert(missAll.other.join(',') === '2,3,4,5,6', 'other matches remaining from week 1');
+
+    var missSkip = trainingBlockWeeksMissingPlacement(
+      { weeks: 6 },
+      [
+        { item_id: 'cw-1', week_number: 1, day_of_week: 0 },
+        { item_id: 'cw-1', week_number: 4, day_of_week: 0 },
+        { item_id: 'other', week_number: 2, day_of_week: 0 }
+      ],
+      { itemId: 'cw-1', weekNumber: 1, dayOfWeek: 0 }
+    );
+    assert(missSkip.remaining.join(',') === '2,3,5,6', 'skip weeks that already have this item');
+
+    var fromLast = trainingBlockWeeksMissingPlacement(
+      { weeks: 4 },
+      [{ item_id: 'cw-1', week_number: 4, day_of_week: 2 }],
+      { itemId: 'cw-1', weekNumber: 4, dayOfWeek: 2 }
+    );
+    assert(fromLast.remaining.join(',') === '', 'no remaining after last week');
+    assert(fromLast.other.join(',') === '1,2,3', 'earlier weeks still eligible');
+
+    var sameDayOnly = trainingBlockWeeksMissingPlacement(
+      { weeks: 3 },
+      [{ item_id: 'cw-1', week_number: 2, day_of_week: 1 }],
+      { itemId: 'cw-1', weekNumber: 1, dayOfWeek: 0 }
+    );
+    assert(sameDayOnly.remaining.join(',') === '2,3', 'different weekday does not occupy');
+
+    assert(formatBlockWeekListLabel([2,3,4]) === 'weeks 2, 3, and 4', 'week list label');
 
     console.log('training-blocks logic: ok');
   `
