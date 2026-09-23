@@ -68,6 +68,7 @@ const save = extractFn(index, 'saveTrainSession');
 const show = extractFn(index, 'showScreen');
 const renderBlock = extractFn(index, 'renderTrainBlockHtml');
 const syncFields = extractFn(index, 'syncTrainSessionFieldsFromDom');
+const renderBuilder = extractFn(index, 'renderTrainSessionBuilder');
 
 assert.ok(/enterTrainSession\(\)/.test(startBlank));
 assert.ok(!/showScreen\('screen-train-session'\)/.test(startBlank));
@@ -102,6 +103,11 @@ assert.ok(/screen-train-mindful/.test(show));
 assert.ok(/isTrainRunView\(\)/.test(renderBlock));
 assert.ok(/trainRemoveBlock/.test(renderBlock));
 assert.ok(/classList\.contains\('active'\)/.test(syncFields));
+assert.ok(/train-sess-run/.test(renderBuilder));
+const runLinkAt = renderBuilder.indexOf("getElementById('train-sess-run')");
+const emptyReturnAt = renderBuilder.indexOf('clearAllTrainBlockTimerIntervals');
+assert.ok(runLinkAt !== -1 && emptyReturnAt !== -1 && runLinkAt < emptyReturnAt,
+  'hide Run step-by-step before empty-builder early return');
 
 assert.ok(!/screen-train-mindful/.test(dash), 'coach-dashboard must stay untouched');
 assert.ok(!/screen-train-run/.test(dash));

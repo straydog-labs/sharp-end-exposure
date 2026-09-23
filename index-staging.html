@@ -13273,6 +13273,8 @@ function renderTrainSessionBuilder(){
   }
   var wrap = document.getElementById('train-blocks-wrap');
   if(!wrap) return;
+  var runLink = document.getElementById('train-sess-run');
+  if(runLink) runLink.style.display = allBlocks.length ? '' : 'none';
   if(!split.main.length){
     wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No blocks yet. Add a section, interval, circuit, or pass/fail block.</div>';
     if(!allBlocks.length){
@@ -13284,8 +13286,6 @@ function renderTrainSessionBuilder(){
       return renderTrainBlockHtml(b, i + 1, false);
     }).join('');
   }
-  var runLink = document.getElementById('train-sess-run');
-  if(runLink) runLink.style.display = allBlocks.length ? '' : 'none';
   syncTrainBlockTimerIntervals();
 }
 
@@ -21724,10 +21724,12 @@ async function runSEETests(){
       && trainSessionState.mindful_skipped === null
       && (trainSessionState.blocks || []).length === 0;
     finishTrainMindful('skip');
+    var runLinkEl = document.getElementById('train-sess-run');
     var blankBuilder = (document.querySelector('.screen.active')||{}).id === 'screen-train-session'
       && trainSessionState.mindful_skipped === true
       && typeof cancelTrainSession === 'function'
-      && typeof saveTrainSession === 'function';
+      && typeof saveTrainSession === 'function'
+      && runLinkEl && runLinkEl.style.display === 'none';
 
     seedTrainSessionFromItem({
       id: 'run-seed', type: 'strength', name: 'Guided hangboard',
