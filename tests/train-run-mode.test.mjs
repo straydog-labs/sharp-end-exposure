@@ -94,6 +94,8 @@ assert.ok(/renderTrainBlockHtml/.test(renderRun));
 assert.ok(/saveTrainSession\(\)/.test(runNext));
 
 assert.ok(/trainSessionState = null/.test(cancel));
+assert.ok(/resetTrainSessionCancelUi/.test(cancel));
+assert.ok(/function resetTrainSessionCancelUi\(/.test(index));
 assert.ok(/training_sessions/.test(save));
 assert.ok(/screen-train-done/.test(save));
 assert.ok(/isTrainSessionLiveScreen\(_prevScreen\)/.test(show));

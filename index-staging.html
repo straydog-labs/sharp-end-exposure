@@ -6151,6 +6151,9 @@ function showScreen(id){
   if(isTrainSessionLiveScreen(_prevScreen) && !isTrainSessionLiveScreen(id)){
     clearAllTrainBlockTimerIntervals();
     releaseTrainWakeLock();
+    resetTrainSessionCancelUi();
+  } else if(isTrainSessionLiveScreen(_prevScreen) && isTrainSessionLiveScreen(id) && _prevScreen !== id){
+    resetTrainSessionCancelUi();
   }
   // Load screen data
   if(id==='screen-home'){ loadHomeScreen(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
@@ -13107,6 +13110,21 @@ function trainSessionCancelBtn(){
     || document.querySelector('#screen-train-mindful .back-btn');
 }
 
+function resetTrainSessionCancelUi(){
+  _trainCancelArmed = false;
+  if(_trainCancelArmTimer){
+    clearTimeout(_trainCancelArmTimer);
+    _trainCancelArmTimer = null;
+  }
+  ['screen-train-session', 'screen-train-run', 'screen-train-mindful'].forEach(function(id){
+    var b = document.querySelector('#' + id + ' .back-btn');
+    if(b){
+      b.textContent = '← Cancel';
+      b.classList.remove('is-confirming');
+    }
+  });
+}
+
 function cancelTrainSession(){
   var btn = trainSessionCancelBtn();
   if(!_trainCancelArmed){
@@ -13117,21 +13135,11 @@ function cancelTrainSession(){
     }
     if(_trainCancelArmTimer) clearTimeout(_trainCancelArmTimer);
     _trainCancelArmTimer = setTimeout(function(){
-      _trainCancelArmed = false;
-      var b = trainSessionCancelBtn();
-      if(b){
-        b.textContent = '← Cancel';
-        b.classList.remove('is-confirming');
-      }
+      resetTrainSessionCancelUi();
     }, 4000);
     return;
   }
-  _trainCancelArmed = false;
-  if(_trainCancelArmTimer) clearTimeout(_trainCancelArmTimer);
-  if(btn){
-    btn.textContent = '← Cancel';
-    btn.classList.remove('is-confirming');
-  }
+  resetTrainSessionCancelUi();
   clearAllTrainBlockTimerIntervals();
   releaseTrainWakeLock();
   trainSessionState = null;
@@ -19713,7 +19721,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'enterTrainSession', 'finishTrainMindful', 'trainRunNext', 'trainRunBack', 'openTrainGuidedRun', 'openTrainSessionBuilderFromRun', 'trainRemoveBlock', 'togglePushNotifications',
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'resetTrainSessionCancelUi', 'enterTrainSession', 'finishTrainMindful', 'trainRunNext', 'trainRunBack', 'openTrainGuidedRun', 'openTrainSessionBuilderFromRun', 'trainRemoveBlock', 'togglePushNotifications',
     'createTrainingBlock', 'deleteCurrentTrainingBlock', 'startBlockPlaceCreate', 'cancelTrainingBlockPlace', 'toggleTrainingBlockCreateForm', 'loadTrainingBlocks',
     'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes',
     'editClimbFromLog', 'addAttemptFromLog', 'openProfile',
@@ -21773,9 +21781,17 @@ async function runSEETests(){
       && !!document.getElementById('train-sess-run');
     openTrainGuidedRun();
     var runAgain = (document.querySelector('.screen.active')||{}).id === 'screen-train-run';
+    cancelTrainSession();
+    var armedOk = _trainCancelArmed === true
+      && /Tap again to discard/.test((document.querySelector('#screen-train-run .back-btn')||{}).textContent || '');
+    cancelTrainSession();
+    var discarded = !trainSessionState
+      && (document.querySelector('.screen.active')||{}).id === 'screen-train';
     var cancelOk = /trainSessionState = null/.test(String(cancelTrainSession))
       && /screen-train/.test(String(cancelTrainSession))
-      && /trainSessionCancelBtn/.test(String(cancelTrainSession));
+      && /trainSessionCancelBtn/.test(String(cancelTrainSession))
+      && /resetTrainSessionCancelUi/.test(String(cancelTrainSession))
+      && armedOk && discarded;
     var saveOk = /training_sessions/.test(String(saveTrainSession))
       && /screen-train-done/.test(String(saveTrainSession));
     var liveOk = /screen-train-mindful/.test(String(isTrainSessionLiveScreen))
