@@ -5352,7 +5352,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index267'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index268'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -7472,6 +7472,10 @@ function scoreToZone(score){
 
 function startLogFlow(){
   resetLogScreen();
+  // A fresh "Log a climb" must never inherit a suggestion tap from the last flow.
+  // launchLogWithClimb() re-sets _selectedClimbId after this returns.
+  _selectedClimbId = null;
+  hideBadge();
   logFlowState = { step: 1, activationTouched: false, activationScore: 6, modelZone: null, modelScore: null, adjustScore: null, revealNeedsCal: false, revealExpectedScore: null, revealModelScore: null };
   logState.userActivationEstimate = null;
   window._sessionStartTime = Date.now();
@@ -7922,10 +7926,11 @@ async function logFlowSaveSession(how){
     return;
   }
 
-  var climbIdEarly = _selectedClimbId || null;
   if(!logState.routeName && drillState && drillState.routeName){
     logState.routeName = drillState.routeName;
   }
+  var climbIdEarly = await trustedSelectedClimbId(logState.routeName, _selectedClimbId);
+  if(climbIdEarly !== _selectedClimbId) _selectedClimbId = climbIdEarly;
   if((!logState.routeName || isUnnamedClimbName(logState.routeName)) && !climbIdEarly){
     if(how !== 'unnamed'){
       showToast('Name this climb or tap Skip - leave unnamed', true);
@@ -7950,26 +7955,9 @@ async function logFlowSaveSession(how){
   }
 
   var climbId = _selectedClimbId || null;
-
   if(!climbId && logState.routeName){
-    var climbs = await loadClimbCache();
-    var q = normalizeClimbName(logState.routeName);
-    var match = climbs.find(function(c){ return normalizeClimbName(c.name) === q; });
-    if(match){
-      climbId = match.id;
-    } else {
-      var newClimb = await sbI('climbs', {
-        device_id: getDeviceId(),
-        user_id: window._authUser ? window._authUser.id : null,
-        name: logState.routeName.trim(),
-        grade_value: logState.grade || null,
-        climbing_type: logState.terrain || null
-      });
-      if(newClimb && newClimb.id){
-        climbId = newClimb.id;
-        _climbCache = null;
-      }
-    }
+    climbId = await findOrCreateClimbIdByName(logState.routeName);
+    if(climbId) _selectedClimbId = climbId;
   }
 
   var detailsPayload = collectLogDetailsPayload();
@@ -8327,42 +8315,21 @@ async function logClimb(){
   var zr=resolveZone({result:logState.result});
   logState.zone=zr.zone;logState.zoneConf=zr.confidence;
 
-  // Resolve climb_id — find existing or create new
+  // Resolve climb_id — trust a selection only when its catalog name matches the typed name
   var climbId=_selectedClimbId||null;
   // 6.4: Drill route name fallback — use drillState.routeName if no logState.routeName
   if(!logState.routeName && drillState && drillState.routeName){
     logState.routeName = drillState.routeName;
   }
+  climbId = await trustedSelectedClimbId(logState.routeName, climbId);
+  if(climbId !== _selectedClimbId) _selectedClimbId = climbId;
   if((!logState.routeName || isUnnamedClimbName(logState.routeName)) && !climbId){
     logState.routeName = null;
   }
   console.log('[logClimb] routeName:',logState.routeName,'selectedClimbId:',_selectedClimbId);
   if(!climbId&&logState.routeName){
-    var climbs=await loadClimbCache();
-    var q=normalizeClimbName(logState.routeName);
-    var match=climbs.find(function(c){return normalizeClimbName(c.name)===q;});
-    console.log('[logClimb] cache size:',climbs.length,'normalized query:',q,'match:',match);
-    if(match){
-      climbId=match.id;
-      console.log('[logClimb] found existing climb:',climbId);
-    } else {
-      console.log('[logClimb] creating new climb...');
-      var newClimb=await sbI('climbs',{
-        device_id:getDeviceId(),
-        user_id:window._authUser ? window._authUser.id : null,
-        name:logState.routeName.trim(),
-        grade_value:logState.grade||null,
-        climbing_type:logState.terrain||null
-      });
-      console.log('[logClimb] climb create result:',newClimb);
-      if(newClimb&&newClimb.id){
-        climbId=newClimb.id;
-        _climbCache=null;
-        console.log('[logClimb] new climb id:',climbId);
-      } else {
-        console.error('[logClimb] climb create FAILED:',newClimb);
-      }
-    }
+    climbId = await findOrCreateClimbIdByName(logState.routeName);
+    if(climbId) _selectedClimbId = climbId;
   }
 
   var payload={
@@ -8936,6 +8903,37 @@ function climbDisplayNameHtml(name){
     return '<span class="climb-unnamed-flag">Unnamed</span>';
   }
   return escTrainHtml(String(name).trim());
+}
+
+async function trustedSelectedClimbId(routeName, selectedId){
+  if(!selectedId) return null;
+  var typed = normalizeClimbName(routeName || '');
+  if(!typed) return null;
+  var climbs = await loadClimbCache();
+  var rec = (climbs || []).find(function(c){ return c && c.id === selectedId; });
+  if(!rec) return null;
+  if(normalizeClimbName(rec.name) !== typed) return null;
+  return selectedId;
+}
+
+async function findOrCreateClimbIdByName(routeName){
+  if(!routeName || isUnnamedClimbName(routeName)) return null;
+  var climbs = await loadClimbCache();
+  var q = normalizeClimbName(routeName);
+  var match = (climbs || []).find(function(c){ return normalizeClimbName(c.name) === q; });
+  if(match && match.id) return match.id;
+  var created = await sbI('climbs', {
+    device_id: getDeviceId(),
+    user_id: window._authUser ? window._authUser.id : null,
+    name: String(routeName).trim(),
+    grade_value: logState.grade || null,
+    climbing_type: logState.terrain || null
+  });
+  if(created && created.id){
+    _climbCache = null;
+    return created.id;
+  }
+  return null;
 }
 
 function climbAttemptLaunchBtnHtml(s, origin){
@@ -14475,6 +14473,8 @@ async function createWorkoutLibraryItem(){
 
 function resetLogScreen(){
   _climbCache=null; // refresh cache on next log
+  _selectedClimbId=null;
+  hideBadge();
   // Always clear result button visual state — never carry over from previous session
   ['btn-sent','btn-fell','btn-dna','btn-took'].forEach(function(id){
     var b=document.getElementById(id);
@@ -17801,9 +17801,9 @@ function returnToClimbLogOrHome(){
 // that already knows which climb it's logging against
 // ═══════════════════════════════════════════════════════
 function launchLogWithClimb(climbId, climbName, grade, terrain, setting){
-  _selectedClimbId = climbId || null;
-
   startLogFlow();
+  // startLogFlow() clears any leftover selection — re-apply the intended climb after.
+  _selectedClimbId = climbId || null;
 
   setTimeout(function(){
     // Fix 7 (build 180): startLogFlow() synchronously runs
@@ -23315,6 +23315,43 @@ async function runSEETests(){
   }catch(e){ fail('Unnamed climb flag + table + Attempt + rename old/new confirm', e.message); }
 
   try{
+    var startSrc = String(startLogFlow);
+    var resetSrc = String(resetLogScreen);
+    var launchSrc = String(launchLogWithClimb);
+    var saveSrc = String(logFlowSaveSession) + String(logClimb);
+    var clearOk = /_selectedClimbId = null/.test(startSrc) && /_selectedClimbId=null/.test(resetSrc);
+    var launchAfter = launchSrc.indexOf('startLogFlow()') !== -1
+      && launchSrc.indexOf('_selectedClimbId = climbId') !== -1
+      && launchSrc.indexOf('startLogFlow()') < launchSrc.indexOf('_selectedClimbId = climbId');
+    var resolveWired = /trustedSelectedClimbId/.test(saveSrc)
+      && /findOrCreateClimbIdByName/.test(saveSrc)
+      && typeof trustedSelectedClimbId === 'function'
+      && typeof findOrCreateClimbIdByName === 'function';
+    var prevCache = _climbCache;
+    var prevSel = _selectedClimbId;
+    _climbCache = [
+      { id: 'climb-1', name: 'Climb 1' },
+      { id: 'climb-green', name: 'Green 30 degree' }
+    ];
+    var mismatch = await trustedSelectedClimbId('Green 30 degree', 'climb-1');
+    var match = await trustedSelectedClimbId('Green 30 degree', 'climb-green');
+    var emptySel = await trustedSelectedClimbId('', 'climb-1');
+    var caseOk = await trustedSelectedClimbId('green 30 degree', 'climb-green');
+    _selectedClimbId = 'stale-from-last-flow';
+    startLogFlow();
+    var cleared = _selectedClimbId === null;
+    _selectedClimbId = prevSel;
+    _climbCache = prevCache;
+    if(clearOk && launchAfter && resolveWired && mismatch === null && match === 'climb-green' && emptySel === null && caseOk === 'climb-green' && cleared){
+      pass('Stale climb_id is dropped before save; dropdown match still trusted');
+    } else {
+      fail('Stale climb_id is dropped before save; dropdown match still trusted',
+        'clear=' + clearOk + ' launch=' + launchAfter + ' wired=' + resolveWired +
+        ' mismatch=' + mismatch + ' match=' + match + ' empty=' + emptySel + ' case=' + caseOk + ' cleared=' + cleared);
+    }
+  }catch(e){ fail('Stale climb_id is dropped before save; dropdown match still trusted', e.message); }
+
+  try{
     var sbiSrc = String(sbI);
     var helperOk = /return=minimal/.test(sbiSrc) && /return=representation/.test(sbiSrc)
       && /minimal/.test(sbiSrc);
@@ -23323,7 +23360,7 @@ async function runSEETests(){
     }
     var sitesOk = fbUsesMinimal(submitFeedbackFinal) && fbUsesMinimal(fbNext)
       && fbUsesMinimal(submitQuickFeedback) && fbUsesMinimal(submitProfileFeedback);
-    var othersKeepRep = !/sbI\(\s*'climbs',\s*\{[\s\S]{0,400}?\}\s*,\s*true/.test(String(logFlowSaveSession) + String(logClimb))
+    var othersKeepRep = !/sbI\(\s*'climbs',\s*\{[\s\S]{0,400}?\}\s*,\s*true/.test(String(logFlowSaveSession) + String(logClimb) + String(findOrCreateClimbIdByName))
       && !/sbI\(\s*'sessions',\s*p\s*,\s*true/.test(String(sbInsertSession));
     if(helperOk && sitesOk && othersKeepRep){
       pass('Feedback insert uses minimal return (no SELECT required)');
