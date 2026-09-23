@@ -93,6 +93,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 #install-see-howto{margin-top:12px;}
 #tips-enabled-toggle.on,#tips-enabled-toggle-anon.on,#tips-enabled-toggle-beta.on,#push-notify-toggle.on{background:var(--accent);border-color:var(--accent);color:#fff;}
 .log-train-hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px;}
+.climb-unnamed-flag{font-style:italic;color:var(--muted);font-weight:600;}
+.climb-table-attempt{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;cursor:pointer;padding:4px 6px;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
 .gym-catalog-chip{background:var(--surface2);border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;}
 .gym-catalog-chip.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
 .gym-catalog-row{width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;margin-bottom:8px;font-family:'Space Grotesk',sans-serif;}
@@ -1740,6 +1742,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <tr style="border-bottom:2px solid var(--border);">
             <th onclick="sortClimbTable('date')" style="text-align:left;padding:8px 10px 8px 0;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;position:sticky;left:0;background:var(--bg);white-space:nowrap;">Date ↕</th>
             <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Route</th>
+            <th style="text-align:left;padding:8px 6px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Add</th>
             <th onclick="sortClimbTable('grade')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Grade ↕</th>
             <th onclick="sortClimbTable('terrain')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Terrain ↕</th>
             <th onclick="sortClimbTable('setting')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Setting ↕</th>
@@ -2424,7 +2427,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="log-flow-footer">
     <button class="log-btn log-flow-cta ready" id="log-name-save" onclick="logFlowSaveSession()">Save climb</button>
-    <button class="log-flow-skip-link" id="log-name-skip" onclick="logFlowSaveSession()">Skip naming</button>
+    <button class="log-flow-skip-link" id="log-name-skip" onclick="logFlowSaveSession('unnamed')">Skip - leave unnamed</button>
     <div class="log-flow-progress" id="log-flow-progress-6" data-step="6">
       <div class="log-flow-progress-track"><div class="log-flow-progress-fill" style="width:100%"></div></div>
       <div class="log-flow-progress-label">Step 6 of 6</div>
@@ -4730,7 +4733,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <button id="edit-save-override-btn" onclick="saveGaugeOverride('edit')" disabled style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:not-allowed;opacity:.5;transition:opacity .15s;">Save override</button>
     </div>
     <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Route name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">optional</span></div>
-    <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null"/>
+    <input id="edit-rname" type="text" placeholder="e.g. Ticks Are For Kids..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:14px;outline:none;margin-bottom:16px;" oninput="logState.routeName=this.value.trim()||null;resetEditRenameConfirm();"/>
 
     <!-- Reflection editing — same pattern as Log screen, collapsed by default -->
     <button onclick="toggleEditReflection(this)" style="width:100%;background:none;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;color:var(--muted);font-size:14px;-webkit-tap-highlight-color:transparent;margin-bottom:16px;">
@@ -4776,6 +4779,17 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     </div>
 
+    <div id="edit-rename-confirm" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px;">Rename this route for all <span id="edit-rename-count">0</span> logged attempts?</div>
+      <div style="font-size:15px;margin-bottom:10px;line-height:1.45;">
+        <span id="edit-rename-old" style="color:var(--muted);text-decoration:line-through;"></span>
+        <span style="color:var(--muted);margin:0 6px;">→</span>
+        <span id="edit-rename-new" style="color:var(--text);font-weight:700;"></span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">This cannot be undone.</div>
+      <button type="button" id="edit-rename-apply" onclick="confirmEditRouteRename(true)" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px;cursor:pointer;margin-bottom:8px;">Rename all</button>
+      <button type="button" id="edit-rename-keep" onclick="confirmEditRouteRename(false)" style="width:100%;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:8px;cursor:pointer;">Keep current name</button>
+    </div>
     <button id="edit-save-changes-btn" onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
@@ -5338,7 +5352,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index266'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index267'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -6677,7 +6691,7 @@ function renderQuickStrip(climbs){
     var notes=climbBetaCountLabel(cid);
     return '<div style="flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:12px 14px;min-width:140px;max-width:180px;">'
       +'<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:2px;">'
-      +'<div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">'+escTrainHtml(name)+'</div>'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">'+climbDisplayNameHtml(name)+'</div>'
       +climbStarButtonHtml(cid)
       +'</div>'
       +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+(grade?escTrainHtml(grade):'—')+(terrain?' · '+escTrainHtml(terrain):'')+(notes?' · '+escTrainHtml(notes):'')+'</div>'
@@ -6731,7 +6745,7 @@ function renderClimbDataTable(){
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
     var c=zoneColor(s.zone||'learning');
     var rowAttrs=s.climb_id?'data-cid="'+s.climb_id+'" onclick="openClimbExposure(this.dataset.cid)" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);"':'style="border-bottom:1px solid rgba(255,255,255,.05);"';
-    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.climb_id?'<span style="display:inline-flex;align-items:center;gap:4px;max-width:100%;">'+climbStarButtonHtml(s.climb_id)+'<span style="overflow:hidden;text-overflow:ellipsis;">'+(s.route_name||'—')+'</span>'+(climbBetaNoteCount(s.climb_id)?' <span class="climb-beta-count">'+escTrainHtml(climbBetaCountLabel(s.climb_id))+'</span>':'')+'</span>':(s.route_name||'—'))+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabel(s.baseline_zone)||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'      +'</tr>';
+    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.climb_id?'<span style="display:inline-flex;align-items:center;gap:4px;max-width:100%;">'+climbStarButtonHtml(s.climb_id)+'<span style="overflow:hidden;text-overflow:ellipsis;">'+climbDisplayNameHtml(s.route_name)+'</span>'+(climbBetaNoteCount(s.climb_id)?' <span class="climb-beta-count">'+escTrainHtml(climbBetaCountLabel(s.climb_id))+'</span>':'')+'</span>':climbDisplayNameHtml(s.route_name))+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 6px;white-space:nowrap;">'+climbAttemptLaunchBtnHtml(s,'climb-table')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabel(s.baseline_zone)||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'      +'</tr>';
   }).join('');
 }
 
@@ -7007,9 +7021,10 @@ function renderSessionNotesOverlay(s, sessionId){
   var existing = document.getElementById('notes-preview-overlay');
   if(existing) existing.remove();
   var rows = '';
-  if(s.route_name || s.grade_value){
+  if(s.route_name || s.grade_value || s.climbing_type){
     rows += '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;">' +
-      escTrainHtml([s.route_name, s.grade_value, s.climbing_type].filter(Boolean).join(' · ') || 'This climb') +
+      climbDisplayNameHtml(s.route_name) +
+      (s.grade_value || s.climbing_type ? ' · ' + escTrainHtml([s.grade_value, s.climbing_type].filter(Boolean).join(' · ')) : '') +
       loggedByCoachTagHtml(s) + '</div>';
   }
   if(sessionNeedsAthleteZoneRead(s)){
@@ -7082,7 +7097,7 @@ async function loadMyNotes(){
     items.push({
       at: s.created_at || '',
       kind: 'Climb',
-      title: s.route_name || s.grade_value || 'Climb',
+      title: isUnnamedClimbName(s.route_name) ? 'Unnamed' : (s.route_name || s.grade_value || 'Climb'),
       body: body,
       action: 'previewSessionNotes(\'' + s.id + '\')'
     });
@@ -7894,7 +7909,7 @@ async function logFlowSaveReflectionIfFilled(){
 }
 
 var _logFlowSaveBusy = false;
-async function logFlowSaveSession(){
+async function logFlowSaveSession(how){
   if(_logFlowSaveBusy) return;
   deepAnswers = { q1: null, q2: null, q3: null, q4: null, q5: null, q6: null, q7: null };
   deepScores = { breath: null, gut: null, crux: null, body: null };
@@ -7905,6 +7920,18 @@ async function logFlowSaveSession(){
   if(!logState.result || !logState.grade || !logState.terrain){
     showToast('Complete result, grade, and terrain first');
     return;
+  }
+
+  var climbIdEarly = _selectedClimbId || null;
+  if(!logState.routeName && drillState && drillState.routeName){
+    logState.routeName = drillState.routeName;
+  }
+  if((!logState.routeName || isUnnamedClimbName(logState.routeName)) && !climbIdEarly){
+    if(how !== 'unnamed'){
+      showToast('Name this climb or tap Skip - leave unnamed', true);
+      return;
+    }
+    logState.routeName = null;
   }
 
   _logFlowSaveBusy = true;
@@ -7923,13 +7950,6 @@ async function logFlowSaveSession(){
   }
 
   var climbId = _selectedClimbId || null;
-  if(!logState.routeName && drillState && drillState.routeName){
-    logState.routeName = drillState.routeName;
-  }
-  if(!logState.routeName && !climbId){
-    var n = (window._userClimbCount || 0) + 1;
-    logState.routeName = 'Climb ' + n;
-  }
 
   if(!climbId && logState.routeName){
     var climbs = await loadClimbCache();
@@ -8313,11 +8333,8 @@ async function logClimb(){
   if(!logState.routeName && drillState && drillState.routeName){
     logState.routeName = drillState.routeName;
   }
-  // Auto-naming fallback: no name, no climb ID — generate Climb [n]
-  if(!logState.routeName && !climbId){
-    var n = (window._userClimbCount||0) + 1;
-    logState.routeName = 'Climb ' + n;
-    console.log('[logClimb] auto-named:', logState.routeName);
+  if((!logState.routeName || isUnnamedClimbName(logState.routeName)) && !climbId){
+    logState.routeName = null;
   }
   console.log('[logClimb] routeName:',logState.routeName,'selectedClimbId:',_selectedClimbId);
   if(!climbId&&logState.routeName){
@@ -8902,6 +8919,27 @@ function paintLockedClimbProjectUi(){
 
 function normalizeClimbName(s){
   return (s||'').toLowerCase().trim().replace(/  +/g,' ');
+}
+
+function isUnnamedClimbName(name){
+  var t = String(name == null ? '' : name).trim();
+  if(!t) return true;
+  return /^Climb\s+\d+$/i.test(t);
+}
+
+function climbDisplayName(name){
+  return isUnnamedClimbName(name) ? 'Unnamed' : String(name).trim();
+}
+
+function climbDisplayNameHtml(name){
+  if(isUnnamedClimbName(name)){
+    return '<span class="climb-unnamed-flag">Unnamed</span>';
+  }
+  return escTrainHtml(String(name).trim());
+}
+
+function climbAttemptLaunchBtnHtml(s, origin){
+  return '<button type="button" class="climb-table-attempt" data-rname="' + escHomeAttr(s.route_name || '') + '" data-grade="' + escHomeAttr(s.grade_value || '') + '" data-terrain="' + escHomeAttr(s.climbing_type || '') + '" data-climb="' + escHomeAttr(s.climb_id || '') + '" data-setting="' + escHomeAttr(s.setting || '') + '" data-origin="' + escHomeAttr(origin || 'climb-table') + '" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rname,this.dataset.grade,this.dataset.terrain,this.dataset.climb,this.dataset.origin,this.dataset.setting)">+ Attempt</button>';
 }
 
 // Offline-queue climb resolve: live `climbs` query + normalizeClimbName.
@@ -14532,6 +14570,7 @@ function unlockEditRouteIdentityFields(){
 function openEditSheet(){
   var sheet=document.getElementById('edit-sheet');
   if(!sheet)return;
+  resetEditRenameConfirm();
   sheet.style.display='block';
   // Build grade chips for edit
   var gc=document.getElementById('edit-grade-chips');
@@ -14673,6 +14712,37 @@ async function deleteAttempt(btn){
 }
 
 var _editSaveBusy=false;
+var _editRenameDecision=null;
+
+function resetEditRenameConfirm(){
+  _editRenameDecision=null;
+  var panel=document.getElementById('edit-rename-confirm');
+  if(panel) panel.style.display='none';
+  var saveBtn=document.getElementById('edit-save-changes-btn');
+  if(saveBtn) saveBtn.style.display='';
+}
+
+function showEditRenameConfirm(oldName, newName, count){
+  var panel=document.getElementById('edit-rename-confirm');
+  var countEl=document.getElementById('edit-rename-count');
+  var oldEl=document.getElementById('edit-rename-old');
+  var newEl=document.getElementById('edit-rename-new');
+  if(countEl) countEl.textContent=String(count);
+  if(oldEl) oldEl.textContent=oldName || 'Unnamed';
+  if(newEl) newEl.textContent=newName || 'Unnamed';
+  if(panel){
+    panel.style.display='block';
+    if(panel.scrollIntoView) panel.scrollIntoView({block:'nearest'});
+  }
+  var saveBtn=document.getElementById('edit-save-changes-btn');
+  if(saveBtn) saveBtn.style.display='none';
+}
+
+function confirmEditRouteRename(applyAll){
+  _editRenameDecision=applyAll?'all':'keep';
+  saveEditedClimb();
+}
+
 async function saveEditedClimb(){
   if(_editSaveBusy) return;
   if(!logState.sessId){showToast('No session to edit');return;}
@@ -14685,19 +14755,25 @@ async function saveEditedClimb(){
     showToast('Name this climb before saving', true);
     return;
   }
+  if(routeRenameConfirmNeeded(climbId, nextName, prevName) && _editRenameDecision!=='all' && _editRenameDecision!=='keep'){
+    _editSaveBusy=true;
+    try {
+      var sibs=await sbS('sessions','select=id&climb_id=eq.'+climbId+'&is_checkin=eq.false&deleted_at=is.null');
+      var n=Array.isArray(sibs)&&sibs.length?sibs.length:1;
+      showEditRenameConfirm(prevName, nextName, n);
+    } finally {
+      _editSaveBusy=false;
+    }
+    return;
+  }
   _editSaveBusy=true;
   var saveBtn=document.getElementById('edit-save-changes-btn');
   if(saveBtn){ saveBtn.disabled=true; saveBtn.style.pointerEvents='none'; saveBtn.style.opacity='.6'; }
   try {
-  var renameAll=false;
-  if(routeRenameConfirmNeeded(climbId, nextName, prevName)){
-    var sibs=await sbS('sessions','select=id&climb_id=eq.'+climbId+'&is_checkin=eq.false&deleted_at=is.null');
-    var n=Array.isArray(sibs)&&sibs.length?sibs.length:1;
-    renameAll=confirm('Rename this route for all '+n+' logged attempts?');
-    if(!renameAll){
-      logState.routeName=prevName||null;
-      nextName=prevName||'';
-    }
+  var renameAll=_editRenameDecision==='all';
+  if(routeRenameConfirmNeeded(climbId, nextName, prevName) && !renameAll){
+    logState.routeName=prevName||null;
+    nextName=prevName||'';
   }
   // Don't overwrite a manual gauge override just applied in this edit session —
   // only recompute zone from result if it hasn't been manually set
@@ -14770,6 +14846,7 @@ async function saveEditedClimb(){
       }
     }
   }
+  resetEditRenameConfirm();
   document.getElementById('edit-sheet').style.display='none';
   renderCelebrate();
   // If editing happened from Route History, refresh its data in place (no navigation needed)
@@ -15299,7 +15376,7 @@ function climbRow(s,resultLabels){
   var conf=(s.zone_confidence==='confirmed'||s.zone_confidence==='manual');
   var pillStyle=conf?'border:1.5px solid '+c+';':'border:1.5px dashed '+c+';';
   var timeAgo=timeAgoStr(s.created_at);
-  var routeLabel=s.route_name?'<span style="font-size:11px;color:var(--muted2);">'+s.route_name+'</span>':'';
+  var routeLabel='<span style="font-size:11px;color:var(--muted2);">'+climbDisplayNameHtml(s.route_name)+'</span>';
   return '<div style="display:flex;gap:10px;align-items:stretch;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
     +'<div style="width:4px;border-radius:99px;background:'+c+';flex-shrink:0;margin:2px 0;"></div>'
     +'<div style="flex:1;min-width:0;">'
@@ -17467,7 +17544,7 @@ function renderClimbTable(climbs, previewOnly){
     if(previewOnly) groupOrder = groupOrder.slice(0, 5);
     groupOrder.forEach(function(key){
       var g = groups[key];
-      var name = g.name;
+      var name = climbDisplayNameHtml(g.name);
       var safeId = key.replace(/[^a-z0-9]/gi,'_');
       // Sort attempts date desc within climb (used for latest zone/date display)
       g.sessions.sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); });
@@ -17572,6 +17649,11 @@ function setClimbLogReturnFrom(origin){
   if(origin === 'home-recent'){
     climbLogState.returnFrom = 'screen-home';
     window._homeRecentOrigin = true;
+    return;
+  }
+  if(origin === 'climb-table'){
+    climbLogState.returnFrom = 'screen-climb-table';
+    window._homeRecentOrigin = false;
     return;
   }
   climbLogState.returnFrom = 'screen-sessions';
@@ -17682,6 +17764,9 @@ function celebrateHomeLink(){
     if(climbLogState) climbLogState.returnFrom = null;
     window._homeRecentOrigin = false;
     showScreen('screen-home');
+  } else if(climbLogState && climbLogState.returnFrom === 'screen-climb-table'){
+    climbLogState.returnFrom = null;
+    showScreen('screen-climb-table');
   } else {
     showScreen('screen-sessions');
   }
@@ -17700,6 +17785,10 @@ function returnToClimbLogOrHome(){
     climbLogState.returnFrom = null;
     climbLogState.expandedId = null;
     showScreen('screen-sessions');
+  } else if(climbLogState && climbLogState.returnFrom === 'screen-climb-table'){
+    climbLogState.returnFrom = null;
+    climbLogState.expandedId = null;
+    showScreen('screen-climb-table');
   } else {
     showScreen('screen-sessions');
   }
@@ -18319,7 +18408,7 @@ async function openClimbExposure(climbId){
   // Route header
   var nameEl = document.getElementById('rh-name');
   var subEl  = document.getElementById('rh-subtitle');
-  if(nameEl) nameEl.textContent = name || '—';
+  if(nameEl) nameEl.innerHTML = climbDisplayNameHtml(name);
   if(subEl)  subEl.textContent  = [grade, terrain].filter(Boolean).join(' · ');
   paintRouteHistoryProjectUi();
 
@@ -18718,8 +18807,8 @@ function climbAttemptRowHtml(s, opts){
   var c = zoneColor(s.zone || 'learning');
   var conf = (s.zone_confidence === 'confirmed' || s.zone_confidence === 'manual');
   var result = resultLabel(s.baseline_zone || s.result);
-  if(showRoute && s.route_name){
-    result = escTrainHtml(s.route_name) + ' · ' + result;
+  if(showRoute){
+    result = climbDisplayNameHtml(s.route_name) + ' · ' + result;
   }
   var d = s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }) : '';
   var hasRefl = (s.went_well && s.went_well.trim()) || (s.still_learning && s.still_learning.trim()) || (s.surprised_by && s.surprised_by.trim());
@@ -19505,7 +19594,7 @@ function runButtonAudit(options){
   var skipPartial = [
     'acknowledgeConsent', 'handleSignIn', 'handleSignUp', 'signOut',
     'saveNote', 'saveGaugeOverride', 'logFlowSaveSession', 'logClimb',
-    'saveEditedClimb', 'launchLogWithClimb', 'startLogFlow', 'afterQ4', 'openEditSheet',
+    'saveEditedClimb', 'confirmEditRouteRename', 'launchLogWithClimb', 'startLogFlow', 'afterQ4', 'openEditSheet',
     'showNotesEditor', 'celebrateHomeLink', 'logFlowLogAnother', 'logFlowDoneHome',
     'submitBaseline', 'saveRouteDetails', 'deleteSession', 'flushOfflineQueue', 'resolveClimbIdForQueue',
     'retryOfflineQueue', 'viewOfflineQueue',
@@ -23112,7 +23201,7 @@ async function runSEETests(){
     logState.result = prevResult;
     var saveSrc = String(logFlowSaveSession) + String(logClimb) + String(saveEditedClimb);
     var persistOk = /take_high_point/.test(saveSrc)
-      && /Rename this route for all/.test(String(saveEditedClimb))
+      && /showEditRenameConfirm/.test(String(saveEditedClimb))
       && /climb_id=eq\./.test(String(saveEditedClimb))
       && /climbs/.test(String(saveEditedClimb));
     var nameLockSrc = String(lockEditRouteIdentityFields);
@@ -23140,7 +23229,9 @@ async function runSEETests(){
       && /syncClimbCatalogFields/.test(saveFn)
       && /syncClimbCatalogFields/.test(logFn);
     var emptyNameOk = /Name this climb before saving/.test(saveFn);
-    var decoupleOk = /renameAll=confirm\('Rename this route for all/.test(saveFn)
+    var decoupleOk = /_editRenameDecision==='all'/.test(saveFn)
+      && /confirmEditRouteRename/.test(String(confirmEditRouteRename)+String(saveEditedClimb))
+      && !/renameAll=confirm\(/.test(saveFn)
       && !/if\(!confirm\('Rename this route for all/.test(saveFn);
     var cascadeOk = /sibOk/.test(saveFn) && /nameOk/.test(saveFn)
       && /route update did not fully apply/.test(saveFn)
@@ -23159,7 +23250,9 @@ async function runSEETests(){
       && /armInlineConfirm/.test(String(deleteTrainGoal))
       && /armInlineConfirm/.test(String(deleteRouteBetaNote))
       && /armInlineConfirm/.test(String(confirmDeleteAccount))
-      && /confirm\('Rename this route for all/.test(saveFn);
+      && typeof confirmEditRouteRename === 'function'
+      && typeof showEditRenameConfirm === 'function'
+      && !/confirm\('Rename this route for all/.test(saveFn);
     if(catalogOk && emptyNameOk && decoupleOk && cascadeOk && busyOk && delGuardOk && confirmOk){
       pass('Climb snapshot sync + edit guards + inline delete confirm');
     } else {
@@ -23168,6 +23261,58 @@ async function runSEETests(){
         ' cascade=' + cascadeOk + ' busy=' + busyOk + ' del=' + delGuardOk + ' confirm=' + confirmOk);
     }
   }catch(e){ fail('Climb snapshot sync + edit guards + inline delete confirm', e.message); }
+
+  try{
+    var unnamedOk = typeof isUnnamedClimbName === 'function'
+      && isUnnamedClimbName('')
+      && isUnnamedClimbName('Climb 1')
+      && isUnnamedClimbName('Climb 6')
+      && !isUnnamedClimbName('green 30 degree')
+      && climbDisplayName('Climb 3') === 'Unnamed'
+      && /climb-unnamed-flag/.test(climbDisplayNameHtml('Climb 1'))
+      && /climb-unnamed-flag/.test(climbDisplayNameHtml(''));
+    var noAuto = !/_userClimbCount/.test(String(logFlowSaveSession))
+      && !/_userClimbCount/.test(String(logClimb))
+      && /Skip - leave unnamed/.test(document.documentElement.innerHTML)
+      && /how !== 'unnamed'/.test(String(logFlowSaveSession));
+    var prevCached = window._cachedClimbs;
+    window._cachedClimbs = [{
+      id:'s-unnamed-1', climb_id:'c-unnamed', route_name:'Climb 1', grade_value:'5.10a',
+      climbing_type:'Slab', created_at:'2026-09-01T00:00:00Z', baseline_zone:'sent',
+      zone:'comfort', setting:'gym'
+    }];
+    renderClimbDataTable();
+    var rowHtml = ((document.getElementById('climb-table-body')||{}).innerHTML)||'';
+    window._cachedClimbs = prevCached;
+    if(typeof renderClimbDataTable === 'function' && prevCached) renderClimbDataTable();
+    var tableOk = /climbAttemptLaunchBtnHtml/.test(String(renderClimbDataTable))
+      && /climbDisplayNameHtml/.test(String(renderClimbDataTable))
+      && /Add/.test(((document.querySelector('#climb-table thead')||{}).innerHTML)||'')
+      && /climb-unnamed-flag/.test(rowHtml)
+      && /\+ Attempt/.test(rowHtml)
+      && /addAttemptFromLog/.test(rowHtml)
+      && /data-origin="climb-table"/.test(rowHtml);
+    var homeUnnamed = homeRecentActivityHtml([{
+      id:'s-home-unnamed', route_name:'Climb 6', grade_value:'5.9', climbing_type:'Vertical',
+      climb_id:'c6', setting:'gym', zone:'learning', baseline_zone:'sent',
+      created_at:'2026-09-08T12:00:00'
+    }]);
+    var homeOk = /climb-unnamed-flag/.test(homeUnnamed) && /\+ Attempt/.test(homeUnnamed);
+    var renameUi = document.getElementById('edit-rename-confirm')
+      && document.getElementById('edit-rename-old')
+      && document.getElementById('edit-rename-new')
+      && typeof confirmEditRouteRename === 'function'
+      && typeof showEditRenameConfirm === 'function'
+      && /edit-rename-old/.test(String(showEditRenameConfirm))
+      && /edit-rename-new/.test(String(showEditRenameConfirm))
+      && !/confirm\('Rename this route for all/.test(String(saveEditedClimb));
+    if(unnamedOk && noAuto && tableOk && homeOk && renameUi){
+      pass('Unnamed climb flag + table + Attempt + rename old/new confirm');
+    } else {
+      fail('Unnamed climb flag + table + Attempt + rename old/new confirm',
+        'unnamed=' + unnamedOk + ' noAuto=' + noAuto + ' table=' + tableOk + ' home=' + homeOk + ' rename=' + renameUi);
+    }
+  }catch(e){ fail('Unnamed climb flag + table + Attempt + rename old/new confirm', e.message); }
 
   try{
     var sbiSrc = String(sbI);
