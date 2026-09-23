@@ -690,6 +690,136 @@
     return out;
   }
 
+  var RESULT_LABELS = { sent: 'Sent', fell: 'Fell', took: 'Took', dna: 'Backed off' };
+  var ZONE_LABELS = { comfort: 'Comfort', learning: 'Learning', panic: 'Panic' };
+
+  function sessionAttemptResult(row) {
+    var raw = String(row && row.baseline_zone ? row.baseline_zone : '').trim().toLowerCase();
+    if (raw === 'sent' || raw === 'fell' || raw === 'took' || raw === 'dna') return raw;
+    return '';
+  }
+
+  function sessionAttemptResultLabel(row) {
+    var key = sessionAttemptResult(row);
+    return key ? RESULT_LABELS[key] : '';
+  }
+
+  function sessionZoneLabel(row) {
+    var z = normalizeZone(row && row.zone);
+    return z ? ZONE_LABELS[z] : '';
+  }
+
+  function sessionConfidenceLabel(row) {
+    var raw = String(row && row.zone_confidence ? row.zone_confidence : '').trim().toLowerCase();
+    if (raw === 'confirmed') return 'Confirmed';
+    if (raw === 'estimated') return 'Estimated';
+    return '';
+  }
+
+  function attemptsForClimbChronological(sessions, climbId) {
+    if (!climbId) return [];
+    var out = [];
+    var list = sessions || [];
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      if (!isClimbSession(s)) continue;
+      if (s.climb_id !== climbId) continue;
+      out.push(s);
+    }
+    out.sort(function (a, b) {
+      return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+    });
+    return out;
+  }
+
+  function projectSpanDays(attempts) {
+    var dates = [];
+    for (var i = 0; i < (attempts || []).length; i++) {
+      var d = new Date((attempts[i] && attempts[i].created_at) || '');
+      if (!isNaN(d.getTime())) dates.push(d.getTime());
+    }
+    if (!dates.length) return 0;
+    dates.sort(function (a, b) { return a - b; });
+    return Math.round((dates[dates.length - 1] - dates[0]) / 86400000);
+  }
+
+  function projectSpanLabel(days) {
+    if (days <= 1) return '1 day';
+    if (days < 7) return days + ' days';
+    var weeks = Math.max(1, Math.round(days / 7));
+    return weeks === 1 ? '1 week' : (weeks + ' weeks');
+  }
+
+  function projectZoneTrendSummary(attempts) {
+    var list = attempts || [];
+    if (!list.length) return 'No logged attempts yet.';
+    var zones = [];
+    for (var i = 0; i < list.length; i++) {
+      var label = sessionZoneLabel(list[i]);
+      if (!label) continue;
+      if (!zones.length || zones[zones.length - 1] !== label) zones.push(label);
+    }
+    var n = list.length;
+    var countBit = n === 1 ? '1 attempt' : (n + ' attempts');
+    var spanBit = n > 1 ? ' over ' + projectSpanLabel(projectSpanDays(list)) : '';
+    var zoneBit = zones.length ? ' — ' + zones.join(' → ') : '';
+    return countBit + spanBit + zoneBit;
+  }
+
+  function assignmentTimeMs(row) {
+    var raw = (row && (row.due_date || row.created_at)) || '';
+    var d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d.getTime();
+  }
+
+  function assignmentTouchesProjectWindow(row, attempts) {
+    var list = attempts || [];
+    if (!list.length) return false;
+    var times = [];
+    for (var i = 0; i < list.length; i++) {
+      var d = new Date((list[i] && list[i].created_at) || '');
+      if (!isNaN(d.getTime())) times.push(d.getTime());
+    }
+    if (!times.length) return false;
+    times.sort(function (a, b) { return a - b; });
+    var t = assignmentTimeMs(row);
+    if (t == null) return false;
+    var pad = 7 * 86400000;
+    return t >= (times[0] - pad) && t <= (times[times.length - 1] + pad);
+  }
+
+  function assignmentLooksLikeProject(row, project) {
+    if (!row || !project) return false;
+    var hay = [
+      row.title, row.description, row._workoutName, row.training_focus
+    ].map(function (v) { return String(v || '').toLowerCase(); }).join(' ');
+    var needles = [project.name, project.grade, project.terrain].filter(Boolean);
+    for (var i = 0; i < needles.length; i++) {
+      var n = String(needles[i]).trim().toLowerCase();
+      if (n.length >= 2 && hay.indexOf(n) !== -1) return true;
+    }
+    return false;
+  }
+
+  function matchAssignmentsToProject(assignments, project, attempts) {
+    var tagged = [];
+    var approximate = [];
+    var list = assignments || [];
+    var pid = project && project.id;
+    for (var i = 0; i < list.length; i++) {
+      var a = list[i];
+      if (!a || a.deleted_at) continue;
+      if (pid && a.target_climb_id && String(a.target_climb_id) === String(pid)) {
+        tagged.push(a);
+        continue;
+      }
+      if (assignmentTouchesProjectWindow(a, attempts) && assignmentLooksLikeProject(a, project)) {
+        approximate.push(a);
+      }
+    }
+    return { tagged: tagged, approximate: approximate };
+  }
+
   var api = {
     TERRAIN_TYPES: TERRAIN_TYPES,
     GRADE_ORDER: GRADE_ORDER,
@@ -723,6 +853,13 @@
     isStarredProject: isStarredProject,
     countAttemptsForClimb: countAttemptsForClimb,
     buildAthleteProjectList: buildAthleteProjectList,
+    sessionAttemptResult: sessionAttemptResult,
+    sessionAttemptResultLabel: sessionAttemptResultLabel,
+    sessionZoneLabel: sessionZoneLabel,
+    sessionConfidenceLabel: sessionConfidenceLabel,
+    attemptsForClimbChronological: attemptsForClimbChronological,
+    projectZoneTrendSummary: projectZoneTrendSummary,
+    matchAssignmentsToProject: matchAssignmentsToProject,
     CSV_TEMPLATE: 'name,wall_lane,angle,steepness,terrain_type\nExample climb,Lane 1,20,slight,Slab\n'
   };
 

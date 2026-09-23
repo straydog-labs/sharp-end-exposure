@@ -424,6 +424,39 @@
   .project-name{font-size:14px;font-weight:700;line-height:1.3;min-width:0;flex:1 1 140px;}
   .project-meta{font-size:12px;color:var(--text-secondary);margin-top:3px;}
   .project-grade{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;}
+  .project-card{
+    background:var(--bg);border:1px solid var(--border);border-radius:16px;
+    padding:14px;margin-bottom:10px;
+  }
+  .project-card:last-child{margin-bottom:0;}
+  .project-trend{font-size:13px;color:var(--text);margin:8px 0 10px;line-height:1.45;}
+  .project-attempts{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+  .project-attempt{
+    display:grid;grid-template-columns:minmax(72px,auto) minmax(64px,auto) minmax(72px,auto) minmax(72px,1fr);
+    gap:8px 10px;font-size:12.5px;align-items:baseline;
+  }
+  .project-attempt-date{color:var(--text-secondary);}
+  .project-attempt-result{font-weight:600;color:var(--text);}
+  .project-attempt-zone{font-weight:600;}
+  .project-attempt-zone.comfort{color:var(--comfort);}
+  .project-attempt-zone.learning{color:var(--learning);}
+  .project-attempt-zone.panic{color:var(--panic);}
+  .project-attempt-conf{color:var(--text-secondary);}
+  .project-attempt-soma{grid-column:1 / -1;font-size:11.5px;color:var(--text-secondary);}
+  .project-training-tagged{
+    border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-top:8px;
+  }
+  .project-training-tagged .project-training-label{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;}
+  .project-training-approx{
+    border:1px dashed var(--border);border-radius:12px;padding:10px 12px;margin-top:8px;
+    background:transparent;
+  }
+  .project-training-approx .project-training-label{
+    font-size:12px;font-weight:600;font-style:italic;color:var(--text-secondary);margin-bottom:4px;
+  }
+  .project-training-approx-note{font-size:11.5px;color:var(--text-secondary);line-height:1.4;margin-bottom:6px;}
+  .project-training-item{font-size:13px;color:var(--text-secondary);margin-top:4px;}
+  .project-training-tagged .project-training-item{color:var(--text);font-weight:600;}
   .insight-swatch{display:inline-block;width:10px;height:3px;margin-right:6px;vertical-align:middle;border-radius:1px;}
   .gap-headlines{margin:12px 0 4px;}
   .gap-headline{
@@ -2601,6 +2634,7 @@
   var _athletePane = null;
   var _detailCtx = null;
   var _coachAthleteNotesCache = [];
+  var _athleteProjectClimbsCache = [];
   var _coachPatternTagsCache = [];
   var _coachNoteFormType = 'general';
   var _coachNoteCueSeq = 0;
@@ -2646,6 +2680,11 @@
     if(unreadDot) unreadDot.classList.toggle('on', unread);
     var baseEl = document.getElementById('hub-baseline-sub');
     if(baseEl) baseEl.textContent = _coachBaselineSet ? 'Terrain expectations on file' : 'Terrain expectations';
+    var projEl = document.getElementById('hub-projects-sub');
+    if(projEl){
+      var projN = (_athleteProjectClimbsCache || []).length;
+      projEl.textContent = projN + ' active';
+    }
   }
 
   function paintAthleteLandingStats(){
@@ -2698,7 +2737,7 @@
       if(landing) landing.style.display = 'none';
       if(sub) sub.style.display = '';
     }
-    var ids = ['detail-assignments','detail-new-assignment','detail-goals','detail-baseline','detail-sessions','detail-coach-notes','detail-chat'];
+    var ids = ['detail-assignments','detail-new-assignment','detail-goals','detail-baseline','detail-sessions','detail-coach-notes','detail-chat','detail-projects'];
     ids.forEach(function(id){
       var el = document.getElementById(id);
       if(!el) return;
@@ -2709,6 +2748,7 @@
       else if(pane === 'journal') show = id === 'detail-sessions';
       else if(pane === 'notes') show = id === 'detail-coach-notes';
       else if(pane === 'chat') show = id === 'detail-chat';
+      else if(pane === 'projects') show = id === 'detail-projects';
       el.style.display = show ? '' : 'none';
     });
     var back = document.getElementById('athlete-subview-back');
@@ -2743,6 +2783,7 @@
     _coachGoalsCache = [];
     _lastSessionRows = [];
     _coachAthleteNotesCache = [];
+    _athleteProjectClimbsCache = [];
     _coachBaselineSet = false;
     _journalCtx = {
       token: token,
@@ -2768,6 +2809,7 @@
           athleteHubCardHtml('journal', 'Log', 'Session Notes', 'hub-journal-sub', 'Journal and replies') +
           athleteHubCardHtml('notes', 'Private', "Coach's Notes", 'hub-notes-sub', 'Only you can see these') +
           athleteHubCardHtml('baseline', 'Setup', 'Baseline', 'hub-baseline-sub', 'Terrain expectations') +
+          athleteHubCardHtml('projects', 'Track', 'Projects', 'hub-projects-sub', '0 active') +
           athleteHubCardHtml('chat', 'Message', 'Chat', 'hub-chat-sub', 'Message this athlete', true) +
         '</div>' +
         '<button type="button" class="assign-launch" id="coach-log-launch" style="margin-bottom:14px;">' +
@@ -2796,11 +2838,6 @@
           '<div class="team-zone-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
           '<div id="athlete-gap-body"><div class="zone-bar-empty">Loading···</div></div>' +
         '</div>' +
-        '<div class="insight-panel" id="athlete-projects-panel">' +
-          '<div class="team-zone-label">Projects</div>' +
-          '<div class="team-zone-note">Climbs this athlete starred. Read-only — starring stays on the athlete side.</div>' +
-          '<div id="athlete-projects-body"><div class="zone-bar-empty">Loading···</div></div>' +
-        '</div>' +
       '</div>' +
       '<div id="athlete-subview" style="display:none;">' +
         '<button type="button" class="detail-back" id="athlete-subview-back">← Back</button>' +
@@ -2810,6 +2847,7 @@
         '<div class="detail-section" id="detail-baseline" style="display:none;"><div class="panel-title">Baseline</div><div>Loading···</div></div>' +
         '<div class="detail-section" id="detail-sessions" style="display:none;"><div class="panel-title">Journal</div><div>Loading···</div></div>' +
         '<div class="detail-section" id="detail-coach-notes" style="display:none;"><div class="panel-title">Coach\'s Notes (private)</div><div>Loading···</div></div>' +
+        '<div class="detail-section" id="detail-projects" style="display:none;"><div class="panel-title">Projects</div><div>Loading···</div></div>' +
         '<div class="detail-section" id="detail-chat" style="display:none;"></div>' +
       '</div>';
 
@@ -3156,13 +3194,24 @@
   };
 
   function loadAthleteInsightSessions(token, athleteId){
-    var q = 'select=id,created_at,zone,baseline_zone,grade_value,climbing_type,discipline,climb_id' +
+    var q = 'select=id,created_at,zone,baseline_zone,grade_value,climbing_type,discipline,climb_id,' +
+      'zone_confidence,breathing_post,gut_post,crux_response,body_state' +
       '&user_id=eq.' + athleteId +
       '&is_checkin=eq.false&deleted_at=is.null&order=created_at.desc&limit=2000';
     return sbSelect(token, 'sessions', q).then(function(rows){
       var list = Array.isArray(rows) ? rows : [];
       _athleteInsightCache[athleteId] = list;
       return list;
+    }).catch(function(){
+      return sbSelect(token, 'sessions',
+        'select=id,created_at,zone,baseline_zone,grade_value,climbing_type,discipline,climb_id' +
+        '&user_id=eq.' + athleteId +
+        '&is_checkin=eq.false&deleted_at=is.null&order=created_at.desc&limit=2000'
+      ).then(function(rows){
+        var list = Array.isArray(rows) ? rows : [];
+        _athleteInsightCache[athleteId] = list;
+        return list;
+      });
     });
   }
 
@@ -3177,39 +3226,91 @@
     });
   }
 
-  function renderAthleteProjectsHtml(climbs, sessions){
-    var list = (window.CoachInsights && window.CoachInsights.buildAthleteProjectList)
-      ? window.CoachInsights.buildAthleteProjectList(climbs, sessions)
-      : [];
+  function projectAttemptSomaHtml(s){
+    var bits = [];
+    if(s.breathing_post) bits.push('Breath ' + s.breathing_post);
+    if(s.gut_post) bits.push('Gut ' + s.gut_post);
+    if(s.crux_response) bits.push('Crux ' + s.crux_response);
+    if(s.body_state) bits.push('Body ' + s.body_state);
+    return bits.length ? '<div class="project-attempt-soma">' + escapeHtml(bits.join(' · ')) + '</div>' : '';
+  }
+
+  function projectTrainingItemsHtml(rows){
+    return (rows || []).map(function(a){
+      return '<div class="project-training-item">' + escapeHtml(a.title || 'Untitled assignment') + '</div>';
+    }).join('');
+  }
+
+  function renderAthleteProjectsHtml(climbs, sessions, assignments){
+    var CI = window.CoachInsights;
+    var list = (CI && CI.buildAthleteProjectList) ? CI.buildAthleteProjectList(climbs, sessions) : [];
+    var note = '<div class="coach-note-hint">Climbs this athlete starred. Read-only — starring stays on the athlete side.</div>';
     if(!list.length){
-      return '<div class="zone-bar-empty">No projects starred yet.</div>';
+      return '<div class="panel-title">Projects</div>' + note +
+        '<div class="empty-state">No projects starred yet.</div>';
     }
-    return list.map(function(p){
+    return '<div class="panel-title">Projects</div>' + note + list.map(function(p){
+      var attempts = CI.attemptsForClimbChronological(sessions, p.id);
+      var trend = CI.projectZoneTrendSummary(attempts);
+      var train = CI.matchAssignmentsToProject(assignments || [], p, attempts);
       var attemptLabel = p.attempts === 1 ? '1 attempt' : (p.attempts + ' attempts');
       var meta = [p.terrain, attemptLabel].filter(Boolean).join(' · ');
-      return '<div class="project-row">' +
-        '<div>' +
-          '<div class="project-name">' + escapeHtml(p.name) + '</div>' +
-          (meta ? '<div class="project-meta">' + escapeHtml(meta) + '</div>' : '') +
+      var history = attempts.length
+        ? '<div class="project-attempts">' + attempts.map(function(s){
+            var zone = CI.sessionZoneLabel(s);
+            var zoneKey = (s.zone || '').toLowerCase();
+            var zoneClass = (zoneKey === 'comfort' || zoneKey === 'learning' || zoneKey === 'panic') ? ' ' + zoneKey : '';
+            return '<div class="project-attempt">' +
+              '<div class="project-attempt-date">' + escapeHtml(fmtDate(s.created_at)) + '</div>' +
+              '<div class="project-attempt-result">' + escapeHtml(CI.sessionAttemptResultLabel(s) || '—') + '</div>' +
+              '<div class="project-attempt-zone' + zoneClass + '">' + escapeHtml(zone || 'No zone') + '</div>' +
+              '<div class="project-attempt-conf">' + escapeHtml(CI.sessionConfidenceLabel(s) || '') + '</div>' +
+              projectAttemptSomaHtml(s) +
+            '</div>';
+          }).join('') + '</div>'
+        : '<div class="empty-state">No logged attempts on this climb yet.</div>';
+      var tagged = train.tagged && train.tagged.length
+        ? '<div class="project-training-tagged" data-training-kind="tagged">' +
+            '<div class="project-training-label">Targeted training</div>' +
+            projectTrainingItemsHtml(train.tagged) +
+          '</div>'
+        : '';
+      var approx = train.approximate && train.approximate.length
+        ? '<div class="project-training-approx" data-training-kind="approximate">' +
+            '<div class="project-training-label">Similar training (approximate)</div>' +
+            '<div class="project-training-approx-note">Matched by grade or terrain during this window — not a confirmed link.</div>' +
+            projectTrainingItemsHtml(train.approximate) +
+          '</div>'
+        : '';
+      return '<div class="project-card">' +
+        '<div class="project-row">' +
+          '<div>' +
+            '<div class="project-name">' + escapeHtml(p.name) + '</div>' +
+            (meta ? '<div class="project-meta">' + escapeHtml(meta) + '</div>' : '') +
+          '</div>' +
+          (p.grade ? '<div class="project-grade">' + escapeHtml(p.grade) + '</div>' : '') +
         '</div>' +
-        (p.grade ? '<div class="project-grade">' + escapeHtml(p.grade) + '</div>' : '') +
+        '<div class="project-trend">' + escapeHtml(trend) + '</div>' +
+        history + tagged + approx +
       '</div>';
     }).join('');
   }
 
   function paintAthleteProjects(climbs, sessions){
-    var el = document.getElementById('athlete-projects-body');
-    if(el) el.innerHTML = renderAthleteProjectsHtml(climbs, sessions);
+    _athleteProjectClimbsCache = Array.isArray(climbs) ? climbs : [];
+    var el = document.getElementById('detail-projects');
+    if(el) el.innerHTML = renderAthleteProjectsHtml(climbs, sessions, _lastCoachAssignments);
+    paintAthleteHubBadges();
   }
 
   function loadAthleteInsightPanels(token, athleteId){
     var progressEl = document.getElementById('athlete-progress-body');
     var gapEl = document.getElementById('athlete-gap-body');
-    var projectsEl = document.getElementById('athlete-projects-body');
+    var projectsEl = document.getElementById('detail-projects');
     if(!window.CoachInsights){
       if(progressEl) progressEl.innerHTML = '<div class="empty-state">Progress view is unavailable.</div>';
       if(gapEl) gapEl.innerHTML = '<div class="empty-state">Gap view is unavailable.</div>';
-      if(projectsEl) projectsEl.innerHTML = '<div class="zone-bar-empty">No projects starred yet.</div>';
+      if(projectsEl) projectsEl.innerHTML = '<div class="panel-title">Projects</div><div class="empty-state">No projects starred yet.</div>';
       return Promise.resolve();
     }
     return Promise.all([
@@ -3796,6 +3897,9 @@
       .then(function(rows){
         _lastCoachAssignments = Array.isArray(rows) ? rows : [];
         paintAthleteHubBadges();
+        if(_detailCtx){
+          paintAthleteProjects(_athleteProjectClimbsCache, _athleteInsightCache[_detailCtx.athleteId] || []);
+        }
         if(!_lastCoachAssignments.length){
           el.innerHTML = '<div class="panel-title">Assignments</div><div class="empty-state">No assignments yet.</div>';
           return;

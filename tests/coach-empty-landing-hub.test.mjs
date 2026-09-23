@@ -40,10 +40,14 @@ const insights = idx('roster-insights');
 const zone = idx('athlete-zone-wrap');
 const progress = idx('athlete-progress-panel');
 const gap = idx('athlete-gap-panel');
-const projects = idx('athlete-projects-panel');
 assert.ok(header < hub && hub < log && log < stats && stats < insights &&
-  insights < zone && zone < progress && progress < gap && gap < projects,
-  'hub cards sit after header and before log/stats/insights/projects');
+  insights < zone && zone < progress && progress < gap,
+  'hub cards sit after header and before log/stats/insights');
+assert.ok(!/athlete-projects-panel/.test(html), 'projects left the buried landing panel');
+assert.ok(/athleteHubCardHtml\('projects', 'Track', 'Projects', 'hub-projects-sub', '0 active'\)/.test(html));
+assert.ok(html.indexOf("athleteHubCardHtml('notes'") < html.indexOf("athleteHubCardHtml('projects'"));
+assert.ok(html.indexOf("athleteHubCardHtml('baseline'") < html.indexOf("athleteHubCardHtml('projects'"));
+assert.ok(html.indexOf("athleteHubCardHtml('projects'") < html.indexOf("athleteHubCardHtml('chat'"));
 assert.strictEqual((html.match(/athlete-hub-cards/g) || []).length, 1);
 assert.ok(/athleteHubCardHtml\('assignments'/.test(html));
 assert.ok(/athleteHubCardHtml\('chat'/.test(html));
