@@ -24,13 +24,14 @@ assert.ok(/id="users-filter-sessions"/.test(html));
 assert.ok(/id="users-filter-climbs"/.test(html));
 assert.ok(/id="users-filter-last"/.test(html));
 assert.ok(/id="users-filter-linked"/.test(html));
+assert.ok(/id="users-filter-baseline"/.test(html));
 assert.ok(/id="users-refresh-btn"/.test(html), 'Refresh stays');
 assert.ok(/option value="Test account"/.test(html));
 assert.ok(/option value="Signed up · active"/.test(html));
 assert.ok(/option value="Signed up · no activity"/.test(html));
 assert.ok(/option value="not">Not coach/.test(html));
 
-['name','email','role','coach','signup','sessions','climbs','lastActivity','linked'].forEach(function(key){
+['name','email','role','coach','signup','sessions','climbs','lastActivity','linked','baseline'].forEach(function(key){
   assert.ok(html.indexOf('data-sort="' + key + '"') !== -1, 'sort header ' + key);
 });
 assert.ok(/var _usersSort = \{ key: null, dir: 'asc' \}/.test(html));
@@ -53,6 +54,7 @@ const userIsTestSrc = html.match(/function userIsTest\(u\)\{[\s\S]*?\n  \}/)[0];
 const isTestAccountSrc = html.match(/function isTestAccount\(u\)\{[\s\S]*?\n  \}/)[0];
 const fmtSrc = html.match(/function fmtShortDate\(v\)\{[\s\S]*?\n  \}/)[0];
 const linkedLabelSrc = html.match(/function linkedLabel\(u\)\{[\s\S]*?\n  \}/)[0];
+const baselineSetSrc = html.match(/function usersBaselineSet\(u\)\{[\s\S]*?\n  \}/)[0];
 const helpersStart = html.indexOf('function usersDisplayName(u){');
 const helpersEnd = html.indexOf('function loadAllUsers(force){');
 assert.ok(helpersStart !== -1 && helpersEnd > helpersStart);
@@ -61,7 +63,7 @@ const coachStart = html.indexOf('function userIsCoach(u){');
 const coachEnd = html.indexOf('function findAllUsersRow(userId){');
 const coachSrc = html.slice(coachStart, coachEnd);
 
-const src = [personSrc, userFieldSrc, userIsTestSrc, isTestAccountSrc, fmtSrc, linkedLabelSrc, filterSrc, coachSrc].join('\n');
+const src = [personSrc, userFieldSrc, userIsTestSrc, isTestAccountSrc, fmtSrc, linkedLabelSrc, baselineSetSrc, filterSrc, coachSrc].join('\n');
 const check = spawnSync('node', ['--check'], { input: src, encoding: 'utf8' });
 assert.strictEqual(check.status, 0, check.stderr || 'helpers failed node --check');
 
@@ -110,6 +112,12 @@ const vm = spawnSync('node', [], {
      var byLinked = [anna, coach].sort(function(a,b){ return usersSortCompare(a,b,{ key:'linked', dir:'desc' }); });
      assert(linkedAthleteCount(byLinked[0]) === 5, 'linked numeric');
      assert(usersSortCompare(anna, coach, { key: null, dir: 'asc' }) === 0, 'no sort key');
+     anna._baselineSet = true;
+     assert(usersRowMatchesFilters(anna, emptyTf, null, null, 'set') === true, 'baseline set');
+     assert(usersRowMatchesFilters(anna, emptyTf, null, null, 'not') === false, 'baseline set vs not');
+     assert(usersRowMatchesFilters(coach, emptyTf, null, null, 'not') === true, 'baseline not set');
+     var byBase = [coach, anna].sort(function(a,b){ return usersSortCompare(a,b,{ key:'baseline', dir:'desc' }); });
+     assert(byBase[0]._baselineSet === true, 'baseline desc');
      console.log('col-filter: ok');`
 });
 assert.strictEqual(vm.status, 0, vm.stderr || vm.stdout);

@@ -306,7 +306,7 @@
   .users-coach-cell{white-space:nowrap;vertical-align:middle;}
   .users-coach-toggle-label{cursor:pointer;margin:0;}
   .users-coach-status{font-size:11px;color:var(--text-secondary);min-height:1em;}
-  .ops-modal.wide{width:720px;max-height:90vh;overflow:auto;}
+  .ops-modal.wide{width:860px;max-height:90vh;overflow:auto;}
   #user-detail-modal .nav-group{
     border:1px solid var(--border);border-radius:8px;margin:0 0 10px;
   }
@@ -319,6 +319,26 @@
   #user-detail-modal .bo-table td.notes-clip{
     max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
+  #user-detail-baseline-card{cursor:pointer;}
+  #user-detail-baseline-card:hover{border-color:var(--accent);}
+  #user-detail-baseline-card .metric-num{font-size:22px;}
+  #user-detail-baseline-panel[hidden]{display:none;}
+  #user-detail-baseline-panel{
+    border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;
+  }
+  #user-detail-modal .baseline-row{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    padding:10px 0;border-bottom:1px solid var(--border);min-width:0;
+  }
+  #user-detail-modal .baseline-row:last-child{border-bottom:none;}
+  #user-detail-modal .baseline-terrain{font-size:13px;font-weight:600;margin-bottom:2px;}
+  #user-detail-modal .baseline-expect{font-size:12.5px;color:var(--text-secondary);line-height:1.45;}
+  #user-detail-modal .baseline-calibrated{
+    font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:#7fbf3f;flex-shrink:0;padding:3px 7px;
+    border:1px solid rgba(127,191,63,.35);border-radius:6px;
+  }
+  .user-detail-meta{font-size:12.5px;color:var(--text-secondary);margin:0 0 12px;line-height:1.55;}
   .todo-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
   .todo-row:last-child{border-bottom:none;}
   .todo-row.done .todo-name{text-decoration:line-through;color:var(--text-secondary);}
@@ -951,6 +971,7 @@
                   <th class="users-sort-th" data-sort="climbs" tabindex="0" role="columnheader" aria-sort="none">Climbs <span class="users-sort-ind" aria-hidden="true"></span></th>
                   <th class="users-sort-th" data-sort="lastActivity" tabindex="0" role="columnheader" aria-sort="none">Last activity <span class="users-sort-ind" aria-hidden="true"></span></th>
                   <th class="users-sort-th" data-sort="linked" tabindex="0" role="columnheader" aria-sort="none">Linked <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="baseline" tabindex="0" role="columnheader" aria-sort="none">Baseline <span class="users-sort-ind" aria-hidden="true"></span></th>
                 </tr>
                 <tr class="users-filter-row">
                   <td><input id="users-filter-name" type="search" placeholder="Filter…" aria-label="Filter name"></td>
@@ -978,10 +999,17 @@
                   <td><input id="users-filter-climbs" type="search" placeholder="Filter…" aria-label="Filter climbs"></td>
                   <td><input id="users-filter-last" type="search" placeholder="Filter…" aria-label="Filter last activity"></td>
                   <td><input id="users-filter-linked" type="search" placeholder="Filter…" aria-label="Filter linked"></td>
+                  <td>
+                    <select id="users-filter-baseline" aria-label="Filter baseline">
+                      <option value="">All</option>
+                      <option value="set">Set</option>
+                      <option value="not">Not set</option>
+                    </select>
+                  </td>
                 </tr>
               </thead>
               <tbody id="users-tbody">
-                <tr><td colspan="9" class="bo-empty">Loading···</td></tr>
+                <tr><td colspan="10" class="bo-empty">Loading···</td></tr>
               </tbody>
             </table>
           </div>
@@ -3426,6 +3454,28 @@
     return adminSession && adminSession.access_token ? adminSession.access_token : null;
   }
 
+  function sbAdminSelect(table, query){
+    var token = adminAccessToken();
+    if(!token){
+      return Promise.reject({ code: 'NO_SESSION', message: 'Sign in required' });
+    }
+    return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + token
+      }
+    }).then(function(res){
+      return res.json().then(function(data){
+        if(!res.ok){
+          var err = data || {};
+          err._http = res.status;
+          throw err;
+        }
+        return data;
+      });
+    });
+  }
+
   function sbRpc(fnName, body){
     var token = adminAccessToken();
     if(!token){
@@ -3719,8 +3769,91 @@
   var allUsersCache = [];
   var _usersRoleFilter = null;
   var _usersCoachFilter = null;
+  var _usersBaselineFilter = null;
   var _usersTextFilters = { name:'', email:'', signup:'', sessions:'', climbs:'', lastActivity:'', linked:'' };
   var _usersSort = { key: null, dir: 'asc' };
+  var COACH_BASELINE_TERRAINS = ['Slab', 'Vertical', 'Overhang', 'Roof', 'Crack'];
+
+  function parseBaselineTerrainState(raw){
+    if(!raw) return null;
+    if(typeof raw === 'object' && !Array.isArray(raw)) return raw;
+    if(typeof raw === 'string'){
+      try{
+        var parsed = JSON.parse(raw);
+        if(parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+      }catch(e){}
+    }
+    return null;
+  }
+  function usersBaselineSet(u){
+    if(!u) return false;
+    if(u.has_baseline === true || u.baseline_set === true || u._baselineSet === true) return true;
+    if(u.baseline && typeof u.baseline === 'object' && (u.baseline.id || u.baseline.created_at)) return true;
+    return false;
+  }
+  function fetchUserBaseline(userId){
+    return sbAdminSelect(
+      'sessions',
+      'select=id,baseline_terrain_state,baseline_terrain_calibrated,created_at' +
+        '&is_baseline=eq.true&user_id=eq.' + userId +
+        '&order=created_at.desc&limit=1'
+    ).then(function(rows){
+      return Array.isArray(rows) && rows[0] ? rows[0] : null;
+    });
+  }
+  function fetchUserJournal(userId){
+    return sbAdminSelect(
+      'journal_entries',
+      'select=id,created_at,entry_text&user_id=eq.' + userId +
+        '&deleted_at=is.null&order=created_at.desc'
+    ).then(function(rows){
+      return Array.isArray(rows) ? rows : [];
+    });
+  }
+  function fetchUserCoachFlag(userId){
+    return sbAdminSelect(
+      'coach_flags',
+      'select=user_id,is_coach&user_id=eq.' + userId + '&limit=1'
+    ).then(function(rows){
+      var row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+      if(!row) return null;
+      return row.is_coach === true;
+    });
+  }
+  function ensureRosterLinks(){
+    if(rosterLoaded && Array.isArray(rosterCache)) return Promise.resolve(rosterCache);
+    return sbRpc('foundash_list_roster', {}).then(function(data){
+      if(data && data.ok){
+        rosterLoaded = true;
+        rosterCache = data.links || [];
+        return rosterCache;
+      }
+      return [];
+    });
+  }
+  function hydrateUsersBaselineFlags(){
+    return sbAdminSelect(
+      'sessions',
+      'select=user_id&is_baseline=eq.true&user_id=not.is.null'
+    ).then(function(rows){
+      var setIds = {};
+      (Array.isArray(rows) ? rows : []).forEach(function(r){
+        if(r && r.user_id) setIds[String(r.user_id)] = true;
+      });
+      var any = false;
+      allUsersCache.forEach(function(u){
+        var uid = String(userField(u, ['user_id', 'id'], ''));
+        if(uid && setIds[uid] && !u._baselineSet){
+          u._baselineSet = true;
+          any = true;
+        }
+      });
+      if(any) renderAllUsersTable();
+    }).catch(function(){ /* admin REST may be RLS-empty; per-user detail still tries */ });
+  }
+  function userDetailSoft(promise, fallback){
+    return Promise.resolve(promise).then(function(v){ return v; }, function(){ return fallback; });
+  }
 
   function userField(u, keys, fallback){
     for(var i = 0; i < keys.length; i++){
@@ -3816,6 +3949,7 @@
     }
     _usersRoleFilter = val('users-filter-role') || null;
     _usersCoachFilter = val('users-filter-coach') || null;
+    _usersBaselineFilter = val('users-filter-baseline') || null;
     _usersTextFilters = {
       name: val('users-filter-name').toLowerCase(),
       email: val('users-filter-email').toLowerCase(),
@@ -3826,11 +3960,13 @@
       linked: val('users-filter-linked').toLowerCase()
     };
   }
-  function usersRowMatchesFilters(u, textFilters, roleFilter, coachFilter){
+  function usersRowMatchesFilters(u, textFilters, roleFilter, coachFilter, baselineFilter){
     var tf = textFilters || {};
     if(roleFilter && resolveDisplayRole(u) !== roleFilter) return false;
     if(coachFilter === 'coach' && !userIsCoach(u)) return false;
     if(coachFilter === 'not' && userIsCoach(u)) return false;
+    if(baselineFilter === 'set' && !usersBaselineSet(u)) return false;
+    if(baselineFilter === 'not' && usersBaselineSet(u)) return false;
     if(!usersSubstringMatch(usersDisplayName(u), tf.name)) return false;
     if(!usersSubstringMatch(userField(u, ['email'], ''), tf.email)) return false;
     if(!usersSubstringMatch(fmtShortDate(usersSignupRaw(u)), tf.signup)) return false;
@@ -3850,6 +3986,7 @@
     if(key === 'sessions') return usersSessionCount(u);
     if(key === 'climbs') return usersClimbCount(u);
     if(key === 'linked') return linkedAthleteCount(u);
+    if(key === 'baseline') return usersBaselineSet(u) ? 1 : 0;
     return '';
   }
   function usersSortCompare(a, b, sort){
@@ -3890,11 +4027,11 @@
       var banner = document.getElementById('users-sql-banner');
       if(banner) banner.style.display = 'none';
       var tbody = document.getElementById('users-tbody');
-      if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">Loading···</td></tr>';
+      if(tbody) tbody.innerHTML = '<tr><td colspan="10" class="bo-empty">Loading···</td></tr>';
       sbRpc('foundash_list_all_users', {}).then(function(data){
         if(!data || data.ok === false){
           if(data && (data.error === 'not_admin' || data.error === 'not_authenticated')){
-            if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">Unauthorized — admin session required.</td></tr>';
+            if(tbody) tbody.innerHTML = '<tr><td colspan="10" class="bo-empty">Unauthorized — admin session required.</td></tr>';
             return;
           }
           throw data || { message: 'list users failed' };
@@ -3903,6 +4040,7 @@
         allUsersCache = data.users || data.rows || data.accounts || [];
         bindAllUsersToolbar();
         renderAllUsersTable();
+        hydrateUsersBaselineFlags();
       }).catch(function(err){
         if(isMissingRpc(err)){
           if(banner){
@@ -3910,10 +4048,10 @@
             banner.className = 'bo-warn';
             banner.innerHTML = '<b>All Users</b> needs <code>foundash_list_all_users</code> applied in Supabase.';
           }
-          if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">RPC not available yet.</td></tr>';
+          if(tbody) tbody.innerHTML = '<tr><td colspan="10" class="bo-empty">RPC not available yet.</td></tr>';
           return;
         }
-        if(tbody) tbody.innerHTML = '<tr><td colspan="9" class="bo-empty" style="color:var(--danger);">Failed — ' +
+        if(tbody) tbody.innerHTML = '<tr><td colspan="10" class="bo-empty" style="color:var(--danger);">Failed — ' +
           escapeHtml((err && (err.message || err.error)) || 'unknown') + '</td></tr>';
       });
     });
@@ -3959,13 +4097,13 @@
     readUsersColFilters();
     paintUsersSortHeaders();
     var rows = allUsersCache.filter(function(u){
-      return usersRowMatchesFilters(u, _usersTextFilters, _usersRoleFilter, _usersCoachFilter);
+      return usersRowMatchesFilters(u, _usersTextFilters, _usersRoleFilter, _usersCoachFilter, _usersBaselineFilter);
     });
     if(_usersSort.key){
       rows.sort(function(a, b){ return usersSortCompare(a, b, _usersSort); });
     }
     if(!rows.length){
-      tbody.innerHTML = '<tr><td colspan="9" class="bo-empty">No users match.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="bo-empty">No users match.</td></tr>';
       return;
     }
     tbody.innerHTML = rows.map(function(u, i){
@@ -3989,6 +4127,7 @@
         '<td class="mono">' + escapeHtml(String(usersClimbCount(u))) + '</td>' +
         '<td class="mono">' + escapeHtml(fmtShortDate(usersLastActivityRaw(u))) + '</td>' +
         '<td>' + escapeHtml(linkedLabel(u)) + '</td>' +
+        '<td class="mono">' + (usersBaselineSet(u) ? '✓' : '—') + '</td>' +
       '</tr>';
     }).join('');
     tbody.querySelectorAll('tr.click-row').forEach(function(tr){
@@ -4171,6 +4310,88 @@
     });
   }
 
+  function enrichClimbsFromTraining(climbs, sessions){
+    var byId = {};
+    (sessions || []).forEach(function(s){
+      if(s && s.id != null) byId[String(s.id)] = s;
+    });
+    return (climbs || []).map(function(c){
+      var extra = (c && c.id != null && byId[String(c.id)]) ? byId[String(c.id)] : {};
+      function pick(key){
+        if(c[key] !== undefined && c[key] !== null && c[key] !== '') return c[key];
+        return extra[key];
+      }
+      return {
+        id: c.id,
+        created_at: c.created_at,
+        route_name: c.route_name,
+        grade_value: c.grade_value,
+        climbing_type: c.climbing_type,
+        setting: c.setting,
+        zone: c.zone,
+        baseline_zone: c.baseline_zone,
+        zone_confidence: pick('zone_confidence'),
+        breathing_post: pick('breathing_post'),
+        gut_post: pick('gut_post'),
+        crux_response: pick('crux_response'),
+        body_state: pick('body_state')
+      };
+    });
+  }
+  function mergeUserDetailBundle(userId, bundle, cached){
+    var detail = bundle && bundle.detail;
+    if(!detail || detail.ok === false) return detail;
+    var training = (bundle.training && bundle.training.ok !== false)
+      ? bundle.training
+      : { sessions: [], falls: [], assignments: [] };
+    var coachLinks = Array.isArray(detail.coach_links)
+      ? detail.coach_links
+      : (bundle.rosterLinks || []).filter(function(l){
+          return String(l.athlete_id) === String(userId);
+        });
+    var falls = Array.isArray(detail.falls) ? detail.falls : (training.falls || []);
+    var assignments = Array.isArray(detail.assignments) ? detail.assignments : (training.assignments || []);
+    var journal = Array.isArray(detail.journal) ? detail.journal : (bundle.journal || []);
+    var isCoach = bundle.is_coach;
+    if(isCoach == null && detail.is_coach != null) isCoach = detail.is_coach;
+    if(isCoach == null && detail.profile && detail.profile.is_coach != null) isCoach = detail.profile.is_coach;
+    if(isCoach == null && cached) isCoach = userIsCoach(cached);
+    return Object.assign({}, detail, {
+      climbs: enrichClimbsFromTraining(detail.climbs || [], training.sessions || []),
+      falls: falls,
+      assignments: assignments,
+      journal: journal,
+      coach_links: coachLinks,
+      baseline: detail.baseline || bundle.baseline || null,
+      is_coach: isCoach
+    });
+  }
+  function userDetailCoachLine(links){
+    if(!links || !links.length) return 'Not linked to a coach';
+    return links.map(function(l){
+      var email = l.coach_email || l.email || '';
+      var status = l.status || 'active';
+      var who = email || personDisplayName(l.coach_first_name, l.coach_last_name, '', 'coach');
+      return 'Coach: ' + who + ' (' + status + ')';
+    }).join(' · ');
+  }
+  function userDetailBaselinePanelHtml(baseline){
+    if(!baseline || !(baseline.id || baseline.created_at || baseline.baseline_terrain_state)){
+      return '<div class="bo-empty">No baseline set yet.</div>';
+    }
+    var state = parseBaselineTerrainState(baseline.baseline_terrain_state) || {};
+    var cal = parseBaselineTerrainState(baseline.baseline_terrain_calibrated) || {};
+    var when = baseline.created_at
+      ? '<div class="schema-note" style="margin:0 0 10px;">Recorded ' + escapeHtml(fmtDate(baseline.created_at)) + '</div>'
+      : '';
+    var rows = COACH_BASELINE_TERRAINS.map(function(t){
+      var expect = state[t] ? String(state[t]) : 'Not set';
+      var badge = cal[t] ? '<span class="baseline-calibrated">Calibrated</span>' : '';
+      return '<div class="baseline-row"><div><div class="baseline-terrain">' + escapeHtml(t) + '</div>' +
+        '<div class="baseline-expect">' + escapeHtml(expect) + '</div></div>' + badge + '</div>';
+    }).join('');
+    return when + rows;
+  }
   function openUserDetail(userId){
     var modal = document.getElementById('user-detail-modal');
     var body = document.getElementById('user-detail-body');
@@ -4180,7 +4401,22 @@
     title.textContent = cached ? personDisplayName(userField(cached, ['first_name'], ''), userField(cached, ['last_name'], ''), userField(cached, ['email'], ''), 'User') : 'User';
     body.innerHTML = '<div class="bo-empty">Loading···</div>';
     modal.classList.add('open');
-    sbRpc('foundash_user_detail', { p_user_id: userId }).then(function(data){
+    Promise.all([
+      sbRpc('foundash_user_detail', { p_user_id: userId }),
+      userDetailSoft(sbRpc('foundash_athlete_training', { p_athlete_id: userId }), { ok: false, sessions: [], falls: [], assignments: [] }),
+      userDetailSoft(fetchUserBaseline(userId), null),
+      userDetailSoft(fetchUserJournal(userId), []),
+      userDetailSoft(ensureRosterLinks(), []),
+      userDetailSoft(fetchUserCoachFlag(userId), null)
+    ]).then(function(parts){
+      var data = mergeUserDetailBundle(userId, {
+        detail: parts[0],
+        training: parts[1],
+        baseline: parts[2],
+        journal: parts[3],
+        rosterLinks: parts[4],
+        is_coach: parts[5]
+      }, cached);
       if(!data || data.ok === false) throw data || { message: 'detail failed' };
       renderUserDetail(userId, data, cached);
     }).catch(function(err){
@@ -4218,30 +4454,34 @@
     });
   }
 
-  function renderUserDetail(userId, data, cached){
-    var body = document.getElementById('user-detail-body');
-    var title = document.getElementById('user-detail-title');
+  function buildUserDetailHtml(userId, data, cached){
     var profile = data.profile || {};
-    var name = personDisplayName(
-      userField(profile, ['first_name'], userField(cached || {}, ['first_name'], '')),
-      userField(profile, ['last_name'], userField(cached || {}, ['last_name'], '')),
-      userField(profile, ['email'], userField(cached || {}, ['email'], '')),
-      'User'
-    );
-    title.textContent = name;
     var climbs = data.climbs || [];
     var psyche = data.psyche || [];
     var train = data.train || [];
+    var falls = data.falls || [];
+    var assignments = data.assignments || [];
+    var journal = data.journal || [];
     var payments = data.payments || data.ledger || [];
+    var baseline = data.baseline || null;
+    var baselineSet = !!(baseline && (baseline.id || baseline.created_at || baseline.baseline_terrain_state));
+    var signupRaw = userField(profile, ['signup_date', 'created_at', 'signed_up_at'], userField(cached || {}, ['signup_date', 'created_at', 'signed_up_at'], ''));
+    var isCoach = data.is_coach;
+    if(isCoach == null) isCoach = userIsCoach(Object.assign({}, cached || {}, profile));
     var climbsHtml = userDetailTableHtml(
-      ['Date', 'Route', 'Grade', 'Type', 'Setting', 'Zone'],
+      ['Date', 'Route', 'Grade', 'Type', 'Setting', 'Zone', 'Confidence', 'Breathing', 'Gut', 'Crux', 'Body'],
       climbs.length ? climbs.map(function(c){
         return '<tr><td class="mono">' + escapeHtml(fmtShortDate(c.created_at)) + '</td>' +
           '<td>' + escapeHtml(c.route_name || '—') + '</td>' +
           '<td>' + escapeHtml(c.grade_value || '—') + '</td>' +
           '<td>' + escapeHtml(c.climbing_type || '—') + '</td>' +
           '<td>' + escapeHtml(c.setting || '—') + '</td>' +
-          '<td>' + escapeHtml(c.zone || c.baseline_zone || '—') + '</td></tr>';
+          '<td>' + escapeHtml(c.zone || c.baseline_zone || '—') + '</td>' +
+          '<td>' + escapeHtml(c.zone_confidence || '—') + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(c.breathing_post || '') + '">' + escapeHtml(c.breathing_post || '—') + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(c.gut_post || '') + '">' + escapeHtml(c.gut_post || '—') + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(c.crux_response || '') + '">' + escapeHtml(c.crux_response || '—') + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(c.body_state || '') + '">' + escapeHtml(c.body_state || '—') + '</td></tr>';
       }).join('') : '',
       'No climbs logged.'
     );
@@ -4266,6 +4506,34 @@
       }).join('') : '',
       'No training sessions logged.'
     );
+    var fallsHtml = userDetailTableHtml(
+      ['Date', 'Id', 'Climb'],
+      falls.length ? falls.map(function(f){
+        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(f.created_at)) + '</td>' +
+          '<td class="mono">' + escapeHtml(shortId(f.id)) + '</td>' +
+          '<td class="mono">' + escapeHtml(shortId(f.session_id)) + '</td></tr>';
+      }).join('') : '',
+      'No falls logged.'
+    );
+    var assignHtml = userDetailTableHtml(
+      ['Title', 'Due', 'Completed', 'Description'],
+      assignments.length ? assignments.map(function(a){
+        return '<tr><td>' + escapeHtml(a.title || '—') + '</td>' +
+          '<td class="mono">' + escapeHtml(a.due_date ? fmtShortDate(a.due_date) : '—') + '</td>' +
+          '<td class="mono">' + escapeHtml(a.completed_at ? fmtShortDate(a.completed_at) : '—') + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(a.description || '') + '">' + escapeHtml(a.description || '—') + '</td></tr>';
+      }).join('') : '',
+      'No assignments.'
+    );
+    var journalHtml = userDetailTableHtml(
+      ['Date', 'Entry'],
+      journal.length ? journal.map(function(j){
+        var text = j.entry_text || j.entry || j.text || '';
+        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(j.created_at)) + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(text) + '">' + escapeHtml(text || '—') + '</td></tr>';
+      }).join('') : '',
+      'No journal entries.'
+    );
     var payHtml = payments.length
       ? '<table class="bo-table"><thead><tr><th>Date</th><th>Amount</th><th>Note</th><th></th></tr></thead><tbody>' +
         payments.map(function(p){
@@ -4276,15 +4544,29 @@
             '<td>' + (pid ? '<button type="button" class="bo-btn danger" data-pay-del="' + escapeHtml(pid) + '">Delete</button>' : '') + '</td></tr>';
         }).join('') + '</tbody></table>'
       : '<div class="bo-empty">No payments logged.</div>';
-    body.innerHTML =
+    return '' +
+      '<div class="user-detail-meta">' +
+        '<div id="user-detail-coach-line">' + escapeHtml(userDetailCoachLine(data.coach_links)) + '</div>' +
+        '<div>Signed up <span class="mono">' + escapeHtml(fmtShortDate(signupRaw)) + '</span>' +
+          ' · This account is a coach: ' + (isCoach ? 'yes' : 'no') + '</div>' +
+      '</div>' +
       '<div class="metric-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:16px;">' +
         '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['climb_count', 'climbs'], 0)).toLocaleString() + '</div><div class="metric-label">Climbs</div></div>' +
-        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['falls_count', 'falls', 'falls_logged'], 0)).toLocaleString() + '</div><div class="metric-label">Falls</div></div>' +
-        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['journal_count', 'journal_entries', 'journal'], 0)).toLocaleString() + '</div><div class="metric-label">Journal</div></div>' +
+        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['falls_count', 'falls', 'falls_logged'], falls.length)).toLocaleString() + '</div><div class="metric-label">Falls</div></div>' +
+        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['journal_count', 'journal_entries', 'journal'], journal.length)).toLocaleString() + '</div><div class="metric-label">Journal</div></div>' +
         '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['psyche_count'], 0)).toLocaleString() + '</div><div class="metric-label">Psyche</div></div>' +
         '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['train_count'], 0)).toLocaleString() + '</div><div class="metric-label">Train</div></div>' +
+        '<div class="metric-card clickable" id="user-detail-baseline-card" role="button" tabindex="0" aria-expanded="false" aria-controls="user-detail-baseline-panel">' +
+          '<div class="metric-num mono">' + (baselineSet ? 'Set' : 'Not set') + '</div><div class="metric-label">Baseline</div></div>' +
+      '</div>' +
+      '<div id="user-detail-baseline-panel" hidden>' +
+        '<div class="panel-title">Baseline</div>' +
+        userDetailBaselinePanelHtml(baseline) +
       '</div>' +
       userDetailAccordionHtml('climbs', 'Climbs', climbsHtml) +
+      userDetailAccordionHtml('falls', 'Falls', fallsHtml) +
+      userDetailAccordionHtml('assignments', 'Assignments', assignHtml) +
+      userDetailAccordionHtml('journal', 'Journal', journalHtml) +
       userDetailAccordionHtml('psyche', 'Psyche', psycheHtml) +
       userDetailAccordionHtml('train', 'Train', trainHtml) +
       '<div class="panel-title" style="margin-top:18px;">Payments ledger</div>' +
@@ -4296,7 +4578,41 @@
         '<div class="bo-form-row" style="flex:1;margin:0;"><label for="pay-note">Note</label><input id="pay-note" placeholder="e.g. PC coaching Sep"></div>' +
         '<button type="button" class="bo-btn primary" id="pay-add-btn">Add</button>' +
       '</div>';
+  }
+
+  function renderUserDetail(userId, data, cached){
+    var body = document.getElementById('user-detail-body');
+    var title = document.getElementById('user-detail-title');
+    var profile = data.profile || {};
+    var name = personDisplayName(
+      userField(profile, ['first_name'], userField(cached || {}, ['first_name'], '')),
+      userField(profile, ['last_name'], userField(cached || {}, ['last_name'], '')),
+      userField(profile, ['email'], userField(cached || {}, ['email'], '')),
+      'User'
+    );
+    title.textContent = name;
+    if(cached && data.baseline && (data.baseline.id || data.baseline.created_at)){
+      cached._baselineSet = true;
+    }
+    body.innerHTML = buildUserDetailHtml(userId, data, cached);
     bindUserDetailAccordions(body);
+    var baselineCard = document.getElementById('user-detail-baseline-card');
+    var baselinePanel = document.getElementById('user-detail-baseline-panel');
+    if(baselineCard && baselinePanel){
+      function toggleBaselinePanel(){
+        var open = baselinePanel.hasAttribute('hidden');
+        if(open) baselinePanel.removeAttribute('hidden');
+        else baselinePanel.setAttribute('hidden', '');
+        baselineCard.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+      baselineCard.addEventListener('click', toggleBaselinePanel);
+      baselineCard.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          toggleBaselinePanel();
+        }
+      });
+    }
     var dateEl = document.getElementById('pay-date');
     if(dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
     var addBtn = document.getElementById('pay-add-btn');
