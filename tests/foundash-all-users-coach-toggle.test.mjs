@@ -10,14 +10,15 @@ const html = readFileSync(join(__dirname, '../founder-dashboard.html'), 'utf8');
 const usersTable = html.match(/<table class="bo-table" id="users-table">[\s\S]*?<\/table>/);
 assert.ok(usersTable, 'All Users table present');
 assert.ok(/data-sort="role"[\s\S]*?data-sort="coach"/.test(usersTable[0]), 'Coach column sits after Role');
-assert.ok((usersTable[0].match(/<th /g) || []).length === 9, 'All Users has 9 sort headers');
-assert.ok(/colspan="9"/.test(usersTable[0]), 'loading rowspan matches 9 columns');
+assert.ok((usersTable[0].match(/<th /g) || []).length === 10, 'All Users has 10 sort headers');
+assert.ok(/colspan="10"/.test(usersTable[0]), 'loading rowspan matches 10 columns');
+assert.ok(/data-sort="baseline"/.test(usersTable[0]), 'Baseline column after Linked');
 assert.ok(/users-filter-row/.test(usersTable[0]), 'filter row in header');
 
-const colspans = html.match(/users-tbody[\s\S]{0,80}colspan="9"|colspan="9" class="bo-empty"/g);
-assert.ok(colspans && colspans.length >= 1, 'empty/loading states use colspan 9');
-assert.ok(!/#users-tbody[\s\S]{0,200}colspan="8"/.test(html));
-assert.ok(!/tbody\.innerHTML = '<tr><td colspan="8"/.test(html), 'JS empty states bumped to 9');
+const colspans = html.match(/users-tbody[\s\S]{0,80}colspan="10"|colspan="10" class="bo-empty"/g);
+assert.ok(colspans && colspans.length >= 1, 'empty/loading states use colspan 10');
+assert.ok(!/#users-tbody[\s\S]{0,200}colspan="9"/.test(html));
+assert.ok(!/tbody\.innerHTML = '<tr><td colspan="9"/.test(html), 'JS empty states bumped to 10');
 
 assert.ok(/class="users-coach-toggle"/.test(html));
 assert.ok(/aria-label="Coach"/.test(html));

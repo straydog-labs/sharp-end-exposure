@@ -23,8 +23,8 @@ assert.ok(
   'loading-title uses first_name + last_name + email'
 );
 
-const detailFn = html.match(/function renderUserDetail\(userId, data, cached\)\{[\s\S]*?\n  function /)[0];
-assert.ok(detailFn, 'renderUserDetail extracted');
+const detailFn = html.match(/function buildUserDetailHtml\(userId, data, cached\)\{[\s\S]*?\n  function isGeneralTask/)[0];
+assert.ok(detailFn, 'detail builders extracted');
 assert.ok(/var profile = data\.profile \|\| \{\}/.test(detailFn), 'detail reads nested profile');
 assert.ok(/userField\(profile, \['first_name'\]/.test(detailFn), 'detail name from profile.first_name');
 assert.ok(/userField\(profile, \['last_name'\]/.test(detailFn), 'detail name from profile.last_name');
