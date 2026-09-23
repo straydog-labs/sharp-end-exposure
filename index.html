@@ -183,6 +183,18 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .saw-linkish{background:none;border:none;padding:8px 0;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
 .saw-msg{min-height:20px;margin-bottom:8px;font-size:13px;color:var(--panic);}
 .saw-msg.ok{color:var(--comfort);}
+.train-mindful-copy{font-size:22px;font-weight:700;line-height:1.35;letter-spacing:-.02em;margin:8px 0 28px;color:var(--text);}
+.train-mindful-skip{background:transparent;border:1px solid var(--border);color:var(--text);}
+.train-mindful-skip:hover{border-color:var(--accent);color:var(--accent);}
+.train-run-prog-wrap{height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin:8px 0 16px;overflow:hidden;}
+.train-run-prog-fill{height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .2s ease;}
+.train-run-prog-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+.train-run-step{min-height:40vh;}
+.train-run-step-in{animation:trainRunIn .18s ease;}
+@keyframes trainRunIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.train-run-hint{font-size:13px;color:var(--muted);line-height:1.45;margin:4px 0 12px;min-height:1.4em;}
+.train-run-nav{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.train-run-edit{margin-top:4px;}
 .aw-section-up,.aw-section-down{
   background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);
   cursor:pointer;padding:6px 9px;font-family:inherit;
@@ -4213,6 +4225,40 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <div id="train-sess-msg" style="font-size:13px;color:var(--panic);min-height:18px;margin-bottom:8px;"></div>
     <button type="button" id="train-sess-save" onclick="saveTrainSession()" class="saw-next">Save session</button>
+    <button type="button" class="saw-linkish train-run-edit" id="train-sess-run" onclick="openTrainGuidedRun()">Run step by step</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-train-mindful">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="cancelTrainSession()">← Cancel</button>
+  </div>
+  <div class="content">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Before you start</div>
+    <p class="train-mindful-copy" id="train-mindful-copy">Before you start - take a breath. Notice where your bag is, your water bottle, who's around you.</p>
+    <button type="button" class="saw-next" id="train-mindful-continue" onclick="finishTrainMindful('continue')">Continue</button>
+    <button type="button" class="saw-next train-mindful-skip" id="train-mindful-skip" onclick="finishTrainMindful('skip')">Skip</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-train-run">
+  <div class="page-header">
+    <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
+    <button type="button" class="back-btn" onclick="cancelTrainSession()">← Cancel</button>
+  </div>
+  <div class="content">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="train-run-eyebrow">Training session</div>
+    <div style="font-size:26px;font-weight:700;line-height:1.2;margin-bottom:4px;" id="train-run-title">Session</div>
+    <div class="train-run-prog-label" id="train-run-prog">Block 1 of 1</div>
+    <div class="train-run-prog-wrap"><div class="train-run-prog-fill" id="train-run-prog-fill"></div></div>
+    <div id="train-run-step" class="train-run-step"></div>
+    <div class="train-run-hint" id="train-run-hint"></div>
+    <div class="train-run-nav">
+      <button type="button" class="saw-next" id="train-run-next" onclick="trainRunNext()">Next</button>
+      <button type="button" class="saw-secondary-btn" id="train-run-back" onclick="trainRunBack()">← Back</button>
+    </div>
+    <button type="button" class="saw-linkish train-run-edit" id="train-run-edit" onclick="openTrainSessionBuilderFromRun()">Edit full session</button>
   </div>
 </div>
 
@@ -5338,7 +5384,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index266'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index267'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -6100,9 +6146,9 @@ function showScreen(id){
   if(id==='screen-example-climb-log') loadExampleClimbLog();
   // Update nav active state
   document.querySelectorAll('.footer-btn').forEach(function(b){b.classList.remove('active');});
-  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-mental','screen-drill-reveal':'fnav-mental','screen-drill-hold':'fnav-mental','screen-psyche-bee':'fnav-mental','screen-psyche-sigh':'fnav-mental','screen-psyche-pmr':'fnav-mental','screen-psyche-viz':'fnav-mental','screen-psyche-talk':'fnav-mental','screen-prepare-climb':'fnav-mental','screen-prepare-result':'fnav-mental','screen-zone-predict':'fnav-mental','screen-prepare':'fnav-mental','screen-prepare-pause':'fnav-mental','screen-research':'fnav-home','screen-profile':'fnav-home','screen-profile-journal':'fnav-home','screen-profile-account':'fnav-home','screen-profile-data':'fnav-home','screen-profile-install':'fnav-home','screen-profile-help':'fnav-home','screen-profile-beta':'fnav-home','screen-profile-feedback':'fnav-home','screen-profile-notifications':'fnav-home','screen-profile-notes':'fnav-home','screen-journal-entry':'fnav-home','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-session-detail':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-blocks':'fnav-train','screen-train-block-detail':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions','screen-coach-zone-confirm':'fnav-sessions'};
+  var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-mental','screen-drill-reveal':'fnav-mental','screen-drill-hold':'fnav-mental','screen-psyche-bee':'fnav-mental','screen-psyche-sigh':'fnav-mental','screen-psyche-pmr':'fnav-mental','screen-psyche-viz':'fnav-mental','screen-psyche-talk':'fnav-mental','screen-prepare-climb':'fnav-mental','screen-prepare-result':'fnav-mental','screen-zone-predict':'fnav-mental','screen-prepare':'fnav-mental','screen-prepare-pause':'fnav-mental','screen-research':'fnav-home','screen-profile':'fnav-home','screen-profile-journal':'fnav-home','screen-profile-account':'fnav-home','screen-profile-data':'fnav-home','screen-profile-install':'fnav-home','screen-profile-help':'fnav-home','screen-profile-beta':'fnav-home','screen-profile-feedback':'fnav-home','screen-profile-notifications':'fnav-home','screen-profile-notes':'fnav-home','screen-journal-entry':'fnav-home','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-mindful':'fnav-train','screen-train-run':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-session-detail':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-blocks':'fnav-train','screen-train-block-detail':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions','screen-coach-zone-confirm':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
-  if(_prevScreen==='screen-train-session' && id!=='screen-train-session'){
+  if(isTrainSessionLiveScreen(_prevScreen) && !isTrainSessionLiveScreen(id)){
     clearAllTrainBlockTimerIntervals();
     releaseTrainWakeLock();
   }
@@ -6120,6 +6166,7 @@ function showScreen(id){
   else if(id!=='screen-consent' && id!=='screen-auth' && id!=='screen-password-recovery'){ refreshCoachChatUnreadBadge(); }
   if(id==='screen-train-picker'){ renderTrainPicker(); }
   if(id==='screen-train-session'){ renderTrainSessionBuilder(); if(anyTrainIntervalProtocolActive()) requestTrainWakeLock(); }
+  if(id==='screen-train-run'){ renderTrainRunScreen(); if(anyTrainIntervalProtocolActive()) requestTrainWakeLock(); }
   if(id==='screen-profile-notifications'){ paintPushNotificationUI(); }
   if(id==='screen-profile-notes'){ loadMyNotes(); }
   if(id==='screen-profile' || id==='screen-profile-journal' || id==='screen-profile-account' || id==='screen-profile-data' || id==='screen-profile-install' || id==='screen-profile-help' || id==='screen-profile-beta' || id==='screen-profile-feedback' || id==='screen-profile-notifications' || id==='screen-profile-notes' || id==='screen-journal-entry' || id==='screen-sessions' || id==='screen-drill'){ refreshCoachDashToggle(); }
@@ -12843,9 +12890,64 @@ function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
   };
 }
 
+function isTrainSessionLiveScreen(id){
+  return id === 'screen-train-session' || id === 'screen-train-run' || id === 'screen-train-mindful';
+}
+
+function isTrainRunView(){
+  var active = document.querySelector('.screen.active');
+  return !!(active && active.id === 'screen-train-run');
+}
+
+function sessionShouldUseGuidedRun(){
+  return !!(trainSessionState && trainSessionState.blocks && trainSessionState.blocks.length);
+}
+
+function enterTrainSession(){
+  if(!trainSessionState) return;
+  trainSessionState.mindful_shown = true;
+  trainSessionState.mindful_skipped = null;
+  if(trainSessionState.run_index == null) trainSessionState.run_index = 0;
+  showScreen('screen-train-mindful');
+}
+
+function finishTrainMindful(how){
+  if(trainSessionState){
+    trainSessionState.mindful_skipped = (how === 'skip');
+  }
+  beginTrainSessionAfterMindful();
+}
+
+function beginTrainSessionAfterMindful(){
+  if(sessionShouldUseGuidedRun()){
+    if(trainSessionState.run_index == null) trainSessionState.run_index = 0;
+    showScreen('screen-train-run');
+    return;
+  }
+  showScreen('screen-train-session');
+}
+
+function openTrainGuidedRun(){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  if(typeof syncTrainSessionFieldsFromDom === 'function') syncTrainSessionFieldsFromDom();
+  if(!sessionShouldUseGuidedRun()){
+    showToast('Add a block first');
+    return;
+  }
+  if(trainSessionState.run_index == null) trainSessionState.run_index = 0;
+  showScreen('screen-train-run');
+}
+
+function openTrainSessionBuilderFromRun(){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  showScreen('screen-train-session');
+}
+
 function startBlankTrainSession(){
   trainSessionState = newTrainSessionState(_trainPickerType);
-  showScreen('screen-train-session');
+  enterTrainSession();
 }
 
 function seedTrainBlocksFromSections(sections){
@@ -12936,7 +13038,7 @@ function seedTrainSessionFromItem(item, sourceMeta, warmupItem){
   if(warmupBlocks.length){
     trainSessionState.blocks = warmupBlocks.concat(trainSessionState.blocks);
   }
-  showScreen('screen-train-session');
+  enterTrainSession();
 }
 
 function startTrainSessionFromPicker(idx){
@@ -12994,8 +13096,19 @@ function startCustomWorkoutCreate(){
 var _trainCancelArmed = false;
 var _trainCancelArmTimer = null;
 
+function trainSessionCancelBtn(){
+  var active = document.querySelector('.screen.active');
+  if(active){
+    var onActive = active.querySelector('.back-btn');
+    if(onActive) return onActive;
+  }
+  return document.querySelector('#screen-train-run .back-btn')
+    || document.querySelector('#screen-train-session .back-btn')
+    || document.querySelector('#screen-train-mindful .back-btn');
+}
+
 function cancelTrainSession(){
-  var btn = document.querySelector('#screen-train-session .back-btn');
+  var btn = trainSessionCancelBtn();
   if(!_trainCancelArmed){
     _trainCancelArmed = true;
     if(btn){
@@ -13005,7 +13118,7 @@ function cancelTrainSession(){
     if(_trainCancelArmTimer) clearTimeout(_trainCancelArmTimer);
     _trainCancelArmTimer = setTimeout(function(){
       _trainCancelArmed = false;
-      var b = document.querySelector('#screen-train-session .back-btn');
+      var b = trainSessionCancelBtn();
       if(b){
         b.textContent = '← Cancel';
         b.classList.remove('is-confirming');
@@ -13113,6 +13226,8 @@ function trainRemoveBlock(id){
 
 function syncTrainSessionFieldsFromDom(){
   if(!trainSessionState) return;
+  var sess = document.getElementById('screen-train-session');
+  if(!sess || !sess.classList.contains('active')) return;
   var s = document.getElementById('train-sess-start');
   var e = document.getElementById('train-sess-end');
   var w = document.getElementById('train-sess-warmup');
@@ -13125,6 +13240,10 @@ function syncTrainSessionFieldsFromDom(){
 }
 
 function renderTrainSessionBuilder(){
+  if(isTrainRunView()){
+    renderTrainRunScreen();
+    return;
+  }
   if(!trainSessionState){
     trainSessionState = newTrainSessionState(_trainPickerType || 'strength');
   }
@@ -13165,7 +13284,82 @@ function renderTrainSessionBuilder(){
       return renderTrainBlockHtml(b, i + 1, false);
     }).join('');
   }
+  var runLink = document.getElementById('train-sess-run');
+  if(runLink) runLink.style.display = allBlocks.length ? '' : 'none';
   syncTrainBlockTimerIntervals();
+}
+
+function renderTrainRunScreen(){
+  if(!trainSessionState) return;
+  var blocks = trainSessionState.blocks || [];
+  if(!blocks.length){
+    showScreen('screen-train-session');
+    return;
+  }
+  var i = parseInt(trainSessionState.run_index, 10);
+  if(!isFinite(i) || i < 0) i = 0;
+  if(i >= blocks.length) i = blocks.length - 1;
+  trainSessionState.run_index = i;
+  var b = blocks[i];
+  if(b && b.shape !== 'check' && (b.shape === 'interval' || sectionHasCountdown(b) || b.shape === 'circuit' || b.shape === 'rep_pass_fail')){
+    b.timer_enabled = true;
+  }
+  var titleEl = document.getElementById('train-run-title');
+  var eye = document.getElementById('train-run-eyebrow');
+  var prog = document.getElementById('train-run-prog');
+  var fill = document.getElementById('train-run-prog-fill');
+  var step = document.getElementById('train-run-step');
+  var nextBtn = document.getElementById('train-run-next');
+  var backBtn = document.getElementById('train-run-back');
+  var hint = document.getElementById('train-run-hint');
+  if(titleEl) titleEl.textContent = trainSessionState.title || 'Session';
+  if(eye) eye.textContent = workoutTypeLabel(trainSessionState.energy_type) || 'Training session';
+  if(prog) prog.textContent = 'Block ' + (i + 1) + ' of ' + blocks.length;
+  if(fill) fill.style.width = Math.round(((i + 1) / blocks.length) * 100) + '%';
+  if(step){
+    step.classList.remove('train-run-step-in');
+    step.innerHTML = renderTrainBlockHtml(b, i + 1, !!b.is_warmup);
+    void step.offsetWidth;
+    step.classList.add('train-run-step-in');
+  }
+  if(backBtn) backBtn.disabled = i === 0;
+  if(nextBtn){
+    if(i >= blocks.length - 1){
+      nextBtn.textContent = 'Save session';
+      nextBtn.setAttribute('data-finish', '1');
+    } else {
+      var nxtTitle = trainBlockDisplayTitle(blocks[i + 1]);
+      nextBtn.textContent = nxtTitle ? ('Next · ' + nxtTitle) : 'Next';
+      nextBtn.removeAttribute('data-finish');
+    }
+  }
+  if(hint){
+    if(i >= blocks.length - 1) hint.textContent = 'Last block. Save when you are done.';
+    else hint.textContent = 'Up next: ' + (trainBlockDisplayTitle(blocks[i + 1]) || 'the next block');
+  }
+  syncTrainBlockTimerIntervals();
+}
+
+function trainRunNext(){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var blocks = trainSessionState.blocks || [];
+  var i = trainSessionState.run_index || 0;
+  if(i >= blocks.length - 1){
+    saveTrainSession();
+    return;
+  }
+  trainSessionState.run_index = i + 1;
+  renderTrainRunScreen();
+}
+
+function trainRunBack(){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var i = trainSessionState.run_index || 0;
+  if(i <= 0) return;
+  trainSessionState.run_index = i - 1;
+  renderTrainRunScreen();
 }
 
 function formatTrainBlockTimerElapsed(ms){
@@ -13376,7 +13570,8 @@ function clearAllTrainBlockTimerIntervals(){
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState !== 'visible') return;
   var sess = document.getElementById('screen-train-session');
-  if(sess && sess.classList.contains('active')){
+  var run = document.getElementById('screen-train-run');
+  if((sess && sess.classList.contains('active')) || (run && run.classList.contains('active'))){
     syncTrainBlockTimerIntervals();
     if(anyTrainIntervalProtocolActive()) requestTrainWakeLock();
   }
@@ -13609,8 +13804,11 @@ function revealTrainBlockNote(id){
 
 function renderTrainBlockHtml(b, bi, isWarmup){
   var done = !!b.complete;
-  var timerOn = !!b.timer_enabled;
+  var runView = isTrainRunView();
   var isCheck = b.shape === 'check';
+  var timerOn = !!b.timer_enabled || (runView && !isCheck && (
+    b.shape === 'interval' || sectionHasCountdown(b) || b.shape === 'circuit' || b.shape === 'rep_pass_fail'
+  ));
   var compact = trainBlockIsCompact(b);
   var kicker = isWarmup || !(bi > 0)
     ? ''
@@ -13619,12 +13817,13 @@ function renderTrainBlockHtml(b, bi, isWarmup){
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
     + '<div>'+kicker+'<span class="train-block-title">'+escTrainHtml(trainBlockDisplayTitle(b))+'</span></div>'
     + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-    + (trainBlockHasTitle(b)
+    + (!runView && trainBlockHasTitle(b)
       ? '<button type="button" class="train-block-edit" onclick="toggleTrainBlockEditing(\''+b.id+'\')">'+(b.editing?'Done editing':'Edit')+'</button>'
       : '')
-    + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
+    + (isCheck || runView ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
-    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button></div></div>';
+    + (runView ? '' : '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button>')
+    + '</div></div>';
   var timerRow = '';
   if(timerOn && !isCheck){
     if(b.shape === 'interval'){
@@ -13745,12 +13944,12 @@ function renderTrainBlockHtml(b, bi, isWarmup){
     }
   } else if(b.shape === 'section'){
     body = (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
-      + trainSectionDurationField(b)
+      + ((runView && !sectionHasCountdown(b)) ? '' : trainSectionDurationField(b))
       + (b.notes ? renderTrainNotePreview(b.notes) : '')
-      + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
+      + (runView ? '' : ('<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
       + '<button type="button" class="saw-chip" onclick="trainAddSectionChild(\''+b.id+'\',\'interval\')">+ Interval</button>'
       + '<button type="button" class="saw-chip" onclick="trainAddSectionChild(\''+b.id+'\',\'check\')">+ Check</button>'
-      + '</div>';
+      + '</div>'));
   } else if(b.shape === 'check'){
     body = (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
       + (compact && trainTextNonEmpty(b.notes)
@@ -19514,7 +19713,7 @@ function runButtonAudit(options){
     'buildGradeGrid', 'initLogActivationGauge', 'renderBaselineQ', 'openClimbExposure',
     'routeOnLoad', 'handleAuth', 'window.open', 'location.href', 'target="_blank"',
     'createSelfAssignment', 'createWorkoutLibraryItem', 'addLibraryItemToTraining',
-    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'trainRemoveBlock', 'togglePushNotifications',
+    'startSelfAssignWizard', 'submitSelfAssignWizard', 'sendCoachChatMessage', 'loadCoachChat', 'saveTrainSession', 'openCoachDashboard', 'openAthleteDashboard', 'loadTrainHub', 'toggleInstallSeeHow', 'startTrainSessionFromAssignment', 'loadBaselinePerceptionCompare', 'saveBaseline', 'confirmBaselineTerrainCalibration', 'persistRevealCalibrationIfNeeded', 'logRevealKeepBaseline', 'logRevealConfirmOwn', 'logRevealAcceptModel', 'logRevealSaveAdjust', 'expandTrainBlockNote', 'toggleTrainSectionComplete', 'trainFlowToggleReflection', 'trainDoneAnother', 'trainDoneHome', 'finishLogFlowToDone', 'postSessionCoachNote', 'loadSessionCoachNotesThread',     'previewSessionNotes', 'saveNewTrainGoal', 'saveEditTrainGoal', 'deleteTrainGoal', 'loadTrainGoals', 'loadHomeScreen', 'saveEditCoachChatMessage', 'saveEditSessionCoachNote', 'toggleTrainBlockTimerEnabled', 'startTrainBlockTimer', 'stopTrainBlockTimer',     'openTrainSessionDetail', 'cancelTrainSession', 'enterTrainSession', 'finishTrainMindful', 'trainRunNext', 'trainRunBack', 'openTrainGuidedRun', 'openTrainSessionBuilderFromRun', 'trainRemoveBlock', 'togglePushNotifications',
     'createTrainingBlock', 'deleteCurrentTrainingBlock', 'startBlockPlaceCreate', 'cancelTrainingBlockPlace', 'toggleTrainingBlockCreateForm', 'loadTrainingBlocks',
     'openLoggedClimbNotes', 'skipGymCatalog', 'filterGymCatalog', 'pickGymClimbByIndex', 'loadMyNotes',
     'editClimbFromLog', 'addAttemptFromLog', 'openProfile',
@@ -21217,7 +21416,7 @@ async function runSEETests(){
       && trainSessionState.blocks.length === 1
       && trainSessionState.blocks[0].shape === 'circuit'
       && trainSessionState.blocks[0].notes === 'Every minute on the minute');
-    var activeSess = (document.querySelector('.screen.active')||{}).id === 'screen-train-session';
+    var activeSess = (document.querySelector('.screen.active')||{}).id === 'screen-train-mindful';
     var saveSrc = String(saveTrainSession);
     var skipDup = /source_assignment_id/.test(saveSrc);
     if(hasStart && customHasStart && noStart && prefilled && activeSess && skipDup){
@@ -21440,6 +21639,7 @@ async function runSEETests(){
   try{
     var prevSess = trainSessionState;
     startBlankTrainSession();
+    finishTrainMindful('skip');
     var card = document.getElementById('train-warmup-card');
     var body = document.getElementById('train-warmup-body');
     var chev = document.getElementById('train-warmup-chevron');
@@ -21499,6 +21699,103 @@ async function runSEETests(){
     trainSessionState = prevSess;
     showScreen('screen-train');
   }catch(e){ fail('Train warm-up card collapses with the existing chevron pattern', e.message); }
+
+  try{
+    var mindScreen = document.getElementById('screen-train-mindful');
+    var runScreen = document.getElementById('screen-train-run');
+    var cont = document.getElementById('train-mindful-continue');
+    var skip = document.getElementById('train-mindful-skip');
+    var copyEl = document.getElementById('train-mindful-copy');
+    var copyOk = !!(copyEl && /Before you start - take a breath/.test(copyEl.textContent)
+      && /water bottle/.test(copyEl.textContent) && /who's around you/.test(copyEl.textContent));
+    var btnsOk = !!(cont && skip && /saw-next/.test(cont.className) && /saw-next/.test(skip.className)
+      && /finishTrainMindful\('continue'\)/.test(cont.getAttribute('onclick') || '')
+      && /finishTrainMindful\('skip'\)/.test(skip.getAttribute('onclick') || ''));
+    var noDwell = String(enterTrainSession).indexOf('setTimeout') === -1
+      && String(finishTrainMindful).indexOf('setTimeout') === -1
+      && String(beginTrainSessionAfterMindful).indexOf('setTimeout') === -1;
+    var entryOk = /enterTrainSession\(\)/.test(String(startBlankTrainSession))
+      && /enterTrainSession\(\)/.test(String(seedTrainSessionFromItem))
+      && String(startBlankTrainSession).indexOf("showScreen('screen-train-session')") === -1;
+
+    startBlankTrainSession();
+    var blankMind = (document.querySelector('.screen.active')||{}).id === 'screen-train-mindful'
+      && trainSessionState && trainSessionState.mindful_shown === true
+      && trainSessionState.mindful_skipped === null
+      && (trainSessionState.blocks || []).length === 0;
+    finishTrainMindful('skip');
+    var blankBuilder = (document.querySelector('.screen.active')||{}).id === 'screen-train-session'
+      && trainSessionState.mindful_skipped === true
+      && typeof cancelTrainSession === 'function'
+      && typeof saveTrainSession === 'function';
+
+    seedTrainSessionFromItem({
+      id: 'run-seed', type: 'strength', name: 'Guided hangboard',
+      sections: [
+        { label: 'Warm up' },
+        { label: 'Repeaters', exercises: [{ kind: 'interval', title: '7on 3off', work_sec: 7, rest_sec: 3, target_sets: 6 }] },
+        { label: 'Cool check', exercises: [{ kind: 'check', title: 'Shake out' }] }
+      ]
+    }, { custom_workout_item_id: 'run-seed' });
+    var seededMind = (document.querySelector('.screen.active')||{}).id === 'screen-train-mindful'
+      && trainSessionState.mindful_shown === true
+      && trainSessionState.blocks.length === 4;
+    finishTrainMindful('continue');
+    var run1 = (document.querySelector('.screen.active')||{}).id === 'screen-train-run'
+      && trainSessionState.mindful_skipped === false
+      && trainSessionState.run_index === 0
+      && /Block 1 of 4/.test((document.getElementById('train-run-prog')||{}).textContent || '')
+      && /Warm up/.test((document.getElementById('train-run-step')||{}).innerHTML || '')
+      && /Up next:/.test((document.getElementById('train-run-hint')||{}).textContent || '')
+      && /Next/.test((document.getElementById('train-run-next')||{}).textContent || '');
+    var runHtml = (document.getElementById('train-run-step')||{}).innerHTML || '';
+    var runTrim = runHtml.indexOf('trainRemoveBlock') === -1
+      && runHtml.indexOf('toggleTrainBlockEditing') === -1
+      && runHtml.indexOf('toggleTrainBlockTimerEnabled') === -1
+      && /toggleTrainSectionComplete/.test(runHtml);
+    trainRunNext();
+    var run2 = trainSessionState.run_index === 1
+      && /Block 2 of 4/.test((document.getElementById('train-run-prog')||{}).textContent || '')
+      && /7on 3off/.test((document.getElementById('train-run-step')||{}).innerHTML || '')
+      && /startTrainBlockTimer/.test((document.getElementById('train-run-step')||{}).innerHTML || '');
+    trainRunBack();
+    var runBack = trainSessionState.run_index === 0
+      && /Block 1 of 4/.test((document.getElementById('train-run-prog')||{}).textContent || '');
+    trainSessionState.run_index = 3;
+    renderTrainRunScreen();
+    var lastStep = /Block 4 of 4/.test((document.getElementById('train-run-prog')||{}).textContent || '')
+      && /Save session/.test((document.getElementById('train-run-next')||{}).textContent || '')
+      && /Last block/.test((document.getElementById('train-run-hint')||{}).textContent || '');
+    openTrainSessionBuilderFromRun();
+    var builderBack = (document.querySelector('.screen.active')||{}).id === 'screen-train-session'
+      && !!document.getElementById('train-sess-run');
+    openTrainGuidedRun();
+    var runAgain = (document.querySelector('.screen.active')||{}).id === 'screen-train-run';
+    var cancelOk = /trainSessionState = null/.test(String(cancelTrainSession))
+      && /screen-train/.test(String(cancelTrainSession))
+      && /trainSessionCancelBtn/.test(String(cancelTrainSession));
+    var saveOk = /training_sessions/.test(String(saveTrainSession))
+      && /screen-train-done/.test(String(saveTrainSession));
+    var liveOk = /screen-train-mindful/.test(String(isTrainSessionLiveScreen))
+      && /screen-train-run/.test(String(isTrainSessionLiveScreen))
+      && /isTrainSessionLiveScreen\(_prevScreen\)/.test(String(showScreen));
+
+    if(mindScreen && runScreen && copyOk && btnsOk && noDwell && entryOk && blankMind && blankBuilder
+      && seededMind && run1 && runTrim && run2 && runBack && lastStep && builderBack && runAgain
+      && cancelOk && saveOk && liveOk){
+      pass('Train mindful check-in + guided run mode');
+    } else {
+      fail('Train mindful check-in + guided run mode',
+        'copy=' + copyOk + ' btns=' + btnsOk + ' dwell=' + noDwell + ' entry=' + entryOk +
+        ' blankMind=' + blankMind + ' blankBuilder=' + blankBuilder + ' seededMind=' + seededMind +
+        ' run1=' + run1 + ' trim=' + runTrim + ' run2=' + run2 + ' back=' + runBack +
+        ' last=' + lastStep + ' builder=' + builderBack + ' runAgain=' + runAgain +
+        ' cancel=' + cancelOk + ' save=' + saveOk + ' live=' + liveOk +
+        ' screen=' + ((document.querySelector('.screen.active')||{}).id));
+    }
+    trainSessionState = null;
+    showScreen('screen-train');
+  }catch(e){ fail('Train mindful check-in + guided run mode', e.message); }
 
   try{
     var menu = document.getElementById('train-block-menu');
@@ -22244,7 +22541,7 @@ async function runSEETests(){
 
   // Train hub + session builder (build 198)
   try{
-    var trainFns = ['loadTrainHub','openTrainEnergy','renderTrainPicker','startBlankTrainSession','trainAddBlock','trainLogAttempt','saveTrainSession','refreshCoachDashToggle','openCoachDashboard','openAthleteDashboard','seedTrainSessionFromItem','startTrainSessionFromAssignment'];
+    var trainFns = ['loadTrainHub','openTrainEnergy','renderTrainPicker','startBlankTrainSession','enterTrainSession','finishTrainMindful','trainAddBlock','trainLogAttempt','saveTrainSession','refreshCoachDashToggle','openCoachDashboard','openAthleteDashboard','seedTrainSessionFromItem','startTrainSessionFromAssignment','renderTrainRunScreen','trainRunNext','trainRunBack'];
     var missingTrain = trainFns.filter(function(f){ return typeof window[f] !== 'function'; });
     var hub = document.getElementById('train-energy-grid');
     var picker = document.getElementById('screen-train-picker');
@@ -22719,6 +23016,7 @@ async function runSEETests(){
         { label: '3X6X9 ROUND 1' }
       ]
     }, { custom_workout_item_id: 'cw-rest' });
+    showScreen('screen-train-session');
     var seeded = trainSessionState.blocks.length === 2
       && trainSessionState.blocks[0].duration_sec === 300
       && trainSessionState.blocks[0].title === 'REST 5 MIN'
