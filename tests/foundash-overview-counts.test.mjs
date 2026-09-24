@@ -63,5 +63,8 @@ assert.ok(/now\(\) - interval '30 days'/.test(sql) || /now\(\) - interval ''30 d
 assert.ok(/total_sessions_real/.test(sql) && /falls_logged/.test(sql), 'other counters named as untouched');
 assert.ok(!/INTO v_total_sessions_real/.test(sql), 'does not rewrite session counter');
 assert.ok(!/INTO v_falls_logged/.test(sql), 'does not rewrite falls counter');
+assert.ok(/Other tile query changed/.test(sql), 'byte-compares other INTO blocks');
+assert.ok(/active_users_30d/.test(sql), 'live verification select');
+assert.ok(/Kellyanne Peters/.test(sql) || /Kellyanne Peterson/.test(sql));
 
 console.log('foundash-overview-counts tests: ok');
