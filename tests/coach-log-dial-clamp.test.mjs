@@ -5,6 +5,7 @@ import assert from 'assert';
 import { spawnSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const logJs = readFileSync(join(__dirname, '../js/coach-log-session.js'), 'utf8');
 const index = readFileSync(join(__dirname, '../index.html'), 'utf8');
 const staging = readFileSync(join(__dirname, '../index-staging.html'), 'utf8');
 const sw = readFileSync(join(__dirname, '../sw.js'), 'utf8');
@@ -13,12 +14,12 @@ assert.strictEqual(index, staging, 'index.html and index-staging.html must match
 assert.ok(/var app_version = 'index269'/.test(index));
 assert.ok(/APP_VERSION = 'index269'/.test(sw));
 
-const ptr = index.match(/function scoreFromPointer\(clientX, clientY\)\{[\s\S]*?\n  \}/);
-assert.ok(ptr, 'scoreFromPointer present');
+const ptr = logJs.match(/function scoreFromPointer\(clientX, clientY\) \{[\s\S]*?\n    \}/);
+assert.ok(ptr, 'scoreFromPointer present in js/coach-log-session.js');
 assert.ok(/if\(ang<0\)/.test(ptr[0]));
 assert.ok(/\(dx>=0\) \? 0 : 180/.test(ptr[0]));
-assert.ok(!/Math\.max\(0,Math\.min\(180,ang\)\)/.test(ptr[0]), 'old wrap clamp removed');
-assert.ok(/return 12\*\(1-ang\/180\)/.test(ptr[0]));
+assert.ok(!/Math\.max\(0,\s*Math\.min\(180,\s*ang\)\)/.test(ptr[0]), 'old wrap clamp removed');
+assert.ok(/SCORE_MAX \* \(1 - ang \/ 180\)/.test(ptr[0]));
 
 const vm = spawnSync('node', [], {
   encoding: 'utf8',
@@ -50,4 +51,4 @@ const vm = spawnSync('node', [], {
 assert.strictEqual(vm.status, 0, vm.stderr || vm.stdout);
 assert.ok(/clamp math: ok/.test(vm.stdout));
 
-console.log('stress-wheel-clamp tests: ok');
+console.log('coach-log-dial-clamp tests: ok');

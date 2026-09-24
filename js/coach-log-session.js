@@ -225,7 +225,7 @@
       var dx = clientX - rect.left - pivotX;
       var dyp = rect.height - (clientY - rect.top);
       var ang = Math.atan2(dyp, dx) * 180 / Math.PI;
-      ang = Math.max(0, Math.min(180, ang));
+      if(ang<0){ ang = (dx>=0) ? 0 : 180; } else { ang = Math.min(180, ang); }
       return SCORE_MAX * (1 - ang / 180);
     }
 
