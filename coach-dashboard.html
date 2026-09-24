@@ -3071,6 +3071,53 @@
     });
   }
 
+  // Retry a coach-log POST only when PostgREST/Postgres names that column as
+  // missing. Presence of the key on the outgoing payload is not enough —
+  // buildPayload() always sends zone_confirmed_by_athlete and logged_by_coach,
+  // so a presence-only chain would fire on every failure (including RLS) and
+  // strip the coach tag, guaranteeing the last attempt fails as a self-insert.
+  function isCoachLogMissingColumn(err, column){
+    if(!err || !column) return false;
+    if(err.code !== 'PGRST204' && err.code !== '42703') return false;
+    return String(err.message || '').indexOf(column) !== -1;
+  }
+
+  function postCoachLogSessionWithColumnFallbacks(postFn, payload, state){
+    state = state || {};
+    state.firstErr = null;
+    state.untaggedFallback = false;
+    return postFn(payload)
+    .catch(function(err){
+      if(!state.firstErr) state.firstErr = err;
+      if(isCoachLogMissingColumn(err, 'gym_climb_id')){
+        delete payload.gym_climb_id;
+        return postFn(payload);
+      }
+      throw err;
+    })
+    .catch(function(err){
+      if(!state.firstErr) state.firstErr = err;
+      if(isCoachLogMissingColumn(err, 'zone_confirmed_by_athlete')){
+        delete payload.zone_confirmed_by_athlete;
+        return postFn(payload);
+      }
+      throw err;
+    })
+    .catch(function(err){
+      if(!state.firstErr) state.firstErr = err;
+      if(isCoachLogMissingColumn(err, 'logged_by_coach')){
+        delete payload.logged_by_coach;
+        delete payload.logged_by;
+        delete payload.session_notes;
+        return postFn(payload).then(function(rows){
+          state.untaggedFallback = true;
+          return rows;
+        });
+      }
+      throw err;
+    });
+  }
+
   function saveCoachLogSession(){
     if(!_detailCtx || !window.CoachLogSession) return;
     if(coachLogFormLocked()) return;
@@ -3095,7 +3142,7 @@
     paintCoachLogForm();
     if(msg) msg.textContent = '';
     var payload = built.payload;
-    var untaggedFallback = false;
+    var retryState = {};
     function postCoachLogSession(body){
       return fetch(SB_URL + '/rest/v1/sessions', {
         method: 'POST',
@@ -3106,38 +3153,13 @@
         return res.json().then(function(err){ throw err; });
       });
     }
-    postCoachLogSession(payload)
-    .catch(function(err){
-      if(payload.gym_climb_id){
-        delete payload.gym_climb_id;
-        return postCoachLogSession(payload);
-      }
-      throw err;
-    })
-    .catch(function(err){
-      if(payload.hasOwnProperty('zone_confirmed_by_athlete')){
-        delete payload.zone_confirmed_by_athlete;
-        return postCoachLogSession(payload);
-      }
-      throw err;
-    })
-    .catch(function(err){
-      if(payload.logged_by_coach != null){
-        delete payload.logged_by_coach;
-        delete payload.logged_by;
-        delete payload.session_notes;
-        return postCoachLogSession(payload).then(function(rows){
-          untaggedFallback = true;
-          return rows;
-        });
-      }
-      throw err;
-    }).then(function(){
+    postCoachLogSessionWithColumnFallbacks(postCoachLogSession, payload, retryState)
+    .then(function(){
       _coachLogSaving = false;
       _coachLogLocked = true;
       setCoachLogSaveEnabled(false, 'Save');
       paintCoachLogForm();
-      if(untaggedFallback){
+      if(retryState.untaggedFallback){
         showCoachToast('Climb logged — not tagged Logged by coach.');
         if(msg){
           msg.className = 'form-success';
@@ -3163,7 +3185,7 @@
       paintCoachLogForm();
       if(msg){
         msg.className = 'form-error';
-        msg.textContent = 'Could not save. ' + friendlyErrorMessage(err, 'Apply the coach-log SQL if this is a first run.');
+        msg.textContent = 'Could not save. ' + friendlyErrorMessage(retryState.firstErr || err, 'Apply the coach-log SQL if this is a first run.');
       }
     });
   }

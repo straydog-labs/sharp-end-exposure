@@ -100,8 +100,14 @@ assert.ok(/loadRosterInsights\(_detailCtx\.token, _coachRoster\)/.test(dash));
 assert.ok(/updateRosterStats\(_detailCtx\.token, _coachRoster\)/.test(dash));
 assert.ok(/refreshRosterAfterCoachLog\(\)/.test(dash));
 assert.ok(/untaggedFallback/.test(dash));
-assert.ok(/if\(untaggedFallback\)/.test(dash));
+assert.ok(/if\(retryState\.untaggedFallback\)/.test(dash));
 assert.ok(/not tagged Logged by coach/.test(dash));
+assert.ok(/function isCoachLogMissingColumn/.test(dash));
+assert.ok(/function postCoachLogSessionWithColumnFallbacks/.test(dash));
+assert.ok(/retryState\.firstErr \|\| err/.test(dash));
+assert.ok(!/if\(payload\.gym_climb_id\)/.test(dash));
+assert.ok(!/if\(payload\.hasOwnProperty\('zone_confirmed_by_athlete'\)\)/.test(dash));
+assert.ok(!/if\(payload\.logged_by_coach != null\)/.test(dash));
 
 assert.ok(/var PANIC_WEEK_THRESHOLD = 3/.test(dash));
 assert.ok(/panicWeek \+ ' panic sessions this week/.test(dash));
