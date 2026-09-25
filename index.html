@@ -153,6 +153,19 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .train-badge.custom{color:var(--drill-b);border-color:var(--drill-b-dim);}
 .train-block-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;margin-bottom:10px;}
 .train-attempt-btn{width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px;cursor:pointer;margin-top:8px;}
+.train-attempt-undo{
+  background:none;
+  border:none;
+  color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  text-decoration:underline;
+  cursor:pointer;
+  padding:0;
+  margin-left:6px;
+  -webkit-tap-highlight-color:transparent;
+}
 /* ── SELF-ASSIGN WIZARD (build 196) — baseline-weight chrome, coach data model ── */
 .saw-launch{width:100%;margin-top:0;margin-bottom:16px;background:var(--accent);border:none;border-radius:var(--r-xl);padding:18px 20px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;-webkit-tap-highlight-color:transparent;}
 .saw-launch-sub{display:block;font-size:12.5px;font-weight:600;opacity:.75;margin-top:2px;}
@@ -5406,7 +5419,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index270'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index271'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -13671,11 +13684,15 @@ function stopTrainBlockTimer(id){
   renderTrainSessionBuilder();
 }
 
+// NOTE: mirrors attemptSummary()'s markup — keep both in sync if that changes.
 function trainAutoLogAttempt(b){
   if(!b.attempts) b.attempts = [];
   b.attempts.push({ at: new Date().toISOString(), note: 'attempt ' + (b.attempts.length + 1) + ' (auto)' });
-  var el = document.querySelector('[data-block-attempt-summary="'+b.id+'"] b');
-  if(el) el.textContent = String(b.attempts.length);
+  var wrap = document.querySelector('[data-block-attempt-summary="'+b.id+'"]');
+  if(wrap){
+    wrap.innerHTML = 'Attempts logged: <b style="color:var(--text);">'+b.attempts.length+'</b>'
+      + ' <button type="button" class="train-attempt-undo" onclick="trainUndoAttempt(\''+escTrainHtml(b.id)+'\')">Undo</button>';
+  }
 }
 
 function trainIntervalPrimaryAction(id){
@@ -14091,7 +14108,10 @@ function fieldHtml(label, id, val){
 
 function attemptSummary(b){
   var n = (b.attempts && b.attempts.length) || 0;
-  return '<div style="font-size:12px;color:var(--muted);margin-top:8px;" data-block-attempt-summary="'+escTrainHtml(b.id)+'">Attempts logged: <b style="color:var(--text);">'+n+'</b></div>';
+  var undo = n > 0
+    ? ' <button type="button" class="train-attempt-undo" onclick="trainUndoAttempt(\''+escTrainHtml(b.id)+'\')">Undo</button>'
+    : '';
+  return '<div style="font-size:12px;color:var(--muted);margin-top:8px;" data-block-attempt-summary="'+escTrainHtml(b.id)+'">Attempts logged: <b style="color:var(--text);">'+n+'</b>'+undo+'</div>';
 }
 
 function trainToggleRep(blockId, repIdx){
@@ -14171,6 +14191,16 @@ function trainLogAttempt(blockId){
   if(!b.attempts) b.attempts = [];
   b.attempts.push({ at: new Date().toISOString(), note: 'attempt ' + (b.attempts.length + 1) });
   showToast('Attempt logged ✓');
+  renderTrainSessionBuilder();
+}
+
+function trainUndoAttempt(blockId){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || !b.attempts || !b.attempts.length) return;
+  b.attempts.pop();
+  showToast('Attempt removed');
   renderTrainSessionBuilder();
 }
 

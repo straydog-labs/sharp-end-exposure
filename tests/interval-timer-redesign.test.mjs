@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index270'/.test(index));
-assert.ok(/APP_VERSION = 'index270'/.test(sw));
+assert.ok(/var app_version = 'index271'/.test(index));
+assert.ok(/APP_VERSION = 'index271'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -78,15 +78,16 @@ const ctx = {
   _trainIntervalCueLog: [],
   playTrainTimerCue: function(){},
   lastSel: '',
-  lastCount: '',
+  lastHtml: '',
   document: {
     querySelector: function(sel){
       ctx.lastSel = sel;
-      return { set textContent(v){ ctx.lastCount = v; }, get textContent(){ return ctx.lastCount; } };
+      return { set innerHTML(v){ ctx.lastHtml = v; }, get innerHTML(){ return ctx.lastHtml; } };
     }
   }
 };
 vm.createContext(ctx);
+vm.runInContext(extractFn(index, 'escTrainHtml'), ctx);
 vm.runInContext(extractFn(index, 'intervalPhaseKey'), ctx);
 vm.runInContext(extractFn(index, 'trainAutoLogAttempt'), ctx);
 vm.runInContext(extractFn(index, 'noteTrainIntervalTransition'), ctx);
@@ -115,7 +116,9 @@ vm.runInContext('trainAutoLogAttempt(b)', ctx);
 assert.strictEqual(logged.attempts.length, 2);
 assert.strictEqual(logged.attempts[1].note, 'attempt 2 (auto)');
 assert.ok(/data-block-attempt-summary="iv-3"/.test(ctx.lastSel));
-assert.strictEqual(ctx.lastCount, '2');
+assert.ok(/>2</.test(ctx.lastHtml));
+assert.ok(/trainUndoAttempt/.test(ctx.lastHtml));
+assert.ok(/train-attempt-undo/.test(ctx.lastHtml));
 
 const primary = {
   Date,
