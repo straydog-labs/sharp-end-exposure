@@ -166,6 +166,19 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   margin-left:6px;
   -webkit-tap-highlight-color:transparent;
 }
+.train-hub-duplicate-btn{
+  flex-shrink:0;
+  background:rgba(232,118,58,.08);
+  border:1px solid rgba(232,118,58,.4);
+  border-radius:8px;
+  color:var(--accent);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:11px;
+  font-weight:700;
+  padding:8px 12px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
 /* ── SELF-ASSIGN WIZARD (build 196) — baseline-weight chrome, coach data model ── */
 .saw-launch{width:100%;margin-top:0;margin-bottom:16px;background:var(--accent);border:none;border-radius:var(--r-xl);padding:18px 20px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;-webkit-tap-highlight-color:transparent;}
 .saw-launch-sub{display:block;font-size:12.5px;font-weight:600;opacity:.75;margin-top:2px;}
@@ -4018,6 +4031,14 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-sub">Message your coach</div>
         </button>
       </div>
+
+      <div id="train-hub-recent-wrap" style="margin-top:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 8px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);">Recent sessions</div>
+          <button type="button" onclick="showScreen('screen-train-recent')" style="background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;cursor:pointer;padding:0;">See all →</button>
+        </div>
+        <div id="train-hub-recent-mini"><div style="text-align:center;padding:12px 0;font-size:13px;color:var(--muted);">Loading…</div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -5419,7 +5440,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index271'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index272'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -6190,7 +6211,7 @@ function showScreen(id){
   // Load screen data
   if(id==='screen-home'){ loadHomeScreen(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
   if(id==='screen-sessions')loadClimbLog();
-  if(id==='screen-train'){ loadTrainAssignments(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
+  if(id==='screen-train'){ loadTrainAssignments(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); loadTrainHub(); }
   else if(id==='screen-train-start'){ loadTrainHub(); }
   else if(id==='screen-train-recent'){ loadTrainHub(); }
   else if(id==='screen-train-assignments'){ loadTrainAssignments(); }
@@ -12474,6 +12495,7 @@ async function loadTrainHub(){
   if(!window._authUser){
     _trainSessionsCache = [];
     renderTrainHubStats();
+    renderTrainHubRecentMini();
     return;
   }
   var rows = await sbS(
@@ -12484,6 +12506,7 @@ async function loadTrainHub(){
   _trainSessionsCache = Array.isArray(rows) ? rows : [];
   renderTrainHubStats();
   renderTrainSessionList();
+  renderTrainHubRecentMini();
 }
 
 function renderTrainHubStats(){
@@ -12589,6 +12612,32 @@ function toggleTrainSessionListMore(){
   renderTrainSessionList();
 }
 
+function renderTrainHubRecentMini(){
+  var el = document.getElementById('train-hub-recent-mini');
+  if(!el) return;
+  var rows = (_trainSessionsCache || []).slice(0, 3);
+  if(!rows.length){
+    el.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No sessions yet — start one above.</div>';
+    return;
+  }
+  el.innerHTML = rows.map(function(r){
+    var when = formatChatTimestamp(r.started_at || r.created_at);
+    var blocks = parseTrainSessionBlocks(r);
+    var n = Array.isArray(blocks) ? blocks.length : 0;
+    var sid = String(r.id || '');
+    var safeSid = sid.replace(/'/g, '');
+    return '<div class="insight-card train-session-row" data-session-id="'+escTrainHtml(sid)+'" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">'
+      + '<button type="button" class="train-session-row-toggle" onclick="openTrainSessionDetail(\''+safeSid+'\')" style="flex:1;min-width:0;">'
+      + '<div class="train-session-row-meta">'
+      + '<div style="font-size:14px;font-weight:700;">' + escTrainHtml(trainSessionWorkoutName(r)) + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' + escTrainHtml(when) + ' · ' + n + ' block' + (n===1?'':'s') + '</div>'
+      + '</div>'
+      + '</button>'
+      + '<button type="button" class="train-hub-duplicate-btn" onclick="trainDuplicateSession(\''+safeSid+'\')">Duplicate</button>'
+      + '</div>';
+  }).join('');
+}
+
 function paintTrainSessionDetail(row){
   var titleEl = document.getElementById('train-session-detail-title');
   var bodyEl = document.getElementById('train-session-detail-body');
@@ -12636,6 +12685,83 @@ function parseTrainSessionBlocks(row){
     }catch(e){ return []; }
   }
   return [];
+}
+
+function trainCloneBlockForDuplicate(b){
+  if(!b) return null;
+  var fresh = {
+    id: uid(),
+    shape: b.shape,
+    title: b.title || '',
+    rest_after_sec: b.rest_after_sec,
+    complete: false,
+    attempts: [],
+    timer_enabled: false,
+    timer_started_at: null,
+    timer_ended_at: null,
+    interval_started_at: null,
+    duration_sec: (b.duration_sec != null ? b.duration_sec : null)
+  };
+  if(b.is_warmup) fresh.is_warmup = true;
+  if(b.shape === 'interval'){
+    fresh.work_sec = b.work_sec;
+    fresh.rest_sec = b.rest_sec;
+    fresh.target_sets = b.target_sets;
+    fresh.groups = Array.isArray(b.groups) ? JSON.parse(JSON.stringify(b.groups)) : [];
+    fresh._interval_is_paused = false;
+    fresh._interval_paused_elapsed_ms = null;
+  } else if(b.shape === 'emom'){
+    fresh.rounds = Array.isArray(b.rounds)
+      ? b.rounds.map(function(r){
+          return {
+            boulders: Array.isArray(r && r.boulders) ? r.boulders.map(function(bo){ return { text: (bo && bo.text) || '' }; }) : [],
+            notes: (r && r.notes) || '',
+            rest_after_sec: (r && r.rest_after_sec != null) ? r.rest_after_sec : 180
+          };
+        })
+      : [];
+  } else if(b.shape === 'circuit'){
+    fresh.exercises = Array.isArray(b.exercises)
+      ? b.exercises.map(function(ex){ return { name: (ex && ex.name) || '', weight: (ex && ex.weight) || '', reps: (ex && ex.reps) || '' }; })
+      : [];
+    fresh.rounds = b.rounds;
+    fresh.notes = b.notes || '';
+  } else if(b.shape === 'rep_pass_fail'){
+    fresh.grip = b.grip || '';
+    fresh.assistance = b.assistance || '';
+    fresh.progression_note = b.progression_note || '';
+    fresh.sets = Array.isArray(b.sets)
+      ? b.sets.map(function(s){
+          return { reps: Array.isArray(s && s.reps) ? s.reps.map(function(){ return { ok: null }; }) : [] };
+        })
+      : [];
+  } else if(b.shape === 'section' || b.shape === 'check'){
+    fresh.notes = b.notes || '';
+  }
+  return fresh;
+}
+
+function trainStartDuplicatedSession(row){
+  var srcBlocks = parseTrainSessionBlocks(row);
+  var state = newTrainSessionState(row.energy_type, trainSessionWorkoutName(row));
+  state.blocks = srcBlocks.map(trainCloneBlockForDuplicate).filter(Boolean);
+  state.warm_up = row.warm_up || '';
+  state.cool_down = row.cool_down || '';
+  trainSessionState = state;
+  showToast('Duplicated — ready to log');
+  showScreen('screen-train-session');
+}
+
+function trainDuplicateSession(sessionId){
+  var row = (_trainSessionsCache || []).find(function(r){ return String(r.id) === String(sessionId); });
+  if(row){
+    trainStartDuplicatedSession(row);
+    return;
+  }
+  sbS('training_sessions', 'select=*&id=eq.' + encodeURIComponent(sessionId) + '&limit=1').then(function(rows){
+    if(Array.isArray(rows) && rows[0]) trainStartDuplicatedSession(rows[0]);
+    else showToast('Could not load that session', true);
+  });
 }
 
 function trainTextNonEmpty(v){
