@@ -685,8 +685,18 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   min-width:4.5em;
 }
 .train-block-interval-timer{
-  flex-wrap:wrap;
-  gap:8px 12px;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  padding:14px 12px;
+  background:var(--bg);
+  border-radius:12px;
+}
+.train-interval-readout{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
 }
 .train-interval-phase{
   font-size:11px;
@@ -694,23 +704,67 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   letter-spacing:.08em;
   text-transform:uppercase;
   color:var(--muted);
-  min-width:3.6em;
 }
 .train-block-interval-timer.is-work .train-interval-phase{color:var(--accent);}
 .train-block-interval-timer.is-rest .train-interval-phase{color:var(--muted);}
 .train-block-interval-timer.is-done .train-interval-phase{color:var(--comfort);}
+.train-block-interval-timer.is-paused .train-interval-phase{color:var(--muted);}
 .train-interval-count{
   font-family:'Space Mono',monospace;
-  font-size:28px;
+  font-size:44px;
   font-weight:700;
   color:var(--text);
-  letter-spacing:.04em;
+  letter-spacing:.02em;
   line-height:1;
-  min-width:1.4em;
 }
-.train-interval-rep{
-  font-size:12px;
+.train-interval-dots{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.train-interval-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--border);
+  flex-shrink:0;
+}
+.train-interval-dot.filled{ background:var(--accent); }
+.train-interval-dot.current{ box-shadow:0 0 0 2px rgba(232,118,58,.25); }
+.train-interval-actions{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+}
+.train-block-timer-btn-primary{
+  font-size:13px;
+  padding:10px 28px;
+  border-radius:99px;
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.train-block-interval-timer.is-paused .train-block-timer-btn-primary{
+  background:none;
+  border-color:var(--accent);
+  color:var(--accent);
+}
+.train-block-interval-timer.is-done .train-block-timer-btn-primary{
+  background:none;
+  border-color:var(--border);
   color:var(--muted);
+}
+.train-interval-reset-link{
+  background:none;
+  border:none;
+  color:var(--muted);
+  font-size:11px;
+  text-decoration:underline;
+  cursor:pointer;
+  padding:0;
+  -webkit-tap-highlight-color:transparent;
 }
 .train-note-preview{
   min-height:120px;
@@ -5352,7 +5406,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index269'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index270'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -13309,7 +13363,7 @@ function intervalPhaseKey(state){
   return (state && state.phase ? state.phase : 'Ready') + ':' + (state && state.repIndex != null ? state.repIndex : 0);
 }
 
-function noteTrainIntervalTransition(id, state){
+function noteTrainIntervalTransition(id, state, b){
   var key = intervalPhaseKey(state);
   var prev = _trainIntervalLastPhaseKey[id];
   if(prev === key) return null;
@@ -13317,6 +13371,9 @@ function noteTrainIntervalTransition(id, state){
   if(!prev) return null;
   if(String(prev).indexOf('Ready:') === 0) return null;
   var kind = state.phase === 'Done' ? 'done' : 'phase';
+  if(b && String(prev).indexOf('Work:') === 0){
+    trainAutoLogAttempt(b);
+  }
   playTrainTimerCue(kind);
   _trainIntervalCueLog.push({ id: id, from: prev, to: key, kind: kind });
   return kind;
@@ -13420,24 +13477,35 @@ document.addEventListener('visibilitychange', function(){
 
 function paintTrainIntervalTimer(b){
   if(!b) return;
+  var isPaused = !!b._interval_is_paused;
   var start = b.interval_started_at ? new Date(b.interval_started_at).getTime() : NaN;
   var startedAt = (!b.interval_started_at || isNaN(start)) ? null : start;
-  var st = computeIntervalState(startedAt, b.work_sec, b.rest_sec, b.target_sets, Date.now());
+  var st = isPaused
+    ? computeIntervalState(0, b.work_sec, b.rest_sec, b.target_sets, b._interval_paused_elapsed_ms || 0)
+    : computeIntervalState(startedAt, b.work_sec, b.rest_sec, b.target_sets, Date.now());
   var sets = Math.max(1, Math.floor(Number(b.target_sets) || 1));
   var phaseEl = document.querySelector('[data-block-interval-phase="'+b.id+'"]');
   var countEl = document.querySelector('[data-block-interval-count="'+b.id+'"]');
-  var repEl = document.querySelector('[data-block-interval-rep="'+b.id+'"]');
+  var dotsEl = document.querySelector('[data-block-interval-dots="'+b.id+'"]');
   var wrap = document.querySelector('[data-block-interval-wrap="'+b.id+'"]');
-  if(phaseEl) phaseEl.textContent = st.phase;
+  if(phaseEl) phaseEl.textContent = isPaused ? 'Paused' : st.phase;
   if(countEl) countEl.textContent = String(Math.max(0, Math.ceil(st.remainingMs / 1000)));
-  if(repEl) repEl.textContent = 'Rep ' + (st.repIndex + 1) + ' of ' + sets;
+  if(dotsEl){
+    var filled = st.phase === 'Done' ? sets : st.repIndex;
+    var html = '';
+    for(var i = 0; i < sets; i++){
+      html += '<span class="train-interval-dot'+(i < filled ? ' filled' : '')+(i === st.repIndex && st.phase !== 'Done' ? ' current' : '')+'"></span>';
+    }
+    dotsEl.innerHTML = html;
+  }
   if(wrap){
     wrap.classList.toggle('is-work', st.phase === 'Work');
     wrap.classList.toggle('is-rest', st.phase === 'Rest');
     wrap.classList.toggle('is-done', st.phase === 'Done');
     wrap.classList.toggle('is-ready', st.phase === 'Ready');
+    wrap.classList.toggle('is-paused', isPaused);
   }
-  noteTrainIntervalTransition(b.id, st);
+  noteTrainIntervalTransition(b.id, st, b);
   if(st.phase === 'Done'){
     clearTrainBlockTimerInterval(b.id);
     if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
@@ -13531,6 +13599,8 @@ function toggleTrainBlockTimerEnabled(id){
     clearTrainBlockTimerInterval(id);
     if(b.shape === 'interval' || sectionHasCountdown(b)){
       b.interval_started_at = null;
+      b._interval_is_paused = false;
+      b._interval_paused_elapsed_ms = null;
       delete _trainIntervalLastPhaseKey[id];
       if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
     }
@@ -13601,6 +13671,70 @@ function stopTrainBlockTimer(id){
   renderTrainSessionBuilder();
 }
 
+function trainAutoLogAttempt(b){
+  if(!b.attempts) b.attempts = [];
+  b.attempts.push({ at: new Date().toISOString(), note: 'attempt ' + (b.attempts.length + 1) + ' (auto)' });
+  var el = document.querySelector('[data-block-attempt-summary="'+b.id+'"] b');
+  if(el) el.textContent = String(b.attempts.length);
+}
+
+function trainIntervalPrimaryAction(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b || b.shape !== 'interval') return;
+  ensureTrainTimerAudioCtx();
+  var startMs = b.interval_started_at ? new Date(b.interval_started_at).getTime() : null;
+  var liveState = b._interval_is_paused
+    ? computeIntervalState(0, b.work_sec, b.rest_sec, b.target_sets, b._interval_paused_elapsed_ms || 0)
+    : computeIntervalState(startMs, b.work_sec, b.rest_sec, b.target_sets, Date.now());
+
+  if(liveState.phase === 'Done'){
+    b.interval_started_at = null;
+    b._interval_is_paused = false;
+    b._interval_paused_elapsed_ms = null;
+    delete _trainIntervalLastPhaseKey[id];
+    renderTrainSessionBuilder();
+    return;
+  }
+  if(b._interval_is_paused){
+    b.interval_started_at = new Date(Date.now() - (b._interval_paused_elapsed_ms || 0)).toISOString();
+    b._interval_is_paused = false;
+    b._interval_paused_elapsed_ms = null;
+    requestTrainWakeLock();
+    renderTrainSessionBuilder();
+    return;
+  }
+  if(startMs != null){
+    b._interval_paused_elapsed_ms = Date.now() - startMs;
+    b._interval_is_paused = true;
+    b.interval_started_at = null;
+    if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
+    renderTrainSessionBuilder();
+    return;
+  }
+  b.interval_started_at = new Date().toISOString();
+  b._interval_is_paused = false;
+  b._interval_paused_elapsed_ms = null;
+  delete _trainIntervalLastPhaseKey[id];
+  requestTrainWakeLock();
+  renderTrainSessionBuilder();
+}
+
+function trainIntervalReset(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b || b.shape !== 'interval') return;
+  b.interval_started_at = null;
+  b._interval_is_paused = false;
+  b._interval_paused_elapsed_ms = null;
+  delete _trainIntervalLastPhaseKey[id];
+  clearTrainBlockTimerInterval(id);
+  if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
+  renderTrainSessionBuilder();
+}
+
 function trainIntervalGroupsLine(b){
   var bits = (b.groups || []).map(function(g){
     return g && g.sets ? (g.sets + ' sets') : '';
@@ -13664,17 +13798,30 @@ function renderTrainBlockHtml(b, bi, isWarmup){
   var timerRow = '';
   if(timerOn && !isCheck){
     if(b.shape === 'interval'){
+      var isPaused = !!b._interval_is_paused;
       var startMs = b.interval_started_at ? new Date(b.interval_started_at).getTime() : NaN;
-      var st = computeIntervalState(isNaN(startMs) ? null : startMs, b.work_sec, b.rest_sec, b.target_sets, Date.now());
+      var st = isPaused
+        ? computeIntervalState(0, b.work_sec, b.rest_sec, b.target_sets, b._interval_paused_elapsed_ms || 0)
+        : computeIntervalState(isNaN(startMs) ? null : startMs, b.work_sec, b.rest_sec, b.target_sets, Date.now());
       var setsN = Math.max(1, Math.floor(Number(b.target_sets) || 1));
       var countN = Math.max(0, Math.ceil(st.remainingMs / 1000));
       var phaseClass = st.phase === 'Work' ? ' is-work' : (st.phase === 'Rest' ? ' is-rest' : (st.phase === 'Done' ? ' is-done' : ' is-ready'));
-      timerRow = '<div class="train-block-timer train-block-interval-timer'+phaseClass+'" data-block-interval-wrap="'+escTrainHtml(b.id)+'">'
-        + '<button type="button" class="train-block-timer-btn" onclick="startTrainBlockTimer(\''+b.id+'\')">Start</button>'
-        + '<button type="button" class="train-block-timer-btn" onclick="stopTrainBlockTimer(\''+b.id+'\')">Stop</button>'
-        + '<span class="train-interval-phase" data-block-interval-phase="'+escTrainHtml(b.id)+'">'+escTrainHtml(st.phase)+'</span>'
+      var filledDots = st.phase === 'Done' ? setsN : st.repIndex;
+      var dots = '';
+      for(var di = 0; di < setsN; di++){
+        dots += '<span class="train-interval-dot'+(di < filledDots ? ' filled' : '')+(di === st.repIndex && st.phase !== 'Done' ? ' current' : '')+'"></span>';
+      }
+      var btnLabel = st.phase === 'Done' ? 'Reset' : (isPaused ? 'Resume' : (st.phase === 'Ready' ? 'Start' : 'Pause'));
+      timerRow = '<div class="train-block-timer train-block-interval-timer'+phaseClass+(isPaused?' is-paused':'')+'" data-block-interval-wrap="'+escTrainHtml(b.id)+'">'
+        + '<div class="train-interval-readout">'
+        + '<span class="train-interval-phase" data-block-interval-phase="'+escTrainHtml(b.id)+'">'+escTrainHtml(isPaused ? 'Paused' : st.phase)+'</span>'
         + '<span class="train-interval-count" data-block-interval-count="'+escTrainHtml(b.id)+'">'+countN+'</span>'
-        + '<span class="train-interval-rep" data-block-interval-rep="'+escTrainHtml(b.id)+'">Rep '+(st.repIndex+1)+' of '+setsN+'</span>'
+        + '</div>'
+        + '<div class="train-interval-dots" data-block-interval-dots="'+escTrainHtml(b.id)+'">'+dots+'</div>'
+        + '<div class="train-interval-actions">'
+        + '<button type="button" class="train-block-timer-btn train-block-timer-btn-primary" onclick="trainIntervalPrimaryAction(\''+b.id+'\')">'+btnLabel+'</button>'
+        + (isPaused || st.phase === 'Work' || st.phase === 'Rest' ? '<button type="button" class="train-interval-reset-link" onclick="trainIntervalReset(\''+b.id+'\')">Reset</button>' : '')
+        + '</div>'
         + '</div>';
     } else if(sectionHasCountdown(b)){
       var cStartMs = b.interval_started_at ? new Date(b.interval_started_at).getTime() : NaN;
@@ -13944,7 +14091,7 @@ function fieldHtml(label, id, val){
 
 function attemptSummary(b){
   var n = (b.attempts && b.attempts.length) || 0;
-  return '<div style="font-size:12px;color:var(--muted);margin-top:8px;">Attempts logged: <b style="color:var(--text);">'+n+'</b></div>';
+  return '<div style="font-size:12px;color:var(--muted);margin-top:8px;" data-block-attempt-summary="'+escTrainHtml(b.id)+'">Attempts logged: <b style="color:var(--text);">'+n+'</b></div>';
 }
 
 function trainToggleRep(blockId, repIdx){
@@ -22732,8 +22879,9 @@ async function runSEETests(){
     if(sEl) sEl.value = '4';
     var htmlIv = renderTrainBlockHtml(ib, 0);
     var richOk = /data-block-interval-phase/.test(htmlIv) && />Ready</.test(htmlIv)
-      && /Rep 1 of 4/.test(htmlIv) && htmlIv.indexOf('data-block-timer-elapsed') === -1
-      && /startTrainBlockTimer/.test(htmlIv);
+      && /data-block-interval-dots="/.test(htmlIv) && (htmlIv.match(/train-interval-dot/g) || []).length === 4
+      && htmlIv.indexOf('data-block-timer-elapsed') === -1
+      && /trainIntervalPrimaryAction/.test(htmlIv) && />Start</.test(htmlIv);
     toggleTrainBlockTimerEnabled(eb.id);
     var htmlEm = renderTrainBlockHtml(eb, 1);
     var emomPlain = /data-block-timer-elapsed/.test(htmlEm) && htmlEm.indexOf('data-block-interval-phase') === -1;

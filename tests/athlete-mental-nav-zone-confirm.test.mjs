@@ -11,8 +11,8 @@ const sql = readFileSync(join(__dirname, '../sql/sessions-zone-confirmed-by-athl
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index269'/.test(index));
-assert.ok(/APP_VERSION = 'index269'/.test(sw));
+assert.ok(/var app_version = 'index270'/.test(index));
+assert.ok(/APP_VERSION = 'index270'/.test(sw));
 
 assert.ok(/id="fnav-mental"/.test(index));
 assert.ok(/showScreen\('screen-drill'\)/.test(index.match(/id="fnav-mental"[\s\S]{0,400}/)[0]));
