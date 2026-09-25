@@ -179,6 +179,26 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
 }
+.train-sess-title-input{
+  display:block;
+  width:100%;
+  font-size:26px;
+  font-weight:700;
+  line-height:1.2;
+  margin-bottom:16px;
+  background:none;
+  border:none;
+  border-bottom:1px solid var(--border);
+  color:var(--text);
+  font-family:inherit;
+  padding:0 0 6px;
+  -webkit-appearance:none;
+}
+.train-sess-title-input:focus{
+  outline:none;
+  border-bottom-color:var(--accent);
+}
+.train-sess-title-input::placeholder{ color:var(--muted); }
 /* ── SELF-ASSIGN WIZARD (build 196) — baseline-weight chrome, coach data model ── */
 .saw-launch{width:100%;margin-top:0;margin-bottom:16px;background:var(--accent);border:none;border-radius:var(--r-xl);padding:18px 20px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;-webkit-tap-highlight-color:transparent;}
 .saw-launch-sub{display:block;font-size:12.5px;font-weight:600;opacity:.75;margin-top:2px;}
@@ -4063,6 +4083,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </svg>
     </div>
     <div class="train-energy-grid" id="train-energy-grid"></div>
+    <button type="button" onclick="startSessionNoCategory()" style="width:100%;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;text-decoration:underline;cursor:pointer;padding:6px 0 4px;text-align:left;-webkit-tap-highlight-color:transparent;">Skip — just start a session</button>
     <button type="button" onclick="showScreen('screen-workout-library')"
       style="width:100%;margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
       <span>Browse workout library</span><span style="color:var(--accent);">→</span>
@@ -4255,7 +4276,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   </div>
   <div class="content">
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="train-sess-eyebrow">Training session</div>
-    <div style="font-size:26px;font-weight:700;line-height:1.2;margin-bottom:16px;" id="train-sess-title">Session</div>
+    <input type="text" id="train-sess-title" class="train-sess-title-input" placeholder="Name this session" value="Session" oninput="if(trainSessionState) trainSessionState.title = this.value;">
 
     <div class="insight-card" style="margin-bottom:12px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -5440,7 +5461,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index272'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index273'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -12540,6 +12561,7 @@ function renderTrainEnergyArc(rows){
   var recent = (rows || []).slice(0, 16).reverse();
   if(!recent.length) return;
   recent.forEach(function(r, i){
+    if(!r.energy_type) return;
     var x = 28 + (i / Math.max(recent.length-1, 1)) * 280;
     var band = trainEnergyArcBand(r.energy_type);
     var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -13077,6 +13099,12 @@ function startBlankTrainSession(){
   showScreen('screen-train-session');
 }
 
+function startSessionNoCategory(){
+  _trainPickerType = '';
+  trainSessionState = newTrainSessionState('');
+  showScreen('screen-train-session');
+}
+
 function seedTrainBlocksFromSections(sections){
   // Always emit the section-title block first (title + optional duration_sec).
   // Expand authored child exercises only when the field is a non-empty array so
@@ -13359,7 +13387,7 @@ function renderTrainSessionBuilder(){
   }
   var title = document.getElementById('train-sess-title');
   var eye = document.getElementById('train-sess-eyebrow');
-  if(title) title.textContent = trainSessionState.title || 'Session';
+  if(title && document.activeElement !== title) title.value = trainSessionState.title || '';
   if(eye) eye.textContent = workoutTypeLabel(trainSessionState.energy_type) || 'Training session';
   var s = document.getElementById('train-sess-start');
   var e = document.getElementById('train-sess-end');
@@ -14342,7 +14370,7 @@ async function saveTrainSession(){
     id: trainSessionState.id,
     user_id: window._authUser.id,
     device_id: (typeof getDeviceId === 'function' ? getDeviceId() : null),
-    energy_type: trainSessionState.energy_type,
+    energy_type: trainSessionState.energy_type || null,
     started_at: trainSessionState.started_at,
     ended_at: trainSessionState.ended_at || new Date().toISOString(),
     warm_up: trainSessionState.warm_up || null,
@@ -14420,7 +14448,7 @@ function populateTrainDoneScreen(snap, resetReflection){
   var metaEl = document.getElementById('train-done-meta');
   var noteBtn = document.getElementById('train-done-add-note');
   var panel = document.getElementById('train-reflection-panel');
-  var energy = workoutTypeLabel(snap.energy_type) || snap.title || 'Session';
+  var energy = snap.title || workoutTypeLabel(snap.energy_type) || 'Session';
   if(titleEl) titleEl.textContent = energy;
   if(metaEl){
     var bits = [];
