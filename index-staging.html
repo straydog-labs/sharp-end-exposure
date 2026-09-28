@@ -25,6 +25,7 @@
      before it's ever used as innerHTML (user-generated content, real XSS surface). -->
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script src="js/sessions-insert-required.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -5461,7 +5462,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index274'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index275'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -5725,6 +5726,13 @@ async function sbU(table,filter,payload){
 
 async function sbInsertSession(payload){
   var p = Object.assign({}, payload || {});
+  var required = (typeof SessionsInsertRequired !== 'undefined' && SessionsInsertRequired.assertPayload)
+    ? SessionsInsertRequired.assertPayload(p)
+    : { ok: !!(p.device_id), error: 'sessions insert missing required: device_id' };
+  if(!required.ok){
+    console.error('sbInsertSession', required.error);
+    return sbFail('http', {status:400, message: required.error, table:'sessions'});
+  }
   var raw = await sbI('sessions', p);
   // Presence, not truthiness: a missing/renamed column fails for null the
   // same as for a real value (the outage was a null take_high_point on every
@@ -16198,7 +16206,7 @@ function computeResult(){
     prepare_started_at: window._prepareStartedAt||null,
     prepare_completed_at: new Date().toISOString()
   };
-  sbI('sessions', prepareSessPayload).then(function(saved){
+  sbInsertSession(prepareSessPayload).then(function(saved){
     if(saved && saved.id) window._prepareSessionId = saved.id;
   });
 
@@ -18467,7 +18475,7 @@ async function saveBaseline(){
     baseline_goals: baselineState.answers.baseline_goals ? JSON.stringify(baselineState.answers.baseline_goals) : null,
     app_version: app_version
   };
-  sbI('sessions', payload);
+  sbInsertSession(payload);
   showScreen('screen-baseline-done');
 }
 
@@ -24692,7 +24700,7 @@ async function finishPrepareClimb(){
 
   // Save to Supabase as check-in session
   try{
-    await sbI('sessions',{
+    await sbInsertSession({
       device_id: getDeviceId(),
       user_id: window._authUser ? window._authUser.id : null,
       is_checkin: true,

@@ -67,6 +67,10 @@
       logged_by: opts.coachId,
       zone_confirmed_by_athlete: false
     };
+    if (global.SessionsInsertRequired && typeof global.SessionsInsertRequired.assertPayload === 'function') {
+      var required = global.SessionsInsertRequired.assertPayload(payload);
+      if (!required.ok) return { ok: false, error: required.error };
+    }
     return { ok: true, payload: payload };
   }
 

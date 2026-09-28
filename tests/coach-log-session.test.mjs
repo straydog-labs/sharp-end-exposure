@@ -7,6 +7,7 @@ import assert from 'assert';
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 require(join(__dirname, '../js/coach-athlete-insights.js'));
+require(join(__dirname, '../js/sessions-insert-required.js'));
 require(join(__dirname, '../js/coach-log-session.js'));
 const Log = globalThis.CoachLogSession;
 

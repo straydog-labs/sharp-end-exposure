@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/sessions-insert-required.js"></script>
 <script src="js/coach-athlete-insights.js"></script>
 <script src="js/coach-stack-nav.js"></script>
 <script src="js/coach-log-session.js"></script>
@@ -3072,10 +3073,9 @@
   }
 
   // Retry a coach-log POST only when PostgREST/Postgres names that column as
-  // missing. Presence of the key on the outgoing payload is not enough —
-  // buildPayload() always sends zone_confirmed_by_athlete and logged_by_coach,
-  // so a presence-only chain would fire on every failure (including RLS) and
-  // strip the coach tag, guaranteeing the last attempt fails as a self-insert.
+  // missing (PGRST204 / 42703). That is not 23502 — "column exists but got
+  // null". Required sessions fields (see js/sessions-insert-required.js,
+  // live-probed: device_id) must already be set; never strip them here.
   function isCoachLogMissingColumn(err, column){
     if(!err || !column) return false;
     if(err.code !== 'PGRST204' && err.code !== '42703') return false;
@@ -3144,6 +3144,12 @@
     var payload = built.payload;
     var retryState = {};
     function postCoachLogSession(body){
+      var required = window.SessionsInsertRequired && window.SessionsInsertRequired.assertPayload
+        ? window.SessionsInsertRequired.assertPayload(body)
+        : { ok: !!(body && body.device_id), error: 'sessions insert missing required: device_id' };
+      if(!required.ok){
+        return Promise.reject({ code: '23502', message: required.error });
+      }
       return fetch(SB_URL + '/rest/v1/sessions', {
         method: 'POST',
         headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
@@ -7145,14 +7151,31 @@
       body: body || '',
       note_type: type
     };
-    try{
-      var res = await fetch(SB_URL + '/rest/v1/coach_athlete_notes', {
+    function postCoachAthleteNote(body){
+      return fetch(SB_URL + '/rest/v1/coach_athlete_notes', {
         method: 'POST',
         headers: Object.assign(sbHeaders(_coachAthleteNotesCtx.token), { 'Prefer': 'return=representation' }),
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
+      }).then(function(res){
+        if(!res.ok) return res.json().then(function(err){ throw err; });
+        return res.json();
       });
-      if(!res.ok) return res.json().then(function(err){ throw err; });
-      var savedRows = await res.json();
+    }
+    try{
+      var savedRows;
+      try{
+        savedRows = await postCoachAthleteNote(payload);
+      }catch(err){
+        // Live schema (2026-09-28) has not applied sql/coach-note-patterns.sql —
+        // note_type is PGRST/42703 missing, not 23502. Strip and retry so
+        // general notes still save.
+        if(isMissingColumnErr(err) && Object.prototype.hasOwnProperty.call(payload, 'note_type')){
+          delete payload.note_type;
+          savedRows = await postCoachAthleteNote(payload);
+        } else {
+          throw err;
+        }
+      }
       var saved = Array.isArray(savedRows) ? savedRows[0] : savedRows;
       if(!saved || !saved.id) throw { message: 'Save returned no note.' };
       if(type === 'video_review' && drafts.length){
