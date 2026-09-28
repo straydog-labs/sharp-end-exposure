@@ -5461,7 +5461,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index273'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index274'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -9895,6 +9895,29 @@ function hideCoachChatSection(){
   setTrainChatUnreadBadge(false);
 }
 
+// Generic home-screen badge system. Any feature can register its own
+// named unread flag here — the badge count is just how many are "on."
+// e.g. later: setUnreadSource('assignmentDue', true)
+var _seeUnreadSources = Object.create(null);
+
+function setUnreadSource(name, isUnread){
+  var on = !!isUnread;
+  if(_seeUnreadSources[name] === on) return;
+  _seeUnreadSources[name] = on;
+  syncAppIconBadge();
+}
+
+function syncAppIconBadge(){
+  var total = 0;
+  for(var k in _seeUnreadSources){ if(_seeUnreadSources[k]) total++; }
+  try{
+    if('setAppBadge' in navigator){
+      if(total > 0) navigator.setAppBadge(total);
+      else if('clearAppBadge' in navigator) navigator.clearAppBadge();
+    }
+  }catch(e){ /* badge API unsupported or blocked — ignore */ }
+}
+
 function setTrainChatUnreadBadge(on){
   ['fnav-train-unread','train-hub-chat-unread'].forEach(function(id){
     var dot = document.getElementById(id);
@@ -9907,6 +9930,7 @@ function setTrainChatUnreadBadge(on){
     if(on) btn.setAttribute('aria-label', 'Train, unread coach message');
     else btn.removeAttribute('aria-label');
   }
+  setUnreadSource('coachChat', on);
 }
 
 function coachChatHasUnread(rows, selfId){
@@ -22363,6 +22387,28 @@ async function runSEETests(){
   }catch(e){ fail('Coach chat unread badge + read_at on view only', e.message); }
 
   try{
+    var wired = typeof setUnreadSource === 'function'
+      && typeof syncAppIconBadge === 'function'
+      && /setUnreadSource\('coachChat'/.test(String(setTrainChatUnreadBadge))
+      && /setAppBadge/.test(String(syncAppIconBadge))
+      && /clearAppBadge/.test(String(syncAppIconBadge));
+    var prevSources = _seeUnreadSources;
+    _seeUnreadSources = Object.create(null);
+    setUnreadSource('coachChat', true);
+    setUnreadSource('assignmentDue', true);
+    var twoOn = _seeUnreadSources.coachChat === true && _seeUnreadSources.assignmentDue === true;
+    setUnreadSource('coachChat', false);
+    var oneLeft = _seeUnreadSources.coachChat === false && _seeUnreadSources.assignmentDue === true;
+    _seeUnreadSources = prevSources;
+    syncAppIconBadge();
+    if(wired && twoOn && oneLeft){
+      pass('Generic unread-source app icon badge');
+    } else {
+      fail('Generic unread-source app icon badge', 'wired=' + wired + ' two=' + twoOn + ' one=' + oneLeft);
+    }
+  }catch(e){ fail('Generic unread-source app icon badge', e.message); }
+
+  try{
     var prevAuth = window._authUser;
     window._authUser = { id: 'athlete-1' };
     _editingChatMessageId = null;
@@ -23379,10 +23425,11 @@ async function runSEETests(){
     var hasPush = /addEventListener\(['"]push['"]/.test(swText);
     var hasClick = /addEventListener\(['"]notificationclick['"]/.test(swText);
     var hasSubChange = /addEventListener\(['"]pushsubscriptionchange['"]/.test(swText);
-    if(swVer === app_version && cachesShell && skipsApi && noApiCache && typeof registerSEEServiceWorker === 'function' && hasPush && hasClick && hasSubChange){
+    var hasBadge = /setAppBadge/.test(swText) && /clearAppBadge/.test(swText);
+    if(swVer === app_version && cachesShell && skipsApi && noApiCache && typeof registerSEEServiceWorker === 'function' && hasPush && hasClick && hasSubChange && hasBadge){
       pass('PWA service worker versioned shell (no API cache)');
     } else {
-      fail('PWA service worker versioned shell (no API cache)', 'swVer=' + swVer + ' app=' + app_version + ' shell=' + cachesShell + ' apiSkip=' + skipsApi + ' push=' + hasPush + ' click=' + hasClick);
+      fail('PWA service worker versioned shell (no API cache)', 'swVer=' + swVer + ' app=' + app_version + ' shell=' + cachesShell + ' apiSkip=' + skipsApi + ' push=' + hasPush + ' click=' + hasClick + ' badge=' + hasBadge);
     }
   }catch(e){ fail('PWA service worker versioned shell (no API cache)', e.message); }
 
