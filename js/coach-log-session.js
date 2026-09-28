@@ -55,6 +55,7 @@
     }
     var payload = {
       user_id: opts.athleteId,
+      device_id: 'coach:' + String(opts.coachId),
       zone: zone,
       climbing_type: terrain || null,
       route_name: String(opts.routeName || '').trim() || null,

@@ -45,6 +45,7 @@ assert.strictEqual(built.payload.gym_climb_id, 'climb-1');
 assert.strictEqual(built.payload.grade_value, 'V4');
 assert.strictEqual(built.payload.session_notes, 'watched the crux');
 assert.strictEqual(built.payload.zone_confirmed_by_athlete, false);
+assert.strictEqual(built.payload.device_id, 'coach:coach-1');
 
 const again = Log.keepAfterLogAnother({
   zone: 'panic',
