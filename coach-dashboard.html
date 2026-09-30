@@ -196,6 +196,13 @@
   .detail-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
   .detail-title{font-size:22px;font-weight:700;letter-spacing:-.02em;line-height:1.2;}
   .detail-sub{font-size:13px;color:var(--text-secondary);margin-top:4px;}
+  .athlete-share-btn{
+    background:transparent;border:1px solid var(--border);border-radius:8px;
+    padding:7px 12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;
+    font-size:12px;font-weight:700;cursor:pointer;line-height:1.2;flex-shrink:0;
+  }
+  .athlete-share-btn:hover{border-color:var(--accent);background:rgba(232,146,82,.08);}
+  .athlete-share-print-head{display:none;}
   .detail-section{margin-bottom:20px;}
   .detail-section:last-child{margin-bottom:0;}
   .detail-back{
@@ -1115,6 +1122,73 @@
     box-shadow:0 10px 28px rgba(0,0,0,.35);text-align:center;
   }
   #coach-toast.show{display:block;}
+
+  /* Share with athlete — browser print path. Direct file download later if this is clunky. */
+  @media print {
+    @page { margin: 12mm; }
+    html, body {
+      height: auto !important;
+      background: #fff !important;
+      color: #111 !important;
+    }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #login,
+    #topbar,
+    #coach-toast,
+    #coach-log-overlay,
+    #assign-wizard-overlay,
+    #coach-invite-welcome,
+    .page-title,
+    .page-sub,
+    #roster-panel,
+    .detail-stack-bar,
+    .detail-header,
+    #athlete-hub-cards,
+    #coach-log-launch,
+    #athlete-subview,
+    .athlete-share-btn {
+      display: none !important;
+    }
+    #app, #app.visible, #main, .coach-layout, #detail-panel, #athlete-landing, #athlete-share-block {
+      display: block !important;
+      position: static !important;
+      overflow: visible !important;
+      height: auto !important;
+      width: 100% !important;
+      max-width: none !important;
+      inset: auto !important;
+      background: #fff !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+    }
+    #athlete-share-block { color: #111; }
+    .athlete-share-print-head {
+      display: block !important;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #ccc;
+    }
+    .athlete-share-print-name { font-size: 22px; font-weight: 700; color: #111; letter-spacing: -.02em; }
+    .athlete-share-print-date { font-size: 12px; color: #555; margin-top: 4px; }
+    .team-zone-note, .team-zone-label, .roster-stat-label, .insight-chart-title, .insight-legend, .progress-week-lbl {
+      color: #555 !important;
+    }
+    .roster-stat, .insight-panel, .athlete-zone-wrap {
+      background: #fff !important;
+      border-color: #ccc !important;
+      color: #111 !important;
+      break-inside: avoid;
+    }
+    .roster-stat-val { color: #111 !important; }
+    .roster-stat-val.flagged { color: #c62828 !important; }
+    .zone-bar-track { background: #f3f3f3 !important; border-color: #ccc !important; }
+  }
 </style>
 </head>
 <body>
@@ -2733,6 +2807,37 @@
     }
   }
 
+  function athleteShareExportStamp(){
+    return new Date().toLocaleDateString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+  }
+
+  function shareAthleteLandingPrint(){
+    var block = document.getElementById('athlete-share-block');
+    if(!block) return;
+    var nameEl = document.getElementById('athlete-share-print-name');
+    var dateEl = document.getElementById('athlete-share-print-date');
+    var name = (_detailCtx && _detailCtx.athleteLabel) || 'Athlete';
+    var stamp = athleteShareExportStamp();
+    if(nameEl) nameEl.textContent = name;
+    if(dateEl) dateEl.textContent = stamp;
+    var prevTitle = document.title;
+    document.title = name + ' — ' + stamp;
+    document.body.classList.add('coach-printing');
+    var cleaned = false;
+    function cleanup(){
+      if(cleaned) return;
+      cleaned = true;
+      document.body.classList.remove('coach-printing');
+      document.title = prevTitle;
+      window.removeEventListener('afterprint', cleanup);
+    }
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+    setTimeout(cleanup, 1500);
+  }
+
   function showAthleteLanding(){
     _athletePane = null;
     if(window.CoachStackNav){
@@ -2824,6 +2929,7 @@
             '<div class="detail-title">' + escapeHtml(title) + '</div>' +
             sub +
           '</div>' +
+          '<button type="button" class="athlete-share-btn" id="athlete-share-btn">Share with athlete</button>' +
         '</div>' +
         '<div class="see-card-grid" id="athlete-hub-cards">' +
           athleteHubCardHtml('assignments', 'Plan', 'Assignments', 'hub-assign-sub', 'Open plans') +
@@ -2838,27 +2944,33 @@
           '<span><span>Log a climb</span><span class="assign-launch-sub">Drag the dial, then save</span></span>' +
           '<span class="assign-launch-arrow">→</span>' +
         '</button>' +
-        '<div class="roster-stats">' +
-          '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-sessions">—</div><div class="roster-stat-label">Sessions</div></div>' +
-          '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-learning">—</div><div class="roster-stat-label">Learning</div></div>' +
-        '</div>' +
-        '<div class="roster-insights" style="grid-template-columns:1fr;">' +
-          '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-panic">—</div><div class="roster-stat-label">Panic this week</div></div>' +
-        '</div>' +
-        '<div class="athlete-zone-wrap">' +
-          '<div class="team-zone-label">Zone mix</div>' +
-          '<div id="athlete-zone-bar"><div class="zone-bar-empty">Loading···</div></div>' +
-          '<div class="team-zone-note">Share of this athlete\'s logged Activation-band sessions. Descriptive only.</div>' +
-        '</div>' +
-        '<div class="insight-panel" id="athlete-progress-panel">' +
-          '<div class="team-zone-label">Progress over time</div>' +
-          '<div class="team-zone-note">Mental-zone mix and grade by terrain on the same 12-week local-calendar axis (same clock as the journal). The gap panel is all-time by terrain — same logs, different slice. Descriptive — not a cause-and-effect read.</div>' +
-          '<div id="athlete-progress-body"><div class="zone-bar-empty">Loading···</div></div>' +
-        '</div>' +
-        '<div class="insight-panel" id="athlete-gap-panel">' +
-          '<div class="team-zone-label">Where\'s the gap?</div>' +
-          '<div class="team-zone-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
-          '<div id="athlete-gap-body"><div class="zone-bar-empty">Loading···</div></div>' +
+        '<div id="athlete-share-block">' +
+          '<div class="athlete-share-print-head">' +
+            '<div class="athlete-share-print-name" id="athlete-share-print-name">' + escapeHtml(title) + '</div>' +
+            '<div class="athlete-share-print-date" id="athlete-share-print-date"></div>' +
+          '</div>' +
+          '<div class="roster-stats">' +
+            '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-sessions">—</div><div class="roster-stat-label">Sessions</div></div>' +
+            '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-learning">—</div><div class="roster-stat-label">Learning</div></div>' +
+          '</div>' +
+          '<div class="roster-insights" style="grid-template-columns:1fr;">' +
+            '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-panic">—</div><div class="roster-stat-label">Panic this week</div></div>' +
+          '</div>' +
+          '<div class="athlete-zone-wrap">' +
+            '<div class="team-zone-label">Zone mix</div>' +
+            '<div id="athlete-zone-bar"><div class="zone-bar-empty">Loading···</div></div>' +
+            '<div class="team-zone-note">Share of this athlete\'s logged Activation-band sessions. Descriptive only.</div>' +
+          '</div>' +
+          '<div class="insight-panel" id="athlete-progress-panel">' +
+            '<div class="team-zone-label">Progress over time</div>' +
+            '<div class="team-zone-note">Mental-zone mix and grade by terrain on the same 12-week local-calendar axis (same clock as the journal). The gap panel is all-time by terrain — same logs, different slice. Descriptive — not a cause-and-effect read.</div>' +
+            '<div id="athlete-progress-body"><div class="zone-bar-empty">Loading···</div></div>' +
+          '</div>' +
+          '<div class="insight-panel" id="athlete-gap-panel">' +
+            '<div class="team-zone-label">Where\'s the gap?</div>' +
+            '<div class="team-zone-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
+            '<div id="athlete-gap-body"><div class="zone-bar-empty">Loading···</div></div>' +
+          '</div>' +
         '</div>' +
       '</div>' +
       '<div id="athlete-subview" style="display:none;">' +
@@ -2882,6 +2994,10 @@
       logLaunch.addEventListener('click', function(){
         openCoachLogOverlay();
       });
+    }
+    var shareBtn = document.getElementById('athlete-share-btn');
+    if(shareBtn){
+      shareBtn.addEventListener('click', shareAthleteLandingPrint);
     }
     Array.prototype.forEach.call(detailEl.querySelectorAll('#athlete-hub-cards .see-card'), function(btn){
       btn.addEventListener('click', function(){
