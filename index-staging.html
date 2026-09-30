@@ -5468,7 +5468,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index276'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index277'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -7843,6 +7843,7 @@ function logFlowContinueFromTerrain(){
 }
 
 function logFlowContinueFromDetails(){
+  collectLogDetailsPayload();
   showScreen('screen-log-grade');
   updateLogFlowProgress(5);
   buildGradeGrid(logState.gradeSys || 'YDS');
@@ -7945,6 +7946,7 @@ function refreshLogDetailsPanels(){
 }
 
 var _recentGymNames = null;
+var _recentGymFetched = false;
 
 function uniqueRecentGymNames(rows, limit){
   var seen = {};
@@ -7968,7 +7970,7 @@ function rememberRecentGymName(name){
 }
 
 async function loadRecentGymNames(){
-  if(_recentGymNames) return _recentGymNames;
+  if(_recentGymFetched) return _recentGymNames || [];
   var params;
   if(window._authUser && window._authUser.id){
     params = 'select=gym_name,created_at&user_id=eq.' + window._authUser.id + '&gym_name=not.is.null&deleted_at=is.null&order=created_at.desc&limit=40';
@@ -7976,7 +7978,14 @@ async function loadRecentGymNames(){
     params = 'select=gym_name,created_at&device_id=eq.' + getDeviceId() + '&gym_name=not.is.null&deleted_at=is.null&order=created_at.desc&limit=40';
   }
   var rows = await sbS('sessions', params);
-  _recentGymNames = uniqueRecentGymNames(rows, 5);
+  var fromDb = uniqueRecentGymNames(rows, 5);
+  // Keep any names remembered this page-session (typed before the fetch
+  // returned) ahead of DB recents, then cap at 5.
+  _recentGymNames = uniqueRecentGymNames(
+    (_recentGymNames || []).concat(fromDb).map(function(n){ return { gym_name: n }; }),
+    5
+  );
+  _recentGymFetched = true;
   return _recentGymNames;
 }
 
