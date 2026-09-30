@@ -976,6 +976,27 @@
   .aw-lib-results{
     max-height:min(42vh,320px);overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;
   }
+  .aw-pinned-block{margin-bottom:12px;}
+  .aw-pinned-list{display:flex;flex-direction:column;gap:8px;max-height:min(28vh,220px);overflow-y:auto;}
+  .aw-lib-row{display:flex;flex-direction:column;gap:2px;}
+  .aw-lib-row-actions{
+    display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:0 2px 8px;
+  }
+  .aw-pin-btn,.aw-edit-custom-link,.aw-dup-custom-link{
+    background:none;border:none;color:var(--text-secondary);font-size:11px;font-weight:700;
+    cursor:pointer;padding:2px 0;font-family:'Space Grotesk',sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .aw-pin-btn.is-on{color:var(--accent);}
+  .aw-chip-focus-note{
+    display:block;font-size:12px;font-weight:500;color:var(--text-secondary);margin-top:4px;font-style:italic;line-height:1.35;
+  }
+  .aw-pin-note-edit{width:100%;margin-top:2px;}
+  .aw-pin-note-edit textarea{
+    width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:10px;
+    padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;resize:vertical;min-height:56px;
+  }
+  .aw-pin-note-edit textarea:focus{outline:none;border-color:var(--accent);}
   .aw-section-up,.aw-section-down,.edit-cw-section-up,.edit-cw-section-down{
     background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);
     cursor:pointer;padding:6px 9px;font-family:inherit;
@@ -4621,6 +4642,8 @@
 
   var _assignWizard = null;
   var _assignWizardCtx = null;
+  var _coachPinnedWorkoutsCache = [];
+  var _editingPinNoteKey = null;
 
   function resetAssignWizard(){
     _assignWizard = {
@@ -4646,6 +4669,7 @@
       quickMode: false
     };
     _coachLibSelectedId = null;
+    _editingPinNoteKey = null;
   }
 
   function parseAssignWizardDurationSec(raw){
@@ -5186,6 +5210,232 @@
     });
   }
 
+  function wizardLibraryItemSource(item){
+    return item && item._source === 'custom' ? 'custom' : 'foundational';
+  }
+
+  function pinItemKey(itemId, source){
+    return String(itemId || '') + '::' + (source === 'custom' ? 'custom' : 'foundational');
+  }
+
+  function findCoachPinnedWorkout(itemId, source){
+    var src = source === 'custom' ? 'custom' : 'foundational';
+    return (_coachPinnedWorkoutsCache || []).find(function(p){
+      return p && p.item_id === itemId && p.item_source === src;
+    }) || null;
+  }
+
+  function isPinnedTableMissing(err){
+    return !!(err && (err.code === 'PGRST205' || /coach_athlete_pinned_workouts/.test(String(err.message || ''))));
+  }
+
+  function loadCoachPinnedWorkouts(){
+    var ctx = _assignWizardCtx;
+    if(!ctx || !ctx.token || !ctx.coachUser || !ctx.athleteId){
+      _coachPinnedWorkoutsCache = [];
+      return Promise.resolve([]);
+    }
+    return sbSelect(
+      ctx.token,
+      'coach_athlete_pinned_workouts',
+      'select=id,coach_id,athlete_id,item_id,item_source,focus_note,created_at,updated_at' +
+        '&coach_id=eq.' + encodeURIComponent(ctx.coachUser.id) +
+        '&athlete_id=eq.' + encodeURIComponent(ctx.athleteId) +
+        '&order=updated_at.desc'
+    ).then(function(rows){
+      _coachPinnedWorkoutsCache = Array.isArray(rows) ? rows : [];
+      return _coachPinnedWorkoutsCache;
+    }).catch(function(err){
+      _coachPinnedWorkoutsCache = [];
+      if(!isPinnedTableMissing(err)){
+        console.warn('[pinned workouts]', err && err.message);
+      }
+      return [];
+    });
+  }
+
+  function pinTableMissingMsg(){
+    return 'Could not save pin. Apply sql/coach-athlete-pinned-workouts.sql if this is a first run.';
+  }
+
+  function postCoachPinnedWorkout(body){
+    var ctx = _assignWizardCtx;
+    if(!ctx) return Promise.reject({ message: 'Not signed in.' });
+    return fetch(SB_URL + '/rest/v1/coach_athlete_pinned_workouts', {
+      method: 'POST',
+      headers: Object.assign(sbHeaders(ctx.token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify(body)
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      return res.json().then(function(rows){ return Array.isArray(rows) ? rows[0] : rows; });
+    });
+  }
+
+  function toggleWizardLibraryPin(item){
+    var ctx = _assignWizardCtx;
+    if(!ctx || !item) return Promise.resolve();
+    var src = wizardLibraryItemSource(item);
+    var existing = findCoachPinnedWorkout(item.id, src);
+    var req;
+    if(existing && existing.id){
+      req = fetch(SB_URL + '/rest/v1/coach_athlete_pinned_workouts?id=eq.' + encodeURIComponent(existing.id) +
+        '&coach_id=eq.' + encodeURIComponent(ctx.coachUser.id), {
+        method: 'DELETE',
+        headers: sbHeaders(ctx.token)
+      }).then(function(res){
+        if(!res.ok) return res.json().then(function(err){ throw err; });
+      });
+    } else {
+      req = postCoachPinnedWorkout({
+        coach_id: ctx.coachUser.id,
+        athlete_id: ctx.athleteId,
+        item_id: item.id,
+        item_source: src,
+        focus_note: null
+      });
+    }
+    return req.then(function(){
+      if(existing) _editingPinNoteKey = null;
+      return loadCoachPinnedWorkouts();
+    }).then(function(){
+      renderWizardLibraryResults(_wizardLibRenderOpts || { scope: 'all', showPathMeta: true });
+    }).catch(function(err){
+      showCoachToast(isPinnedTableMissing(err) ? pinTableMissingMsg() : ('Could not update pin. ' + friendlyErrorMessage(err, 'Try again.')));
+    });
+  }
+
+  function saveWizardPinFocusNote(itemId, source){
+    var ctx = _assignWizardCtx;
+    var pin = findCoachPinnedWorkout(itemId, source);
+    var ta = document.getElementById('aw-pin-note-ta');
+    if(!ctx || !pin || !pin.id) return Promise.resolve();
+    var note = ta ? ta.value.trim() : '';
+    return fetch(SB_URL + '/rest/v1/coach_athlete_pinned_workouts?id=eq.' + encodeURIComponent(pin.id) +
+      '&coach_id=eq.' + encodeURIComponent(ctx.coachUser.id), {
+      method: 'PATCH',
+      headers: Object.assign(sbHeaders(ctx.token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ focus_note: note || null, updated_at: new Date().toISOString() })
+    }).then(function(res){
+      if(!res.ok) return res.json().then(function(err){ throw err; });
+      _editingPinNoteKey = null;
+      return loadCoachPinnedWorkouts();
+    }).then(function(){
+      renderWizardLibraryResults(_wizardLibRenderOpts || { scope: 'all', showPathMeta: true });
+    }).catch(function(err){
+      showCoachToast('Could not save note. ' + friendlyErrorMessage(err, 'Try again.'));
+    });
+  }
+
+  function sectionsFromLibraryItem(item){
+    var raw = item && item.sections;
+    if(typeof raw === 'string'){
+      try{ raw = JSON.parse(raw); }catch(e){ raw = []; }
+    }
+    if(!Array.isArray(raw)) return [];
+    return raw.map(function(s, i){
+      return {
+        id: 'sec-dup-' + i + '-' + Date.now(),
+        label: (s && s.label) || '',
+        duration_sec: parseAssignWizardDurationSec(s && s.duration_sec),
+        exercises: hydrateAssignWizardExercises(s && s.exercises)
+      };
+    });
+  }
+
+  function duplicateCoachCustomWorkout(item){
+    var ctx = _assignWizardCtx;
+    if(!ctx || !item || item._source !== 'custom') return;
+    var prevSections = _assignWizard && _assignWizard.sections;
+    _assignWizard.sections = sectionsFromLibraryItem(item);
+    var sections = cleanedAssignWizardSections();
+    _assignWizard.sections = prevSections;
+    var baseName = String(item.name || 'Workout').trim() || 'Workout';
+    createCoachCustomWorkout(ctx.token, ctx.coachUser, {
+      trainingFocus: item._focus || itemTrainingFocus(item) || item.training_focus,
+      name: / \(copy\)$/.test(baseName) ? baseName : (baseName + ' (copy)'),
+      description: item.description || null,
+      sections: sections
+    }).then(function(row){
+      if(!row || !row.id) throw { message: 'Duplicate returned no id' };
+      return loadCoachWorkoutLibrary(ctx.token).then(function(rows){
+        _coachLibCache = Array.isArray(rows) ? rows : [];
+        var created = _coachLibCache.find(function(r){ return r.id === row.id && r._source === 'custom'; });
+        showCoachToast('Duplicated. Tweak the copy — the original is unchanged.');
+        if(created) enterEditCustomWorkout(created);
+      });
+    }).catch(function(err){
+      showCoachToast('Could not duplicate. ' + friendlyErrorMessage(err, 'Try again.'));
+    });
+  }
+
+  function wizardLibraryRowHtml(item, opts){
+    opts = opts || {};
+    var src = wizardLibraryItemSource(item);
+    var pin = findCoachPinnedWorkout(item.id, src);
+    var pinned = !!pin;
+    var selected = src === 'custom'
+      ? (item.id === _assignWizard.customWorkoutItemId ? ' selected' : '')
+      : (item.id === _assignWizard.libraryItemId ? ' selected' : '');
+    var meta = '';
+    if(opts.showPathMeta){
+      meta = escapeHtml(item._focus || coachLibFocusLabel(item.training_focus) || item.category || '');
+    } else {
+      var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
+      if(snippet.length > 100) snippet = snippet.slice(0, 100) + '…';
+      meta = escapeHtml(snippet);
+    }
+    var focusNote = pin && pin.focus_note ? String(pin.focus_note).trim() : '';
+    var noteKey = pinItemKey(item.id, src);
+    var editingNote = pinned && _editingPinNoteKey === noteKey;
+    var canEdit = src === 'custom' && _assignWizardCtx && item.created_by === _assignWizardCtx.coachUser.id;
+    var canPin = !!(!isWarmUpLibraryItem(item) && _assignWizardCtx && _assignWizardCtx.athleteId);
+    var chip = '<button type="button" class="aw-chip' + selected + '" data-id="' + escapeHtml(item.id) +
+      '" data-source="' + src + '">' +
+      escapeHtml(item.name) + sourceBadgeHtml(item) +
+      (meta ? '<span class="aw-chip-meta">' + meta + '</span>' : '') +
+      (focusNote && !editingNote ? '<span class="aw-chip-focus-note">' + escapeHtml(focusNote) + '</span>' : '') +
+    '</button>';
+    var actions = '';
+    if(canPin){
+      actions += '<button type="button" class="aw-pin-btn' + (pinned ? ' is-on' : '') +
+        '" data-pin-id="' + escapeHtml(item.id) + '" data-pin-source="' + src +
+        '" aria-pressed="' + (pinned ? 'true' : 'false') + '">' + (pinned ? 'Pinned' : 'Pin') + '</button>';
+    }
+    if(canEdit){
+      actions += '<button type="button" class="aw-edit-custom-link" data-edit-id="' + escapeHtml(item.id) + '">Edit this workout</button>';
+      actions += '<button type="button" class="aw-dup-custom-link" data-dup-id="' + escapeHtml(item.id) + '">Duplicate</button>';
+    }
+    if(pinned && !editingNote){
+      actions += '<button type="button" class="aw-edit-custom-link" data-pin-note-edit="' + escapeHtml(item.id) +
+        '" data-pin-note-source="' + src + '">Edit note</button>';
+    }
+    var noteEdit = '';
+    if(editingNote){
+      noteEdit = '<div class="aw-pin-note-edit">' +
+        '<textarea id="aw-pin-note-ta" rows="2" placeholder="Skills to focus on — private to you">' +
+          escapeHtml(focusNote) + '</textarea>' +
+        '<div class="goal-actions">' +
+          '<button type="button" class="assign-edit-btn" data-pin-note-save="' + escapeHtml(item.id) +
+            '" data-pin-note-source="' + src + '">Save</button>' +
+          '<button type="button" class="btn-cancel" data-pin-note-cancel="1">Cancel</button>' +
+        '</div></div>';
+    }
+    return '<div class="aw-lib-row" data-id="' + escapeHtml(item.id) + '" data-source="' + src + '">' +
+      chip +
+      '<div class="aw-lib-row-actions">' + actions + '</div>' +
+      noteEdit +
+    '</div>';
+  }
+
+  function pinnedWizardLibraryItems(){
+    return (_coachPinnedWorkoutsCache || []).map(function(pin){
+      var src = pin.item_source === 'custom' ? 'custom' : 'foundational';
+      return (_coachLibCache || []).find(function(item){
+        return item.id === pin.item_id && wizardLibraryItemSource(item) === src && !isWarmUpLibraryItem(item);
+      }) || null;
+    }).filter(Boolean);
+  }
+
   function applyWizardLibraryPick(item){
     if(!item || !_assignWizard) return;
     if(isWarmUpLibraryItem(item)) return;
@@ -5246,43 +5496,64 @@
     goAssignWizardStep(2);
   }
 
+  var _wizardLibRenderOpts = null;
+
   function renderWizardLibraryResults(opts){
     opts = opts || {};
     var scope = opts.scope || 'focus';
     var showPathMeta = !!opts.showPathMeta;
     var resultsEl = document.getElementById('new-a-lib-results');
+    var pinnedEl = document.getElementById('new-a-lib-pinned');
     var searchEl = document.getElementById('new-a-lib-search');
     if(!resultsEl || !_assignWizard) return;
     var query = searchEl ? searchEl.value : '';
+    var q = (query || '').trim();
+    var showPinned = scope === 'all' && !q;
+    var rowOpts = { showPathMeta: showPathMeta };
+    if(pinnedEl){
+      if(showPinned){
+        var pinnedItems = pinnedWizardLibraryItems();
+        var who = (_assignWizardCtx && _assignWizardCtx.athleteLabel) || 'this athlete';
+        pinnedEl.innerHTML = pinnedItems.length
+          ? ('<div class="aw-pinned-block">' +
+              '<div class="aw-section-label">Pinned for ' + escapeHtml(who) + '</div>' +
+              '<div class="aw-pinned-list">' +
+                pinnedItems.map(function(item){ return wizardLibraryRowHtml(item, rowOpts); }).join('') +
+              '</div></div>')
+          : '';
+      } else {
+        pinnedEl.innerHTML = '';
+      }
+    }
     var rows = filterWizardLibraryResults(query, scope);
+    if(showPinned){
+      rows = rows.filter(function(item){
+        return !findCoachPinnedWorkout(item.id, wizardLibraryItemSource(item));
+      });
+    }
     if(!rows.length){
-      resultsEl.innerHTML = '<div class="empty-state">No workouts match this search.</div>';
+      resultsEl.innerHTML = (showPinned && pinnedWizardLibraryItems().length)
+        ? ''
+        : '<div class="empty-state">No workouts match this search.</div>';
       return;
     }
-    resultsEl.innerHTML = rows.map(function(item){
-      var src = item._source === 'custom' ? 'custom' : 'foundational';
-      var selected = src === 'custom'
-        ? (item.id === _assignWizard.customWorkoutItemId ? ' selected' : '')
-        : (item.id === _assignWizard.libraryItemId ? ' selected' : '');
-      var meta = '';
-      if(showPathMeta){
-        meta = escapeHtml(item._focus || coachLibFocusLabel(item.training_focus) || item.category || '');
-      } else {
-        var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
-        if(snippet.length > 100) snippet = snippet.slice(0, 100) + '…';
-        meta = escapeHtml(snippet);
-      }
-      var canEdit = src === 'custom' && _assignWizardCtx && item.created_by === _assignWizardCtx.coachUser.id;
-      return '<button type="button" class="aw-chip' + selected + '" data-id="' + escapeHtml(item.id) +
-        '" data-source="' + src + '">' +
-        escapeHtml(item.name) + sourceBadgeHtml(item) +
-        (meta ? '<span class="aw-chip-meta">' + meta + '</span>' : '') +
-      '</button>' +
-      (canEdit ? '<button type="button" class="aw-edit-custom-link" data-edit-id="' + escapeHtml(item.id) + '" style="background:none;border:none;color:var(--text-secondary);font-size:11px;cursor:pointer;padding:2px 0 10px;display:block;">Edit this workout</button>' : '');
+    var catalogLabel = showPinned
+      ? '<div class="aw-section-label">All workouts</div>'
+      : '';
+    resultsEl.innerHTML = catalogLabel + rows.map(function(item){
+      return wizardLibraryRowHtml(item, rowOpts);
     }).join('');
   }
 
+  function findWizardLibItem(id, src){
+    src = src === 'custom' ? 'custom' : 'foundational';
+    return (_coachLibCache || []).find(function(r){
+      return r.id === id && wizardLibraryItemSource(r) === src;
+    }) || null;
+  }
+
   function wireWizardSearchResults(scope){
+    var wrap = document.getElementById('new-a-lib-wrap') || document.getElementById('new-a-lib-results');
     var resultsEl = document.getElementById('new-a-lib-results');
     var searchEl = document.getElementById('new-a-lib-search');
     if(!resultsEl || !searchEl) return;
@@ -5290,25 +5561,51 @@
       scope: scope,
       showPathMeta: scope === 'all'
     };
+    _wizardLibRenderOpts = opts;
     renderWizardLibraryResults(opts);
     searchEl.addEventListener('input', function(){
       renderWizardLibraryResults(opts);
     });
-    resultsEl.addEventListener('click', function(e){
-      var editBtn = e.target.closest('.aw-edit-custom-link');
-      if(editBtn){
-        var editId = editBtn.getAttribute('data-edit-id');
-        var item = _coachLibCache.find(function(r){ return r.id === editId && r._source === 'custom'; });
-        if(item) enterEditCustomWorkout(item);
+    wrap.addEventListener('click', function(e){
+      var pinBtn = e.target.closest('.aw-pin-btn');
+      if(pinBtn){
+        var pinItem = findWizardLibItem(pinBtn.getAttribute('data-pin-id'), pinBtn.getAttribute('data-pin-source'));
+        if(pinItem) toggleWizardLibraryPin(pinItem);
+        return;
+      }
+      var noteEdit = e.target.closest('[data-pin-note-edit]');
+      if(noteEdit){
+        _editingPinNoteKey = pinItemKey(noteEdit.getAttribute('data-pin-note-edit'), noteEdit.getAttribute('data-pin-note-source'));
+        renderWizardLibraryResults(opts);
+        var ta = document.getElementById('aw-pin-note-ta');
+        if(ta) ta.focus();
+        return;
+      }
+      var noteSave = e.target.closest('[data-pin-note-save]');
+      if(noteSave){
+        saveWizardPinFocusNote(noteSave.getAttribute('data-pin-note-save'), noteSave.getAttribute('data-pin-note-source'));
+        return;
+      }
+      if(e.target.closest('[data-pin-note-cancel]')){
+        _editingPinNoteKey = null;
+        renderWizardLibraryResults(opts);
+        return;
+      }
+      var dupBtn = e.target.closest('[data-dup-id]');
+      if(dupBtn){
+        var dupItem = findWizardLibItem(dupBtn.getAttribute('data-dup-id'), 'custom');
+        if(dupItem) duplicateCoachCustomWorkout(dupItem);
+        return;
+      }
+      var editBtn = e.target.closest('[data-edit-id]');
+      if(editBtn && editBtn.classList.contains('aw-edit-custom-link')){
+        var editItem = findWizardLibItem(editBtn.getAttribute('data-edit-id'), 'custom');
+        if(editItem) enterEditCustomWorkout(editItem);
         return;
       }
       var btn = e.target.closest('.aw-chip');
       if(!btn) return;
-      var id = btn.getAttribute('data-id');
-      var src = btn.getAttribute('data-source') || 'foundational';
-      var item = _coachLibCache.find(function(r){
-        return r.id === id && (r._source === 'custom' ? 'custom' : 'foundational') === src;
-      });
+      var item = findWizardLibItem(btn.getAttribute('data-id'), btn.getAttribute('data-source'));
       if(!item) return;
       if(scope === 'focus' && item._focus !== normalizeTrainingFocus(_assignWizard.trainingFocus)) return;
       applyWizardLibraryPick(item);
@@ -5534,7 +5831,10 @@
       body.innerHTML =
         '<div class="aw-field"><label for="new-a-lib-search">Search all workouts by name</label>' +
           '<input id="new-a-lib-search" type="text" placeholder="e.g. EMOM, Repeaters, Campus" autocomplete="off"></div>' +
-        '<div id="new-a-lib-results" class="aw-lib-results"></div>' +
+        '<div id="new-a-lib-wrap">' +
+          '<div id="new-a-lib-pinned"></div>' +
+          '<div id="new-a-lib-results" class="aw-lib-results"></div>' +
+        '</div>' +
         '<button type="button" class="aw-create-chip" id="wiz-create-custom">' +
           'Create a custom workout' +
           '<span class="aw-chip-meta">Add your own workout, then assign it</span>' +
@@ -6073,8 +6373,11 @@
     if(body) body.innerHTML = '<div class="empty-state">Loading workouts…</div>';
     setAssignWizardChrome('Loading workouts…', 'Pulling foundational catalog and custom workouts.');
     setAssignWizardFooter('');
-    loadCoachWorkoutLibrary(ctx.token).then(function(rows){
-      _coachLibCache = Array.isArray(rows) ? rows : [];
+    Promise.all([
+      loadCoachWorkoutLibrary(ctx.token),
+      loadCoachPinnedWorkouts()
+    ]).then(function(parts){
+      _coachLibCache = Array.isArray(parts[0]) ? parts[0] : [];
       renderAssignWizardBody();
     }).catch(function(err){
       _assignWizard.libLoadError = (err && err.message) || 'unknown error';
@@ -6119,6 +6422,7 @@
     if(body) body.innerHTML = '<div class="empty-state">Loading workouts…</div>';
     setAssignWizardChrome('Loading workouts…', 'Pulling foundational catalog and custom workouts.');
     setAssignWizardFooter('');
+    loadCoachPinnedWorkouts();
     loadCoachWorkoutLibrary(ctx.token).then(function(rows){
       _coachLibCache = Array.isArray(rows) ? rows : [];
       var item = findLibItemForAssignment(assignment);
