@@ -1344,6 +1344,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <input id="auth-last-name" type="text" placeholder="Last name" autocomplete="family-name"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:13px 14px;outline:none;box-sizing:border-box;">
       </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px;">
+        <input type="checkbox" id="auth-terms-checkbox" style="margin-top:2px;">
+        <span>I agree to the
+          <a href="/sharp-end-exposure/terms.html" target="_blank">Terms of Service</a>, including the assumption-of-risk and feedback-license sections.</span>
+      </label>
       <button onclick="authSignUp()"
         style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:15px;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-bottom:20px;">
         Create account
@@ -3356,6 +3361,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin-top:8px;margin-bottom:16px;">
       <textarea id="profile-feedback-text" placeholder="What's on your mind? Bugs, ideas, anything about the app."
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px 14px;outline:none;resize:none;min-height:80px;line-height:1.6;box-sizing:border-box;margin-bottom:10px;"></textarea>
+      <div class="feedback-license-note" style="font-size:11px;color:var(--muted2);margin-top:6px;">
+        By submitting, you agree feedback becomes Straydog Labs' to use -- see
+        <a href="/sharp-end-exposure/terms.html#feedback" target="_blank">Terms, Feedback section</a>.
+      </div>
       <button onclick="submitProfileFeedback()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:11px 24px;cursor:pointer;">Send →</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
@@ -5462,7 +5471,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index275'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index276'; // keep in sync with APP_VERSION in sw.js
+var SEE_TERMS_VERSION = 'July 2026'; // bump when terms.html "Last updated" date changes
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -16271,6 +16281,12 @@ var FBQs=[
   {q:'Anything else to share?',opts:null,type:'text',optional:true,placeholder:'Bugs, ideas, what surprised you...'}
 ];
 var fbIdx=0;var fbAnswers={};
+var FEEDBACK_LICENSE_NOTE_HTML = '<div class="feedback-license-note" style="font-size:11px;color:var(--muted2);margin-top:6px;">By submitting, you agree feedback becomes Straydog Labs\' to use -- see <a href="/sharp-end-exposure/terms.html#feedback" target="_blank">Terms, Feedback section</a>.</div>';
+function mountFeedbackLicenseNote(host){
+  if(!host) return;
+  if(host.querySelector('.feedback-license-note')) return;
+  host.insertAdjacentHTML('beforeend', FEEDBACK_LICENSE_NOTE_HTML);
+}
 function initFeedback(){
   var done=localStorage.getItem('see_feedback_complete');
   if(done){
@@ -16282,9 +16298,11 @@ function initFeedback(){
     // Update quick placeholder
     var ta=document.getElementById('fb-quick-text');
     if(ta)ta.placeholder='What\'s on your mind? A bug, idea, or anything you noticed.';
+    mountFeedbackLicenseNote(fbQuick || (ta && ta.parentNode));
     return;
   }
   fbIdx=0;fbAnswers={};renderFBQ();
+  mountFeedbackLicenseNote(document.getElementById('fb-content'));
 }
 function renderFBQ(){
   var q=FBQs[fbIdx];if(!q)return;
@@ -16299,7 +16317,7 @@ function renderFBQ(){
   if(opts){
     if(q.type==='text'){
       var placeholder=q.placeholder||'Your thoughts...';
-      opts.innerHTML='<textarea class="fb-textarea" id="fb-text-ans" placeholder="'+placeholder+'"></textarea>';
+      opts.innerHTML='<textarea class="fb-textarea" id="fb-text-ans" placeholder="'+placeholder+'"></textarea>'+FEEDBACK_LICENSE_NOTE_HTML;
       if(nextBtn)nextBtn.classList.add('ready');
       if(q.optional){
         var skipBtn=document.createElement('button');
@@ -20356,6 +20374,52 @@ async function runSEETests(){
   }catch(e){ fail('Sign-up requires first and last name', e.message); }
 
   try{
+    setAuthMode('signup');
+    document.getElementById('auth-first-name').value = 'Ada';
+    document.getElementById('auth-last-name').value = 'Lovelace';
+    document.getElementById('auth-email').value = 'ada@example.com';
+    document.getElementById('auth-password').value = 'password123';
+    var termsEl = document.getElementById('auth-terms-checkbox');
+    var label = termsEl && termsEl.closest('label');
+    var labelOk = !!(termsEl && label && /Terms of Service/.test(label.textContent || '')
+      && /assumption-of-risk/.test(label.textContent || '')
+      && /feedback-license/.test(label.textContent || ''));
+    if(termsEl) termsEl.checked = false;
+    clearAuthError();
+    var origSignUpGate = supabaseClient && supabaseClient.auth ? supabaseClient.auth.signUp : null;
+    var signUpCalled = false;
+    if(supabaseClient && supabaseClient.auth){
+      supabaseClient.auth.signUp = async function(){ signUpCalled = true; return { data: {}, error: null }; };
+    }
+    authSignUp();
+    var errEl = document.getElementById('auth-error');
+    var blockedTerms = errEl && errEl.style.display !== 'none'
+      && /Please agree to the Terms of Service to continue/i.test(errEl.textContent || '')
+      && !signUpCalled;
+    if(supabaseClient && supabaseClient.auth) supabaseClient.auth.signUp = origSignUpGate;
+    var profileNote = document.querySelector('#screen-profile-feedback .feedback-license-note a[href$="#feedback"]');
+    var noteOk = !!(profileNote && /Terms, Feedback section/.test(profileNote.textContent || ''));
+    var srcOk = /terms_accepted_at/.test(String(authSignUp))
+      && /SEE_TERMS_VERSION/.test(String(authSignUp))
+      && /terms_version/.test(String(flushPendingProfile))
+      && typeof mountFeedbackLicenseNote === 'function'
+      && /terms\.html#feedback/.test(FEEDBACK_LICENSE_NOTE_HTML);
+    if(labelOk && blockedTerms && noteOk && srcOk){
+      pass('Sign-up requires Terms checkbox and records terms_accepted_at');
+    } else {
+      fail('Sign-up requires Terms checkbox and records terms_accepted_at',
+        'label=' + labelOk + ' blocked=' + blockedTerms + ' note=' + noteOk + ' src=' + srcOk);
+    }
+    clearAuthError();
+    if(termsEl) termsEl.checked = false;
+    document.getElementById('auth-first-name').value = '';
+    document.getElementById('auth-last-name').value = '';
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+    setAuthMode('signin');
+  }catch(e){ fail('Sign-up requires Terms checkbox and records terms_accepted_at', e.message); }
+
+  try{
     var origHref = location.href;
     var origInvite = null;
     var origPendingProfile = null;
@@ -20446,6 +20510,8 @@ async function runSEETests(){
     document.getElementById('auth-last-name').value = 'Lovelace';
     document.getElementById('auth-email').value = 'ada@example.com';
     document.getElementById('auth-password').value = 'password123';
+    var termsBox = document.getElementById('auth-terms-checkbox');
+    if(termsBox) termsBox.checked = true;
     window._authUser = null;
     window._authToken = null;
     await authSignUp();
@@ -20467,6 +20533,7 @@ async function runSEETests(){
     var pendingObj = null;
     try{ pendingObj = pendingRaw ? JSON.parse(pendingRaw) : null; }catch(e){}
     var stashedEmail = pendingObj && pendingObj.invite_token === 'tok-email' && pendingObj.user_id === 'u-bob'
+      && pendingObj.terms_version === SEE_TERMS_VERSION && !!pendingObj.terms_accepted_at
       && readPendingInvite() === 'tok-email' && rpcCalls.length === 0;
     window._authUser = { id: 'u-bob' };
     window._authToken = 'jwt-bob';
@@ -24283,6 +24350,8 @@ async function authSignUp(){
   if(!firstName||!lastName){ showAuthError('First name and last name required'); return; }
   if(!email||!password){ showAuthError('Email and password required'); return; }
   if(password.length < 6){ showAuthError('Password must be at least 6 characters'); return; }
+  var termsCb = document.getElementById('auth-terms-checkbox');
+  if(!termsCb || !termsCb.checked){ showAuthError('Please agree to the Terms of Service to continue'); return; }
   var btn = document.querySelector('#screen-auth button[onclick="authSignUp()"]');
   if(btn){ btn.textContent = 'Creating account...'; btn.style.opacity = '.7'; }
   var res = await supabaseClient.auth.signUp({email:email, password:password});
@@ -24299,7 +24368,9 @@ async function authSignUp(){
       var profilePayload = {
         user_id: res.data.user.id,
         first_name: firstName,
-        last_name: lastName
+        last_name: lastName,
+        terms_accepted_at: new Date().toISOString(),
+        terms_version: SEE_TERMS_VERSION
       };
       var inviteToken = readPendingInvite();
       if(inviteToken) profilePayload.invite_token = inviteToken;
@@ -24310,7 +24381,9 @@ async function authSignUp(){
         var profileSaved = await sbI('profiles', {
           user_id: profilePayload.user_id,
           first_name: profilePayload.first_name,
-          last_name: profilePayload.last_name
+          last_name: profilePayload.last_name,
+          terms_accepted_at: profilePayload.terms_accepted_at,
+          terms_version: profilePayload.terms_version
         });
         if(sbFailed(profileSaved)){
           console.error('[authSignUp] profiles insert failed');
@@ -24339,11 +24412,14 @@ async function flushPendingProfile(){
   }
   if(pending && pending.user_id && pending.first_name && pending.last_name){
     if(!(window._authUser && window._authUser.id && pending.user_id !== window._authUser.id)){
-      var saved = await sbI('profiles', {
+      var profileRow = {
         user_id: pending.user_id,
         first_name: pending.first_name,
         last_name: pending.last_name
-      });
+      };
+      if(pending.terms_accepted_at) profileRow.terms_accepted_at = pending.terms_accepted_at;
+      if(pending.terms_version) profileRow.terms_version = pending.terms_version;
+      var saved = await sbI('profiles', profileRow);
       if(!sbFailed(saved)){
         try{ sessionStorage.removeItem('see_pending_profile'); }catch(e){}
       } else {
