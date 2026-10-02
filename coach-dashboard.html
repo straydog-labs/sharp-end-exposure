@@ -2971,6 +2971,11 @@
             '<div class="team-zone-note">Logged Train sessions on the same 12-week local-calendar axis as Progress over time. Descriptive only — not a target or prescription.</div>' +
             '<div id="athlete-training-volume-body"><div class="zone-bar-empty">Loading···</div></div>' +
           '</div>' +
+          '<div class="insight-panel" id="athlete-psyche-volume-panel">' +
+            '<div class="team-zone-label">Psyche practice</div>' +
+            '<div class="team-zone-note">Quick check-ins, pre-climb prep, and breathing/relaxation/visualization drills, combined — same definition as the athlete\'s own Psyche tab. Same 12-week local-calendar axis as Progress over time. Descriptive only.</div>' +
+            '<div id="athlete-psyche-volume-body"><div class="zone-bar-empty">Loading···</div></div>' +
+          '</div>' +
           '<div class="insight-panel" id="athlete-gap-panel">' +
             '<div class="team-zone-label">Where\'s the gap?</div>' +
             '<div class="team-zone-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
@@ -3355,6 +3360,8 @@
 
   var _athleteInsightCache = {};
   var _athleteTrainingInsightCache = {};
+  var _athletePsycheCheckinCache = {};
+  var _athletePsycheDrillCache = {};
   var _ropedDisciplineFilter = 'all';
   var TERRAIN_LINE_COLOR = {
     Slab: '#8ec8d8',
@@ -3411,6 +3418,34 @@
         _athleteTrainingInsightCache[athleteId] = [];
         return [];
       });
+    });
+  }
+
+  function loadAthletePsycheCheckins(token, athleteId){
+    var q = 'select=id,created_at,is_checkin,is_baseline,deleted_at' +
+      '&user_id=eq.' + athleteId +
+      '&is_checkin=eq.true&is_baseline=eq.false&deleted_at=is.null&order=created_at.desc&limit=2000';
+    return sbSelect(token, 'sessions', q).then(function(rows){
+      var list = Array.isArray(rows) ? rows : [];
+      _athletePsycheCheckinCache[athleteId] = list;
+      return list;
+    }).catch(function(){
+      _athletePsycheCheckinCache[athleteId] = [];
+      return [];
+    });
+  }
+
+  function loadAthletePsycheDrills(token, athleteId){
+    var q = 'select=id,created_at,drill_key,deleted_at' +
+      '&user_id=eq.' + athleteId +
+      '&deleted_at=is.null&order=created_at.desc&limit=2000';
+    return sbSelect(token, 'psyche_drills', q).then(function(rows){
+      var list = Array.isArray(rows) ? rows : [];
+      _athletePsycheDrillCache[athleteId] = list;
+      return list;
+    }).catch(function(){
+      _athletePsycheDrillCache[athleteId] = [];
+      return [];
     });
   }
 
@@ -3505,11 +3540,13 @@
   function loadAthleteInsightPanels(token, athleteId){
     var progressEl = document.getElementById('athlete-progress-body');
     var volumeEl = document.getElementById('athlete-training-volume-body');
+    var psycheEl = document.getElementById('athlete-psyche-volume-body');
     var gapEl = document.getElementById('athlete-gap-body');
     var projectsEl = document.getElementById('detail-projects');
     if(!window.CoachInsights){
       if(progressEl) progressEl.innerHTML = '<div class="empty-state">Progress view is unavailable.</div>';
       if(volumeEl) volumeEl.innerHTML = '<div class="empty-state">Training volume is unavailable.</div>';
+      if(psycheEl) psycheEl.innerHTML = '<div class="empty-state">Psyche practice is unavailable.</div>';
       if(gapEl) gapEl.innerHTML = '<div class="empty-state">Gap view is unavailable.</div>';
       if(projectsEl) projectsEl.innerHTML = '<div class="panel-title">Projects</div><div class="empty-state">No projects starred yet.</div>';
       return Promise.resolve();
@@ -3517,14 +3554,19 @@
     return Promise.all([
       loadAthleteInsightSessions(token, athleteId),
       loadAthleteProjectClimbs(token, athleteId),
-      loadAthleteTrainingInsightSessions(token, athleteId)
+      loadAthleteTrainingInsightSessions(token, athleteId),
+      loadAthletePsycheCheckins(token, athleteId),
+      loadAthletePsycheDrills(token, athleteId)
     ]).then(function(parts){
       var rows = parts[0];
       var climbs = parts[1];
       var trainingRows = parts[2];
+      var checkins = parts[3];
+      var drills = parts[4];
       if(progressEl) progressEl.innerHTML = renderProgressPanelHtml(rows);
       wireRopedDisciplineChips();
       if(volumeEl) volumeEl.innerHTML = renderTrainingVolumePanelHtml(trainingRows);
+      if(psycheEl) psycheEl.innerHTML = renderPsycheVolumePanelHtml(checkins, drills);
       if(gapEl) gapEl.innerHTML = renderGapPanelHtml(rows);
       paintAthleteProjects(climbs, rows);
     }).catch(function(err){
@@ -3534,6 +3576,12 @@
       if(gapEl) gapEl.innerHTML = msg;
       if(volumeEl){
         volumeEl.innerHTML = renderTrainingVolumePanelHtml(_athleteTrainingInsightCache[athleteId] || []);
+      }
+      if(psycheEl){
+        psycheEl.innerHTML = renderPsycheVolumePanelHtml(
+          _athletePsycheCheckinCache[athleteId] || [],
+          _athletePsycheDrillCache[athleteId] || []
+        );
       }
       loadAthleteProjectClimbs(token, athleteId).then(function(climbs){
         paintAthleteProjects(climbs, _athleteInsightCache[athleteId] || []);
@@ -3760,6 +3808,26 @@
     ], 720, 168);
     return '<div class="form-note">' + series.sessionCount +
       (series.sessionCount === 1 ? ' logged training session' : ' logged training sessions') +
+      ' in this window.</div>' + svg;
+  }
+
+  function renderPsycheVolumePanelHtml(checkins, drills){
+    var CI = window.CoachInsights;
+    var series = CI.computePsycheVolumeSeries(checkins, drills, { weekCount: 12 });
+    if(!series.sessionCount) return '<div class="empty-state">No logged psyche practice in the last 12 weeks.</div>';
+    var yMax = Math.max(1, series.maxCount);
+    var svg = insightChartTitleWithHelp(
+      'Psyche practices per week',
+      'Quick check-ins, pre-climb prep, and breathing/relaxation/visualization drills, combined — same definition as the athlete\'s own Psyche tab. Descriptive only.'
+    ) + renderSharedAxisSvg([
+      { color: '#a9622f', xs: series.labels, values: series.points.map(function(p){ return p.count; }) }
+    ], 0, yMax, [
+      { value: 0, label: '0' },
+      { value: Math.round(yMax / 2), label: String(Math.round(yMax / 2)) },
+      { value: yMax, label: String(yMax) }
+    ], 720, 168);
+    return '<div class="form-note">' + series.sessionCount +
+      (series.sessionCount === 1 ? ' logged psyche practice' : ' logged psyche practices') +
       ' in this window.</div>' + svg;
   }
 

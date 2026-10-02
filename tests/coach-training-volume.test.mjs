@@ -69,7 +69,7 @@ assert.ok(/loadAthleteTrainingInsightSessions\(token, athleteId\)/.test(panels[0
 assert.ok(/renderTrainingVolumePanelHtml\(trainingRows\)/.test(panels[0]));
 assert.ok(/athlete-training-volume-body/.test(panels[0]));
 
-const renderVol = dash.match(/function renderTrainingVolumePanelHtml\(trainingSessions\)\{[\s\S]*?\n  function renderGapPanelHtml/);
+const renderVol = dash.match(/function renderTrainingVolumePanelHtml\(trainingSessions\)\{[\s\S]*?\n  function renderPsycheVolumePanelHtml/);
 assert.ok(renderVol);
 assert.ok(/computeTrainingVolumeSeries\(trainingSessions, \{ weekCount: 12 \}\)/.test(renderVol[0]));
 assert.ok(/No logged training sessions in the last 12 weeks/.test(renderVol[0]));

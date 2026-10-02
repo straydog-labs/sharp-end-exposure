@@ -434,6 +434,37 @@
     };
   }
 
+  function computePsycheVolumeSeries(checkins, drills, options) {
+    var weekCount = (options && options.weekCount) || 12;
+    var endDate = (options && options.endDate) || new Date();
+    var weeks = lastNWeekKeys(weekCount, endDate);
+    var byWeek = {};
+    weeks.forEach(function (k) { byWeek[k] = { key: k, label: formatWeekLabel(k), count: 0 }; });
+    var sessionCount = 0;
+    function tally(row) {
+      if (!row || row.deleted_at) return;
+      var d = new Date(row.created_at);
+      if (isNaN(d.getTime())) return;
+      var key = weekKey(d);
+      if (!byWeek[key]) return;
+      byWeek[key].count += 1;
+      sessionCount += 1;
+    }
+    (checkins || []).forEach(function (s) {
+      if (s && !s.deleted_at && !s.is_baseline && s.is_checkin) tally(s);
+    });
+    (drills || []).forEach(function (d) {
+      if (d && !d.deleted_at && d.drill_key) tally(d);
+    });
+    var points = weeks.map(function (k) { return byWeek[k]; });
+    return {
+      sessionCount: sessionCount,
+      labels: weeks.map(function (k) { return byWeek[k].label; }),
+      points: points,
+      maxCount: points.reduce(function (m, p) { return Math.max(m, p.count); }, 0)
+    };
+  }
+
   function summarizeGroup(rows) {
     var zones = emptyZoneCounts();
     var grades = [];
@@ -869,6 +900,7 @@
     normalizeTerrainType: normalizeTerrainType,
     computeProgressSeries: computeProgressSeries,
     computeTrainingVolumeSeries: computeTrainingVolumeSeries,
+    computePsycheVolumeSeries: computePsycheVolumeSeries,
     computeGapDiagnostic: computeGapDiagnostic,
     gapHeadlineModel: gapHeadlineModel,
     parseGymClimbsCsv: parseGymClimbsCsv,

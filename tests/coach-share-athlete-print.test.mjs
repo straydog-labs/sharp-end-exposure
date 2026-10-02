@@ -37,9 +37,10 @@ const stats = idx('roster-stats');
 const zone = idx('athlete-zone-bar');
 const progress = idx('athlete-progress-panel');
 const volume = idx('athlete-training-volume-panel');
+const psyche = idx('athlete-psyche-volume-panel');
 const gap = idx('athlete-gap-panel');
 assert.ok(header < shareBtn && shareBtn < hub, 'Share sits in the header, not in the hub');
-assert.ok(hub < log && log < wrap && wrap < stats && stats < zone && zone < progress && progress < volume && volume < gap);
+assert.ok(hub < log && log < wrap && wrap < stats && stats < zone && zone < progress && progress < volume && volume < psyche && psyche < gap);
 assert.ok(html.indexOf('athlete-hub-cards') < html.indexOf('athlete-share-block'));
 assert.ok(html.indexOf('coach-log-launch') < html.indexOf('athlete-share-block'));
 assert.ok(!/#athlete-hub-cards/.test(html.slice(html.indexOf('athlete-share-block'))),
@@ -48,6 +49,7 @@ const wrapSlice = html.slice(wrap);
 assert.ok(/Descriptive — not a cause-and-effect read/.test(wrapSlice));
 assert.ok(/Descriptive only/.test(wrapSlice));
 assert.ok(/athlete-training-volume-panel/.test(wrapSlice), 'volume panel is in the share export');
+assert.ok(/athlete-psyche-volume-panel/.test(wrapSlice), 'psyche panel is in the share export');
 
 const printCss = dash.match(/@media print \{[\s\S]*?\n  \}/);
 assert.ok(printCss, '@media print stylesheet');
