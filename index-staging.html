@@ -180,6 +180,32 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   cursor:pointer;
   -webkit-tap-highlight-color:transparent;
 }
+.train-hub-primary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:16px;}
+.train-hub-primary .train-energy-card{min-height:120px;padding:16px 12px;}
+.train-save-workout-btn{
+  width:100%;
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  color:var(--text);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;
+  font-weight:700;
+  padding:14px;
+  cursor:pointer;
+  margin-bottom:10px;
+  -webkit-tap-highlight-color:transparent;
+}
+.train-emom-round{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:10px;}
+.train-emom-round.is-complete{border-color:rgba(126,200,122,.45);}
+.train-emom-round.is-locked{opacity:.5;}
+.train-emom-round.is-locked input,
+.train-emom-round.is-locked textarea,
+.train-emom-round.is-locked button{pointer-events:none;}
+.train-emom-round-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.train-emom-round-label{font-size:12px;font-weight:700;color:var(--muted);}
+.train-emom-rest{font-size:12px;color:var(--accent);margin-top:6px;font-variant-numeric:tabular-nums;}
+.train-emom-round-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
 .train-sess-title-input{
   display:block;
   width:100%;
@@ -4008,13 +4034,27 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <div id="train-signed-in-content" style="display:none;">
-      <div class="train-energy-grid" id="train-hub-cards" style="margin-top:16px;">
+      <div class="train-hub-primary" id="train-hub-primary">
+        <button type="button" class="train-energy-card" id="train-hub-card-repeat" onclick="trainRepeatLastOrPinned()">
+          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></div></div>
+          <div class="te-label">Again</div>
+          <div class="te-title">Repeat</div>
+          <div class="te-sub" id="train-hub-repeat-sub">Last workout</div>
+        </button>
         <button type="button" class="train-energy-card" id="train-hub-card-start" onclick="showScreen('screen-train-start')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg></div></div>
           <div class="te-label">Session</div>
           <div class="te-title">Start a session</div>
           <div class="te-sub">Browse workouts</div>
         </button>
+        <button type="button" class="train-energy-card" id="train-hub-card-goals" onclick="showScreen('screen-train-goals')">
+          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></div></div>
+          <div class="te-label">Focus</div>
+          <div class="te-title">Training goals</div>
+          <div class="te-sub">Primary and secondary</div>
+        </button>
+      </div>
+      <div class="train-energy-grid" id="train-hub-cards" style="margin-top:16px;">
         <button type="button" class="train-energy-card" id="train-hub-card-recent" onclick="showScreen('screen-train-recent')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div></div>
           <div class="te-label">History</div>
@@ -4029,12 +4069,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
           <div class="te-label">Coach</div>
           <div class="te-title">Assignments from coach</div>
           <div class="te-sub">Open plans</div>
-        </button>
-        <button type="button" class="train-energy-card" id="train-hub-card-goals" onclick="showScreen('screen-train-goals')">
-          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></div></div>
-          <div class="te-label">Focus</div>
-          <div class="te-title">Training goals</div>
-          <div class="te-sub">Primary and secondary</div>
         </button>
         <button type="button" class="train-energy-card" id="train-hub-card-blocks" onclick="showScreen('screen-train-blocks')" style="grid-column:1 / -1;">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></div></div>
@@ -4306,6 +4340,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
     <div id="train-block-menu" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:8px;margin-bottom:10px;">
       <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('section')">Add section</button>
+      <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('emom')">EMOM</button>
       <button type="button" class="saw-chip" style="margin-bottom:6px;" onclick="trainAddBlock('circuit')">Weighted circuit</button>
       <button type="button" class="saw-chip" onclick="trainAddBlock('rep_pass_fail')">Rep-level pass/fail</button>
     </div>
@@ -4325,6 +4360,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <div id="train-sess-msg" style="font-size:13px;color:var(--panic);min-height:18px;margin-bottom:8px;"></div>
+    <button type="button" id="train-sess-save-workout" onclick="saveTrainSessionAsWorkout()" class="train-save-workout-btn">Save as workout</button>
     <button type="button" id="train-sess-save" onclick="saveTrainSession()" class="saw-next">Save session</button>
   </div>
 </div>
@@ -5462,7 +5498,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index275'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index276'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -12549,17 +12585,21 @@ async function loadTrainHub(){
     _trainSessionsCache = [];
     renderTrainHubStats();
     renderTrainHubRecentMini();
+    renderTrainHubPrimary();
+    maybeResumeTrainSessionDraft();
     return;
   }
   var rows = await sbS(
     'training_sessions',
-    'select=*&user_id=eq.' + window._authUser.id + '&deleted_at=is.null&order=created_at.desc&limit=40'
+    'select=*&user_id=eq.' + window._authUser.id + '&deleted_at=is.null&order=started_at.desc.nullslast,created_at.desc&limit=40'
   );
   // Soft-fail if table not migrated yet
   _trainSessionsCache = Array.isArray(rows) ? rows : [];
   renderTrainHubStats();
   renderTrainSessionList();
   renderTrainHubRecentMini();
+  renderTrainHubPrimary();
+  maybeResumeTrainSessionDraft();
 }
 
 function renderTrainHubStats(){
@@ -12643,14 +12683,16 @@ function renderTrainSessionList(){
     var blocks = parseTrainSessionBlocks(r);
     var n = Array.isArray(blocks) ? blocks.length : 0;
     var sid = String(r.id || '');
-    return '<div class="insight-card train-session-row" data-session-id="'+escTrainHtml(sid)+'" style="padding:12px 14px;margin-bottom:8px;">'
-      + '<button type="button" class="train-session-row-toggle" onclick="openTrainSessionDetail(\''+sid.replace(/'/g, '')+'\')">'
+    var safeSid = sid.replace(/'/g, '');
+    return '<div class="insight-card train-session-row" data-session-id="'+escTrainHtml(sid)+'" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">'
+      + '<button type="button" class="train-session-row-toggle" onclick="openTrainSessionDetail(\''+safeSid+'\')" style="flex:1;min-width:0;">'
       + '<div class="train-session-row-meta">'
       + '<div style="font-size:14px;font-weight:700;">' + escTrainHtml(trainSessionWorkoutName(r)) + '</div>'
       + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' + escTrainHtml(when) + ' · ' + n + ' block' + (n===1?'':'s') + '</div>'
       + '</div>'
       + '<span class="res-card-chevron" aria-hidden="true">›</span>'
       + '</button>'
+      + '<button type="button" class="train-hub-duplicate-btn" onclick="trainDuplicateSession(\''+safeSid+'\')">Duplicate</button>'
       + '</div>';
   }).join('');
   if(extra > 0){
@@ -12770,7 +12812,9 @@ function trainCloneBlockForDuplicate(b){
           return {
             boulders: Array.isArray(r && r.boulders) ? r.boulders.map(function(bo){ return { text: (bo && bo.text) || '' }; }) : [],
             notes: (r && r.notes) || '',
-            rest_after_sec: (r && r.rest_after_sec != null) ? r.rest_after_sec : 180
+            rest_after_sec: (r && r.rest_after_sec != null) ? r.rest_after_sec : 180,
+            complete: false,
+            rest_started_at: null
           };
         })
       : [];
@@ -12816,6 +12860,38 @@ function trainDuplicateSession(sessionId){
     if(Array.isArray(rows) && rows[0]) trainStartDuplicatedSession(rows[0]);
     else showToast('Could not load that session', true);
   });
+}
+
+function getPinnedOrLastTrainSessionId(){
+  var pinned = null;
+  try{ pinned = localStorage.getItem('see_pinned_session_id'); }catch(e){}
+  if(pinned){
+    var hit = (_trainSessionsCache || []).find(function(r){ return String(r.id) === String(pinned); });
+    if(hit) return String(hit.id);
+  }
+  var rows = _trainSessionsCache || [];
+  return rows.length ? String(rows[0].id || '') : '';
+}
+
+function renderTrainHubPrimary(){
+  var sub = document.getElementById('train-hub-repeat-sub');
+  if(!sub) return;
+  var id = getPinnedOrLastTrainSessionId();
+  if(!id){
+    sub.textContent = 'Last workout';
+    return;
+  }
+  var row = (_trainSessionsCache || []).find(function(r){ return String(r.id) === String(id); });
+  sub.textContent = row ? trainSessionWorkoutName(row) : 'Last workout';
+}
+
+function trainRepeatLastOrPinned(){
+  var id = getPinnedOrLastTrainSessionId();
+  if(!id){
+    showToast('No sessions yet - start a workout first', true);
+    return;
+  }
+  trainDuplicateSession(id);
 }
 
 function trainTextNonEmpty(v){
@@ -12931,14 +13007,21 @@ function renderTrainSessionBlockDetailHtml(b, bi, isWarmup){
     body = '<div style="font-size:13px;color:var(--text);">Work '+escTrainHtml(String(b.work_sec == null ? 0 : b.work_sec))+'s / Rest '+escTrainHtml(String(b.rest_sec == null ? 0 : b.rest_sec))+'s x '+escTrainHtml(String(b.target_sets == null ? 0 : b.target_sets))+' sets</div>'
       + attemptSummary(b);
   } else if(b.shape === 'emom'){
-    var round = (b.rounds && b.rounds[0]) || { boulders: [], notes: '' };
-    body = (round.boulders || []).map(function(bo){
-      if(!trainTextNonEmpty(bo && bo.text)) return '';
-      return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+'</div>';
+    body = (b.rounds || []).map(function(round, ri){
+      var bits = (round.boulders || []).map(function(bo){
+        if(!trainTextNonEmpty(bo && bo.text)) return '';
+        return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+'</div>';
+      }).join('');
+      if(trainTextNonEmpty(round && round.notes)){
+        bits += '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>';
+      }
+      var restN = (round && round.rest_after_sec != null) ? round.rest_after_sec : 180;
+      return '<div class="train-emom-round'+(round && round.complete ? ' is-complete' : '')+'">'
+        + '<div class="train-emom-round-label">Round '+(ri+1)+(round && round.complete ? ' · Complete' : '')+'</div>'
+        + bits
+        + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">Rest '+escTrainHtml(String(restN))+'s</div>'
+        + '</div>';
     }).join('');
-    if(trainTextNonEmpty(round.notes)){
-      body += '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>';
-    }
     body += attemptSummary(b);
   } else if(b.shape === 'circuit'){
     var roundsN = Number(b.rounds);
@@ -13141,8 +13224,15 @@ function seedTrainBlocksFromSections(sections){
   // Always emit the section-title block first (title + optional duration_sec).
   // Expand authored child exercises only when the field is a non-empty array so
   // older templates (missing exercises, or []) keep today's one-block output.
+  // Live session blocks saved via "Save as workout" already have a shape and
+  // round-trip as-is (clone resets completion / timers).
   var blocks = [];
   (sections || []).forEach(function(s){
+    if(s && s.shape){
+      var cloned = trainCloneBlockForDuplicate(s);
+      if(cloned) blocks.push(cloned);
+      return;
+    }
     blocks.push({
       id: uid(),
       shape: 'section',
@@ -13311,6 +13401,7 @@ function cancelTrainSession(){
   clearAllTrainBlockTimerIntervals();
   releaseTrainWakeLock();
   trainSessionState = null;
+  clearTrainSessionDraft();
   showScreen('screen-train');
 }
 
@@ -13325,7 +13416,7 @@ function newTrainBlock(shape){
     block.work_sec = 120; block.rest_sec = 120; block.target_sets = 12;
     block.groups = [{ sets: 6, rest_after_sec: 300 }, { sets: 6, rest_after_sec: 0 }];
   } else if(shape === 'emom'){
-    block.rounds = [{ boulders: [{ text: '' }, { text: '' }, { text: '' }, { text: '' }], notes: '', rest_after_sec: 180 }];
+    block.rounds = [{ boulders: [{ text: '' }, { text: '' }, { text: '' }, { text: '' }], notes: '', rest_after_sec: 180, complete: false, rest_started_at: null }];
   } else if(shape === 'circuit'){
     block.exercises = [{ name: '', weight: '', reps: '' }];
     block.rounds = 3; block.notes = '';
@@ -13413,10 +13504,38 @@ function syncTrainSessionFieldsFromDom(){
   if(c) trainSessionState.cool_down = c.value;
 }
 
+function loadTrainSessionDraft(){
+  try{
+    var s = localStorage.getItem('see_train_session_draft');
+    if(!s) return false;
+    var parsed = JSON.parse(s);
+    if(!parsed || typeof parsed !== 'object') return false;
+    trainSessionState = parsed;
+    return true;
+  }catch(e){ return false; }
+}
+function saveTrainSessionDraft(){
+  if(!trainSessionState) return;
+  try{ localStorage.setItem('see_train_session_draft', JSON.stringify(trainSessionState)); }catch(e){}
+}
+function clearTrainSessionDraft(){
+  try{ localStorage.removeItem('see_train_session_draft'); }catch(e){}
+}
+function maybeResumeTrainSessionDraft(){
+  if(window._seeTestsRunning) return;
+  var active = (document.querySelector('.screen.active') || {}).id;
+  if(active !== 'screen-train') return;
+  if(trainSessionState) return;
+  if(loadTrainSessionDraft()) showScreen('screen-train-session');
+}
+
 function renderTrainSessionBuilder(){
   if(!trainSessionState){
-    trainSessionState = newTrainSessionState(_trainPickerType || 'strength');
+    if(!loadTrainSessionDraft()){
+      trainSessionState = newTrainSessionState(_trainPickerType || 'strength');
+    }
   }
+  saveTrainSessionDraft();
   var title = document.getElementById('train-sess-title');
   var eye = document.getElementById('train-sess-eyebrow');
   if(title && document.activeElement !== title) title.value = trainSessionState.title || '';
@@ -13535,6 +13654,29 @@ function sectionHasCountdown(b){
   return !!(b && b.shape === 'section' && Number(b.duration_sec) > 0);
 }
 
+function emomRoundCountdownState(round, now){
+  var restSec = (round && round.rest_after_sec != null) ? round.rest_after_sec : 180;
+  if(!round || !round.complete || !round.rest_started_at){
+    return computeCountdownState(null, restSec, now || Date.now());
+  }
+  var start = new Date(round.rest_started_at).getTime();
+  return computeCountdownState(isNaN(start) ? null : start, restSec, now || Date.now());
+}
+
+function emomRoundIsLocked(b, ri){
+  if(!ri) return false;
+  var prev = b && b.rounds && b.rounds[ri - 1];
+  if(!prev || !prev.complete) return false;
+  return emomRoundCountdownState(prev).phase === 'Counting';
+}
+
+function trainEmomRestProtocolActive(b){
+  if(!b || b.shape !== 'emom' || !Array.isArray(b.rounds)) return false;
+  return b.rounds.some(function(round){
+    return emomRoundCountdownState(round).phase === 'Counting';
+  });
+}
+
 function trainIntervalProtocolActive(b){
   if(!b || b.shape !== 'interval' || !b.timer_enabled || !b.interval_started_at) return false;
   var start = new Date(b.interval_started_at).getTime();
@@ -13554,7 +13696,7 @@ function trainCountdownProtocolActive(b){
 function anyTrainIntervalProtocolActive(){
   if(!trainSessionState || !trainSessionState.blocks) return false;
   return trainSessionState.blocks.some(function(b){
-    return trainIntervalProtocolActive(b) || trainCountdownProtocolActive(b);
+    return trainIntervalProtocolActive(b) || trainCountdownProtocolActive(b) || trainEmomRestProtocolActive(b);
   });
 }
 
@@ -13733,6 +13875,28 @@ function paintTrainCountdownTimer(b){
   }
 }
 
+function paintTrainEmomRestTimers(b){
+  if(!b || b.shape !== 'emom' || !Array.isArray(b.rounds)) return;
+  var now = Date.now();
+  var needUnlock = false;
+  b.rounds.forEach(function(round, ri){
+    var st = emomRoundCountdownState(round, now);
+    var countEl = document.querySelector('[data-emom-rest-count="'+b.id+'-'+ri+'"]');
+    if(countEl) countEl.textContent = formatTrainBlockTimerElapsed(st.remainingMs);
+    var wrap = document.querySelector('[data-emom-rest-wrap="'+b.id+'-'+ri+'"]');
+    if(wrap){
+      var prevPhase = wrap.getAttribute('data-emom-rest-phase');
+      wrap.setAttribute('data-emom-rest-phase', st.phase);
+      if(prevPhase === 'Counting' && st.phase === 'Done') needUnlock = true;
+    }
+  });
+  if(needUnlock){
+    collectTrainBlockFields();
+    if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
+    renderTrainSessionBuilder();
+  }
+}
+
 function paintTrainBlockTimerElapsed(id){
   if(!trainSessionState || !trainSessionState.blocks) return;
   var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
@@ -13744,6 +13908,10 @@ function paintTrainBlockTimerElapsed(id){
   if(sectionHasCountdown(b) && b.timer_enabled){
     paintTrainCountdownTimer(b);
     return;
+  }
+  if(b.shape === 'emom'){
+    paintTrainEmomRestTimers(b);
+    if(!(b.timer_enabled && trainBlockTimerIsRunning(b))) return;
   }
   var el = document.querySelector('[data-block-timer-elapsed="'+id+'"]');
   if(!el) return;
@@ -13757,7 +13925,8 @@ function ensureTrainBlockTimerInterval(id){
   if(trainSessionState && trainSessionState.blocks){
     var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
     if(b && ((b.shape === 'interval' && b.timer_enabled && b.interval_started_at)
-      || (sectionHasCountdown(b) && b.timer_enabled && b.interval_started_at))) ms = 250;
+      || (sectionHasCountdown(b) && b.timer_enabled && b.interval_started_at)
+      || trainEmomRestProtocolActive(b))) ms = 250;
   }
   _trainBlockTimerIntervals[id] = setInterval(function(){
     paintTrainBlockTimerElapsed(id);
@@ -13773,8 +13942,9 @@ function syncTrainBlockTimerIntervals(){
   trainSessionState.blocks.forEach(function(b){
     var intervalActive = b.shape === 'interval' && b.timer_enabled && trainIntervalProtocolActive(b);
     var countdownActive = trainCountdownProtocolActive(b);
+    var emomRestActive = trainEmomRestProtocolActive(b);
     var stopwatchActive = !intervalActive && !countdownActive && b.timer_enabled && trainBlockTimerIsRunning(b);
-    if(intervalActive || countdownActive || stopwatchActive){
+    if(intervalActive || countdownActive || stopwatchActive || emomRestActive){
       running[b.id] = true;
       paintTrainBlockTimerElapsed(b.id);
       ensureTrainBlockTimerInterval(b.id);
@@ -14059,24 +14229,50 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
   } else if(b.shape === 'emom'){
-    var round = (b.rounds && b.rounds[0]) || { boulders: [], notes: '' };
-    if(compact){
-      body = (round.boulders || []).map(function(bo){
-        if(!trainTextNonEmpty(bo && bo.text)) return '';
-        return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+'</div>';
-      }).join('')
-        + (trainTextNonEmpty(round.notes) ? '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>' : '')
-        + attemptSummary(b)
-        + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
-    } else {
-      body = '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Round 1 boulders</div>'
-        + (round.boulders||[]).map(function(bo, i){
-          return '<input id="tb-'+b.id+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+    var rounds = Array.isArray(b.rounds) && b.rounds.length ? b.rounds : [{ boulders: [], notes: '', rest_after_sec: 180, complete: false }];
+    var roundCards = rounds.map(function(round, ri){
+      round = round || { boulders: [], notes: '', rest_after_sec: 180, complete: false };
+      var locked = emomRoundIsLocked(b, ri);
+      var doneR = !!round.complete;
+      var restSec = round.rest_after_sec != null ? round.rest_after_sec : 180;
+      var rst = emomRoundCountdownState(round);
+      var restHtml = '';
+      if(doneR && rst.phase === 'Counting'){
+        restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Counting">Rest <span data-emom-rest-count="'+escTrainHtml(b.id)+'-'+ri+'">'+formatTrainBlockTimerElapsed(rst.remainingMs)+'</span></div>';
+      } else if(doneR && rst.phase === 'Done' && Number(restSec) > 0){
+        restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Done">Rest done</div>';
+      }
+      var inner;
+      if(compact){
+        inner = (round.boulders || []).map(function(bo){
+          if(!trainTextNonEmpty(bo && bo.text)) return '';
+          return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+'</div>';
         }).join('')
-        + trainBlockNoteField('tb-'+b.id+'-notes', 'Round notes', round.notes||'')
-        + attemptSummary(b)
-        + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
-    }
+          + (trainTextNonEmpty(round.notes) ? '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>' : '');
+      } else {
+        inner = (round.boulders || []).map(function(bo, i){
+          return '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+        }).join('')
+          + '<button type="button" class="train-add-affordance" onclick="trainAddEmomBoulder(\''+b.id+'\','+ri+')" style="margin-bottom:8px;">+ Boulder</button>'
+          + trainBlockNoteField('tb-'+b.id+'-r'+ri+'-notes', 'Round notes', round.notes||'')
+          + fieldHtml('Rest sec', 'tb-'+b.id+'-r'+ri+'-rest', restSec);
+      }
+      return '<div class="train-emom-round'+(doneR?' is-complete':'')+(locked?' is-locked':'')+'">'
+        + '<div class="train-emom-round-head">'
+        + '<div class="train-emom-round-label">Round '+(ri+1)+(ri===0?' boulders':'')+'</div>'
+        + '<button type="button" class="train-section-complete'+(doneR?' on':'')+'" onclick="toggleTrainEmomRoundComplete(\''+b.id+'\','+ri+')">'+(doneR?'Complete':'Mark complete')+'</button>'
+        + '</div>'
+        + inner
+        + restHtml
+        + '</div>';
+    }).join('');
+    body = roundCards
+      + '<div class="train-emom-round-actions">'
+      + '<button type="button" class="saw-chip" onclick="trainAddEmomRound(\''+b.id+'\',\'repeat\')">+ Same round again</button>'
+      + '<button type="button" class="saw-chip" onclick="trainAddEmomRound(\''+b.id+'\',\'new\')">+ New round</button>'
+      + '</div>'
+      + attemptSummary(b)
+      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
   } else if(b.shape === 'circuit'){
     if(compact){
       var roundsN = Number(b.rounds);
@@ -14287,6 +14483,61 @@ function toggleTrainSectionComplete(key){
   renderTrainSessionBuilder();
 }
 
+function toggleTrainEmomRoundComplete(blockId, roundIndex){
+  if(!trainSessionState) return;
+  syncTrainSessionFieldsFromDom();
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
+  var round = b.rounds[roundIndex];
+  round.complete = !round.complete;
+  if(round.complete){
+    round.rest_started_at = new Date().toISOString();
+    if(Number(round.rest_after_sec) > 0) requestTrainWakeLock();
+  } else {
+    round.rest_started_at = null;
+    if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
+  }
+  renderTrainSessionBuilder();
+}
+
+function trainAddEmomRound(blockId, mode){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || b.shape !== 'emom') return;
+  if(!Array.isArray(b.rounds)) b.rounds = [];
+  var last = b.rounds.length ? b.rounds[b.rounds.length - 1] : null;
+  if(mode === 'repeat' && last){
+    b.rounds.push({
+      boulders: (last.boulders || []).map(function(bo){ return { text: (bo && bo.text) || '' }; }),
+      notes: '',
+      rest_after_sec: last.rest_after_sec != null ? last.rest_after_sec : 180,
+      complete: false,
+      rest_started_at: null
+    });
+  } else {
+    b.rounds.push({
+      boulders: [],
+      notes: '',
+      rest_after_sec: 180,
+      complete: false,
+      rest_started_at: null
+    });
+  }
+  renderTrainSessionBuilder();
+}
+
+function trainAddEmomBoulder(blockId, roundIndex){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
+  if(!Array.isArray(b.rounds[roundIndex].boulders)) b.rounds[roundIndex].boulders = [];
+  b.rounds[roundIndex].boulders.push({ text: '' });
+  renderTrainSessionBuilder();
+}
+
 function fieldHtml(label, id, val){
   return '<div class="saw-field" style="margin:0 0 8px;"><label for="'+id+'">'+escTrainHtml(label)+'</label>'
     + '<input id="'+id+'" value="'+escTrainHtml(val==null?'':String(val))+'" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;"></div>';
@@ -14320,13 +14571,22 @@ function collectTrainBlockFields(){
       var it = document.getElementById('tb-'+b.id+'-title');
       if(it) b.title = it.value;
     } else if(b.shape === 'emom'){
-      if(!b.rounds[0]) b.rounds[0] = { boulders: [], notes: '' };
-      (b.rounds[0].boulders||[]).forEach(function(bo, i){
-        var el = document.getElementById('tb-'+b.id+'-b'+i);
-        if(el) bo.text = el.value;
+      if(!Array.isArray(b.rounds)) b.rounds = [];
+      b.rounds.forEach(function(round, ri){
+        if(!round) return;
+        if(!Array.isArray(round.boulders)) round.boulders = [];
+        round.boulders.forEach(function(bo, i){
+          var el = document.getElementById('tb-'+b.id+'-r'+ri+'-b'+i);
+          if(el) bo.text = el.value;
+        });
+        var n = document.getElementById('tb-'+b.id+'-r'+ri+'-notes');
+        if(n) round.notes = n.value;
+        var restEl = document.getElementById('tb-'+b.id+'-r'+ri+'-rest');
+        if(restEl){
+          var rn = parseFloat(restEl.value);
+          round.rest_after_sec = isNaN(rn) ? (round.rest_after_sec != null ? round.rest_after_sec : 180) : rn;
+        }
       });
-      var n = document.getElementById('tb-'+b.id+'-notes');
-      if(n) b.rounds[0].notes = n.value;
     } else if(b.shape === 'circuit'){
       b.rounds = numOr(document.getElementById('tb-'+b.id+'-rounds'), b.rounds);
       (b.exercises||[]).forEach(function(ex, i){
@@ -14412,7 +14672,12 @@ async function saveTrainSession(){
     app_version: app_version
   };
   var saved = await sbI('training_sessions', payload);
-  if(sbFailed(saved)){
+  var queuedOffline = false;
+  if(isSbNetworkFail(saved)){
+    offlineQueueAdd(payload, trainSessionState.title || 'Training session', null, 'training_session');
+    showToast('Saved offline. Will sync when you are back online.');
+    queuedOffline = true;
+  } else if(sbFailed(saved)){
     if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
     if(msg) msg.textContent = 'Could not save. If this is a fresh environment, confirm training_sessions migration is applied.';
     return;
@@ -14429,7 +14694,7 @@ async function saveTrainSession(){
     // Safety: prefer foundational library id, clear custom
     customId = null;
   }
-  if((libId || customId) && !trainSessionState.source_assignment_id){
+  if(!queuedOffline && (libId || customId) && !trainSessionState.source_assignment_id){
     var assignPayload = {
       coach_id: null,
       athlete_id: window._authUser.id,
@@ -14458,9 +14723,36 @@ async function saveTrainSession(){
     warm_up_complete: !!trainSessionState.warm_up_complete,
     cool_down_complete: !!trainSessionState.cool_down_complete
   };
+  try{ localStorage.setItem('see_pinned_session_id', String(trainSessionState.id)); }catch(e){}
   trainSessionState = null;
+  clearTrainSessionDraft();
   populateTrainDoneScreen(_trainDoneSnapshot, true);
   showScreen('screen-train-done');
+}
+
+async function saveTrainSessionAsWorkout(){
+  if(!trainSessionState) return;
+  if(!window._authUser){ showToast('Sign in to save workouts', true); return; }
+  syncTrainSessionFieldsFromDom();
+  collectTrainBlockFields();
+  var defaultName = trainSessionState.title || workoutTypeLabel(trainSessionState.energy_type) || 'Workout';
+  var name = window.prompt('Name this workout', defaultName);
+  if(name == null) return;
+  name = String(name).trim();
+  if(!name){ showToast('Name is required', true); return; }
+  var saved = await sbI('custom_workouts', {
+    name: name,
+    description: null,
+    created_by: window._authUser.id,
+    training_focus: trainSessionState.energy_type,
+    sections: trainSessionState.blocks
+  });
+  if(sbFailed(saved) || !saved || !saved.id){
+    showToast('Could not save workout', true);
+    return;
+  }
+  showToast('Saved to Workout Library');
+  loadWorkoutLibrary();
 }
 
 function formatTrainDuration(start, end){
@@ -19728,10 +20020,10 @@ function writeOfflineQueue(queue){
   paintSyncBanner();
 }
 
-function offlineQueueAdd(payload, routeName, climbId){
+function offlineQueueAdd(payload, routeName, climbId, type){
   try{
     var queue = readOfflineQueue();
-    queue.push({type:'session', payload:payload, routeName:routeName||null, climbId:climbId||null, ts:Date.now()});
+    queue.push({type: type || 'session', payload:payload, routeName:routeName||null, climbId:climbId||null, ts:Date.now()});
     writeOfflineQueue(queue);
   }catch(e){ console.error('Offline queue add error:', e); }
 }
@@ -19747,10 +20039,13 @@ function paintSyncBanner(){
   }
   var stale = queue.some(function(e){ return e.ts && (Date.now() - e.ts) > OFFLINE_QUEUE_STALE_MS; });
   var n = queue.length;
-  var text = n === 1 ? '1 climb pending sync. Tap to retry.' : (n + ' climbs pending sync. Tap to retry.');
+  var hasTrain = queue.some(function(e){ return e.type === 'training_session'; });
+  var hasClimb = queue.some(function(e){ return e.type !== 'training_session'; });
+  var noun = (hasTrain && hasClimb) ? 'item' : (hasTrain ? 'training session' : 'climb');
+  var text = n === 1 ? ('1 ' + noun + ' pending sync. Tap to retry.') : (n + ' ' + (noun === 'item' ? 'items' : noun + 's') + ' pending sync. Tap to retry.');
   if(stale) text = n === 1
-    ? '1 climb still waiting to sync (older than a day). Tap to retry.'
-    : (n + ' climbs still waiting to sync (some older than a day). Tap to retry.');
+    ? ('1 ' + noun + ' still waiting to sync (older than a day). Tap to retry.')
+    : (n + ' ' + (noun === 'item' ? 'items' : noun + 's') + ' still waiting to sync (some older than a day). Tap to retry.');
   if(msg) msg.textContent = text;
   banner.hidden = false;
 }
@@ -19759,7 +20054,7 @@ function viewOfflineQueue(){
   var queue = readOfflineQueue();
   if(!queue.length){ showToast('No climbs waiting to sync.'); paintSyncBanner(); return; }
   var lines = queue.map(function(e, i){
-    var name = e.routeName || (e.payload && e.payload.route_name) || 'Climb';
+    var name = e.routeName || (e.payload && (e.payload.route_name || e.payload.notes)) || (e.type === 'training_session' ? 'Session' : 'Climb');
     var err = e.lastError ? ' - ' + e.lastError : '';
     return (i+1) + '. ' + name + err;
   });
@@ -19782,16 +20077,27 @@ async function flushOfflineQueue(){
       var entry = queue[i];
       try{
         var payload = entry.payload || {};
-        if(!entry.climbId && (entry.routeName || payload.route_name)){
-          var resolvedId = await resolveClimbIdForQueue(entry.routeName || payload.route_name, payload);
-          if(resolvedId) payload.climb_id = resolvedId;
-        }
-        var saved = await sbInsertSession(payload);
-        if(saved && saved.id){
-          synced++;
+        var saved;
+        if(entry.type === 'training_session'){
+          saved = await sbI('training_sessions', payload);
+          if(!sbFailed(saved) && saved && saved.id){
+            synced++;
+          } else {
+            entry.lastError = isSbHttpFail(saved) ? (saved.message || 'server rejected this session') : 'waiting for a connection';
+            remaining.push(entry);
+          }
         } else {
-          entry.lastError = isSbHttpFail(saved) ? (saved.message || 'server rejected this climb') : 'waiting for a connection';
-          remaining.push(entry);
+          if(!entry.climbId && (entry.routeName || payload.route_name)){
+            var resolvedId = await resolveClimbIdForQueue(entry.routeName || payload.route_name, payload);
+            if(resolvedId) payload.climb_id = resolvedId;
+          }
+          saved = await sbInsertSession(payload);
+          if(saved && saved.id){
+            synced++;
+          } else {
+            entry.lastError = isSbHttpFail(saved) ? (saved.message || 'server rejected this climb') : 'waiting for a connection';
+            remaining.push(entry);
+          }
         }
       }catch(e){
         entry.lastError = (e && e.message) || 'waiting for a connection';
@@ -20197,6 +20503,7 @@ function runButtonAudit(options){
 }
 
 async function runSEETests(){
+  window._seeTestsRunning = true;
   var results = [];
   var testId = null;
   console.log('%c SEE Data Layer Tests ', 'background:#e8763a;color:#fff;font-weight:bold;padding:2px 8px;');
@@ -21959,8 +22266,8 @@ async function runSEETests(){
       && />Add section</.test(menu.innerHTML)
       && menu.innerHTML.indexOf('+ Add section') === -1
       && menu.innerHTML.indexOf("trainAddBlock('interval')") === -1
-      && menu.innerHTML.indexOf("trainAddBlock('emom')") === -1
-      && menu.innerHTML.indexOf('EMOM boulder list') === -1);
+      && /trainAddBlock\('emom'\)/.test(menu.innerHTML)
+      && />EMOM</.test(menu.innerHTML));
 
     var prevSess = trainSessionState;
     trainSessionState = newTrainSessionState('strength');
@@ -21991,24 +22298,28 @@ async function runSEETests(){
     var emomHtml = renderTrainBlockHtml(emom, 3);
     var emomKept = emom.shape === 'emom'
       && emom.rounds && emom.rounds[0] && (emom.rounds[0].boulders||[]).length === 4
-      && /Round 1 boulders/.test(emomHtml)
+      && emom.rounds[0].complete === false
+      && /Round 1/.test(emomHtml)
+      && /toggleTrainEmomRoundComplete/.test(emomHtml)
+      && /trainAddEmomRound/.test(emomHtml)
+      && /tb-/.test(emomHtml) && /-r0-/.test(emomHtml)
       && /toggleTrainBlockTimerEnabled/.test(emomHtml)
       && /toggleTrainSectionComplete/.test(emomHtml);
 
     var srcOk = String(newTrainBlock).indexOf("shape === 'emom'") !== -1
       && String(renderTrainBlockHtml).indexOf("b.shape === 'emom'") !== -1
-      && document.getElementById('train-block-menu').innerHTML.indexOf("trainAddBlock('emom')") === -1;
+      && /trainAddBlock\('emom'\)/.test(document.getElementById('train-block-menu').innerHTML);
 
     if(menuOk && sectionOk && childOk && checkNoTimer && emomKept && srcOk){
-      pass('Train add-block menu uses section/interval/check instead of EMOM');
+      pass('Train add-block menu keeps section/interval/check and EMOM rounds');
     } else {
-      fail('Train add-block menu uses section/interval/check instead of EMOM',
+      fail('Train add-block menu keeps section/interval/check and EMOM rounds',
         'menu=' + menuOk + ' section=' + sectionOk + ' child=' + childOk +
         ' check=' + checkNoTimer + ' emom=' + emomKept + ' src=' + srcOk);
     }
     trainSessionState = prevSess;
     showScreen('screen-train');
-  }catch(e){ fail('Train add-block menu uses section/interval/check instead of EMOM', e.message); }
+  }catch(e){ fail('Train add-block menu keeps section/interval/check and EMOM rounds', e.message); }
 
   try{
     var prevSess = trainSessionState;
@@ -22797,7 +23108,20 @@ async function runSEETests(){
       && hubSubs[2] === 'Open plans';
     var blocksOnSub = !!document.querySelector('#screen-train-blocks #tb-list')
       && !!document.querySelector('#screen-train-block-detail #tb-week-list');
-    if(cardsOk && screensOk && hooksOk && energyOnStart && goalsOnSub && chatOnSub && listOnRecent && listOnAssign && landingLean && startCopyOk && terseOk && hubIcons && assignBadge && chatDot && blocksOnSub){
+    var primary = document.getElementById('train-hub-primary');
+    var repeatCard = document.getElementById('train-hub-card-repeat');
+    var grid = document.getElementById('train-hub-cards');
+    var primaryOk = !!(primary && repeatCard
+      && primary.contains(repeatCard)
+      && primary.contains(document.getElementById('train-hub-card-start'))
+      && primary.contains(document.getElementById('train-hub-card-goals'))
+      && /trainRepeatLastOrPinned/.test(repeatCard.getAttribute('onclick') || ''));
+    var demotedOk = !!(grid
+      && !grid.contains(document.getElementById('train-hub-card-start'))
+      && !grid.contains(document.getElementById('train-hub-card-goals'))
+      && grid.contains(document.getElementById('train-hub-card-recent'))
+      && grid.contains(document.getElementById('train-hub-card-assign')));
+    if(cardsOk && screensOk && hooksOk && energyOnStart && goalsOnSub && chatOnSub && listOnRecent && listOnAssign && landingLean && startCopyOk && terseOk && hubIcons && assignBadge && chatDot && blocksOnSub && primaryOk && demotedOk){
       pass('Train hub 6-card landing + drill-downs');
     } else {
       fail('Train hub 6-card landing + drill-downs',
@@ -22805,7 +23129,8 @@ async function runSEETests(){
         ' energy=' + energyOnStart + ' goals=' + goalsOnSub + ' chat=' + chatOnSub +
         ' recent=' + listOnRecent + ' assign=' + listOnAssign + ' lean=' + landingLean +
         ' startCopy=' + startCopyOk + ' terse=' + terseOk + ' subs=' + hubSubs.join('|') +
-        ' icons=' + hubIcons + ' badge=' + assignBadge + ' chatDot=' + chatDot);
+        ' icons=' + hubIcons + ' badge=' + assignBadge + ' chatDot=' + chatDot +
+        ' primary=' + primaryOk + ' demoted=' + demotedOk);
     }
   }catch(e){ fail('Train hub 6-card landing + drill-downs', e.message); }
 
@@ -22831,6 +23156,7 @@ async function runSEETests(){
     renderTrainSessionList();
     var list = document.getElementById('train-session-list');
     var hasNav = !!(list && /openTrainSessionDetail/.test(list.innerHTML) && list.querySelector('.res-card-chevron'));
+    var hasDup = !!(list && /trainDuplicateSession/.test(list.innerHTML) && list.querySelector('.train-hub-duplicate-btn'));
     var noInline = !!(list && !list.querySelector('.train-session-row-detail'));
     var listUsesScreen = /openTrainSessionDetail/.test(String(renderTrainSessionList))
       && String(renderTrainSessionList).indexOf('train-session-row-detail') === -1
@@ -22889,14 +23215,14 @@ async function runSEETests(){
     _trainSessionListShowAll = prevShow;
     renderTrainSessionList();
     if(prevScreen) showScreen(prevScreen);
-    if(hasNav && noInline && listUsesScreen && opened && atTop && back && painted && stillNoInline
+    if(hasNav && hasDup && noInline && listUsesScreen && opened && atTop && back && painted && stillNoInline
       && warmOk && noCool && reflOk && ivOk
       && emomOk && circOk && rpfOk && secOk && emptyOk && titleNotReflOk && nameOk && moreOk && allOk
       && noEdit && usesPreview && usesFmt && protoOk){
       pass('Recent session list opens a dedicated detail screen');
     } else {
       fail('Recent session list opens a dedicated detail screen',
-        'nav=' + hasNav + ' noInline=' + noInline + ' listUses=' + listUsesScreen
+        'nav=' + hasNav + ' dup=' + hasDup + ' noInline=' + noInline + ' listUses=' + listUsesScreen
         + ' opened=' + opened + ' atTop=' + atTop + ' back=' + back + ' painted=' + painted
         + ' stillNoInline=' + stillNoInline
         + ' warm=' + warmOk + ' noCool=' + noCool + ' refl=' + reflOk
@@ -22910,10 +23236,72 @@ async function runSEETests(){
   }
 
   try{
+    var prevSess = trainSessionState;
+    trainSessionState = newTrainSessionState('Boulders');
+    trainAddBlock('emom');
+    var emom = trainSessionState.blocks[0];
+    var r0 = emom.rounds[0];
+    var restDefault = r0.rest_after_sec === 180 && r0.complete === false;
+    trainAddEmomRound(emom.id, 'repeat');
+    var repeatOk = emom.rounds.length === 2
+      && (emom.rounds[1].boulders || []).length === (emom.rounds[0].boulders || []).length
+      && emom.rounds[1].complete === false
+      && emom.rounds[1].rest_after_sec === 180;
+    trainAddEmomRound(emom.id, 'new');
+    var newOk = emom.rounds.length === 3 && (emom.rounds[2].boulders || []).length === 0;
+    toggleTrainEmomRoundComplete(emom.id, 0);
+    var stamped = emom.rounds[0].complete === true && !!emom.rounds[0].rest_started_at;
+    var html = renderTrainBlockHtml(emom, 1);
+    var scopedIds = /tb-/.test(html) && /-r0-b0/.test(html) && /-r0-rest/.test(html) && /-r1-notes/.test(html);
+    var lockedNext = /is-locked/.test(html);
+    var collectSrc = String(collectTrainBlockFields);
+    var collectLoops = /b\.rounds\.forEach/.test(collectSrc) && /tb-'\+b\.id\+'-r'\+ri\+'-b/.test(collectSrc);
+    var saveAsSrc = String(saveTrainSessionAsWorkout);
+    var saveAsOk = /custom_workouts/.test(saveAsSrc)
+      && /sections:\s*trainSessionState\.blocks/.test(saveAsSrc)
+      && !!document.getElementById('train-sess-save-workout');
+    var seedLive = seedTrainBlocksFromSections([{
+      shape: 'emom',
+      rounds: [{ boulders: [{ text: 'V3' }], notes: '', rest_after_sec: 90, complete: true, rest_started_at: 'x' }]
+    }]);
+    var seedOk = seedLive.length === 1 && seedLive[0].shape === 'emom'
+      && seedLive[0].rounds[0].complete === false
+      && seedLive[0].rounds[0].rest_started_at === null
+      && seedLive[0].rounds[0].boulders[0].text === 'V3';
+    var draftSrc = String(saveTrainSessionDraft) + String(loadTrainSessionDraft) + String(clearTrainSessionDraft) + String(renderTrainSessionBuilder);
+    var draftOk = /see_train_session_draft/.test(draftSrc)
+      && /saveTrainSessionDraft\(\)/.test(String(renderTrainSessionBuilder))
+      && /clearTrainSessionDraft\(\)/.test(String(saveTrainSession))
+      && /clearTrainSessionDraft\(\)/.test(String(cancelTrainSession));
+    var saveSrc = String(saveTrainSession);
+    var offlineOk = /isSbNetworkFail/.test(saveSrc)
+      && /training_session/.test(saveSrc)
+      && /offlineQueueAdd/.test(saveSrc);
+    var orderOk = /started_at\.desc/.test(String(loadTrainHub));
+    var flushSrc = String(flushOfflineQueue);
+    var flushOk = /entry\.type === 'training_session'/.test(flushSrc)
+      && /sbI\('training_sessions'/.test(flushSrc)
+      && /sbInsertSession/.test(flushSrc);
+    var addType = /type \|\| 'session'/.test(String(offlineQueueAdd));
+    trainSessionState = prevSess;
+    showScreen('screen-train');
+    if(restDefault && repeatOk && newOk && stamped && scopedIds && lockedNext && collectLoops
+      && saveAsOk && seedOk && draftOk && offlineOk && orderOk && flushOk && addType){
+      pass('EMOM rounds, save-as-workout, draft, and history save path');
+    } else {
+      fail('EMOM rounds, save-as-workout, draft, and history save path',
+        'rest=' + restDefault + ' repeat=' + repeatOk + ' new=' + newOk + ' stamped=' + stamped
+        + ' ids=' + scopedIds + ' lock=' + lockedNext + ' collect=' + collectLoops
+        + ' saveAs=' + saveAsOk + ' seed=' + seedOk + ' draft=' + draftOk
+        + ' offline=' + offlineOk + ' order=' + orderOk + ' flush=' + flushOk + ' type=' + addType);
+    }
+  }catch(e){ fail('EMOM rounds, save-as-workout, draft, and history save path', e.message); }
+
+  try{
     var field = trainBlockNoteField('tb-test-notes', 'Round notes', 'hello **md**');
     var fieldOk = /train-note-preview/.test(field) && /expandTrainBlockNote\('tb-test-notes'\)/.test(field)
       && />Expand</.test(field) && /<strong>md<\/strong>|<b>md<\/b>/.test(field);
-    var usesField = /trainBlockNoteField\('tb-'\+b\.id\+'-notes'/.test(String(renderTrainBlockHtml))
+    var usesField = /trainBlockNoteField\('tb-'\+b\.id\+'-r'\+ri\+'-notes'/.test(String(renderTrainBlockHtml))
       && /trainBlockNoteField\('tb-'\+b\.id\+'-cnotes'/.test(String(renderTrainBlockHtml))
       && /trainBlockNoteField\('tb-'\+b\.id\+'-prog'/.test(String(renderTrainBlockHtml));
     var mdPrev = renderTrainNotePreview('**Density hangs for max force.**\n\n- [ ] Grip 1 complete');
@@ -23995,6 +24383,7 @@ async function runSEETests(){
   var skipped = results.filter(function(r){return r.status==='SKIP';}).length;
   console.log('%c Results: ' + passed + ' passed, ' + failed + ' failed, ' + skipped + ' skipped ',
     failed > 0 ? 'background:#e84444;color:#fff;font-weight:bold;padding:2px 8px;' : 'background:#7ec87a;color:#000;font-weight:bold;padding:2px 8px;');
+  window._seeTestsRunning = false;
   return {passed, failed, skipped, results};
 }
 

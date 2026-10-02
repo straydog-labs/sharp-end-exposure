@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index275'/.test(index));
-assert.ok(/APP_VERSION = 'index275'/.test(sw));
+assert.ok(/var app_version = 'index276'/.test(index));
+assert.ok(/APP_VERSION = 'index276'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -39,6 +39,9 @@ assert.ok(/See all/.test(landing));
 assert.ok(!/id="train-energy-grid"/.test(landing), 'landingLean: no #train-energy-grid on screen-train');
 assert.ok(!/id="train-goals-section"/.test(landing));
 assert.ok(!/id="coach-chat-section"/.test(landing));
+assert.ok(/id="train-hub-card-repeat"/.test(landing));
+assert.ok(/trainRepeatLastOrPinned/.test(landing));
+assert.ok(/id="train-hub-primary"/.test(landing));
 assert.ok(/id="train-hub-card-chat"/.test(landing), 'hub cards stay in place');
 
 const showSrc = extractFn(index, 'showScreen');
@@ -54,7 +57,8 @@ assert.ok(/function trainDuplicateSession/.test(index));
 assert.ok(/\.train-hub-duplicate-btn\{/.test(index));
 
 const recentList = extractFn(index, 'renderTrainSessionList');
-assert.ok(!/trainDuplicateSession/.test(recentList), 'full recent list stays without Duplicate');
+assert.ok(/trainDuplicateSession/.test(recentList), 'full recent list has Duplicate');
+assert.ok(/train-hub-duplicate-btn/.test(recentList));
 
 let uidN = 0;
 const ctx = {
@@ -152,6 +156,16 @@ const rpf = vm.runInContext(
 assert.strictEqual(rpf.grip, '20mm');
 assert.strictEqual(rpf.sets[0].reps[0].ok, null);
 assert.strictEqual(rpf.sets[0].reps[1].ok, null);
+
+const emomCloned = vm.runInContext(
+  'trainCloneBlockForDuplicate({ shape: "emom", rounds: [{ boulders: [{ text: "V4" }], notes: "n", rest_after_sec: 90, complete: true, rest_started_at: "x" }] })',
+  ctx
+);
+assert.strictEqual(emomCloned.shape, 'emom');
+assert.strictEqual(emomCloned.rounds[0].complete, false);
+assert.strictEqual(emomCloned.rounds[0].rest_started_at, null);
+assert.strictEqual(emomCloned.rounds[0].rest_after_sec, 90);
+assert.strictEqual(emomCloned.rounds[0].boulders[0].text, 'V4');
 
 vm.runInContext("trainDuplicateSession('sess-1')", ctx);
 assert.ok(ctx.trainSessionState.id !== 'old-in-progress');
