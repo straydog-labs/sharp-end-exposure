@@ -2389,6 +2389,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div id="log-details-indoor-fields" style="display:none;">
         <div class="field-group">
           <div class="field-label">Gym name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
+          <div id="log-gym-name-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
           <input id="log-gym-name" type="text" placeholder="e.g. your gym name" autocomplete="off"
             style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;"
             oninput="logDetailsState.gymName=this.value.trim()||null"/>
@@ -5462,7 +5463,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index275'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index276'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -7855,6 +7856,53 @@ var logDetailsState = {
   gymName: null
 };
 
+var _recentGymNames = null; // null = not yet fetched this app load
+
+async function loadRecentGymNames(){
+  if(_recentGymNames) return _recentGymNames;
+  if(!window._authUser) return (_recentGymNames = []);
+  var rows = await sbS(
+    'sessions',
+    'select=gym_name,created_at&user_id=eq.' + window._authUser.id +
+      '&gym_name=not.is.null&deleted_at=is.null&order=created_at.desc&limit=200'
+  );
+  var seen = {};
+  var names = [];
+  (Array.isArray(rows) ? rows : []).forEach(function(r){
+    var n = (r.gym_name || '').trim();
+    if(!n || seen[n]) return;
+    seen[n] = true;
+    names.push(n);
+  });
+  _recentGymNames = names.slice(0, 6);
+  return _recentGymNames;
+}
+
+function renderGymNameChips(names){
+  var wrap = document.getElementById('log-gym-name-chips');
+  if(!wrap) return;
+  names = Array.isArray(names) ? names : [];
+  if(!names.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = names.map(function(n, i){
+    var isLast = i === 0;
+    return '<button type="button" class="chip' + (isLast ? ' selected' : '') + '" onclick="selectGymNameChip(\'' +
+      String(n).replace(/\\/g,'\\\\').replace(/'/g, "\\'") + '\')">' + (isLast ? 'Last: ' : '') + escTrainHtml(n) + '</button>';
+  }).join('');
+}
+
+function selectGymNameChip(name){
+  var el = document.getElementById('log-gym-name');
+  if(el) el.value = name;
+  logDetailsState.gymName = name;
+}
+
+function rememberRecentGymName(name){
+  name = (name || '').trim();
+  if(!name) return;
+  if(!Array.isArray(_recentGymNames)) return;
+  _recentGymNames = [name].concat(_recentGymNames.filter(function(n){ return n !== name; })).slice(0, 6);
+}
+
 function resetLogDetailsState(){
   logDetailsState = {
     disc: null,
@@ -7870,6 +7918,8 @@ function resetLogDetailsState(){
   };
   var gym = document.getElementById('log-gym-name');
   if(gym) gym.value = '';
+  var chips = document.getElementById('log-gym-name-chips');
+  if(chips) chips.innerHTML = '';
   clearLogDetailsDiscipline();
   document.querySelectorAll('#log-details-rock-chips .chip.selected').forEach(function(b){
     b.classList.remove('selected');
@@ -7910,6 +7960,9 @@ function refreshLogDetailsPanels(){
   if(discOutdoor) discOutdoor.style.display = setting === 'outdoor' ? 'grid' : 'none';
   if(discIndoor) discIndoor.style.display = setting === 'indoor' ? 'grid' : 'none';
   if(indoor) indoor.style.display = setting === 'indoor' ? 'block' : 'none';
+  if(setting === 'indoor'){
+    loadRecentGymNames().then(renderGymNameChips);
+  }
   if(outdoor) outdoor.style.display = setting === 'outdoor' ? 'flex' : 'none';
   var boltGroup = document.getElementById('log-details-bolt-group');
   if(boltGroup){
@@ -8128,6 +8181,7 @@ async function logFlowSaveSession(how){
   var raw = await sbInsertSession(payload);
   if(isSbNetworkFail(raw)){
     offlineQueueAdd(payload, logState.routeName, climbId);
+    rememberRecentGymName(payload.gym_name);
     showToast('Saved offline. Will sync when you are back online.');
     showScreen('screen-log-prompt');
     return;
@@ -8142,6 +8196,7 @@ async function logFlowSaveSession(how){
 
   var saved = Array.isArray(raw) ? raw[0] : raw;
   if(saved && saved.id){
+    rememberRecentGymName(payload.gym_name);
     logState.sessId = saved.id;
     if(!(await syncClimbCatalogFields(climbId, logState.grade, logState.terrain))){
       showToast('Logged, but the route details did not fully update.', true);
@@ -23387,6 +23442,88 @@ async function runSEETests(){
         'details=' + !!detailsEl + ' rockOk=' + rockOk + ' discOk=' + discOk + ' outdoor=' + outdoorDisc.join(',') + ' indoor=' + indoorDisc.join(',') + ' boltRangeOk=' + boltRangeOk + ' sixStep=' + sixStep);
     }
   }catch(e){ fail('Indoor/Outdoor details has separate discipline lists + 6-step progress', e.message); }
+
+  var prevCache = _recentGymNames;
+  var prevAuth = window._authUser;
+  var prevSbS = sbS;
+  var prevSetting = (typeof logState === 'object' && logState) ? logState.setting : null;
+  try{
+    var chipsEl = document.getElementById('log-gym-name-chips');
+    var gymEl = document.getElementById('log-gym-name');
+    var hostOk = !!(chipsEl && gymEl && chipsEl.compareDocumentPosition(gymEl) & Node.DOCUMENT_POSITION_FOLLOWING);
+    if(typeof logState === 'object' && logState) logState.setting = null;
+    var gymValBefore = gymEl ? gymEl.value : '';
+    renderGymNameChips(['Movement Denver', "O'Brien's", 'The Spot']);
+    var html = chipsEl ? chipsEl.innerHTML : '';
+    var lastOk = /Last: Movement Denver/.test(html) && /O'Brien's/.test(html) && /The Spot/.test(html)
+      && /chip-primary/.test(html) === false
+      && (html.match(/class="chip selected"/g) || []).length === 1
+      && gymEl && gymEl.value === gymValBefore;
+    selectGymNameChip('The Spot');
+    var tapOk = gymEl && gymEl.value === 'The Spot' && logDetailsState.gymName === 'The Spot';
+    gymEl.value = 'typed over';
+    logDetailsState.gymName = 'typed over';
+    var typeOk = gymEl.value === 'typed over';
+    resetLogDetailsState();
+    var resetOk = gymEl.value === '' && chipsEl.innerHTML === '' && logDetailsState.gymName === null;
+    _recentGymNames = null;
+    window._authUser = { id: 'u-gym' };
+    var fetches = [];
+    sbS = async function(table, params){
+      fetches.push(table + '?' + (params || ''));
+      return [
+        { gym_name: '  Movement Denver ', created_at: '2026-10-02' },
+        { gym_name: 'The Spot', created_at: '2026-10-01' },
+        { gym_name: 'Movement Denver', created_at: '2026-09-01' },
+        { gym_name: '  ', created_at: '2026-08-01' },
+        { gym_name: 'Earth Treks', created_at: '2026-07-01' },
+        { gym_name: 'Planet Granite', created_at: '2026-06-01' },
+        { gym_name: 'Brooklyn Boulders', created_at: '2026-05-01' },
+        { gym_name: 'Touchstone', created_at: '2026-04-01' },
+        { gym_name: 'Too Old', created_at: '2026-03-01' }
+      ];
+    };
+    var names = await loadRecentGymNames();
+    var fetchOk = names.join('|') === 'Movement Denver|The Spot|Earth Treks|Planet Granite|Brooklyn Boulders|Touchstone'
+      && fetches.length === 1
+      && /sessions/.test(fetches[0])
+      && /gym_name=not\.is\.null/.test(fetches[0])
+      && /deleted_at=is\.null/.test(fetches[0])
+      && /order=created_at\.desc/.test(fetches[0])
+      && /limit=200/.test(fetches[0])
+      && /user_id=eq\.u-gym/.test(fetches[0])
+      && !/gym_climbs/.test(fetches[0]);
+    var names2 = await loadRecentGymNames();
+    var cached = names2 === names && fetches.length === 1;
+    rememberRecentGymName('New Gym');
+    var unshiftOk = _recentGymNames[0] === 'New Gym' && _recentGymNames.indexOf('Movement Denver') === 1
+      && _recentGymNames.length === 6 && _recentGymNames.indexOf('Touchstone') === -1;
+    rememberRecentGymName('The Spot');
+    var moveOk = _recentGymNames[0] === 'The Spot' && _recentGymNames.filter(function(n){ return n === 'The Spot'; }).length === 1;
+    var refreshSrc = String(refreshLogDetailsPanels);
+    var wireOk = /setting === 'indoor'/.test(refreshSrc) && /loadRecentGymNames\(\)\.then\(renderGymNameChips\)/.test(refreshSrc);
+    var resetSrc = String(resetLogDetailsState);
+    var resetSrcOk = /log-gym-name-chips/.test(resetSrc);
+    var saveSrc = String(logFlowSaveSession);
+    var saveOk = /rememberRecentGymName\(payload\.gym_name\)/.test(saveSrc);
+    var loadSrc = String(loadRecentGymNames);
+    var noCatalog = !/gym_climbs/.test(loadSrc);
+    if(hostOk && lastOk && tapOk && typeOk && resetOk && fetchOk && cached && unshiftOk && moveOk && wireOk && resetSrcOk && saveOk && noCatalog){
+      pass('Gym name quick-pick chips from session history');
+    } else {
+      fail('Gym name quick-pick chips from session history',
+        'host=' + hostOk + ' last=' + lastOk + ' tap=' + tapOk + ' type=' + typeOk +
+        ' reset=' + resetOk + ' fetch=' + fetchOk + ' cached=' + cached +
+        ' unshift=' + unshiftOk + ' move=' + moveOk + ' wire=' + wireOk +
+        ' resetSrc=' + resetSrcOk + ' save=' + saveOk + ' noCatalog=' + noCatalog);
+    }
+  }catch(e){ fail('Gym name quick-pick chips from session history', e.message); }
+  finally{
+    try{ _recentGymNames = prevCache; }catch(_e){}
+    try{ window._authUser = prevAuth; }catch(_e){}
+    try{ sbS = prevSbS; }catch(_e){}
+    try{ if(typeof logState === 'object' && logState) logState.setting = prevSetting; }catch(_e){}
+  }
 
   // ── SECTION D3: PWA install + same-window coach nav (build 203) ─
   console.log('%c D3 — PWA install ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
