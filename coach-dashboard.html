@@ -2966,6 +2966,11 @@
             '<div class="team-zone-note">Mental-zone mix and grade by terrain on the same 12-week local-calendar axis (same clock as the journal). The gap panel is all-time by terrain — same logs, different slice. Descriptive — not a cause-and-effect read.</div>' +
             '<div id="athlete-progress-body"><div class="zone-bar-empty">Loading···</div></div>' +
           '</div>' +
+          '<div class="insight-panel" id="athlete-training-volume-panel">' +
+            '<div class="team-zone-label">Training volume</div>' +
+            '<div class="team-zone-note">Logged Train sessions on the same 12-week local-calendar axis as Progress over time. Descriptive only — not a target or prescription.</div>' +
+            '<div id="athlete-training-volume-body"><div class="zone-bar-empty">Loading···</div></div>' +
+          '</div>' +
           '<div class="insight-panel" id="athlete-gap-panel">' +
             '<div class="team-zone-label">Where\'s the gap?</div>' +
             '<div class="team-zone-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
@@ -3349,6 +3354,7 @@
   }
 
   var _athleteInsightCache = {};
+  var _athleteTrainingInsightCache = {};
   var _ropedDisciplineFilter = 'all';
   var TERRAIN_LINE_COLOR = {
     Slab: '#8ec8d8',
@@ -3376,6 +3382,34 @@
         var list = Array.isArray(rows) ? rows : [];
         _athleteInsightCache[athleteId] = list;
         return list;
+      });
+    });
+  }
+
+  function loadAthleteTrainingInsightSessions(token, athleteId){
+    var q = 'select=id,created_at,started_at,energy_type' +
+      '&user_id=eq.' + athleteId +
+      '&deleted_at=is.null&order=created_at.desc&limit=2000';
+    function cache(rows){
+      var list = Array.isArray(rows) ? rows : [];
+      _athleteTrainingInsightCache[athleteId] = list;
+      return list;
+    }
+    return sbSelect(token, 'training_sessions', q).then(cache).catch(function(err){
+      var missing = err && (err.code === 'PGRST204' || err.code === '42703');
+      if(!missing){
+        _athleteTrainingInsightCache[athleteId] = [];
+        return [];
+      }
+      return sbSelect(
+        token,
+        'training_sessions',
+        'select=id,created_at,energy_type' +
+          '&user_id=eq.' + athleteId +
+          '&deleted_at=is.null&order=created_at.desc&limit=2000'
+      ).then(cache).catch(function(){
+        _athleteTrainingInsightCache[athleteId] = [];
+        return [];
       });
     });
   }
@@ -3470,22 +3504,27 @@
 
   function loadAthleteInsightPanels(token, athleteId){
     var progressEl = document.getElementById('athlete-progress-body');
+    var volumeEl = document.getElementById('athlete-training-volume-body');
     var gapEl = document.getElementById('athlete-gap-body');
     var projectsEl = document.getElementById('detail-projects');
     if(!window.CoachInsights){
       if(progressEl) progressEl.innerHTML = '<div class="empty-state">Progress view is unavailable.</div>';
+      if(volumeEl) volumeEl.innerHTML = '<div class="empty-state">Training volume is unavailable.</div>';
       if(gapEl) gapEl.innerHTML = '<div class="empty-state">Gap view is unavailable.</div>';
       if(projectsEl) projectsEl.innerHTML = '<div class="panel-title">Projects</div><div class="empty-state">No projects starred yet.</div>';
       return Promise.resolve();
     }
     return Promise.all([
       loadAthleteInsightSessions(token, athleteId),
-      loadAthleteProjectClimbs(token, athleteId)
+      loadAthleteProjectClimbs(token, athleteId),
+      loadAthleteTrainingInsightSessions(token, athleteId)
     ]).then(function(parts){
       var rows = parts[0];
       var climbs = parts[1];
+      var trainingRows = parts[2];
       if(progressEl) progressEl.innerHTML = renderProgressPanelHtml(rows);
       wireRopedDisciplineChips();
+      if(volumeEl) volumeEl.innerHTML = renderTrainingVolumePanelHtml(trainingRows);
       if(gapEl) gapEl.innerHTML = renderGapPanelHtml(rows);
       paintAthleteProjects(climbs, rows);
     }).catch(function(err){
@@ -3493,6 +3532,9 @@
         escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';
       if(progressEl) progressEl.innerHTML = msg;
       if(gapEl) gapEl.innerHTML = msg;
+      if(volumeEl){
+        volumeEl.innerHTML = renderTrainingVolumePanelHtml(_athleteTrainingInsightCache[athleteId] || []);
+      }
       loadAthleteProjectClimbs(token, athleteId).then(function(climbs){
         paintAthleteProjects(climbs, _athleteInsightCache[athleteId] || []);
       });
@@ -3699,6 +3741,26 @@
       (series.sessionCount === 1 ? ' logged session' : ' logged sessions') +
       ' in this window.</div>' +
       weekBars + zoneSvg + boulderSvg + ropedSvg;
+  }
+
+  function renderTrainingVolumePanelHtml(trainingSessions){
+    var CI = window.CoachInsights;
+    var series = CI.computeTrainingVolumeSeries(trainingSessions, { weekCount: 12 });
+    if(!series.sessionCount) return '<div class="empty-state">No logged training sessions in the last 12 weeks.</div>';
+    var yMax = Math.max(1, series.maxCount);
+    var svg = insightChartTitleWithHelp(
+      'Sessions per week',
+      'Count of logged training sessions (Train tab) each week. Descriptive only — not a target or prescription.'
+    ) + renderSharedAxisSvg([
+      { color: '#3db8c9', xs: series.labels, values: series.points.map(function(p){ return p.count; }) }
+    ], 0, yMax, [
+      { value: 0, label: '0' },
+      { value: Math.round(yMax / 2), label: String(Math.round(yMax / 2)) },
+      { value: yMax, label: String(yMax) }
+    ], 720, 168);
+    return '<div class="form-note">' + series.sessionCount +
+      (series.sessionCount === 1 ? ' logged training session' : ' logged training sessions') +
+      ' in this window.</div>' + svg;
   }
 
   function renderGapPanelHtml(sessions){

@@ -190,6 +190,7 @@ assert.ok(/created_by/.test(sql));
 assert.ok(/gen_random_uuid\(\)/.test(sql));
 assert.ok(!/insert into public\.gym_climbs/i.test(sql), 'do not seed gym_climbs');
 assert.ok(/athlete-progress-panel/.test(dash));
+assert.ok(/athlete-training-volume-panel/.test(dash));
 assert.ok(/athlete-gap-panel/.test(dash));
 assert.ok(/open-gym-climbs/.test(dash));
 assert.ok(/js\/coach-athlete-insights\.js/.test(dash));

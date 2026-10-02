@@ -409,6 +409,31 @@
     };
   }
 
+  function computeTrainingVolumeSeries(trainingSessions, options) {
+    var weekCount = (options && options.weekCount) || 12;
+    var endDate = (options && options.endDate) || new Date();
+    var weeks = lastNWeekKeys(weekCount, endDate);
+    var byWeek = {};
+    weeks.forEach(function (k) { byWeek[k] = { key: k, label: formatWeekLabel(k), count: 0 }; });
+    var sessionCount = 0;
+    (trainingSessions || []).forEach(function (row) {
+      if (!row || row.deleted_at) return;
+      var d = new Date(row.started_at || row.created_at);
+      if (isNaN(d.getTime())) return;
+      var key = weekKey(d);
+      if (!byWeek[key]) return;
+      byWeek[key].count += 1;
+      sessionCount += 1;
+    });
+    var points = weeks.map(function (k) { return byWeek[k]; });
+    return {
+      sessionCount: sessionCount,
+      labels: weeks.map(function (k) { return byWeek[k].label; }),
+      points: points,
+      maxCount: points.reduce(function (m, p) { return Math.max(m, p.count); }, 0)
+    };
+  }
+
   function summarizeGroup(rows) {
     var zones = emptyZoneCounts();
     var grades = [];
@@ -843,6 +868,7 @@
     gradeAxisFromSeries: gradeAxisFromSeries,
     normalizeTerrainType: normalizeTerrainType,
     computeProgressSeries: computeProgressSeries,
+    computeTrainingVolumeSeries: computeTrainingVolumeSeries,
     computeGapDiagnostic: computeGapDiagnostic,
     gapHeadlineModel: gapHeadlineModel,
     parseGymClimbsCsv: parseGymClimbsCsv,

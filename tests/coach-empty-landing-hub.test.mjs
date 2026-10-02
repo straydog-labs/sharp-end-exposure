@@ -39,9 +39,10 @@ const stats = idx('roster-stats');
 const insights = idx('roster-insights');
 const zone = idx('athlete-zone-wrap');
 const progress = idx('athlete-progress-panel');
+const volume = idx('athlete-training-volume-panel');
 const gap = idx('athlete-gap-panel');
 assert.ok(header < hub && hub < log && log < stats && stats < insights &&
-  insights < zone && zone < progress && progress < gap,
+  insights < zone && zone < progress && progress < volume && volume < gap,
   'hub cards sit after header and before log/stats/insights');
 assert.ok(!/athlete-projects-panel/.test(html), 'projects left the buried landing panel');
 assert.ok(/athleteHubCardHtml\('projects', 'Track', 'Projects', 'hub-projects-sub', '0 active'\)/.test(html));
