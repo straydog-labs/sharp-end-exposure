@@ -1,0 +1,70 @@
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import assert from 'assert';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = join(__dirname, '..');
+const index = readFileSync(join(root, 'index.html'), 'utf8');
+const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
+const sw = readFileSync(join(root, 'sw.js'), 'utf8');
+const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
+
+assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
+assert.ok(/var app_version = 'index276'/.test(index));
+assert.ok(/APP_VERSION = 'index276'/.test(sw));
+assert.ok(!/hub-primary-card/.test(dash), 'coach-dashboard untouched');
+
+assert.ok(/\.hub-primary-card/.test(index));
+assert.ok(/#home-card-log\.home-log-primary/.test(index), 'Home id rule kept as alias');
+assert.ok(/class="train-energy-card home-log-primary hub-primary-card" id="home-card-log"/.test(index));
+assert.ok(/\.hub-compact-row/.test(index));
+assert.ok(/see-screen-fade-in/.test(index));
+assert.ok(/prefers-reduced-motion: no-preference/.test(index));
+assert.ok(/button:active/.test(index));
+assert.ok(/\.footer-btn:active/.test(index));
+assert.ok(/see-celebrate-pop/.test(index));
+assert.ok(/function playCelebrateMoment\(/.test(index));
+assert.ok(/function toggleCollapsibleSection\(/.test(index));
+assert.ok(/function trainRepeatLastSession\(/.test(index));
+assert.ok(/trainDuplicateSession\(rows\[0\]\.id\)/.test(index));
+assert.ok(!/CREATE TABLE/i.test(index.match(/function trainRepeatLastSession[\s\S]+?function trainDuplicateSession/)[0]));
+
+const train = index.slice(index.indexOf('id="screen-train"'), index.indexOf('id="screen-train-start"'));
+assert.ok(/id="train-hub-card-repeat"/.test(train));
+assert.ok(/id="train-hub-card-start"/.test(train));
+assert.ok(/id="train-hub-card-goals"/.test(train));
+assert.ok(/id="train-hub-card-recent"/.test(train));
+assert.ok(/id="train-hub-recent-wrap"/.test(train));
+assert.ok(/id="train-hub-recent-mini"/.test(train));
+assert.ok(/id="train-hub-assign-count"/.test(train));
+assert.ok(/id="train-hub-chat-unread"/.test(train));
+assert.ok(/>More</.test(train));
+assert.ok(train.indexOf('id="train-hub-card-start"') < train.indexOf('hub-more-label'));
+assert.ok(train.indexOf('hub-more-label') < train.indexOf('id="train-hub-card-recent"'));
+assert.ok(!/te-sub/.test(train.slice(train.indexOf('id="train-hub-cards"'))));
+
+const drill = index.slice(index.indexOf('id="screen-drill"'), index.indexOf('id="screen-psyche-bee"'));
+assert.ok(/id="psyche-card-checkin"/.test(drill));
+assert.ok(drill.indexOf('Psyche') < drill.indexOf('id="psyche-card-checkin"'));
+assert.ok(drill.indexOf('id="psyche-card-checkin"') < drill.indexOf('id="psyche-practice-list"'));
+assert.ok(drill.indexOf('id="psyche-practice-list"') < drill.indexOf('id="psyche-log-stats"'));
+assert.ok(/Show your psyche stats/.test(drill));
+assert.ok(/onclick="startPrepareClimb\(\)"/.test(drill));
+assert.ok(/onclick="startExposureDrill\(\)"/.test(drill));
+assert.ok(/onclick="startPsycheBee\(\)"/.test(drill));
+assert.ok(/onclick="startPsycheSigh\(\)"/.test(drill));
+assert.ok(/onclick="startPsychePmr\(\)"/.test(drill));
+assert.ok(/onclick="startPsycheViz\(\)"/.test(drill));
+assert.ok(/onclick="startPsycheTalk\(\)"/.test(drill));
+assert.ok((drill.match(/class="hub-compact-row"/g) || []).length === 7);
+assert.ok(!/>Start →</.test(drill));
+assert.ok(/id="psyche-stat-streak"/.test(drill));
+assert.ok(/id="psyche-radar-wrap"/.test(drill));
+
+assert.ok(/toggleCollapsibleSection\('patterns-body'/.test(index));
+assert.ok(/id==='screen-celebrate' \|\| id==='screen-train-done'/.test(index));
+assert.ok(/\.screen\.active\.log-flow-screen/.test(index));
+assert.ok(/do not add transform here/.test(index));
+
+console.log('hub-smooth tests: ok');
