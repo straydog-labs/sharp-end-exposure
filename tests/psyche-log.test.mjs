@@ -10,8 +10,8 @@ const sw = readFileSync(join(__dirname, '../sw.js'), 'utf8');
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index275'/.test(index));
-assert.ok(/APP_VERSION = 'index275'/.test(sw));
+assert.ok(/var app_version = 'index276'/.test(index));
+assert.ok(/APP_VERSION = 'index276'/.test(sw));
 
 assert.ok(/function startPrepare\(/.test(index));
 assert.ok(/function startPrepareClimb\(/.test(index));
@@ -43,7 +43,12 @@ assert.ok(/'screen-psyche-talk':'fnav-mental'/.test(index));
 
 assert.ok(/Log a practice to see your mix/.test(index));
 assert.ok(/total === 0/.test(index));
-assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Check-in</.test(index));
+assert.ok(/te-label">Check-in</.test(index) || /letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Check-in</.test(index));
+assert.ok(/id="psyche-card-checkin"/.test(index));
+assert.ok(/onclick="startPrepare\(\)"/.test(index.match(/id="psyche-card-checkin"[\s\S]{0,400}/)[0]));
+assert.ok(/Show your psyche stats/.test(index));
+assert.ok(/function toggleCollapsibleSection\(/.test(index));
+assert.ok(/function togglePsycheStatsSection\(/.test(index));
 assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Exposure</.test(index));
 assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Breath</.test(index));
 assert.ok(/letter-spacing:\.12em;text-transform:uppercase;color:var\(--muted\);margin:2px 0 4px;">Relax</.test(index));

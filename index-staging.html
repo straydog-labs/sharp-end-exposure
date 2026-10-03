@@ -56,6 +56,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
 /* ── SCREENS ── */
 .screen{display:none}.screen.active{display:block;width:100%;min-height:calc(100vh - 52px - env(safe-area-inset-top, 0px));overflow-y:auto;flex:1;}
+@media (prefers-reduced-motion: no-preference){
+  @keyframes see-screen-fade-in{from{opacity:0;}to{opacity:1;}}
+  .screen.active{animation:see-screen-fade-in 160ms ease-out;}
+}
 .content{max-width:480px;margin-left:auto;margin-right:auto;padding:20px 20px 24px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;}
 #research-sheet{transform:translateY(100%);}
 #research-sheet.open{transform:translateY(0);}
@@ -145,8 +149,22 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .home-zone-legend .hz-c{color:var(--comfort);}
 .home-zone-legend .hz-l{color:var(--learning);}
 .home-zone-legend .hz-p{color:var(--panic);}
+.hub-primary-card,
 #home-card-log.home-log-primary{width:100%;box-sizing:border-box;min-height:168px;padding:26px 22px;border-color:rgba(232,118,58,.45);margin-bottom:12px;}
+.hub-primary-card .te-title,
 #home-card-log.home-log-primary .te-title{font-size:22px;}
+.hub-compact-list{display:flex;flex-direction:column;gap:8px;margin-top:0;}
+.hub-more-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;}
+.hub-compact-row{width:100%;display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;text-align:left;cursor:pointer;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+.hub-compact-row .te-icon{width:28px;height:28px;border-radius:8px;background:rgba(232,118,58,.12);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.hub-compact-row .te-icon svg{width:15px;height:15px;}
+.hub-compact-row .te-title{font-size:15px;font-weight:700;line-height:1.25;flex:1;min-width:0;}
+.hub-compact-row .te-meta{font-size:12px;color:var(--muted);flex-shrink:0;}
+.hub-compact-row .te-count{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--accent);color:#fff;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+.hub-compact-row .te-count[hidden]{display:none;}
+.hub-compact-row .fnav-unread-dot{position:static;width:8px;height:8px;border:2px solid var(--surface);flex-shrink:0;}
+.hub-collapse-toggle{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:14px 18px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent;}
+.hub-collapse-body{display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-xl) var(--r-xl);padding:16px 18px;}
 #home-card-research{width:100%;box-sizing:border-box;min-height:120px;margin-bottom:18px;}
 .saw-field input[type=datetime-local]{min-width:0;width:100%;max-width:100%;}
 .train-badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--muted);margin-left:6px;vertical-align:middle;}
@@ -339,6 +357,28 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .home-btn:active{transform:scale(.98);}
 .hiw-link{text-align:center;}
 .hiw-link button{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:8px;-webkit-tap-highlight-color:transparent;}
+@media (prefers-reduced-motion: no-preference){
+  button:active,
+  .train-energy-card:active,
+  .nav-visual-card:active{transform:scale(.98);transition:transform 100ms ease-out;}
+  .footer-btn:active,
+  .footer-nav button:active,
+  .train-energy-card.train-assign-card:active,
+  .gauge-drag-handle:active,
+  .gauge-needle-hub:active,
+  input[type=range]:active{transform:none;}
+  @keyframes see-celebrate-pop{
+    0%{transform:scale(.6);opacity:0;}
+    70%{transform:scale(1.08);opacity:1;}
+    100%{transform:scale(1);opacity:1;}
+  }
+  @keyframes see-celebrate-rise{
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  .see-celebrate-pop.see-celebrate-play{animation:see-celebrate-pop 250ms ease-out;}
+  .see-celebrate-rise.see-celebrate-play{animation:see-celebrate-rise 250ms ease-out;}
+}
 
 /* ── FIELDS ── */
 .field-group{display:flex;flex-direction:column;gap:8px;}
@@ -433,6 +473,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 }
 .screen.active.log-flow-screen{
   display:flex;
+  /* fade uses opacity only — do not add transform here; .log-flow-footer is position:fixed */
 }
 .log-flow-screen .page-header{margin:-16px -16px 0;padding:0 16px;}
 .log-flow-body{flex:1;max-width:480px;width:100%;margin:0 auto;}
@@ -1400,7 +1441,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div id="home-due-list"></div>
     </div>
 
-    <button type="button" class="train-energy-card home-log-primary" id="home-card-log" onclick="startLogFlow()">
+    <button type="button" class="train-energy-card home-log-primary hub-primary-card" id="home-card-log" onclick="startLogFlow()">
       <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 20 9 10 13 15 17 9 21 20"/><line x1="3" y1="20" x2="21" y2="20"/></svg></div></div>
       <div class="te-label">Climb</div>
       <div class="te-title">Log a climb</div>
@@ -1934,12 +1975,12 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 
     <!-- ROW 1: logged + climb number -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 12px;">
-      <div style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">Logged ✓</div>
+      <div class="see-celebrate-pop" style="font-size:var(--t-2xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);">Logged ✓</div>
       <div style="font-size:11px;color:var(--muted);" id="cel-climb-num"></div>
     </div>
 
     <!-- ROW 2: GRADE + TERRAIN + RESULT — hero line -->
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+    <div class="see-celebrate-rise" style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <div style="font-family:'Space Mono',monospace;font-size:32px;font-weight:700;color:var(--text);line-height:1;" id="card-grade-big">—</div>
       <div style="font-size:var(--t-md);color:var(--muted);font-weight:500;" id="card-terrain-big">—</div>
       <div class="climb-result-badge" id="card-badge-big">—</div>
@@ -3408,50 +3449,91 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="content">
     <!-- tip host: drill-home injected by mountTipForScreen (build 195) -->
     <div style="margin-bottom:8px;"><div style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;">Psyche</div><div style="font-size:14px;color:var(--muted);">Check-in, train the mind, log the work.</div></div>
-    <div id="psyche-log-stats">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-        <div class="insight-card" style="padding:16px;">
-          <div class="insight-label" style="margin-bottom:6px;">Streak</div>
-          <div id="psyche-stat-streak" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">consecutive days</div>
-        </div>
-        <div class="insight-card" style="padding:16px;">
-          <div class="insight-label" style="margin-bottom:6px;">This week</div>
-          <div id="psyche-stat-week" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">practices</div>
-        </div>
-      </div>
-      <div class="insight-card" style="padding:16px;margin-bottom:10px;">
-        <div class="insight-label" style="margin-bottom:6px;">Total logged</div>
-        <div id="psyche-stat-total" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;">psyche practices</div>
-      </div>
-      <div class="insight-card" id="psyche-radar-card" style="margin-bottom:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-          <div class="insight-label" style="margin-bottom:0;">Practice mix</div>
-          <div id="psyche-radar-range" style="display:flex;gap:6px;">
-            <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(7,this)">7 days</button>
-            <button type="button" class="psyche-range-chip selected" onclick="setPsycheRadarRange(30,this)">30 days</button>
-            <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(90,this)">90 days</button>
+    <button type="button" class="train-energy-card hub-primary-card mental" id="psyche-card-checkin" onclick="startPrepare()">
+      <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12 Q6 8 9 12 Q12 16 15 12 Q18 8 21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></div></div>
+      <div class="te-label">Check-in</div>
+      <div class="te-title">Quick check-in</div>
+      <div class="te-sub">2–3 min</div>
+    </button>
+    <div class="hub-compact-list" id="psyche-practice-list">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Full pre-climb sequence</div>
+      <button type="button" class="hub-compact-row" id="psyche-row-prepare-climb" onclick="startPrepareClimb()">
+        <div class="te-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 20 L8 12 L12 16 L16 8 L21 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div>
+        <div class="te-title">Prepare for a climb</div>
+        <div class="te-meta">5–7 min</div>
+      </button>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Exposure</div>
+      <button type="button" class="hub-compact-row" id="psyche-row-exposure" onclick="startExposureDrill()">
+        <div class="te-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" opacity=".4"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.5" opacity=".7"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></div>
+        <div class="te-title">Exposure Drill</div>
+        <div class="te-meta">Full session</div>
+      </button>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Breath</div>
+      <button type="button" class="hub-compact-row" id="psyche-row-bee" onclick="startPsycheBee()">
+        <div class="te-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 12c2-5 4-5 7-5s5 0 7 5c-2 5-4 5-7 5s-5 0-7-5z" stroke="currentColor" stroke-width="2" fill="none"/></svg></div>
+        <div class="te-title">Bee Humming</div>
+        <div class="te-meta">60-90 sec</div>
+      </button>
+      <button type="button" class="hub-compact-row" id="psyche-row-sigh" onclick="startPsycheSigh()">
+        <div class="te-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 14c2-6 4 6 6 0s4 6 6 0 4 6 6 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="te-title">Cyclic Sighing</div>
+        <div class="te-meta">~1 min</div>
+      </button>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Relax</div>
+      <button type="button" class="hub-compact-row" id="psyche-row-pmr" onclick="startPsychePmr()">
+        <div class="te-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M8 20V10M12 20V6M16 20V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="te-title">Progressive Muscle Relaxation</div>
+        <div class="te-meta">3-4 min</div>
+      </button>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Visualize</div>
+      <button type="button" class="hub-compact-row" id="psyche-row-viz" onclick="startPsycheViz()">
+        <div class="te-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M8 13c1.2 2 6.8 2 8 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div class="te-title">Project Visualization</div>
+        <div class="te-meta">2-3 min</div>
+      </button>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Self-talk</div>
+      <button type="button" class="hub-compact-row" id="psyche-row-talk" onclick="startPsycheTalk()">
+        <div class="te-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M5 8h9M5 12h6M5 16h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 7l4 5-4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="te-title">Self-Talk Cue</div>
+        <div class="te-meta">~1 min</div>
+      </button>
+    </div>
+    <div id="psyche-stats-section" style="margin-top:8px;">
+      <button type="button" class="hub-collapse-toggle" id="psyche-stats-toggle" onclick="togglePsycheStatsSection()">
+        <span id="psyche-stats-toggle-label">Show your psyche stats</span>
+        <span id="psyche-stats-toggle-arrow" style="font-size:16px;color:var(--muted);">↓</span>
+      </button>
+      <div id="psyche-log-stats" class="hub-collapse-body" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div class="insight-card" style="padding:16px;">
+            <div class="insight-label" style="margin-bottom:6px;">Streak</div>
+            <div id="psyche-stat-streak" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">consecutive days</div>
+          </div>
+          <div class="insight-card" style="padding:16px;">
+            <div class="insight-label" style="margin-bottom:6px;">This week</div>
+            <div id="psyche-stat-week" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">practices</div>
           </div>
         </div>
-        <div id="psyche-radar-wrap"></div>
+        <div class="insight-card" style="padding:16px;margin-bottom:10px;">
+          <div class="insight-label" style="margin-bottom:6px;">Total logged</div>
+          <div id="psyche-stat-total" style="font-size:34px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">0</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">psyche practices</div>
+        </div>
+        <div class="insight-card" id="psyche-radar-card" style="margin-bottom:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            <div class="insight-label" style="margin-bottom:0;">Practice mix</div>
+            <div id="psyche-radar-range" style="display:flex;gap:6px;">
+              <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(7,this)">7 days</button>
+              <button type="button" class="psyche-range-chip selected" onclick="setPsycheRadarRange(30,this)">30 days</button>
+              <button type="button" class="psyche-range-chip" onclick="setPsycheRadarRange(90,this)">90 days</button>
+            </div>
+          </div>
+          <div id="psyche-radar-wrap"></div>
+        </div>
       </div>
     </div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Check-in</div>
-    <div style="background:var(--surface);border:1px solid var(--drill-a-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-a),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-a-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 12 Q6 8 9 12 Q12 16 15 12 Q18 8 21 12" stroke="var(--drill-a)" stroke-width="2" stroke-linecap="round" fill="none"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-a);margin-bottom:5px;">Before a climb</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Quick check-in</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">A somatic check-in at any point in your decision window. Days before, morning of, or at the base.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">2–3 min</div><button onclick="startPrepare()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
-    <div style="background:var(--surface);border:1px solid var(--drill-b-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-b),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-b-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 20 L8 12 L12 16 L16 8 L21 20" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-b);margin-bottom:5px;">Full pre-climb sequence</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Prepare for a climb</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Breathwork, somatic check-in, route visualization, second check-in. The full sequence before committing.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">5–7 min</div><button onclick="startPrepareClimb()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Exposure</div>
-    <div style="background:var(--surface);border:1px solid var(--drill-c-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-c),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-c-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(107,140,174,0.4)" stroke-width="1.5"/><circle cx="12" cy="12" r="5" stroke="rgba(107,140,174,0.6)" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="var(--drill-c)"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-c);margin-bottom:5px;">Structured practice</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Exposure Drill</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Predict your zone, check in, climb, log post-climb. See how prediction and reality compare.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">Full session</div><button onclick="startExposureDrill()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Breath</div>
-    <div style="background:var(--surface);border:1px solid var(--drill-a-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-a),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-a-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 12h8M12 8v8" stroke="var(--drill-a)" stroke-width="1.5" stroke-linecap="round"/><path d="M5 12c2-5 4-5 7-5s5 0 7 5c-2 5-4 5-7 5s-5 0-7-5z" stroke="var(--drill-a)" stroke-width="2" fill="none"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-a);margin-bottom:5px;">Breathwork</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Bee Humming</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Plug your ears, close your eyes, inhale, then hum on a long exhale - like a bee.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">60-90 sec</div><button onclick="startPsycheBee()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
-    <div style="background:var(--surface);border:1px solid var(--drill-b-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-b),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-b-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 14c2-6 4 6 6 0s4 6 6 0 4 6 6 0" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round"/><path d="M4 18c2-3 4 3 6 0s4 3 6 0 4 3 6 0" stroke="var(--drill-b)" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-b);margin-bottom:5px;">Breathwork</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Cyclic Sighing</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Two inhales through the nose, then one long slow exhale through the mouth. Five cycles.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">~1 min</div><button onclick="startPsycheSigh()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Relax</div>
-    <div style="background:var(--surface);border:1px solid var(--drill-c-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-c),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-c-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 20V10M12 20V6M16 20V12" stroke="var(--drill-c)" stroke-width="2" stroke-linecap="round"/><path d="M6 8c2-3 4-3 6 0s4 3 6 0" stroke="var(--drill-c)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-c);margin-bottom:5px;">Relaxation</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Progressive Muscle Relaxation</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Tense each muscle group for 5 seconds, then release for 10. Feet to face.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">3-4 min</div><button onclick="startPsychePmr()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Visualize</div>
-    <div style="background:var(--surface);border:1px solid var(--drill-a-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-a),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-a-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="var(--drill-a)" stroke-width="1.5"/><path d="M8 13c1.2 2 6.8 2 8 0" stroke="var(--drill-a)" stroke-width="1.5" stroke-linecap="round"/><circle cx="9.5" cy="10" r="1" fill="var(--drill-a)"/><circle cx="14.5" cy="10" r="1" fill="var(--drill-a)"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-a);margin-bottom:5px;">Visualization</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Project Visualization</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Mentally rehearse your project from start to finish - holds, crux, topping out.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">2-3 min</div><button onclick="startPsycheViz()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:2px 0 4px;">Self-talk</div>
-    <div style="background:var(--surface);border:1px solid var(--drill-b-dim);border-radius:var(--r-xl);padding:20px;margin-bottom:14px;position:relative;overflow:hidden;"><div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--drill-b),transparent);"></div><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div style="width:44px;height:44px;border-radius:10px;background:var(--drill-b-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 8h9M5 12h6M5 16h8" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round"/><path d="M16 7l4 5-4 5" stroke="var(--drill-b)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--drill-b);margin-bottom:5px;">Self-Talk</div><div style="font-size:17px;font-weight:700;margin-bottom:5px;">Self-Talk Cue</div><div style="font-size:13px;color:var(--muted);line-height:1.6;">Pick a short cue phrase to repeat at the crux - brevity and timing are the point.</div></div></div><div style="display:flex;align-items:center;justify-content:space-between;"><div style="font-size:11px;color:var(--muted2);">~1 min</div><button onclick="startPsycheTalk()" style="background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:10px 22px;cursor:pointer;">Start →</button></div></div>
   </div>
 </div>
 
@@ -4008,48 +4090,45 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
     </div>
 
     <div id="train-signed-in-content" style="display:none;">
-      <div class="train-energy-grid" id="train-hub-cards" style="margin-top:16px;">
-        <button type="button" class="train-energy-card" id="train-hub-card-start" onclick="showScreen('screen-train-start')">
+      <div id="train-hub-primary" class="train-hub-primary">
+        <button type="button" class="train-energy-card hub-primary-card" id="train-hub-card-repeat" onclick="trainRepeatLastSession()" style="display:none;">
+          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></div></div>
+          <div class="te-label">Again</div>
+          <div class="te-title">Repeat</div>
+          <div class="te-sub" id="train-hub-repeat-sub">Last session</div>
+        </button>
+        <button type="button" class="train-energy-card hub-primary-card" id="train-hub-card-start" onclick="showScreen('screen-train-start')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg></div></div>
           <div class="te-label">Session</div>
           <div class="te-title">Start a session</div>
           <div class="te-sub">Browse workouts</div>
         </button>
-        <button type="button" class="train-energy-card" id="train-hub-card-recent" onclick="showScreen('screen-train-recent')">
-          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div></div>
-          <div class="te-label">History</div>
-          <div class="te-title">Recent sessions</div>
-          <div class="te-sub">This week's log</div>
-        </button>
-        <button type="button" class="train-energy-card" id="train-hub-card-assign" onclick="showScreen('screen-train-assignments')">
-          <div class="te-card-top">
-            <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div>
-            <span class="te-count" id="train-hub-assign-count" hidden></span>
-          </div>
-          <div class="te-label">Coach</div>
-          <div class="te-title">Assignments from coach</div>
-          <div class="te-sub">Open plans</div>
-        </button>
-        <button type="button" class="train-energy-card" id="train-hub-card-goals" onclick="showScreen('screen-train-goals')">
+        <button type="button" class="train-energy-card hub-primary-card" id="train-hub-card-goals" onclick="showScreen('screen-train-goals')">
           <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></div></div>
           <div class="te-label">Focus</div>
           <div class="te-title">Training goals</div>
           <div class="te-sub">Primary and secondary</div>
         </button>
-        <button type="button" class="train-energy-card" id="train-hub-card-blocks" onclick="showScreen('screen-train-blocks')" style="grid-column:1 / -1;">
-          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></div></div>
-          <div class="te-label">Plan</div>
-          <div class="te-title">Training blocks</div>
-          <div class="te-sub">Multi-week plan</div>
+      </div>
+      <div class="hub-more-label">More</div>
+      <div class="hub-compact-list" id="train-hub-cards">
+        <button type="button" class="hub-compact-row" id="train-hub-card-recent" onclick="showScreen('screen-train-recent')">
+          <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div>
+          <div class="te-title">Recent sessions</div>
         </button>
-        <button type="button" class="train-energy-card" id="train-hub-card-chat" onclick="showScreen('screen-train-chat')" style="grid-column:1 / -1;">
-          <div class="te-card-top">
-            <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"/></svg></div>
-            <span id="train-hub-chat-unread" class="fnav-unread-dot" hidden aria-hidden="true"></span>
-          </div>
-          <div class="te-label">Coach</div>
+        <button type="button" class="hub-compact-row" id="train-hub-card-assign" onclick="showScreen('screen-train-assignments')">
+          <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div>
+          <div class="te-title">Assignments from coach</div>
+          <span class="te-count" id="train-hub-assign-count" hidden></span>
+        </button>
+        <button type="button" class="hub-compact-row" id="train-hub-card-blocks" onclick="showScreen('screen-train-blocks')">
+          <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></div>
+          <div class="te-title">Training blocks</div>
+        </button>
+        <button type="button" class="hub-compact-row" id="train-hub-card-chat" onclick="showScreen('screen-train-chat')">
+          <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"/></svg></div>
           <div class="te-title">Coach chat</div>
-          <div class="te-sub">Message your coach</div>
+          <span id="train-hub-chat-unread" class="fnav-unread-dot" hidden aria-hidden="true"></span>
         </button>
       </div>
 
@@ -4336,10 +4415,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
   <div class="log-flow-body log-flow-done-body">
     <div class="log-flow-done-header">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7ec87a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" opacity=".25"/><polyline points="8 12 11 15 16 9"/></svg>
-      <div class="screen-title">Session logged</div>
+      <div class="screen-title see-celebrate-pop">Session logged</div>
     </div>
 
-    <div class="insight-card log-done-summary-card">
+    <div class="insight-card log-done-summary-card see-celebrate-rise">
       <div class="log-done-summary-grade" id="train-done-title">—</div>
       <div class="log-done-summary-meta" id="train-done-meta">Saved to your history</div>
       <button class="log-done-add-note" id="train-done-add-note" type="button" onclick="trainFlowToggleReflection()">+ Add a note</button>
@@ -5462,7 +5541,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index275'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index276'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -6223,6 +6302,7 @@ function showScreen(id){
   if(prev){_prevScreen=prev.id;prev.classList.remove('active');}
   var el=document.getElementById(id);
   if(el){el.classList.add('active');window.scrollTo(0,0);}
+  if(id==='screen-celebrate' || id==='screen-train-done') playCelebrateMoment(id);
   // Consent screen must have no way out except its own button — the footer
   // nav's buttons call showScreen() directly (bypassing routeOnLoad()'s
   // consent gate entirely), so hide it while consent is unacknowledged.
@@ -12549,6 +12629,7 @@ async function loadTrainHub(){
     _trainSessionsCache = [];
     renderTrainHubStats();
     renderTrainHubRecentMini();
+    renderTrainHubRepeatCard();
     return;
   }
   var rows = await sbS(
@@ -12560,6 +12641,7 @@ async function loadTrainHub(){
   renderTrainHubStats();
   renderTrainSessionList();
   renderTrainHubRecentMini();
+  renderTrainHubRepeatCard();
 }
 
 function renderTrainHubStats(){
@@ -12804,6 +12886,28 @@ function trainStartDuplicatedSession(row){
   trainSessionState = state;
   showToast('Duplicated — ready to log');
   showScreen('screen-train-session');
+}
+
+function renderTrainHubRepeatCard(){
+  var card = document.getElementById('train-hub-card-repeat');
+  var sub = document.getElementById('train-hub-repeat-sub');
+  var rows = _trainSessionsCache || [];
+  if(!card) return;
+  if(!rows.length){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  if(sub) sub.textContent = trainSessionWorkoutName(rows[0]);
+}
+
+function trainRepeatLastSession(){
+  var rows = _trainSessionsCache || [];
+  if(!rows.length){
+    showToast('No sessions yet - start a workout first', true);
+    return;
+  }
+  trainDuplicateSession(rows[0].id);
 }
 
 function trainDuplicateSession(sessionId){
@@ -16396,6 +16500,8 @@ function startExposureDrill(){
 // Existing 3 practices still log via sessions.is_checkin. Do not change them.
 // ═══════════════════════════════════════════════════════
 var _psycheRadarDays = 30;
+var _psycheRadarCounts = null;
+var _psycheRadarNeedsPaint = false;
 var _psycheTimer = null;
 var _psycheBeeDuration = 60;
 var _psycheBeeLeft = 60;
@@ -16587,7 +16693,15 @@ async function loadPsycheLog(){
   if(weekEl) weekEl.textContent = weekN;
   if(totalEl) totalEl.textContent = allActs.length;
   var rangeDays = _psycheRadarDays || 30;
-  buildPsycheRadar(psycheRadarCounts(checkins, drills, rangeDays, now));
+  _psycheRadarCounts = psycheRadarCounts(checkins, drills, rangeDays, now);
+  var statsBody = document.getElementById('psyche-log-stats');
+  var statsOpen = statsBody && statsBody.style.display !== 'none';
+  if(statsOpen){
+    _psycheRadarNeedsPaint = false;
+    buildPsycheRadar(_psycheRadarCounts);
+  } else {
+    _psycheRadarNeedsPaint = true;
+  }
 }
 
 function startPsycheBee(){
@@ -19442,17 +19556,42 @@ function buildFallsByTerrain(sessions){
 // Stage 1-3 rebuild, build 183: collapses the consolidated Zone-by-Terrain /
 // Falls-by-Terrain / Somatic-Profile section on screen-sessions — only
 // shown at all once patterns-section is unlocked at 5+ logged climbs.
-function togglePatternsSection(){
-  var body = document.getElementById('patterns-body');
-  var label = document.getElementById('patterns-toggle-label');
-  var arrow = document.getElementById('patterns-toggle-arrow');
-  var toggle = document.getElementById('patterns-toggle');
+function toggleCollapsibleSection(bodyId, labelId, arrowId, toggleId, showText, hideText, onExpand){
+  var body = document.getElementById(bodyId);
+  var label = document.getElementById(labelId);
+  var arrow = document.getElementById(arrowId);
+  var toggle = document.getElementById(toggleId);
   var isOpen = body && body.style.display !== 'none';
   if(body) body.style.display = isOpen ? 'none' : 'block';
-  if(label) label.textContent = isOpen ? 'Show your patterns' : 'Hide your patterns';
+  if(label) label.textContent = isOpen ? showText : hideText;
   if(arrow) arrow.textContent = isOpen ? '↓' : '↑';
   if(toggle){
     toggle.style.borderRadius = isOpen ? 'var(--r-xl)' : 'var(--r-xl) var(--r-xl) 0 0';
+  }
+  if(!isOpen && typeof onExpand === 'function') onExpand();
+}
+
+function togglePatternsSection(){
+  toggleCollapsibleSection('patterns-body','patterns-toggle-label','patterns-toggle-arrow','patterns-toggle','Show your patterns','Hide your patterns');
+}
+
+function togglePsycheStatsSection(){
+  toggleCollapsibleSection('psyche-log-stats','psyche-stats-toggle-label','psyche-stats-toggle-arrow','psyche-stats-toggle','Show your psyche stats','Hide your psyche stats', function(){
+    if(_psycheRadarNeedsPaint && _psycheRadarCounts){
+      buildPsycheRadar(_psycheRadarCounts);
+      _psycheRadarNeedsPaint = false;
+    }
+  });
+}
+
+function playCelebrateMoment(rootId){
+  var root = document.getElementById(rootId);
+  if(!root) return;
+  var els = root.querySelectorAll('.see-celebrate-pop, .see-celebrate-rise');
+  for(var i=0;i<els.length;i++){
+    els[i].classList.remove('see-celebrate-play');
+    void els[i].offsetWidth;
+    els[i].classList.add('see-celebrate-play');
   }
 }
 
@@ -22788,24 +22927,35 @@ async function runSEETests(){
       && !document.querySelector('#screen-train #coach-chat-section');
     var startSub = ((document.querySelector('#screen-train-start .screen-title .sub') || {}).textContent || '').trim();
     var startCopyOk = startSub === 'Pick a focus, then a workout.';
-    var hubSubs = hubIds.map(function(id){
-      var el = document.querySelector('#' + id + ' .te-sub');
-      return el ? (el.textContent || '').trim() : '';
-    });
-    var terseOk = hubSubs.every(function(t){ return t && t.split(/\s+/).length <= 5; })
-      && hubSubs[0] === 'Browse workouts'
-      && hubSubs[2] === 'Open plans';
+    var primary = document.getElementById('train-hub-primary');
+    var repeatCard = document.getElementById('train-hub-card-repeat');
+    var moreLabel = Array.from(document.querySelectorAll('#screen-train .hub-more-label')).some(function(el){ return el.textContent.trim() === 'More'; });
+    var primaryOk = !!(primary && repeatCard && primary.contains(repeatCard)
+      && primary.contains(document.getElementById('train-hub-card-start'))
+      && primary.contains(document.getElementById('train-hub-card-goals'))
+      && /hub-primary-card/.test(document.getElementById('train-hub-card-start').className || '')
+      && /hub-primary-card/.test(document.getElementById('train-hub-card-goals').className || '')
+      && repeatCard.style.display === 'none'
+      && /trainRepeatLastSession/.test(repeatCard.getAttribute('onclick') || ''));
+    var compactOk = ['train-hub-card-recent','train-hub-card-assign','train-hub-card-blocks','train-hub-card-chat'].every(function(id){
+      var el = document.getElementById(id);
+      return el && /hub-compact-row/.test(el.className || '') && !el.querySelector('.te-sub');
+    }) && moreLabel;
+    var terseOk = ((document.querySelector('#train-hub-card-start .te-sub') || {}).textContent || '').trim() === 'Browse workouts';
     var blocksOnSub = !!document.querySelector('#screen-train-blocks #tb-list')
       && !!document.querySelector('#screen-train-block-detail #tb-week-list');
-    if(cardsOk && screensOk && hooksOk && energyOnStart && goalsOnSub && chatOnSub && listOnRecent && listOnAssign && landingLean && startCopyOk && terseOk && hubIcons && assignBadge && chatDot && blocksOnSub){
+    var collapseOk = /function toggleCollapsibleSection\(/.test(String(toggleCollapsibleSection))
+      && /toggleCollapsibleSection\('patterns-body'/.test(String(togglePatternsSection));
+    if(cardsOk && screensOk && hooksOk && energyOnStart && goalsOnSub && chatOnSub && listOnRecent && listOnAssign && landingLean && startCopyOk && terseOk && hubIcons && assignBadge && chatDot && blocksOnSub && primaryOk && compactOk && collapseOk){
       pass('Train hub 6-card landing + drill-downs');
     } else {
       fail('Train hub 6-card landing + drill-downs',
         'cards=' + cardsOk + ' screens=' + screensOk + ' hooks=' + hooksOk +
         ' energy=' + energyOnStart + ' goals=' + goalsOnSub + ' chat=' + chatOnSub +
         ' recent=' + listOnRecent + ' assign=' + listOnAssign + ' lean=' + landingLean +
-        ' startCopy=' + startCopyOk + ' terse=' + terseOk + ' subs=' + hubSubs.join('|') +
-        ' icons=' + hubIcons + ' badge=' + assignBadge + ' chatDot=' + chatDot);
+        ' startCopy=' + startCopyOk + ' terse=' + terseOk +
+        ' icons=' + hubIcons + ' badge=' + assignBadge + ' chatDot=' + chatDot +
+        ' primary=' + primaryOk + ' compact=' + compactOk + ' collapse=' + collapseOk);
     }
   }catch(e){ fail('Train hub 6-card landing + drill-downs', e.message); }
 
