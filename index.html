@@ -2506,9 +2506,15 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       <div id="log-details-indoor-fields" style="display:none;">
         <div class="field-group">
           <div class="field-label">Gym name <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
+          <div id="log-gym-recent" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+          <div style="position:relative;">
           <input id="log-gym-name" type="text" placeholder="e.g. your gym name" autocomplete="off"
-            style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;"
-            oninput="logDetailsState.gymName=this.value.trim()||null"/>
+            style="width:100%;background:var(--surface2);border:1.5px solid rgba(232,118,58,.3);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;padding:14px;outline:none;transition:border-color .15s;"
+            onfocus="this.style.borderColor='var(--accent)';onGymNameFocus(this.value)"
+            onblur="this.style.borderColor='rgba(232,118,58,.3)'"
+            oninput="onGymNameInput(this.value)"/>
+          <div id="gym-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-md) var(--r-md);z-index:50;max-height:200px;overflow-y:auto;"></div>
+          </div>
         </div>
       </div>
 
@@ -2919,11 +2925,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         </div>
         <div class="dq-explain" id="dqexplain-q3">Where activation spikes and risk perception peaks — noticing your response builds pattern awareness over time. <a onclick="showScreen('screen-q3')">More →</a></div>
         <div class="dq-chip-wrap">
-          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I paused</button>
-          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I hesitated then committed</button>
-          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I backed off</button>
-          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I pushed through</button>
-          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I panicked but recovered</button>
+          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Paused</button>
+          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Hesitated then committed</button>
+          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Backed off</button>
+          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Pushed through</button>
+          <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Panicked but recovered</button>
           <button class="chip dq-chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">No standout moment</button>
         </div>
       </div>
@@ -3073,11 +3079,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <button onclick="openResearchSheet('general')" style="margin-top:6px;background:rgba(232,118,58,.12);border:1px solid rgba(232,118,58,.3);border-radius:6px;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;-webkit-tap-highlight-color:transparent;">→ Research</button>
       </div>
       <div class="response-chips">
-        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I paused</button>
-        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I hesitated then committed</button>
-        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I backed off</button>
-        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I pushed through</button>
-        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Yes — I panicked but recovered</button>
+        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Paused</button>
+        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Hesitated then committed</button>
+        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Backed off</button>
+        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Pushed through</button>
+        <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">Panicked but recovered</button>
         <button class="chip" data-dq="q3" onclick="selectDeepChip(this,'q3')">No standout moment</button>
       </div>
     </div>
@@ -7608,9 +7614,10 @@ function armInlineConfirm(btn, confirmLabel, onConfirm){
   }, 0);
 }
 
-// ── SEND CAPTURE — "Tell us about the send" (Fix 4, build 176) — same
-// single-select-per-question pattern as fall/backoff capture above ──
-var sendState = {standout:null, moment_feeling:null, reflection_feeling:null};
+// ── SEND CAPTURE — "Tell us about the send" (Fix 4, build 176) ──
+// Multi-select per question (same toggle as toggleReflChip). Backoff chips
+// stay single-select: vs_expect / call_feeling are mutually exclusive reads.
+var sendState = {standout:[], moment_feeling:[], reflection_feeling:[]};
 
 function toggleSendSection(btn){
   var body=document.getElementById('send-body');
@@ -7622,14 +7629,25 @@ function toggleSendSection(btn){
 }
 
 function selectSendChip(btn, field){
-  var parent=btn.closest('.send-q');
-  if(parent) parent.querySelectorAll('.chip').forEach(function(b){b.classList.remove('selected');});
-  btn.classList.add('selected');
-  sendState[field]=btn.textContent.trim();
+  btn.classList.toggle('selected');
+  var parent = btn.closest('.send-q');
+  var labels = [];
+  if(parent){
+    parent.querySelectorAll('.chip.selected').forEach(function(b){
+      labels.push(b.textContent.trim());
+    });
+  }
+  sendState[field] = labels;
+}
+
+function sendFieldJoined(field){
+  var v = sendState[field];
+  if(Array.isArray(v)) return v.length ? v.join(',') : null;
+  return v || null;
 }
 
 function resetSendSection(){
-  sendState = {standout:null, moment_feeling:null, reflection_feeling:null};
+  sendState = {standout:[], moment_feeling:[], reflection_feeling:[]};
   var sendBody=document.getElementById('send-body');
   if(sendBody){
     sendBody.style.display='none';
@@ -7996,6 +8014,7 @@ function logFlowContinueFromTerrain(){
 }
 
 function logFlowContinueFromDetails(){
+  collectLogDetailsPayload();
   showScreen('screen-log-grade');
   updateLogFlowProgress(5);
   buildGradeGrid(logState.gradeSys || 'YDS');
@@ -8041,6 +8060,7 @@ function resetLogDetailsState(){
   };
   var gym = document.getElementById('log-gym-name');
   if(gym) gym.value = '';
+  hideGymSuggestions();
   clearLogDetailsDiscipline();
   document.querySelectorAll('#log-details-rock-chips .chip.selected').forEach(function(b){
     b.classList.remove('selected');
@@ -8086,6 +8106,123 @@ function refreshLogDetailsPanels(){
   if(boltGroup){
     boltGroup.style.display = (setting === 'outdoor' && logDetailsState.disc === 'Sport') ? 'block' : 'none';
   }
+  if(setting === 'indoor'){
+    paintRecentGymChips();
+    loadRecentGymNames().then(function(){ paintRecentGymChips(); });
+  } else {
+    hideGymSuggestions();
+    var recent = document.getElementById('log-gym-recent');
+    if(recent) recent.style.display = 'none';
+  }
+}
+
+var _recentGymNames = null;
+var _recentGymFetched = false;
+
+function uniqueRecentGymNames(rows, limit){
+  var seen = {};
+  var names = [];
+  (rows || []).forEach(function(r){
+    var n = r && r.gym_name ? String(r.gym_name).trim() : '';
+    if(!n) return;
+    var key = n.toLowerCase();
+    if(seen[key]) return;
+    seen[key] = true;
+    names.push(n);
+  });
+  return names.slice(0, limit || 5);
+}
+
+function rememberRecentGymName(name){
+  var n = (name || '').trim();
+  if(!n) return;
+  var cur = _recentGymNames ? _recentGymNames.slice() : [];
+  _recentGymNames = uniqueRecentGymNames([{gym_name: n}].concat(cur.map(function(g){ return {gym_name: g}; })), 5);
+}
+
+async function loadRecentGymNames(){
+  if(_recentGymFetched) return _recentGymNames || [];
+  var params;
+  if(window._authUser && window._authUser.id){
+    params = 'select=gym_name,created_at&user_id=eq.' + window._authUser.id + '&gym_name=not.is.null&deleted_at=is.null&order=created_at.desc&limit=40';
+  } else {
+    params = 'select=gym_name,created_at&device_id=eq.' + getDeviceId() + '&gym_name=not.is.null&deleted_at=is.null&order=created_at.desc&limit=40';
+  }
+  var rows = await sbS('sessions', params);
+  var fromDb = uniqueRecentGymNames(rows, 5);
+  // Keep any names remembered this page-session (typed before the fetch
+  // returned) ahead of DB recents, then cap at 5.
+  _recentGymNames = uniqueRecentGymNames(
+    (_recentGymNames || []).concat(fromDb).map(function(n){ return { gym_name: n }; }),
+    5
+  );
+  _recentGymFetched = true;
+  return _recentGymNames;
+}
+
+function paintRecentGymChips(){
+  var wrap = document.getElementById('log-gym-recent');
+  if(!wrap) return;
+  var names = _recentGymNames || [];
+  if(!names.length || logState.setting !== 'indoor'){
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  var current = ((document.getElementById('log-gym-name') || {}).value || '').trim().toLowerCase();
+  wrap.style.display = 'flex';
+  wrap.innerHTML = names.map(function(name){
+    var selected = current && name.toLowerCase() === current;
+    return '<button type="button" class="chip' + (selected ? ' selected' : '') + '" data-gym="' + escHomeAttr(name) + '" onclick="selectRecentGym(this.getAttribute(\'data-gym\'))">' + escTrainHtml(name) + '</button>';
+  }).join('');
+}
+
+function hideGymSuggestions(){
+  var sugg = document.getElementById('gym-suggestions');
+  if(sugg) sugg.style.display = 'none';
+}
+
+function renderGymSuggestions(query){
+  var sugg = document.getElementById('gym-suggestions');
+  if(!sugg) return;
+  var names = _recentGymNames || [];
+  var q = normalizeClimbName(query || '');
+  var matches = q
+    ? names.filter(function(n){ return normalizeClimbName(n).indexOf(q) > -1; })
+    : names.slice();
+  if(!matches.length){ sugg.style.display = 'none'; return; }
+  sugg.style.display = 'block';
+  sugg.innerHTML = matches.map(function(name){
+    return '<div data-gym="' + escHomeAttr(name) + '" onclick="selectRecentGym(this.getAttribute(\'data-gym\'))" '
+      + 'style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;">'
+      + '<div style="font-size:13px;font-weight:600;color:var(--text);">' + escTrainHtml(name) + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function onGymNameInput(val){
+  logDetailsState.gymName = val ? val.trim() || null : null;
+  paintRecentGymChips();
+  if(val && val.trim().length >= 1) renderGymSuggestions(val);
+  else hideGymSuggestions();
+}
+
+function onGymNameFocus(val){
+  paintRecentGymChips();
+  loadRecentGymNames().then(function(){
+    paintRecentGymChips();
+    if(val && String(val).trim()) renderGymSuggestions(val);
+  });
+}
+
+function selectRecentGym(name){
+  var n = (name || '').trim();
+  if(!n) return;
+  logDetailsState.gymName = n;
+  var input = document.getElementById('log-gym-name');
+  if(input) input.value = n;
+  hideGymSuggestions();
+  paintRecentGymChips();
 }
 
 function logDetailsSelectDisc(btn, disc){
@@ -8177,6 +8314,7 @@ function collectLogDetailsPayload(){
     var gymEl = document.getElementById('log-gym-name');
     if(gymEl) logDetailsState.gymName = gymEl.value.trim() || null;
     payload.gym_name = logDetailsState.gymName || null;
+    if(payload.gym_name) rememberRecentGymName(payload.gym_name);
   }
   return payload;
 }
@@ -8358,15 +8496,15 @@ async function logFlowSaveSession(how){
     if(logState.result === 'sent' && window._authUser){
       var sendNotesEl = document.getElementById('send-notes-text');
       var sendNotes = sendNotesEl ? sendNotesEl.value.trim() : '';
-      var hasSendData = sendState.standout || sendState.moment_feeling || sendState.reflection_feeling || sendNotes;
+      var hasSendData = sendFieldJoined('standout') || sendFieldJoined('moment_feeling') || sendFieldJoined('reflection_feeling') || sendNotes;
       if(hasSendData){
         sbI('sends', {
           session_id: saved.id,
           user_id: window._authUser.id,
           device_id: getDeviceId(),
-          standout: sendState.standout,
-          moment_feeling: sendState.moment_feeling,
-          reflection_feeling: sendState.reflection_feeling,
+          standout: sendFieldJoined('standout'),
+          moment_feeling: sendFieldJoined('moment_feeling'),
+          reflection_feeling: sendFieldJoined('reflection_feeling'),
           notes: sendNotes || null
         });
       }
@@ -8519,8 +8657,10 @@ function logRevealAdjustDial(){
   if(wrap) wrap.style.display = 'block';
   var staticG = document.getElementById('log-reveal-gauge');
   if(staticG) staticG.style.display = 'none';
-  var startScore = logFlowState.modelScore !== null ? logFlowState.modelScore : (window._zcScore !== undefined ? window._zcScore : 6);
-  var modelScore = logFlowState.revealModelScore != null ? logFlowState.revealModelScore : startScore;
+  var startScore = logState.userActivationEstimate;
+  if(startScore === null || startScore === undefined) startScore = logFlowState.activationScore;
+  if(startScore === null || startScore === undefined) startScore = 6;
+  var modelScore = logFlowState.revealModelScore != null ? logFlowState.revealModelScore : (logFlowState.modelScore != null ? logFlowState.modelScore : (window._zcScore !== undefined ? window._zcScore : 6.5));
   var extraGhost = null;
   if(logFlowState.revealNeedsCal && logFlowState.revealExpectedScore != null){
     extraGhost = { score: logFlowState.revealExpectedScore, label: 'Baseline expected' };
@@ -8747,15 +8887,15 @@ async function logClimb(){
     if(logState.result==='sent' && window._authUser){
       var sendNotesEl=document.getElementById('send-notes-text');
       var sendNotes=sendNotesEl?sendNotesEl.value.trim():'';
-      var hasSendData=sendState.standout||sendState.moment_feeling||sendState.reflection_feeling||sendNotes;
+      var hasSendData=sendFieldJoined('standout')||sendFieldJoined('moment_feeling')||sendFieldJoined('reflection_feeling')||sendNotes;
       if(hasSendData){
         sbI('sends',{
           session_id:saved.id,
           user_id:window._authUser.id,
           device_id:getDeviceId(),
-          standout:sendState.standout,
-          moment_feeling:sendState.moment_feeling,
-          reflection_feeling:sendState.reflection_feeling,
+          standout:sendFieldJoined('standout'),
+          moment_feeling:sendFieldJoined('moment_feeling'),
+          reflection_feeling:sendFieldJoined('reflection_feeling'),
           notes:sendNotes||null
         });
       }
@@ -9417,6 +9557,11 @@ document.addEventListener('click',function(e){
   var input=document.getElementById('log-rname-input');
   if(sugg&&input&&!sugg.contains(e.target)&&e.target!==input){
     sugg.style.display='none';
+  }
+  var gymSugg=document.getElementById('gym-suggestions');
+  var gymInput=document.getElementById('log-gym-name');
+  if(gymSugg&&gymInput&&!gymSugg.contains(e.target)&&e.target!==gymInput){
+    gymSugg.style.display='none';
   }
 });
 
@@ -15890,7 +16035,11 @@ function toggleDQHelp(q){
 // Total max: 12 | Comfort 0-4 | Learning 5-9 | Panic 10-12
 var breathScoreMap={'Easy and steady':0,'Slightly faster':1,'Shallow or tight':2,'I held my breath':4,'Didn\'t notice':1};
 var gutScoreMap={'Settled, neutral':0,'Mild flutter':1,'Noticeable tension':2,'Didn\'t notice':1};
-var cruxScoreMap={'Yes — I paused':1,'Yes — I hesitated then committed':1,'Yes — I backed off':2,'Yes — I pushed through':3,'Yes — I panicked but recovered':4,'No standout moment':0};
+var cruxScoreMap={
+  'Paused':1,'Hesitated then committed':1,'Backed off':2,'Pushed through':3,'Panicked but recovered':4,'No standout moment':0,
+  'I paused':1,'I hesitated then committed':1,'I backed off':2,'I pushed through':3,'I panicked but recovered':4,
+  'Yes — I paused':1,'Yes — I hesitated then committed':1,'Yes — I backed off':2,'Yes — I pushed through':3,'Yes — I panicked but recovered':4
+};
 var bodyScoreMap={'Settled and in control':0,'Activated but manageable':1,'Tight and reactive':2,'Hard to read':3};
 
 function selectDeepChip(btn,q){
@@ -19642,6 +19791,16 @@ function renderRouteInsights(sessList, terrain){
         "Didn't notice":"Often doesn't notice gut sensation"
       },
       crux_response: {
+        'Paused':'Often pauses at the crux',
+        'Hesitated then committed':'Often hesitates then commits at the crux',
+        'Backed off':'Often backs off at the crux',
+        'Pushed through':'Often pushes through at the crux',
+        'Panicked but recovered':'Often panics then recovers at the crux',
+        'I paused':'Often pauses at the crux',
+        'I hesitated then committed':'Often hesitates then commits at the crux',
+        'I backed off':'Often backs off at the crux',
+        'I pushed through':'Often pushes through at the crux',
+        'I panicked but recovered':'Often panics then recovers at the crux',
         'Yes — I paused':'Often pauses at the crux',
         'Yes — I hesitated then committed':'Often hesitates then commits at the crux',
         'Yes — I backed off':'Often backs off at the crux',
@@ -20038,7 +20197,7 @@ function buildFallsByTerrain(sessions){
     var count = fallCounts[t] || 0;
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);">'
       + '<span style="font-size:12px;font-weight:600;color:var(--text);">'+t+'</span>'
-      + '<span style="font-size:12px;color:'+(count>0?'#e84444':'var(--muted2)')+';font-weight:'+(count>0?'700':'400')+';">'+count+' fall'+(count===1?'':'s')+'</span>'
+      + '<span style="font-size:12px;color:'+(count>0?'var(--learning)':'var(--muted2)')+';font-weight:'+(count>0?'700':'400')+';">'+count+' fall'+(count===1?'':'s')+'</span>'
       + '</div>';
   }).join('');
 
@@ -24175,6 +24334,85 @@ async function runSEETests(){
         'details=' + !!detailsEl + ' rockOk=' + rockOk + ' discOk=' + discOk + ' outdoor=' + outdoorDisc.join(',') + ' indoor=' + indoorDisc.join(',') + ' boltRangeOk=' + boltRangeOk + ' sixStep=' + sixStep);
     }
   }catch(e){ fail('Indoor/Outdoor details has separate discipline lists + 6-step progress', e.message); }
+
+  try{
+    var fallSrc = String(buildFallsByTerrain);
+    if(/var\(--learning\)/.test(fallSrc) && fallSrc.indexOf('#e84444') === -1){
+      pass('Falls-by-terrain count uses learning amber, not panic red');
+    } else {
+      fail('Falls-by-terrain count uses learning amber, not panic red', 'src has learning=' + /var\(--learning\)/.test(fallSrc) + ' red=' + (fallSrc.indexOf('#e84444') > -1));
+    }
+  }catch(e){ fail('Falls-by-terrain count uses learning amber, not panic red', e.message); }
+
+  try{
+    resetSendSection();
+    var sendQs = document.querySelectorAll('#send-body .send-q');
+    var standoutChips = sendQs[0] ? sendQs[0].querySelectorAll('.chip') : [];
+    if(standoutChips.length < 2) throw new Error('standout chips missing');
+    selectSendChip(standoutChips[0], 'standout');
+    selectSendChip(standoutChips[1], 'standout');
+    var multiOk = standoutChips[0].classList.contains('selected') && standoutChips[1].classList.contains('selected')
+      && Array.isArray(sendState.standout) && sendState.standout.length === 2
+      && /classList.toggle/.test(String(selectSendChip))
+      && String(selectSendChip).indexOf("classList.remove('selected')") === -1;
+    var backoffChips = document.querySelectorAll('#backoff-body .backoff-q .chip');
+    var b0 = backoffChips[0], b1 = backoffChips[1];
+    if(!b0 || !b1) throw new Error('backoff chips missing');
+    selectBackoffChip(b0, 'reason');
+    selectBackoffChip(b1, 'reason');
+    var backoffSingle = !b0.classList.contains('selected') && b1.classList.contains('selected')
+      && backoffState.reason === b1.textContent.trim();
+    resetSendSection();
+    resetBackoffSection();
+    if(multiOk && backoffSingle) pass('Send chips multi-select; backoff stays single-select');
+    else fail('Send chips multi-select; backoff stays single-select', 'multi=' + multiOk + ' backoff=' + backoffSingle + ' standout=' + JSON.stringify(sendState.standout));
+  }catch(e){ fail('Send chips multi-select; backoff stays single-select', e.message); }
+
+  try{
+    var q3Labels = Array.from(document.querySelectorAll('[data-dq="q3"]')).map(function(b){ return b.textContent.trim(); });
+    var noYesPrefix = q3Labels.every(function(t){ return t.indexOf('Yes') !== 0; });
+    var hasShort = q3Labels.indexOf('Paused') > -1 && q3Labels.indexOf('Backed off') > -1
+      && q3Labels.indexOf('Hesitated then committed') > -1 && q3Labels.indexOf('Pushed through') > -1
+      && q3Labels.indexOf('Panicked but recovered') > -1 && q3Labels.indexOf('No standout moment') > -1;
+    var scoreOk = cruxScoreMap['Paused'] === 1 && cruxScoreMap['Hesitated then committed'] === 1
+      && cruxScoreMap['Backed off'] === 2 && cruxScoreMap['Pushed through'] === 3
+      && cruxScoreMap['Panicked but recovered'] === 4 && cruxScoreMap['No standout moment'] === 0
+      && cruxScoreMap['Yes — I paused'] === 1;
+    var html = document.documentElement.innerHTML;
+    var patternOk = html.indexOf("'Paused':'Often pauses at the crux'") > -1
+      || html.indexOf("'Paused': 'Often pauses at the crux'") > -1
+      || /'Paused':'Often pauses at the crux'/.test(html);
+    if(noYesPrefix && hasShort && scoreOk && patternOk) pass('Crux labels drop Yes-prefix and keep scoring maps');
+    else fail('Crux labels drop Yes-prefix and keep scoring maps',
+      'noYes=' + noYesPrefix + ' short=' + hasShort + ' score=' + scoreOk + ' pattern=' + patternOk + ' labels=' + q3Labels.slice(0,6).join('|'));
+  }catch(e){ fail('Crux labels drop Yes-prefix and keep scoring maps', e.message); }
+
+  try{
+    var adjustSrc = String(logRevealAdjustDial);
+    var seedsUser = /userActivationEstimate/.test(adjustSrc)
+      && /activationScore/.test(adjustSrc)
+      && !/startScore = logFlowState.modelScore/.test(adjustSrc)
+      && /revealModelScore/.test(adjustSrc);
+    var legendEl = document.getElementById('log-reveal-legend');
+    if(seedsUser && legendEl) pass('Reveal adjust dial seeds from climber first-pass score');
+    else fail('Reveal adjust dial seeds from climber first-pass score', 'seed=' + seedsUser + ' legend=' + !!legendEl);
+  }catch(e){ fail('Reveal adjust dial seeds from climber first-pass score', e.message); }
+
+  try{
+    var deduped = uniqueRecentGymNames([
+      {gym_name:'Stone Goat'}, {gym_name:'The Boardroom'}, {gym_name:'stone goat'}, {gym_name:'  '}, {gym_name:'Sender One'}
+    ], 5);
+    var gymUi = !!document.getElementById('log-gym-recent') && !!document.getElementById('gym-suggestions')
+      && typeof loadRecentGymNames === 'function' && typeof selectRecentGym === 'function'
+      && typeof onGymNameInput === 'function';
+    var gymQuery = /gym_name=not.is.null/.test(String(loadRecentGymNames))
+      && /order=created_at.desc/.test(String(loadRecentGymNames));
+    if(deduped.join('|') === 'Stone Goat|The Boardroom|Sender One' && gymUi && gymQuery){
+      pass('Recent gym chips from past sessions.gym_name');
+    } else {
+      fail('Recent gym chips from past sessions.gym_name', 'dedupe=' + deduped.join('|') + ' ui=' + gymUi + ' query=' + gymQuery);
+    }
+  }catch(e){ fail('Recent gym chips from past sessions.gym_name', e.message); }
 
   // ── SECTION D3: PWA install + same-window coach nav (build 203) ─
   console.log('%c D3 — PWA install ', 'background:#555;color:#fff;font-weight:bold;padding:1px 6px;');
