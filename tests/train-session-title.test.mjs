@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index276'/.test(index));
-assert.ok(/APP_VERSION = 'index276'/.test(sw));
+assert.ok(/var app_version = 'index277'/.test(index));
+assert.ok(/APP_VERSION = 'index277'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -63,12 +63,13 @@ assert.ok(/workoutTypeLabel\(row && row\.energy_type\)/.test(nameSrc));
 const startScreen = extractBetween(index, 'screen-train-start', 'screen-train-recent');
 assert.ok(/id="train-energy-grid"/.test(startScreen));
 assert.ok(/onclick="startSessionNoCategory\(\)"/.test(startScreen));
-assert.ok(/Skip — just start a session/.test(startScreen));
+assert.ok(/Start blank session/.test(startScreen));
+assert.ok(!/Skip — just start a session/.test(startScreen));
 assert.ok(/Browse workout library/.test(startScreen));
 const skipAt = startScreen.indexOf('startSessionNoCategory()');
 const browseAt = startScreen.indexOf("showScreen('screen-workout-library')");
 assert.ok(skipAt > startScreen.indexOf('id="train-energy-grid"') && skipAt < browseAt,
-  'Skip link sits below the 10 cards and above Browse workout library');
+  'Start blank session sits below the 10 cards and above Browse workout library');
 
 assert.ok(/function startSessionNoCategory/.test(index));
 const skipFn = extractFn(index, 'startSessionNoCategory');

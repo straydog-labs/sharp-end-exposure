@@ -41,8 +41,8 @@ assert.ok(/getElementById\('assign-launch-btn'\)[\s\S]{0,80}startAssignWizard/.t
 
 const trainCard = index.match(/function trainCardHtml\(a\)\{[\s\S]*?\nfunction renderTrainList/);
 assert.ok(trainCard);
-assert.ok(/hasLinkedItem = !!\(a\.library_item_id \|\| a\.custom_workout_item_id\)/.test(trainCard[0]));
-assert.ok(/Start session/.test(trainCard[0]));
+assert.ok(/startTrainSessionFromAssignment/.test(trainCard[0]));
+assert.ok(/>Start</.test(trainCard[0]));
 assert.ok(/Mark complete/.test(trainCard[0]));
 assert.ok(/renderTrainDescriptionHtml/.test(trainCard[0]));
 

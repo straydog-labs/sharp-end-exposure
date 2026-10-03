@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index276'/.test(index));
-assert.ok(/APP_VERSION = 'index276'/.test(sw));
+assert.ok(/var app_version = 'index277'/.test(index));
+assert.ok(/APP_VERSION = 'index277'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -40,7 +40,7 @@ function extractBetween(src, startId, endId){
 const landing = extractBetween(index, 'screen-train', 'screen-train-start');
 assert.ok(/id="train-hub-primary"/.test(landing));
 assert.ok(/id="train-hub-card-repeat"/.test(landing));
-assert.ok(/trainRepeatLastOrPinned/.test(landing));
+assert.ok(/trainRepeatLastSession/.test(landing));
 assert.ok(/id="train-hub-card-start"/.test(landing));
 assert.ok(/id="train-hub-card-goals"/.test(landing));
 const primarySlice = landing.slice(landing.indexOf('id="train-hub-primary"'), landing.indexOf('id="train-hub-cards"'));
