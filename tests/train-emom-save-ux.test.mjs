@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index278'/.test(index));
-assert.ok(/APP_VERSION = 'index278'/.test(sw));
+assert.ok(/var app_version = 'index279'/.test(index));
+assert.ok(/APP_VERSION = 'index279'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -38,19 +38,15 @@ function extractBetween(src, startId, endId){
 }
 
 const landing = extractBetween(index, 'screen-train', 'screen-train-start');
-assert.ok(/id="train-hub-primary"/.test(landing));
 assert.ok(/id="train-hub-card-repeat"/.test(landing));
 assert.ok(/trainRepeatLastSession/.test(landing));
 assert.ok(/id="train-hub-card-start"/.test(landing));
+assert.ok(/Start training/.test(landing));
+assert.ok(/id="train-hub-card-build"/.test(landing));
 assert.ok(/id="train-hub-card-goals"/.test(landing));
-const primarySlice = landing.slice(landing.indexOf('id="train-hub-primary"'), landing.indexOf('id="train-hub-cards"'));
-assert.ok(/train-hub-card-start/.test(primarySlice));
-assert.ok(/train-hub-card-goals/.test(primarySlice));
-assert.ok(/train-hub-card-repeat/.test(primarySlice));
-const gridSlice = landing.slice(landing.indexOf('id="train-hub-cards"'));
-assert.ok(/train-hub-card-recent/.test(gridSlice));
-assert.ok(!/train-hub-card-start/.test(gridSlice));
-assert.ok(!/train-hub-card-goals/.test(gridSlice));
+assert.ok(/id="train-pinned-strip"/.test(landing));
+assert.ok(landing.indexOf('id="train-hub-card-start"') < landing.indexOf('id="train-hub-cards"'));
+assert.ok(landing.indexOf('id="train-hub-card-goals"') > landing.indexOf('id="train-hub-cards"'));
 
 const sess = extractBetween(index, 'screen-train-session', 'screen-train-done');
 assert.ok(/id="train-sess-save-workout"/.test(sess));

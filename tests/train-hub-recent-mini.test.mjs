@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index278'/.test(index));
-assert.ok(/APP_VERSION = 'index278'/.test(sw));
+assert.ok(/var app_version = 'index279'/.test(index));
+assert.ok(/APP_VERSION = 'index279'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -34,8 +34,8 @@ const nextScreen = index.indexOf('id="screen-train-start"', trainStart);
 const landing = index.slice(trainStart, nextScreen);
 assert.ok(/id="train-hub-recent-mini"/.test(landing));
 assert.ok(/id="train-hub-recent-wrap"/.test(landing));
-assert.ok(/Recent sessions/.test(landing));
-assert.ok(/See all/.test(landing));
+assert.ok(/Recent sessions/.test(landing) || /History/.test(landing));
+assert.ok(/View all/.test(landing) || /See all/.test(landing));
 assert.ok(!/id="train-energy-grid"/.test(landing), 'landingLean: no #train-energy-grid on screen-train');
 assert.ok(!/id="train-goals-section"/.test(landing));
 assert.ok(!/id="coach-chat-section"/.test(landing));
@@ -96,7 +96,7 @@ vm.runInContext('renderTrainHubRecentMini()', ctx);
 assert.ok(/No sessions yet/.test(ctx.lastHtml));
 assert.ok(!/Duplicate/.test(ctx.lastHtml));
 
-ctx._trainSessionsCache = [1,2,3,4].map(function(i){
+ctx._trainSessionsCache = [1,2,3,4,5,6].map(function(i){
   return {
     id: 'sess-' + i,
     energy_type: 'Hangboard',
@@ -106,9 +106,9 @@ ctx._trainSessionsCache = [1,2,3,4].map(function(i){
   };
 });
 vm.runInContext('renderTrainHubRecentMini()', ctx);
-assert.strictEqual((ctx.lastHtml.match(/train-hub-duplicate-btn/g) || []).length, 3);
-assert.ok(/Repeaters 1/.test(ctx.lastHtml) && /Repeaters 3/.test(ctx.lastHtml));
-assert.ok(!/Repeaters 4/.test(ctx.lastHtml), 'mini list caps at 3');
+assert.strictEqual((ctx.lastHtml.match(/train-hub-duplicate-btn/g) || []).length, 5);
+assert.ok(/Repeaters 1/.test(ctx.lastHtml) && /Repeaters 3/.test(ctx.lastHtml) && /Repeaters 5/.test(ctx.lastHtml));
+assert.ok(!/Repeaters 6/.test(ctx.lastHtml), 'mini list caps at 5');
 assert.ok(/trainDuplicateSession\('sess-1'\)/.test(ctx.lastHtml));
 assert.ok(/openTrainSessionDetail\('sess-1'\)/.test(ctx.lastHtml));
 assert.ok(/1 block/.test(ctx.lastHtml));
