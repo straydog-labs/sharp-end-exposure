@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index281'/.test(index));
-assert.ok(/APP_VERSION = 'index281'/.test(sw));
+assert.ok(/var app_version = 'index282'/.test(index));
+assert.ok(/APP_VERSION = 'index282'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -163,6 +163,16 @@ assert.ok((tapHtml.match(/<button /g) || []).length === 2);
 assert.strictEqual(helperCtx.homeTodayKickerLabel({ due_date: '2026-08-18' }, now), 'TODAY');
 assert.strictEqual(helperCtx.homeTodayKickerLabel({ title: 'Hangboard' }, now), 'UP NEXT');
 assert.strictEqual(helperCtx.homeTodayKickerLabel({ due_date: '2026-08-20' }, now), 'UP NEXT');
+assert.strictEqual(helperCtx.homeTodayKickerLabel({ due_date: '2026-08-10' }, now), 'OVERDUE');
+const farOnly = helperCtx.pickHomeTodayAssignment([
+  { id: 'far', title: 'EMOM', due_date: '2026-09-01', completed_at: null }
+], now);
+assert.ok(farOnly && farOnly.id === 'far', 'incomplete far-future assignment still shows on Home');
+const doneOnly = helperCtx.pickHomeTodayAssignment([
+  { id: 'done', title: 'Done', due_date: '2026-08-18', completed_at: '2026-08-18T00:00:00Z' }
+], now);
+assert.ok(!doneOnly, 'completed assignment is hidden');
+assert.ok(/pickHomeTodayAssignment\(_trainAssignmentsCache/.test(dueSrc));
 
 const dayItems = helperCtx.collectHomeDayItems('2026-09-08', [
   { created_at: '2026-09-08T10:00:00', zone: 'learning' },

@@ -12,8 +12,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const sql = readFileSync(join(root, 'sql/custom-workouts-is-starred.sql'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index281'/.test(index));
-assert.ok(/APP_VERSION = 'index281'/.test(sw));
+assert.ok(/var app_version = 'index282'/.test(index));
+assert.ok(/APP_VERSION = 'index282'/.test(sw));
 assert.ok(/add column if not exists is_starred/.test(sql));
 assert.ok(/custom_workouts/.test(sql));
 
@@ -39,9 +39,14 @@ assert.ok(/My plan/.test(train));
 assert.ok(/id="train-pinned-strip"/.test(train));
 assert.ok(/Assignments due/.test(train));
 assert.ok(/id="train-stat-week-plan"/.test(train));
-assert.ok(/id="train-stat-streak"/.test(train));
-assert.ok(/id="train-stat-since"/.test(train));
+assert.ok(/id="train-stat-least"/.test(train));
+assert.ok(/id="train-stat-weeks4"/.test(train));
 assert.ok(/id="train-stat-adhere"/.test(train));
+assert.ok(!/id="train-stat-streak"/.test(train));
+assert.ok(!/id="train-stat-since"/.test(train));
+assert.ok(/id="train-landing-col"/.test(train));
+assert.ok(/climb-page-col/.test(train));
+assert.ok(!/id="train-hub-card-repeat"/.test(train));
 assert.ok(/History/.test(train));
 assert.ok(/View all/.test(train));
 assert.ok(!/Write your own training plan/.test(train));
@@ -59,6 +64,7 @@ assert.ok(/saveTrainSessionAsWorkout/.test(index));
 assert.ok(/sbI\('custom_workouts'/.test(extractFn(index, 'saveTrainSessionAsWorkout')));
 
 const helpers = [
+  'var TRAINING_FOCUS_VALUES = ["Boulders","Routes","Boards","Hangboard","Strength & Weights","Mobility & Flexibility","Technique & Footwork","Cardio & Capacity","Mental/Other","Warm-Ups"];',
   extractFn(index, 'isCustomWorkoutStarred'),
   extractFn(index, 'pickTrainPinnedWorkouts'),
   extractFn(index, 'isHomeAssignmentDueSoon'),
@@ -70,6 +76,11 @@ const helpers = [
   extractFn(index, 'trainSessionsInWeek'),
   extractFn(index, 'trainAssignmentsInWindow'),
   extractFn(index, 'trainAssignmentsPlannedThisWeek'),
+  extractFn(index, 'normalizeTrainingFocus'),
+  extractFn(index, 'legacyTrainingFocusFromCategory'),
+  extractFn(index, 'trainSessionFocus'),
+  extractFn(index, 'computeLeastTrainedFocus'),
+  extractFn(index, 'computeTrainWeeklyBars'),
   extractFn(index, 'computeTrainLandingStats')
 ].join('\n');
 const ctx = {};
@@ -120,5 +131,22 @@ const weekStats = ctx.computeTrainLandingStats(sessions, [
   { id: '6', due_date: null, created_at: '2026-08-01T12:00:00', completed_at: null }
 ], now);
 assert.strictEqual(weekStats.week, '3 / 2');
+
+const leastSessions = [
+  { energy_type: 'Hangboard', started_at: '2026-09-10T10:00:00' },
+  { energy_type: 'Boulders', started_at: '2026-09-01T10:00:00' },
+  { energy_type: 'Hangboard', started_at: '2026-09-08T10:00:00' }
+];
+const least = ctx.computeLeastTrainedFocus(leastSessions, now);
+assert.strictEqual(least.focus, 'Boulders');
+assert.strictEqual(least.days, 9);
+assert.strictEqual(ctx.computeLeastTrainedFocus(leastSessions.slice(0, 2), now).label, '—');
+const fullStats = ctx.computeTrainLandingStats(leastSessions, assigns, now);
+assert.strictEqual(fullStats.least.focus, 'Boulders');
+assert.ok(Array.isArray(fullStats.weekBars) && fullStats.weekBars.length === 4);
+assert.strictEqual(ctx.computeTrainLandingStats(leastSessions.slice(0, 2), assigns, now).least.label, '—');
+assert.strictEqual(ctx.computeTrainLandingStats(leastSessions.slice(0, 2), assigns, now).weekBars, null);
+assert.strictEqual(ctx.trainSessionFocus({ energy_type: 'Hangboard' }), 'Hangboard');
+assert.strictEqual(ctx.trainSessionFocus({ energy_type: 'strength' }), 'Strength & Weights');
 
 console.log('train-climb-template tests: ok');

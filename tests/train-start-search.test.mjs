@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index281'/.test(index));
-assert.ok(/APP_VERSION = 'index281'/.test(sw));
+assert.ok(/var app_version = 'index282'/.test(index));
+assert.ok(/APP_VERSION = 'index282'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -38,7 +38,11 @@ function extractBetween(src, startId, endId){
 }
 
 const startScreen = extractBetween(index, 'screen-train-start', 'screen-train-recent');
-assert.ok(startScreen.indexOf('id="train-start-search"') < startScreen.indexOf('Energy mix'));
+assert.ok(!/Energy mix/i.test(startScreen));
+assert.ok(!/Pick a focus, then a workout/.test(startScreen));
+assert.ok(startScreen.indexOf('id="train-start-search"') < startScreen.indexOf('id="train-start-pinned-wrap"'));
+assert.ok(startScreen.indexOf('id="train-start-pinned-wrap"') < startScreen.indexOf('id="train-energy-grid"'));
+assert.ok(/id="train-start-pinned-strip"/.test(startScreen));
 assert.ok(startScreen.indexOf('id="train-start-search"') < startScreen.indexOf('id="train-energy-grid"'));
 assert.ok(/placeholder="Search workouts"/.test(startScreen));
 assert.ok(/Start blank session/.test(startScreen));
