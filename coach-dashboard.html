@@ -808,7 +808,9 @@
   }
   .assign-launch-secondary:hover{opacity:1;border-color:var(--accent);background:rgba(232,146,82,.08);}
   #assign-wizard-overlay.aw-quick .aw-prog,
-  #assign-wizard-overlay.aw-quick .aw-step-num{display:none;}
+  #assign-wizard-overlay.aw-quick .aw-step-num,
+  #assign-wizard-overlay.aw-kind .aw-prog,
+  #assign-wizard-overlay.aw-kind .aw-step-num{display:none;}
   .assign-inline-success{
     margin-top:10px;font-size:13px;color:#7fbf3f;background:rgba(63,109,17,.15);
     border:1px solid rgba(127,191,63,.35);border-radius:8px;padding:10px 12px;
@@ -2350,7 +2352,7 @@
     var label = athleteDisplayLabel(row);
     var email = String(row.athlete_email || '').trim();
     renderAthleteDetail(ctx.token, ctx.user, row.athlete_id, label, email);
-    startAssignWizard({ starterShortlist: true });
+    startAssign({ starterShortlist: true });
   }
 
   function loadRoster(token, user){
@@ -2622,8 +2624,7 @@
     return (miniHtml || '') +
       (flagHtml || '') +
       '<div class="roster-assign-btns">' +
-        '<button type="button" class="roster-assign-btn">New assignment</button>' +
-        '<button type="button" class="roster-quick-assign-btn">Quick assignment</button>' +
+        '<button type="button" class="roster-assign-btn">Assign</button>' +
       '</div>';
   }
 
@@ -2662,15 +2663,7 @@
         e.preventDefault();
         e.stopPropagation();
         if(!primeAssignWizardFromRosterRow(btn)) return;
-        startAssignWizard();
-      });
-    });
-    Array.prototype.forEach.call(listEl.querySelectorAll('.roster-quick-assign-btn'), function(btn){
-      btn.addEventListener('click', function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        if(!primeAssignWizardFromRosterRow(btn)) return;
-        startQuickAssignment();
+        startAssign();
       });
     });
   }
@@ -5425,7 +5418,7 @@
   }
 
   function wizardSubmitLabel(){
-    return (_assignWizard && _assignWizard.mode === 'edit') ? 'Save changes' : 'Create assignment';
+    return (_assignWizard && _assignWizard.mode === 'edit') ? 'Save changes' : 'Create workout assignment';
   }
 
   function wizardBusyLabel(){
@@ -5989,6 +5982,7 @@
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
     overlay.classList.remove('aw-quick');
+    overlay.classList.remove('aw-kind');
     var keepLock = window.CoachStackNav
       ? window.CoachStackNav.bodyOverflowAfterWizardClose({
           mobile: coachNavIsMobile(),
@@ -6511,12 +6505,61 @@
     }).then(finishSuccess).catch(failCreate);
   }
 
+  function startAssign(opts){
+    if(!_assignWizardCtx) return;
+    opts = opts || {};
+    if(opts.starterShortlist){
+      startAssignWizard({ starterShortlist: true });
+      return;
+    }
+    resetAssignWizard();
+    var overlay = document.getElementById('assign-wizard-overlay');
+    if(overlay){
+      overlay.classList.remove('aw-quick');
+      overlay.classList.add('aw-kind');
+    }
+    syncWizardShellMode();
+    openAssignWizardOverlay();
+    renderAssignKindChoice();
+  }
+
+  function renderAssignKindChoice(){
+    var overlay = document.getElementById('assign-wizard-overlay');
+    if(overlay){
+      overlay.classList.remove('aw-quick');
+      overlay.classList.add('aw-kind');
+    }
+    var body = document.getElementById('wiz-body');
+    var msgEl = document.getElementById('new-a-msg');
+    if(msgEl) msgEl.innerHTML = '';
+    var eyebrow = document.querySelector('#assign-wizard-overlay .aw-eyebrow');
+    var hero = document.getElementById('aw-hero');
+    if(eyebrow) eyebrow.textContent = 'Assign';
+    if(hero) hero.textContent = 'What are you assigning?';
+    setAssignWizardChrome('What are you assigning?', '');
+    if(!body) return;
+    body.innerHTML =
+      '<div class="aw-choices">' +
+        '<button type="button" class="aw-chip" id="assign-kind-workout">' +
+          'Workout<span class="aw-chip-meta">Athlete gets a Start button in Train.</span></button>' +
+        '<button type="button" class="aw-chip" id="assign-kind-task">' +
+          'Task<span class="aw-chip-meta">Homework with an optional checklist. No Start button.</span></button>' +
+      '</div>';
+    setAssignWizardFooter('');
+    var workoutBtn = document.getElementById('assign-kind-workout');
+    var taskBtn = document.getElementById('assign-kind-task');
+    if(workoutBtn) workoutBtn.addEventListener('click', function(){ startAssignWizard(); });
+    if(taskBtn) taskBtn.addEventListener('click', startQuickAssignment);
+  }
+
   function startQuickAssignment(){
     var ctx = _assignWizardCtx;
     if(!ctx) return;
     resetAssignWizard();
     _assignWizard.mode = 'quick';
     _assignWizard.quickMode = true;
+    var overlay = document.getElementById('assign-wizard-overlay');
+    if(overlay) overlay.classList.remove('aw-kind');
     syncWizardShellMode();
     openAssignWizardOverlay();
     renderQuickAssignmentForm();
@@ -6543,7 +6586,7 @@
       '<div class="aw-field"><label for="quick-a-link">Resource link</label>' +
         '<input id="quick-a-link" type="url" placeholder="Optional — YouTube, Google Drive, etc."></div>';
     setAssignWizardFooter(
-      '<button type="button" class="aw-next" id="quick-a-submit">Create assignment</button>'
+      '<button type="button" class="aw-next" id="quick-a-submit">Create task assignment</button>'
     );
     var submit = document.getElementById('quick-a-submit');
     if(submit) submit.addEventListener('click', submitQuickAssignment);
@@ -6584,7 +6627,7 @@
       resource_link: link || null
     };
     function finishSuccess(){
-      if(btn){ btn.disabled = false; btn.textContent = 'Create assignment'; }
+      if(btn){ btn.disabled = false; btn.textContent = 'Create task assignment'; }
       if(_detailCtx && _detailCtx.athleteId === athleteId){
         loadAssignments(token, coachUser, athleteId);
       }
@@ -6594,7 +6637,7 @@
       showAssignSavedBanner('Assignment saved.');
     }
     function failCreate(err){
-      if(btn){ btn.disabled = false; btn.textContent = 'Create assignment'; }
+      if(btn){ btn.disabled = false; btn.textContent = 'Create task assignment'; }
       if(msgEl){
         msgEl.innerHTML = '<div class="form-error">Could not save. ' +
           escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';
@@ -6612,7 +6655,10 @@
     resetAssignWizard();
     if(opts.starterShortlist) _assignWizard.starterShortlist = true;
     var overlay = document.getElementById('assign-wizard-overlay');
-    if(overlay) overlay.classList.remove('aw-quick');
+    if(overlay){
+      overlay.classList.remove('aw-quick');
+      overlay.classList.remove('aw-kind');
+    }
     syncWizardShellMode();
     openAssignWizardOverlay();
     var body = document.getElementById('wiz-body');
@@ -6704,17 +6750,11 @@
     el.innerHTML =
       '<div class="assign-launch-stack">' +
         '<button type="button" class="assign-launch" id="assign-launch-btn">' +
-          '<span><span>New assignment</span><span class="assign-launch-sub">Full-screen step flow</span></span>' +
-          '<span class="assign-launch-arrow">→</span>' +
-        '</button>' +
-        '<button type="button" class="assign-launch assign-launch-secondary" id="assign-quick-btn">' +
-          '<span><span>Quick assignment</span><span class="assign-launch-sub">Title and notes — no workout</span></span>' +
+          '<span><span>Assign</span></span>' +
           '<span class="assign-launch-arrow">→</span>' +
         '</button>' +
       '</div>';
-    document.getElementById('assign-launch-btn').addEventListener('click', startAssignWizard);
-    var quickBtn = document.getElementById('assign-quick-btn');
-    if(quickBtn) quickBtn.addEventListener('click', startQuickAssignment);
+    document.getElementById('assign-launch-btn').addEventListener('click', startAssign);
   }
 
   // Cancel closes the overlay without saving.

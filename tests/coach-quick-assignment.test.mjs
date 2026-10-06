@@ -8,15 +8,16 @@ const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 const index = readFileSync(join(__dirname, '../index.html'), 'utf8');
 
 assert.ok(/id="assign-launch-btn"/.test(dash));
-assert.ok(/id="assign-quick-btn"/.test(dash) && />Quick assignment</.test(dash));
-assert.ok(/class="roster-quick-assign-btn">Quick assignment</.test(dash));
-assert.ok(/assign-launch-secondary/.test(dash), 'hub quick path is visually secondary');
+assert.ok(!/id="assign-quick-btn"/.test(dash));
+assert.ok(!/roster-quick-assign-btn/.test(dash.match(/function rosterRowSideHtml[\s\S]*?\n  var _rosterAuthCtx/)[0]));
+assert.ok(/class="roster-assign-btn">Assign</.test(dash));
 
 assert.ok(/function startQuickAssignment/.test(dash));
 assert.ok(/function renderQuickAssignmentForm/.test(dash));
 assert.ok(/function submitQuickAssignment/.test(dash));
 assert.ok(/Coach\\'s instructions/.test(dash) || /Coach's instructions/.test(dash));
 assert.ok(/- \[ \]/.test(dash), 'markdown checklist tip in placeholder');
+assert.ok(/>Create task assignment</.test(dash));
 
 const quickFn = dash.match(/function submitQuickAssignment\(\)\{[\s\S]*?\n  function startAssignWizard/);
 assert.ok(quickFn, 'submitQuickAssignment extracted');
@@ -28,16 +29,19 @@ assert.ok(/https\?:\\\/\\\//.test(quickFn[0]) || /https\?:\/\//.test(quickFn[0])
 assert.ok(/loadAssignments\(token, coachUser, athleteId\)/.test(quickFn[0]));
 assert.ok(/showAssignSavedBanner\('Assignment saved\.'\)/.test(quickFn[0]));
 assert.ok(/Title is required/.test(quickFn[0]));
+assert.ok(/Create task assignment/.test(quickFn[0]));
 
-const wizardSubmit = dash.match(/function submitAssignWizard\(\)\{[\s\S]*?\n  function startQuickAssignment/);
+const wizardSubmit = dash.match(/function submitAssignWizard\(\)\{[\s\S]*?\n  function startAssign\(/);
 assert.ok(wizardSubmit, 'structured submit still present');
 assert.ok(/library_item_id/.test(wizardSubmit[0]), 'structured path still links a workout');
 assert.ok(/function goAssignWizardStep/.test(dash));
 assert.ok(/Step ' \+ step \+ ' of 4/.test(dash));
 
-assert.ok(/startQuickAssignment/.test(dash.match(/function renderNewAssignmentForm[\s\S]*?\n  \/\/ Cancel/)[0]));
-assert.ok(/roster-quick-assign-btn[\s\S]{0,400}startQuickAssignment/.test(dash));
-assert.ok(/getElementById\('assign-launch-btn'\)[\s\S]{0,80}startAssignWizard/.test(dash));
+assert.ok(/startAssign/.test(dash.match(/function renderNewAssignmentForm[\s\S]*?\n  \/\/ Cancel/)[0]));
+assert.ok(!/startAssignWizard/.test(dash.match(/function renderNewAssignmentForm[\s\S]*?\n  \/\/ Cancel/)[0]));
+assert.ok(!/startQuickAssignment/.test(dash.match(/function renderNewAssignmentForm[\s\S]*?\n  \/\/ Cancel/)[0]));
+assert.ok(/startAssign\(\)/.test(dash.match(/function wireRosterAssignButtons[\s\S]*?\n  function renderRoster/)[0]));
+assert.ok(/getElementById\('assign-launch-btn'\)[\s\S]{0,80}startAssign/.test(dash));
 
 const trainCard = index.match(/function trainCardHtml\(a\)\{[\s\S]*?\nfunction renderTrainList/);
 assert.ok(trainCard);
