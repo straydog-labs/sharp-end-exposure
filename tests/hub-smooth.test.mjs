@@ -11,8 +11,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index282'/.test(index));
-assert.ok(/APP_VERSION = 'index282'/.test(sw));
+assert.ok(/var app_version = 'index283'/.test(index));
+assert.ok(/APP_VERSION = 'index283'/.test(sw));
 assert.ok(!/hub-primary-card/.test(dash), 'coach-dashboard untouched');
 
 assert.ok(/\.hub-primary-card/.test(index));
@@ -49,11 +49,17 @@ assert.ok(train.indexOf('hub-more-label') < train.indexOf('id="train-hub-card-re
 assert.ok(!/te-sub/.test(train.slice(train.indexOf('id="train-hub-cards"'))));
 
 const drill = index.slice(index.indexOf('id="screen-drill"'), index.indexOf('id="screen-psyche-bee"'));
+assert.ok(/id="psyche-landing-col"/.test(drill));
+assert.ok(/id="psyche-hub-card-exposure"/.test(drill));
 assert.ok(/id="psyche-card-checkin"/.test(drill));
-assert.ok(drill.indexOf('Psyche') < drill.indexOf('id="psyche-card-checkin"'));
+assert.ok(drill.indexOf('Psyche') < drill.indexOf('id="psyche-hub-card-exposure"'));
+assert.ok(drill.indexOf('id="psyche-hub-card-exposure"') < drill.indexOf('id="psyche-card-checkin"'));
 assert.ok(drill.indexOf('id="psyche-card-checkin"') < drill.indexOf('id="psyche-practice-list"'));
+assert.ok(drill.indexOf('id="psyche-hub-recent-mini"') < drill.indexOf('id="psyche-practice-list"'));
 assert.ok(drill.indexOf('id="psyche-practice-list"') < drill.indexOf('id="psyche-log-stats"'));
-assert.ok(/Show your psyche stats/.test(drill));
+assert.ok(/Practice mix/.test(drill));
+assert.ok(!/Show your psyche stats/.test(drill));
+assert.ok(!/Check-in, train the mind/.test(drill));
 assert.ok(/onclick="startPrepareClimb\(\)"/.test(drill));
 assert.ok(/onclick="startExposureDrill\(\)"/.test(drill));
 assert.ok(/onclick="startPsycheBee\(\)"/.test(drill));
@@ -64,6 +70,7 @@ assert.ok(/onclick="startPsycheTalk\(\)"/.test(drill));
 assert.ok((drill.match(/class="hub-compact-row"/g) || []).length === 7);
 assert.ok(!/>Start →</.test(drill));
 assert.ok(/id="psyche-stat-streak"/.test(drill));
+assert.ok(/id="psyche-stat-last-zone"/.test(drill));
 assert.ok(/id="psyche-radar-wrap"/.test(drill));
 
 assert.ok(/toggleCollapsibleSection\('patterns-body'/.test(index));
