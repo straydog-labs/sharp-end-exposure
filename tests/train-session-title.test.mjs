@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index283'/.test(index));
-assert.ok(/APP_VERSION = 'index283'/.test(sw));
+assert.ok(/var app_version = 'index284'/.test(index));
+assert.ok(/APP_VERSION = 'index284'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -131,6 +131,7 @@ const doneCtx = {
     return t || '';
   },
   formatTrainDuration: function(){ return '12 min'; },
+  hideTrainDoneAssignPrompt: function(){},
   document: {
     getElementById: function(id){
       if(!doneEls[id]) doneEls[id] = { textContent: '', style: { display: '' }, value: '' };
