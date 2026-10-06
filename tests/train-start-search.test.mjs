@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index278'/.test(index));
-assert.ok(/APP_VERSION = 'index278'/.test(sw));
+assert.ok(/var app_version = 'index279'/.test(index));
+assert.ok(/APP_VERSION = 'index279'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -54,8 +54,8 @@ assert.ok(/>My plan</.test(hub));
 assert.ok(/id="train-hub-card-assign"/.test(hub));
 assert.ok(/id="train-hub-assign-count"/.test(hub));
 assert.ok(!/Assignments from coach/.test(hub));
-const startSub = hub.match(/id="train-hub-card-start"[\s\S]*?class="te-sub">([^<]+)</);
-assert.ok(startSub && startSub[1].indexOf('search') === -1);
+assert.ok(/Start training/.test(hub));
+assert.ok(!/search/i.test(hub.match(/id="train-hub-card-start"[\s\S]*?<\/button>/)[0]));
 
 const assignScreen = extractBetween(index, 'screen-train-assignments', 'screen-train-blocks');
 assert.ok(/My plan/.test(assignScreen));
