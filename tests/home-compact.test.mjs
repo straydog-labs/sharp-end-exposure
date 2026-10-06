@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index280'/.test(index));
-assert.ok(/APP_VERSION = 'index280'/.test(sw));
+assert.ok(/var app_version = 'index281'/.test(index));
+assert.ok(/APP_VERSION = 'index281'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -51,6 +51,12 @@ assert.ok(/showScreen\('screen-train-assignments'\)/.test(home));
 assert.ok(/id="home-goals-strip"/.test(home));
 assert.ok(/showScreen\('screen-train-goals'\)/.test(home));
 assert.ok(/Set a goal to guide your training/.test(home));
+assert.ok(/id="home-goals-title"/.test(home));
+assert.ok(/id="home-day-sheet"/.test(home));
+assert.ok(/id="home-today-kicker"/.test(home));
+assert.ok(/id="home-card-log"[\s\S]*?te-icon[\s\S]*?Log a climb/.test(home));
+assert.ok(/id="home-action-train"[\s\S]*?te-icon[\s\S]*?Start training/.test(home));
+assert.ok(/id="home-goals-strip"[\s\S]*?te-icon[\s\S]*?Set a goal to guide your training/.test(home));
 assert.ok(/id="home-assign-detail"/.test(home));
 assert.ok(!/What to do today/.test(home));
 assert.ok(!/Start a streak today/.test(home));
@@ -88,14 +94,28 @@ const helpers = [
   extractFn(index, 'isHomeAssignmentDueSoon'),
   extractFn(index, 'homeAssignmentDueKind'),
   extractFn(index, 'homeAssignmentDueLabel'),
+  extractFn(index, 'homeTodayKickerLabel'),
   extractFn(index, 'homeAssignmentTypeLabel'),
   extractFn(index, 'pickHomeTodayAssignment'),
+  extractFn(index, 'athleteLocalMondayIndex'),
+  extractFn(index, 'homeWeekDayNames'),
   extractFn(index, 'homeWeekDotsHtml'),
   extractFn(index, 'homeWeekStatusLabel'),
   extractFn(index, 'homeGreetingText'),
   extractFn(index, 'athleteWeekBounds'),
   extractFn(index, 'athleteLocalDayKeyFromDate'),
-  extractFn(index, 'homeAssignmentDueDay')
+  extractFn(index, 'athleteLocalDayKeyFromIso'),
+  extractFn(index, 'homeAssignmentDueDay'),
+  extractFn(index, 'isAthleteStreakClimb'),
+  extractFn(index, 'isAthleteStreakTraining'),
+  extractFn(index, 'collectHomeDayCounts'),
+  extractFn(index, 'collectHomeDayItems'),
+  extractFn(index, 'homeDayClimbRowHtml'),
+  extractFn(index, 'homeDayTrainRowHtml'),
+  extractFn(index, 'homeDaySheetHtml'),
+  extractFn(index, 'homeDueRowHtml'),
+  extractFn(index, 'escHomeAttr'),
+  extractFn(index, 'escTrainHtml')
 ].join('\n');
 
 const helperCtx = {};
@@ -120,6 +140,49 @@ assert.strictEqual(helperCtx.homeWeekStatusLabel(0, {}, weekFrom), 'No sessions 
 assert.ok(/streak/.test(helperCtx.homeWeekStatusLabel(3, days, weekFrom)));
 assert.ok((helperCtx.homeWeekDotsHtml(days, weekFrom).match(/home-week-dot/g) || []).length === 7);
 
+const tueLocal = new Date(2026, 9, 6, 15, 30, 0);
+assert.strictEqual(tueLocal.getDay(), 2, 'fixture is a local Tuesday');
+assert.strictEqual(helperCtx.athleteLocalMondayIndex(tueLocal), 1, 'Tuesday is Mon-Sun index 1');
+const tueDots = helperCtx.homeWeekDotsHtml({}, tueLocal);
+const tueCells = tueDots.match(/<(button|span) class="[^"]*home-week-dot[^"]*"[^>]*>[A-Z]<\/\1>/g) || [];
+assert.strictEqual(tueCells.length, 7);
+assert.ok(!/is-today/.test(tueCells[0]), 'Monday must not be today on a local Tuesday');
+assert.ok(/is-today/.test(tueCells[1]), 'Tuesday cell (index 1) is today');
+assert.ok(!/is-today/.test(tueCells[2]), 'Wednesday is not today');
+
+const counts = { '2026-09-07': 2, '2026-09-08': 1 };
+const tapHtml = helperCtx.homeWeekDotsHtml({}, weekFrom, counts);
+assert.ok(/aria-label="Monday, 2 items"/.test(tapHtml));
+assert.ok(/aria-label="Tuesday, 1 item"/.test(tapHtml));
+assert.ok(/<button type="button"[^>]*data-day="2026-09-07"/.test(tapHtml));
+assert.ok(/<button type="button"[^>]*data-day="2026-09-08"/.test(tapHtml));
+assert.ok(/<span class="[^"]*is-empty[^"]*"[^>]*data-day="2026-09-09"/.test(tapHtml), 'empty day is a non-button span');
+assert.ok(!/aria-label="Wednesday/.test(tapHtml));
+assert.ok((tapHtml.match(/<button /g) || []).length === 2);
+
+assert.strictEqual(helperCtx.homeTodayKickerLabel({ due_date: '2026-08-18' }, now), 'TODAY');
+assert.strictEqual(helperCtx.homeTodayKickerLabel({ title: 'Hangboard' }, now), 'UP NEXT');
+assert.strictEqual(helperCtx.homeTodayKickerLabel({ due_date: '2026-08-20' }, now), 'UP NEXT');
+
+const dayItems = helperCtx.collectHomeDayItems('2026-09-08', [
+  { created_at: '2026-09-08T10:00:00', zone: 'learning' },
+  { created_at: '2026-09-07T10:00:00', zone: 'comfort' }
+], [
+  { created_at: '2026-09-08T11:00:00' }
+], [
+  { id: 'a1', title: 'Hangboard', due_date: '2026-09-08' },
+  { id: 'a2', title: 'No date' }
+]);
+assert.strictEqual(dayItems.climbs.length, 1);
+assert.strictEqual(dayItems.trains.length, 1);
+assert.strictEqual(dayItems.assigns.length, 1);
+const sheet = helperCtx.homeDaySheetHtml(dayItems);
+assert.ok(/Climb/.test(sheet));
+assert.ok(/Training session/.test(sheet));
+assert.ok(/Hangboard/.test(sheet));
+const emptyItems = helperCtx.collectHomeDayItems('2026-09-09', [], [], []);
+assert.strictEqual(emptyItems.climbs.length + emptyItems.trains.length + emptyItems.assigns.length, 0);
+
 const boot = {
   _active: '',
   loads: 0,
@@ -143,6 +206,7 @@ const loadChunk = 'var _homeScreenLoadPromise = null;\n' + extractFn(index, 'loa
 const loadCtx = {
   _homeScreenLoadPromise: null,
   closeHomeAssignmentDetail: function(){ loadCtx.closes++; },
+  closeHomeDaySheet: function(){},
   applyHomeGreeting: async function(){ loadCtx.parts.push('g'); },
   loadHomeDueList: async function(){ loadCtx.parts.push('d'); },
   loadHomeGoalsStrip: async function(){ loadCtx.parts.push('o'); },

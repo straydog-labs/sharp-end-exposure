@@ -12,8 +12,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const sql = readFileSync(join(root, 'sql/custom-workouts-is-starred.sql'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index280'/.test(index));
-assert.ok(/APP_VERSION = 'index280'/.test(sw));
+assert.ok(/var app_version = 'index281'/.test(index));
+assert.ok(/APP_VERSION = 'index281'/.test(sw));
 assert.ok(/add column if not exists is_starred/.test(sql));
 assert.ok(/custom_workouts/.test(sql));
 
@@ -69,6 +69,7 @@ const helpers = [
   extractFn(index, 'computeAthleteStreak'),
   extractFn(index, 'trainSessionsInWeek'),
   extractFn(index, 'trainAssignmentsInWindow'),
+  extractFn(index, 'trainAssignmentsPlannedThisWeek'),
   extractFn(index, 'computeTrainLandingStats')
 ].join('\n');
 const ctx = {};
@@ -103,5 +104,21 @@ assert.notStrictEqual(stats.streak, '—');
 assert.notStrictEqual(stats.since, '—');
 assert.strictEqual(ctx.computeTrainLandingStats(sessions.slice(0, 2), assigns, now).since, '—');
 assert.strictEqual(ctx.computeTrainLandingStats(sessions, assigns.slice(0, 2), now).adhere, '—');
+
+const planned = ctx.trainAssignmentsPlannedThisWeek([
+  { id: '1', due_date: '2026-09-10', completed_at: '2026-09-10' },
+  { id: '2', due_date: '2026-09-09', completed_at: null },
+  { id: '3', due_date: '2026-09-01', completed_at: '2026-09-02' },
+  { id: '4', due_date: null, created_at: '2026-09-08T12:00:00', completed_at: null },
+  { id: '5', due_date: null, created_at: '2026-09-08T12:00:00', completed_at: '2026-09-08' },
+  { id: '6', due_date: null, created_at: '2026-08-01T12:00:00', completed_at: null }
+], now);
+assert.deepStrictEqual(planned.map(function(a){ return a.id; }).sort(), ['1', '2', '4']);
+const weekStats = ctx.computeTrainLandingStats(sessions, [
+  { id: '1', due_date: '2026-09-10', completed_at: '2026-09-10' },
+  { id: '2', due_date: '2026-09-09', completed_at: null },
+  { id: '6', due_date: null, created_at: '2026-08-01T12:00:00', completed_at: null }
+], now);
+assert.strictEqual(weekStats.week, '3 / 2');
 
 console.log('train-climb-template tests: ok');

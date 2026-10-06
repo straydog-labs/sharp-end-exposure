@@ -142,7 +142,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .train-energy-card.train-assign-card.is-done{opacity:.6;}
 .home-profile-btn{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text);display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
 .home-profile-btn svg{width:18px;height:18px;}
-.home-goals-strip{width:100%;display:block;text-align:left;background:none;border:none;border-radius:0;padding:0;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;line-height:1.4;cursor:pointer;margin:0;box-sizing:border-box;text-decoration:underline;text-underline-offset:3px;}
+.home-goals-strip{width:100%;margin:0;box-sizing:border-box;}
 .home-goals-strip[hidden]{display:none;}
 #screen-home .content{gap:12px;padding:12px 20px 16px;}
 #home-compact{display:flex;flex-direction:column;gap:12px;width:100%;}
@@ -151,9 +151,23 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .home-streak-band{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 12px;}
 .home-streak-label{font-size:13px;font-weight:700;margin-bottom:8px;}
 .home-week-dots{display:flex;align-items:center;justify-content:space-between;gap:6px;}
-.home-week-dot{flex:1;min-width:0;height:28px;border-radius:99px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
-.home-week-dot.is-on{background:rgba(232,118,58,.18);border-color:rgba(232,118,58,.45);color:var(--accent);}
+.home-week-dot{flex:1;min-width:0;height:28px;border-radius:99px;background:transparent;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:default;}
+button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.home-week-dot.is-on{background:rgba(232,118,58,.18);border:1px solid rgba(232,118,58,.45);color:var(--accent);}
 .home-week-dot.is-today{box-shadow:0 0 0 2px var(--accent);}
+.home-week-dot.is-selected{background:var(--accent);border-color:var(--accent);color:#fff;}
+.home-week-dot.is-empty{background:transparent;border:none;box-shadow:none;color:var(--muted);}
+.home-week-dot.is-empty.is-today{box-shadow:0 0 0 2px var(--accent);}
+.home-day-sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;}
+.home-day-sheet[hidden]{display:none;}
+.home-day-sheet-scrim{position:absolute;inset:0;background:rgba(0,0,0,.45);border:none;padding:0;cursor:pointer;}
+.home-day-sheet-panel{position:relative;width:100%;max-width:480px;max-height:70vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:16px 18px 28px;box-sizing:border-box;}
+.home-day-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;}
+.home-day-sheet-title{font-size:16px;font-weight:700;}
+.home-day-sheet-close{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;padding:0;}
+.home-day-empty{font-size:13px;color:var(--muted);padding:8px 0;}
+.home-day-climb-row,.home-day-train-row{padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;}
+.home-day-climb-row .sub,.home-day-train-row .sub{font-size:12px;font-weight:500;color:var(--muted);margin-top:2px;}
 .home-zone-bar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--surface2);margin-bottom:8px;}
 .home-zone-bar > span{min-width:0;display:block;}
 .home-zone-legend{font-size:11px;color:var(--muted);}
@@ -167,12 +181,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .home-today-meta{font-size:12px;color:var(--muted);margin:6px 0 12px;}
 .home-today-start{width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;}
 .home-action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.home-action-row .hub-primary-card,
-.home-action-row #home-card-log.home-log-primary{min-height:52px;padding:12px 10px;margin:0;box-shadow:none;}
-.home-action-row .te-card-top,
-.home-action-row .te-label,
-.home-action-row .te-sub{display:none;}
-.home-action-row .te-title{font-size:14px;margin:0;}
+.home-action-row .hub-compact-row{margin:0;min-height:52px;}
 .home-due-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
 .home-due-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
 .home-due-see-all{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;cursor:pointer;padding:0;}
@@ -1550,20 +1559,19 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
       </div>
 
       <div id="home-today-card" class="home-today-card" hidden>
-        <div class="home-today-kicker">Today</div>
+        <div class="home-today-kicker" id="home-today-kicker">TODAY</div>
         <button type="button" class="home-today-title" id="home-today-title" onclick="openHomeAssignmentDetail(this.dataset.id)"></button>
         <div class="home-today-meta" id="home-today-meta"></div>
         <button type="button" class="home-today-start" id="home-today-start" onclick="startTrainSessionFromAssignment(this.dataset.id)">Start</button>
       </div>
 
       <div class="home-action-row" id="home-action-row">
-        <button type="button" class="train-energy-card home-log-primary hub-primary-card" id="home-card-log" onclick="startLogFlow()">
-          <div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 20 9 10 13 15 17 9 21 20"/><line x1="3" y1="20" x2="21" y2="20"/></svg></div></div>
-          <div class="te-label">Climb</div>
+        <button type="button" class="hub-compact-row" id="home-card-log" onclick="startLogFlow()">
+          <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 20 9 10 13 15 17 9 21 20"/><line x1="3" y1="20" x2="21" y2="20"/></svg></div>
           <div class="te-title">Log a climb</div>
-          <div class="te-sub">Log a send or attempt</div>
         </button>
-        <button type="button" class="train-energy-card hub-primary-card" id="home-action-train" onclick="showScreen('screen-train-start')">
+        <button type="button" class="hub-compact-row" id="home-action-train" onclick="showScreen('screen-train-start')">
+          <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg></div>
           <div class="te-title">Start training</div>
         </button>
       </div>
@@ -1576,7 +1584,21 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
         <div id="home-due-list"></div>
       </div>
 
-      <button type="button" id="home-goals-strip" class="home-goals-strip" onclick="showScreen('screen-train-goals')">Set a goal to guide your training</button>
+      <button type="button" id="home-goals-strip" class="hub-compact-row home-goals-strip" onclick="showScreen('screen-train-goals')">
+        <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></div>
+        <div class="te-title" id="home-goals-title">Set a goal to guide your training</div>
+      </button>
+    </div>
+
+    <div id="home-day-sheet" class="home-day-sheet" hidden>
+      <button type="button" class="home-day-sheet-scrim" onclick="closeHomeDaySheet()" aria-label="Close day"></button>
+      <div class="home-day-sheet-panel" role="dialog" aria-labelledby="home-day-sheet-title">
+        <div class="home-day-sheet-head">
+          <div class="home-day-sheet-title" id="home-day-sheet-title"></div>
+          <button type="button" class="home-day-sheet-close" onclick="closeHomeDaySheet()">Close</button>
+        </div>
+        <div id="home-day-sheet-body"></div>
+      </div>
     </div>
 
     <div id="home-assign-detail" hidden>
@@ -5725,7 +5747,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index280'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index281'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -10046,6 +10068,9 @@ function homeAssignmentDueLabel(kind){
   if(kind === 'today') return 'Due today';
   return 'This week';
 }
+function homeTodayKickerLabel(a, now){
+  return homeAssignmentDueKind(a, now) === 'today' ? 'TODAY' : 'UP NEXT';
+}
 function homeAssignmentTypeLabel(a){
   var type = String((a && (a.training_focus || a.category || a.energy_type)) || '').trim();
   return type || 'Training';
@@ -10075,19 +10100,33 @@ function homeDueRowHtml(a){
     + '<button type="button" class="home-due-start" onclick="startTrainSessionFromAssignment(\''+id+'\')">Start</button>'
     + '</div>';
 }
-function homeWeekDotsHtml(daySet, fromDate){
+function athleteLocalMondayIndex(fromDate){
+  var d = fromDate ? new Date(fromDate) : new Date();
+  var dow = d.getDay();
+  return dow === 0 ? 6 : dow - 1;
+}
+function homeWeekDayNames(){
+  return ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+}
+function homeWeekDotsHtml(daySet, fromDate, counts, selectedKey){
   var b = athleteWeekBounds(fromDate);
   var labels = ['M','T','W','T','F','S','S'];
+  var names = homeWeekDayNames();
   var todayKey = athleteLocalDayKeyFromDate(fromDate ? new Date(fromDate) : new Date());
   var html = '';
-  var i, d, key, on, cls;
+  var i, d, key, n, on, cls, label;
   for(i = 0; i < 7; i++){
-    d = new Date(b.start);
-    d.setDate(d.getDate() + i);
+    d = new Date(b.start.getFullYear(), b.start.getMonth(), b.start.getDate() + i);
     key = athleteLocalDayKeyFromDate(d);
-    on = !!(daySet && daySet[key]);
-    cls = 'home-week-dot' + (on ? ' is-on' : '') + (key === todayKey ? ' is-today' : '');
-    html += '<span class="'+cls+'">'+labels[i]+'</span>';
+    n = counts && Object.prototype.hasOwnProperty.call(counts, key) ? counts[key] : ((daySet && daySet[key]) ? 1 : 0);
+    on = n > 0;
+    cls = 'home-week-dot' + (on ? ' is-on' : ' is-empty') + (key === todayKey ? ' is-today' : '') + (selectedKey && key === selectedKey ? ' is-selected' : '');
+    if(on){
+      label = names[i] + ', ' + n + (n === 1 ? ' item' : ' items');
+      html += '<button type="button" class="'+cls+'" data-day="'+key+'" aria-label="'+label+'" onclick="openHomeDaySheet(\''+key+'\')">'+labels[i]+'</button>';
+    } else {
+      html += '<span class="'+cls+'" data-day="'+key+'">'+labels[i]+'</span>';
+    }
   }
   return html;
 }
@@ -10109,6 +10148,7 @@ function paintHomeTodayCard(a, now){
   var titleEl = document.getElementById('home-today-title');
   var metaEl = document.getElementById('home-today-meta');
   var startEl = document.getElementById('home-today-start');
+  var kickerEl = document.getElementById('home-today-kicker');
   if(!card || !titleEl || !metaEl || !startEl) return;
   if(!a){
     card.hidden = true;
@@ -10116,12 +10156,14 @@ function paintHomeTodayCard(a, now){
     titleEl.dataset.id = '';
     startEl.dataset.id = '';
     metaEl.textContent = '';
+    if(kickerEl) kickerEl.textContent = '';
     return;
   }
   titleEl.textContent = a.title || 'Training';
   titleEl.dataset.id = a.id || '';
   startEl.dataset.id = a.id || '';
   metaEl.textContent = homeAssignmentTypeLabel(a) + ' · ' + homeAssignmentDueLabel(homeAssignmentDueKind(a, now));
+  if(kickerEl) kickerEl.textContent = homeTodayKickerLabel(a, now);
   card.hidden = false;
 }
 function openHomeAssignmentDetail(id){
@@ -10144,6 +10186,106 @@ function closeHomeAssignmentDetail(){
   if(compact) compact.hidden = false;
   if(detail) detail.hidden = true;
   if(body) body.innerHTML = '';
+}
+
+var _homeLoadedClimbs = [];
+var _homeLoadedTrains = [];
+var _homeLoadedPsyche = [];
+var _homeLoadedDrills = [];
+var _homeSelectedDayKey = '';
+
+function collectHomeDayCounts(climbs, trains, assigns){
+  var counts = {};
+  function add(iso){
+    var k = athleteLocalDayKeyFromIso(iso);
+    if(k) counts[k] = (counts[k] || 0) + 1;
+  }
+  (climbs || []).forEach(function(s){ if(isAthleteStreakClimb(s)) add(s.created_at); });
+  (trains || []).forEach(function(t){ if(isAthleteStreakTraining(t)) add(t.created_at); });
+  (assigns || []).forEach(function(a){
+    var day = homeAssignmentDueDay(a);
+    if(day){
+      var k = athleteLocalDayKeyFromDate(day);
+      if(k) counts[k] = (counts[k] || 0) + 1;
+    }
+  });
+  return counts;
+}
+function collectHomeDayItems(dayKey, climbs, trains, assigns){
+  var out = { climbs: [], trains: [], assigns: [] };
+  (climbs || []).forEach(function(s){
+    if(isAthleteStreakClimb(s) && athleteLocalDayKeyFromIso(s.created_at) === dayKey) out.climbs.push(s);
+  });
+  (trains || []).forEach(function(t){
+    if(isAthleteStreakTraining(t) && athleteLocalDayKeyFromIso(t.created_at) === dayKey) out.trains.push(t);
+  });
+  (assigns || []).forEach(function(a){
+    var day = homeAssignmentDueDay(a);
+    if(day && athleteLocalDayKeyFromDate(day) === dayKey) out.assigns.push(a);
+  });
+  return out;
+}
+function homeDayClimbRowHtml(s, idx){
+  if(typeof climbAttemptRowHtml === 'function'){
+    return climbAttemptRowHtml(s, { origin: 'home-day', rowIdx: idx || 0, showRouteName: true, idPrefix: 'hd' });
+  }
+  var zone = s && s.zone ? String(s.zone) : '';
+  return '<div class="home-day-climb-row">Climb' + (zone ? '<div class="sub">'+escTrainHtml(zone)+'</div>' : '') + '</div>';
+}
+function homeDayTrainRowHtml(t){
+  var when = t && (t.started_at || t.created_at);
+  var stamp = when ? new Date(when).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+  return '<div class="home-day-train-row">Training session' + (stamp ? '<div class="sub">'+escTrainHtml(stamp)+'</div>' : '') + '</div>';
+}
+function homeDaySheetHtml(items){
+  items = items || {};
+  var parts = [];
+  (items.climbs || []).forEach(function(s, i){ parts.push(homeDayClimbRowHtml(s, i)); });
+  (items.trains || []).forEach(function(t){ parts.push(homeDayTrainRowHtml(t)); });
+  (items.assigns || []).forEach(function(a){ parts.push(homeDueRowHtml(a)); });
+  if(!parts.length) return '<div class="home-day-empty">Nothing logged this day.</div>';
+  return parts.join('');
+}
+function homeDaySheetTitle(dayKey){
+  if(!dayKey) return '';
+  var p = String(dayKey).split('-');
+  var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  if(isNaN(d.getTime())) return dayKey;
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+function paintHomeWeekDots(fromDate){
+  var dotsEl = document.getElementById('home-week-dots');
+  if(!dotsEl) return;
+  fromDate = fromDate || new Date();
+  var counts = collectHomeDayCounts(_homeLoadedClimbs, _homeLoadedTrains, _trainAssignmentsCache);
+  var fill = {};
+  Object.keys(counts).forEach(function(k){ if(counts[k]) fill[k] = true; });
+  dotsEl.innerHTML = homeWeekDotsHtml(fill, fromDate, counts, _homeSelectedDayKey);
+}
+function openHomeDaySheet(dayKey){
+  if(!dayKey) return;
+  var recent = window._homeRecentSessions || [];
+  var recentById = {};
+  recent.forEach(function(s){ if(s && s.id) recentById[s.id] = s; });
+  var climbs = (_homeLoadedClimbs || []).map(function(s){ return (s && s.id && recentById[s.id]) ? recentById[s.id] : s; });
+  var items = collectHomeDayItems(dayKey, climbs, _homeLoadedTrains, _trainAssignmentsCache);
+  if(!items.climbs.length && !items.trains.length && !items.assigns.length) return;
+  _homeSelectedDayKey = dayKey;
+  paintHomeWeekDots();
+  var sheet = document.getElementById('home-day-sheet');
+  var title = document.getElementById('home-day-sheet-title');
+  var body = document.getElementById('home-day-sheet-body');
+  if(title) title.textContent = homeDaySheetTitle(dayKey);
+  if(body) body.innerHTML = homeDaySheetHtml(items);
+  if(sheet) sheet.hidden = false;
+}
+function closeHomeDaySheet(){
+  _homeSelectedDayKey = '';
+  var sheet = document.getElementById('home-day-sheet');
+  var body = document.getElementById('home-day-sheet-body');
+  if(sheet) sheet.hidden = true;
+  if(body) body.innerHTML = '';
+  paintHomeWeekDots();
 }
 
 function athleteLocalDayKeyFromDate(d){
@@ -10278,6 +10420,7 @@ async function loadHomeDueList(){
   if(!dueEl) return;
   if(!window._authUser){
     paintHomeTodayCard(null);
+    paintHomeWeekDots();
     dueEl.innerHTML = '';
     if(wrap) wrap.hidden = true;
     return;
@@ -10288,6 +10431,7 @@ async function loadHomeDueList(){
   var due = _trainAssignmentsCache.filter(function(a){ return isHomeAssignmentDueSoon(a, now); });
   var todayItem = pickHomeTodayAssignment(due, now);
   paintHomeTodayCard(todayItem, now);
+  paintHomeWeekDots(now);
   var rest = due.filter(function(a){ return !todayItem || a.id !== todayItem.id; }).slice(0, 3);
   dueEl.innerHTML = rest.length ? rest.map(homeDueRowHtml).join('') : '';
   if(wrap) wrap.hidden = rest.length === 0;
@@ -10297,8 +10441,9 @@ async function loadHomeGoalsStrip(){
   var el = document.getElementById('home-goals-strip');
   if(!el) return;
   var empty = 'Set a goal to guide your training';
+  var title = document.getElementById('home-goals-title');
   if(!window._authUser){
-    el.textContent = empty;
+    if(title) title.textContent = empty;
     el.hidden = false;
     return;
   }
@@ -10308,10 +10453,9 @@ async function loadHomeGoalsStrip(){
   );
   var text = homePrimaryGoalText(Array.isArray(rows) ? rows : []);
   if(text){
-    el.textContent = '';
     el.hidden = true;
   } else {
-    el.textContent = empty;
+    if(title) title.textContent = empty;
     el.hidden = false;
   }
 }
@@ -10324,7 +10468,11 @@ async function loadHomeStreakBand(){
   if(!labelEl) return;
   var now = new Date();
   var emptyDays = {};
-  if(dotsEl) dotsEl.innerHTML = homeWeekDotsHtml(emptyDays, now);
+  _homeLoadedClimbs = [];
+  _homeLoadedTrains = [];
+  _homeLoadedPsyche = [];
+  _homeLoadedDrills = [];
+  paintHomeWeekDots(now);
   labelEl.textContent = homeWeekStatusLabel(0, emptyDays, now);
   if(barEl){ barEl.innerHTML = ''; barEl.hidden = true; }
   if(legendEl){ legendEl.innerHTML = ''; legendEl.hidden = true; }
@@ -10347,9 +10495,13 @@ async function loadHomeStreakBand(){
   drillRows = Array.isArray(drillRows) ? drillRows : [];
   var climbs = sessRows.filter(isAthleteStreakClimb);
   var psyche = sessRows.filter(isAthleteStreakPsyche);
+  _homeLoadedClimbs = climbs;
+  _homeLoadedTrains = trainRows;
+  _homeLoadedPsyche = psyche;
+  _homeLoadedDrills = drillRows;
   var days = collectAthleteStreakDays(climbs, trainRows, psyche, drillRows);
   var streak = computeAthleteStreak(days, now);
-  if(dotsEl) dotsEl.innerHTML = homeWeekDotsHtml(days, now);
+  paintHomeWeekDots(now);
   labelEl.textContent = homeWeekStatusLabel(streak, days, now);
 }
 
@@ -10392,6 +10544,7 @@ async function applyHomeGreeting(){
 async function loadHomeScreen(){
   if(_homeScreenLoadPromise) return _homeScreenLoadPromise;
   closeHomeAssignmentDetail();
+  closeHomeDaySheet();
   _homeScreenLoadPromise = Promise.all([
     applyHomeGreeting(),
     loadHomeDueList(),
@@ -13125,13 +13278,26 @@ function trainAssignmentsInWindow(rows, start, end){
     return !isNaN(t.getTime()) && t >= start && t < end;
   });
 }
+function trainAssignmentsPlannedThisWeek(rows, fromDate){
+  var b = athleteWeekBounds(fromDate);
+  return (rows || []).filter(function(a){
+    if(!a) return false;
+    if(a.due_date){
+      var day = homeAssignmentDueDay(a);
+      return !!(day && day >= b.start && day < b.end);
+    }
+    if(a.completed_at) return false;
+    var t = new Date(a.created_at);
+    return !isNaN(t.getTime()) && t >= b.start && t < b.end;
+  });
+}
 function computeTrainLandingStats(sessions, assignments, fromDate){
   sessions = sessions || [];
   assignments = assignments || [];
   fromDate = fromDate || new Date();
   var dash = sessions.length < 3 ? '—' : null;
   var weekDone = trainSessionsInWeek(sessions, fromDate).length;
-  var weekDue = (assignments || []).filter(function(a){ return isHomeAssignmentDueSoon(a, fromDate); }).length;
+  var weekDue = trainAssignmentsPlannedThisWeek(assignments, fromDate).length;
   var days = {};
   sessions.forEach(function(r){
     var k = athleteLocalDayKeyFromIso(r && (r.started_at || r.created_at));
