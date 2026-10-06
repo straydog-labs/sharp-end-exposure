@@ -2,7 +2,7 @@
    Keep APP_VERSION in sync with `var app_version` in index.html / index-staging.html.
    A new deploy changes this file, so browsers install a fresh worker and drop the
    old versioned cache on activate. */
-var APP_VERSION = 'index284';
+var APP_VERSION = 'index285';
 var CACHE_NAME = 'see-shell-' + APP_VERSION;
 var SEE_VAPID_PUBLIC_KEY = 'BP6DrkZmQspCullBBbaIlg41Z7W_AXFbefEAksCLdkdlkHBUPiJHP5YyKU7BXFBKU0sK1tJUU4v88zZtYJDRmd4';
 
@@ -106,6 +106,12 @@ self.addEventListener('push', function(event){
     try{
       if('setAppBadge' in navigator) await navigator.setAppBadge(1);
     }catch(e){ /* badge API unsupported — ignore */ }
+    try{
+      var live = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      live.forEach(function(client){
+        try{ client.postMessage({ type: 'coach-message-received' }); }catch(e3){}
+      });
+    }catch(e4){}
     return self.registration.showNotification(title, {
       body: body,
       icon: './icons/icon-192.png',

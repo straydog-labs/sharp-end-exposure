@@ -5761,7 +5761,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index284'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index285'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -5850,6 +5850,13 @@ function initAuth(){
     window._authUser = session ? session.user : null;
     window._authToken = session ? session.access_token : null;
     try{ refreshCoachDashToggle(); }catch(e){}
+    if(event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)){
+      try{ refreshCoachChatUnreadBadge(true); }catch(e){}
+    }
+    if(event === 'SIGNED_OUT'){
+      clearCoachFlagsCache();
+      resetCoachBadgeRefresh();
+    }
     // INITIAL_SESSION fires when Supabase restores an already-persisted session
     // on load (e.g. reopening a fresh tab) — SIGNED_IN never fires in that case,
     // so this needs the exact same baseline-check + flag-sync routing (Fix 3,
@@ -5970,15 +5977,26 @@ async function sbI(table,payload,minimal){
     return sbFail('network', {message:e && e.message ? e.message : 'network', table:table});
   }
 }
-async function sbS(table,params=''){
-  try{
-    const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:getSBHeaders()});
-    if(!r.ok){console.error('sbS HTTP error:',r.status,table);return [];}
-    return await r.json();
-  }catch(e){
-    console.error('sbS network error:',e.message,table);
-    return [];
-  }
+var _sbSInflight = Object.create(null);
+function sbSInflightKey(table, params){
+  return String(table || '') + '?' + String(params || '');
+}
+function sbS(table,params=''){
+  var key = sbSInflightKey(table, params);
+  if(_sbSInflight[key]) return _sbSInflight[key];
+  _sbSInflight[key] = (async function(){
+    try{
+      const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:getSBHeaders()});
+      if(!r.ok){console.error('sbS HTTP error:',r.status,table);return [];}
+      return await r.json();
+    }catch(e){
+      console.error('sbS network error:',e.message,table);
+      return [];
+    }finally{
+      delete _sbSInflight[key];
+    }
+  })();
+  return _sbSInflight[key];
 }
 async function sbU(table,filter,payload){
   try{
@@ -6555,7 +6573,7 @@ function showScreen(id){
   else if(id==='screen-train-blocks'){ loadTrainingBlocks(); }
   else if(id==='screen-train-block-detail'){ renderTrainingBlockDetail(); }
   else if(id==='screen-train-chat'){ loadCoachChat(); }
-  else if(id!=='screen-consent' && id!=='screen-auth' && id!=='screen-password-recovery'){ refreshCoachChatUnreadBadge(); }
+  else if(id!=='screen-home' && id!=='screen-consent' && id!=='screen-auth' && id!=='screen-password-recovery'){ refreshCoachChatUnreadBadge(); }
   if(id==='screen-train-picker'){ renderTrainPicker(); }
   if(id==='screen-train-session'){ renderTrainSessionBuilder(); if(anyTrainIntervalProtocolActive()) requestTrainWakeLock(); }
   if(id==='screen-profile-notifications'){ paintPushNotificationUI(); }
@@ -10713,26 +10731,44 @@ function coachChatThreadParams(coachId, athleteId){
     '&athlete_id=eq.' + athleteId + '&order=created_at.asc';
 }
 
-async function refreshCoachChatUnreadBadge(){
+var _coachBadgeInflight = null;
+var _coachBadgeLastAt = 0;
+function resetCoachBadgeRefresh(){
+  _coachBadgeInflight = null;
+  _coachBadgeLastAt = 0;
+}
+async function refreshCoachChatUnreadBadge(force){
   if(!window._authUser){
     setTrainChatUnreadBadge(false);
     return;
   }
-  var selfId = window._authUser.id;
-  var links = await sbS(
-    'coach_athlete_links',
-    'select=coach_id&athlete_id=eq.' + selfId + '&status=eq.active&limit=1'
-  );
-  if(!Array.isArray(links) || !links.length || !links[0].coach_id){
-    setTrainChatUnreadBadge(false);
+  if(_coachBadgeInflight) return _coachBadgeInflight;
+  if(!force && _coachBadgeLastAt && (Date.now() - _coachBadgeLastAt) < 30000){
     return;
   }
-  var unread = await sbS(
-    'coach_messages',
-    'select=id,edited_at&coach_id=eq.' + links[0].coach_id + '&athlete_id=eq.' + selfId +
-      '&sender_id=neq.' + selfId + '&read_at=is.null&limit=1'
-  );
-  setTrainChatUnreadBadge(Array.isArray(unread) && unread.length > 0);
+  _coachBadgeInflight = (async function(){
+    try{
+      var selfId = window._authUser.id;
+      var links = await sbS(
+        'coach_athlete_links',
+        'select=coach_id&athlete_id=eq.' + selfId + '&status=eq.active&limit=1'
+      );
+      if(!Array.isArray(links) || !links.length || !links[0].coach_id){
+        setTrainChatUnreadBadge(false);
+        return;
+      }
+      var unread = await sbS(
+        'coach_messages',
+        'select=id,edited_at&coach_id=eq.' + links[0].coach_id + '&athlete_id=eq.' + selfId +
+          '&sender_id=neq.' + selfId + '&read_at=is.null&limit=1'
+      );
+      setTrainChatUnreadBadge(Array.isArray(unread) && unread.length > 0);
+    } finally {
+      _coachBadgeLastAt = Date.now();
+      _coachBadgeInflight = null;
+    }
+  })();
+  return _coachBadgeInflight;
 }
 
 async function markCoachChatReadIfViewing(){
@@ -10910,6 +10946,7 @@ async function loadCoachChat(){
     hideCoachChatSection();
     return;
   }
+  refreshCoachChatUnreadBadge(true);
   var links = await sbS(
     'coach_athlete_links',
     'select=coach_id&athlete_id=eq.' + window._authUser.id + '&status=eq.active&limit=1'
@@ -10972,6 +11009,7 @@ async function sendCoachChatMessage(){
   _coachChatMessages = Array.isArray(rows) ? rows : _coachChatMessages.concat([saved]);
   renderCoachChatMessages();
   await markCoachChatReadIfViewing();
+  await refreshCoachChatUnreadBadge(true);
 }
 
 // Sanitizes user-generated Markdown before it's ever used as innerHTML (build
@@ -13127,12 +13165,41 @@ function toLocalInputValue(d){
   return dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate())+'T'+pad(dt.getHours())+':'+pad(dt.getMinutes());
 }
 
+var _coachFlagsCacheUserId = null;
+var _coachFlagsCacheRows = null;
+var _coachFlagsCacheInflight = null;
+function clearCoachFlagsCache(){
+  _coachFlagsCacheUserId = null;
+  _coachFlagsCacheRows = null;
+  _coachFlagsCacheInflight = null;
+}
+async function fetchCoachFlags(userId){
+  if(!userId) return [];
+  if(_coachFlagsCacheUserId && _coachFlagsCacheUserId !== userId) clearCoachFlagsCache();
+  if(_coachFlagsCacheUserId === userId && _coachFlagsCacheRows !== null) return _coachFlagsCacheRows;
+  if(_coachFlagsCacheUserId === userId && _coachFlagsCacheInflight) return _coachFlagsCacheInflight;
+  _coachFlagsCacheUserId = userId;
+  _coachFlagsCacheInflight = sbS(
+    'coach_flags',
+    'select=is_coach&user_id=eq.' + userId + '&limit=1'
+  ).then(function(rows){
+    _coachFlagsCacheRows = Array.isArray(rows) ? rows : [];
+    _coachFlagsCacheInflight = null;
+    return _coachFlagsCacheRows;
+  }, function(){
+    _coachFlagsCacheInflight = null;
+    return [];
+  });
+  return _coachFlagsCacheInflight;
+}
+
 async function refreshCoachDashToggle(){
   // (a) Visibility: fail closed unless coach_flags.is_coach === true for THIS user.
   // Root-cause note: gate query itself was already correct after build 199; residual
   // risk was CSS-only hide (class + inline display) without the HTML hidden
   // attribute, while the control always lives in footer-nav for every account.
   // Coach guide tile on Profile uses this same gate — one query, fail-closed.
+  // coach_flags is cached per signed-in user via fetchCoachFlags.
   var btn = document.getElementById('coach-dash-toggle');
   var guide = document.getElementById('profile-beta-coach-row');
   if(!btn && !guide) return;
@@ -13170,10 +13237,7 @@ async function refreshCoachDashToggle(){
     hideToggle();
     return;
   }
-  var rows = await sbS(
-    'coach_flags',
-    'select=is_coach&user_id=eq.' + window._authUser.id + '&limit=1'
-  );
+  var rows = await fetchCoachFlags(window._authUser.id);
   if(Array.isArray(rows) && rows.length > 0 && rows[0].is_coach === true){
     showToggle();
   } else {
@@ -25810,7 +25874,7 @@ async function runSEETests(){
     var src = String(refreshCoachDashToggle);
     var sameGate = /profile-beta-coach-row/.test(src)
       && /coach_flags/.test(src)
-      && (src.match(/sbS\(/g) || []).length === 1
+      && /fetchCoachFlags/.test(src)
       && /hideToggle/.test(src) && /showToggle/.test(src)
       && /_isCoachUser/.test(src);
     var prevAuth = window._authUser;
@@ -25824,6 +25888,7 @@ async function runSEETests(){
       return origSbS.apply(this, arguments);
     };
     window._authUser = { id: 'see-test-coach' };
+    if(typeof clearCoachFlagsCache === 'function') clearCoachFlagsCache();
     await refreshCoachDashToggle();
     var shownForCoach = coachTile.hidden === false && !coachTile.hasAttribute('hidden')
       && getComputedStyle(coachTile).display !== 'none' && window._isCoachUser === true;
@@ -25831,6 +25896,7 @@ async function runSEETests(){
       if(table === 'coach_flags') return [{ is_coach: false }];
       return origSbS.apply(this, arguments);
     };
+    if(typeof clearCoachFlagsCache === 'function') clearCoachFlagsCache();
     await refreshCoachDashToggle();
     var hiddenForAthlete = coachTile.hidden === true && coachTile.hasAttribute('hidden')
       && (coachTile.style.display === 'none' || getComputedStyle(coachTile).display === 'none')
@@ -26281,6 +26347,8 @@ function authContinueAnonymous(){
 }
 
 async function authSignOut(){
+  clearCoachFlagsCache();
+  resetCoachBadgeRefresh();
   if(!supabaseClient){ showScreen('screen-auth'); return; }
   await supabaseClient.auth.signOut();
   window._authUser = null;
@@ -27155,6 +27223,10 @@ function registerSEEServiceWorker(){
       var data = event.data || {};
       if(data.type === 'open-screen' && data.screen){
         showScreen(data.screen);
+        return;
+      }
+      if(data.type === 'coach-message-received'){
+        if(typeof refreshCoachChatUnreadBadge === 'function') refreshCoachChatUnreadBadge(true);
         return;
       }
       if(data.type === 'pushsubscriptionchange'){
