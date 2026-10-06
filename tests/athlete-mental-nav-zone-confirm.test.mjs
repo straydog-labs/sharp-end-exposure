@@ -11,8 +11,8 @@ const sql = readFileSync(join(__dirname, '../sql/sessions-zone-confirmed-by-athl
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index282'/.test(index));
-assert.ok(/APP_VERSION = 'index282'/.test(sw));
+assert.ok(/var app_version = 'index283'/.test(index));
+assert.ok(/APP_VERSION = 'index283'/.test(sw));
 
 assert.ok(/id="fnav-mental"/.test(index));
 assert.ok(/showScreen\('screen-drill'\)/.test(index.match(/id="fnav-mental"[\s\S]{0,400}/)[0]));
@@ -21,7 +21,8 @@ assert.ok(/<\/svg>\s*Climb\s*</.test(index.match(/id="fnav-sessions"[\s\S]{0,400
 assert.ok(!/<\/svg>\s*Climb Log\s*</.test(index.match(/id="fnav-sessions"[\s\S]{0,400}/)[0]));
 assert.ok(!/id="fnav-drill"/.test(index));
 assert.ok(!/id="home-card-drill"/.test(index));
-assert.ok(/font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px;">Psyche</.test(index));
+assert.ok(/class="screen-title">Psyche</.test(index));
+assert.ok(/'screen-psyche-recent':'fnav-mental'/.test(index));
 assert.ok(/← Psyche/.test(index));
 assert.ok(!/← Mental/.test(index));
 assert.ok(/Psyche has three practices you can run any time: a quick check-in, a full pre-climb sequence, or a guided Exposure Drill\./.test(index));

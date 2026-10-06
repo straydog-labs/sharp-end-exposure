@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging);
-assert.ok(/var app_version = 'index282'/.test(index));
-assert.ok(/APP_VERSION = 'index282'/.test(sw));
+assert.ok(/var app_version = 'index283'/.test(index));
+assert.ok(/APP_VERSION = 'index283'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -64,7 +64,8 @@ const fewStats = ctx.computeClimbLandingStats(few, now);
 assert.strictEqual(fewStats.week, '—');
 assert.strictEqual(fewStats.zoneMix, '—');
 assert.strictEqual(fewStats.sendRate, '—');
-assert.strictEqual(fewStats.hardest, '—');
+assert.ok(/V3/.test(fewStats.hardest), 'Hardest send needs >= 1 qualifying send');
+assert.ok(!/%/.test(fewStats.hardest));
 
 const many = [];
 for(var i = 0; i < 6; i++){
