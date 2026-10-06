@@ -12,8 +12,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index285'/.test(index));
-assert.ok(/APP_VERSION = 'index285'/.test(sw));
+assert.ok(/var app_version = 'index286'/.test(index));
+assert.ok(/APP_VERSION = 'index286'/.test(sw));
 assert.ok(!/_sbSInflight/.test(dash), 'coach-dashboard untouched');
 
 function extractFn(src, name){
@@ -39,7 +39,7 @@ assert.ok(/clearCoachFlagsCache/.test(extractFn(index, 'authSignOut')));
 assert.ok(/resetCoachBadgeRefresh/.test(extractFn(index, 'authSignOut')));
 assert.ok(/refreshCoachChatUnreadBadge\(true\)/.test(extractFn(index, 'loadCoachChat')));
 assert.ok(/refreshCoachChatUnreadBadge\(true\)/.test(extractFn(index, 'sendCoachChatMessage')));
-assert.ok(/refreshCoachChatUnreadBadge\(true\)/.test(extractFn(index, 'initAuth')));
+assert.ok(/refreshCoachBadgeOnAuthEvent/.test(extractFn(index, 'initAuth')));
 assert.ok(/30000/.test(extractFn(index, 'refreshCoachChatUnreadBadge')));
 assert.ok(/coach-message-received/.test(index));
 assert.ok(/coach-message-received/.test(sw));
