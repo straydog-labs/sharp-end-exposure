@@ -5761,7 +5761,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index285'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index286'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -5851,7 +5851,7 @@ function initAuth(){
     window._authToken = session ? session.access_token : null;
     try{ refreshCoachDashToggle(); }catch(e){}
     if(event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)){
-      try{ refreshCoachChatUnreadBadge(true); }catch(e){}
+      try{ refreshCoachBadgeOnAuthEvent(event, session); }catch(e){}
     }
     if(event === 'SIGNED_OUT'){
       clearCoachFlagsCache();
@@ -6564,7 +6564,7 @@ function showScreen(id){
   }
   // Load screen data
   if(id==='screen-home'){ loadHomeScreen(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
-  if(id==='screen-sessions')loadClimbLog();
+  if(id==='screen-sessions') loadClimbLog();
   if(id==='screen-train'){ loadTrainAssignments(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); loadTrainHub(); }
   else if(id==='screen-train-start'){ loadTrainHub(); loadTrainStartScreen(); }
   else if(id==='screen-train-recent'){ loadTrainHub(); }
@@ -6591,7 +6591,6 @@ function showScreen(id){
     stopPsycheTimers();
   }
   if(id==='screen-log'){startLogFlow();}
-  if(id==='screen-sessions'){loadClimbLog();}
   // Nav voice FAB — hide on sessions (+ FAB is there), show elsewhere
   // First-run helper tips (build 195)
   mountTipForScreen(id);
@@ -9185,25 +9184,34 @@ function dismissGradeNudge(){
 // CLIMB AUTOCOMPLETE
 // ═══════════════════════════════════════════════════════
 var _climbCache=null;
+var _climbCacheInflight=null;
 var _selectedClimbId=null;
 var _betaNoteCounts={};
 var _editingBetaNoteId=null;
 var _addingBetaNote=false;
 var _rhBetaNotes=[];
 
-async function loadClimbCache(){
-  if(_climbCache)return _climbCache;
-  var owner=(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId());
-  var extra='&deleted_at=is.null&order=created_at.desc&limit=200';
-  var climbs=await fetchOwnedClimbsSelect('id,name,grade_value,climbing_type,is_project,beta_notes', owner, extra);
-  if(!Array.isArray(climbs)){
-    climbs=await fetchOwnedClimbsSelect('id,name,grade_value,climbing_type,beta_notes', owner, extra);
-  }
-  if(!Array.isArray(climbs)){
-    climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&'+owner+extra);
-  }
-  _climbCache=Array.isArray(climbs)?climbs:[];
-  return _climbCache;
+function loadClimbCache(){
+  if(_climbCache) return Promise.resolve(_climbCache);
+  if(_climbCacheInflight) return _climbCacheInflight;
+  _climbCacheInflight = (async function(){
+    try{
+      var owner=(window._authUser&&window._authUser.id?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId());
+      var extra='&deleted_at=is.null&order=created_at.desc&limit=200';
+      var climbs=await fetchOwnedClimbsSelect('id,name,grade_value,climbing_type,is_project,beta_notes', owner, extra);
+      if(!Array.isArray(climbs)){
+        climbs=await fetchOwnedClimbsSelect('id,name,grade_value,climbing_type,beta_notes', owner, extra);
+      }
+      if(!Array.isArray(climbs)){
+        climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&'+owner+extra);
+      }
+      _climbCache=Array.isArray(climbs)?climbs:[];
+      return _climbCache;
+    }finally{
+      _climbCacheInflight=null;
+    }
+  })();
+  return _climbCacheInflight;
 }
 
 async function fetchOwnedClimbsSelect(cols, owner, extra){
@@ -10733,9 +10741,21 @@ function coachChatThreadParams(coachId, athleteId){
 
 var _coachBadgeInflight = null;
 var _coachBadgeLastAt = 0;
+var _coachBadgeForcedAuthUserId = null;
 function resetCoachBadgeRefresh(){
   _coachBadgeInflight = null;
   _coachBadgeLastAt = 0;
+  _coachBadgeForcedAuthUserId = null;
+}
+function refreshCoachBadgeOnAuthEvent(event, session){
+  if(!(event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session))) return;
+  var uid = session && session.user && session.user.id;
+  if(uid && _coachBadgeForcedAuthUserId === uid){
+    refreshCoachChatUnreadBadge();
+    return;
+  }
+  if(uid) _coachBadgeForcedAuthUserId = uid;
+  refreshCoachChatUnreadBadge(true);
 }
 async function refreshCoachChatUnreadBadge(force){
   if(!window._authUser){
