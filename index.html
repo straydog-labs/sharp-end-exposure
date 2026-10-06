@@ -4674,6 +4674,13 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
       </div>
     </div>
 
+    <div id="train-done-assign-prompt" hidden class="insight-card" style="padding:14px 16px;margin:12px 0;">
+      <div id="train-done-assign-prompt-text" style="font-size:14px;font-weight:700;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="train-hub-duplicate-btn" onclick="confirmTrainDoneAssignComplete()">Mark complete</button>
+        <button type="button" class="log-flow-skip-link" onclick="dismissTrainDoneAssignPrompt()">Not yet</button>
+      </div>
+    </div>
     <div class="log-flow-done-actions">
       <button class="log-btn log-flow-cta ready" onclick="trainDoneAnother()">Log another session</button>
       <button class="log-flow-skip-link" onclick="trainDoneHome()">Train</button>
@@ -5754,7 +5761,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index283'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index284'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -12995,11 +13002,82 @@ async function deleteCurrentTrainingBlock(){
 // Deliberately sends only completed_at — same reasoning coach-dashboard.html
 // notes: assignments' athlete-side RLS allows updating any column, not just
 // this one, so the app itself is what limits this action to completed_at.
+var _pendingAssignCompleteId = null;
+
+function trainBlockIsComplete(b){
+  if(!b) return false;
+  if(b.complete) return true;
+  if(b.shape === 'emom' && Array.isArray(b.rounds) && b.rounds.length){
+    return b.rounds.every(function(r){ return !!(r && r.complete); });
+  }
+  return false;
+}
+function trainSessionBlocksAllComplete(state){
+  var blocks = (state && state.blocks) || [];
+  if(!blocks.length) return false;
+  return blocks.every(trainBlockIsComplete);
+}
+function hideTrainDoneAssignPrompt(){
+  _pendingAssignCompleteId = null;
+  var el = document.getElementById('train-done-assign-prompt');
+  if(el) el.hidden = true;
+}
+function showTrainDoneAssignPrompt(assignmentId, title){
+  _pendingAssignCompleteId = assignmentId;
+  var el = document.getElementById('train-done-assign-prompt');
+  var text = document.getElementById('train-done-assign-prompt-text');
+  if(text) text.textContent = 'Mark ' + String(title || 'assignment') + ' complete?';
+  if(el) el.hidden = false;
+}
+function dismissTrainDoneAssignPrompt(){
+  hideTrainDoneAssignPrompt();
+}
+async function confirmTrainDoneAssignComplete(){
+  var id = _pendingAssignCompleteId;
+  if(!id) return;
+  var result = await trainMarkComplete(id);
+  if(result && result.ok){
+    hideTrainDoneAssignPrompt();
+    if(!result.skipped) showToast('Assignment marked complete');
+    return;
+  }
+  showToast('Could not mark assignment complete - try again', true);
+}
+async function maybeCompleteLinkedAssignment(assignmentId, title, allBlocksComplete){
+  if(!assignmentId) return;
+  var cached = (_trainAssignmentsCache || []).find(function(x){ return String(x.id) === String(assignmentId); });
+  if(cached && cached.completed_at) return;
+  if(allBlocksComplete){
+    var result = await trainMarkComplete(assignmentId);
+    if(result && result.ok){
+      if(!result.skipped) showToast('Assignment marked complete');
+      hideTrainDoneAssignPrompt();
+      return;
+    }
+    showToast('Could not mark assignment complete - try again', true);
+    showTrainDoneAssignPrompt(assignmentId, title);
+    return;
+  }
+  showTrainDoneAssignPrompt(assignmentId, title);
+}
+
 async function trainMarkComplete(id){
-  if(!window._authUser) return;
-  await sbU('assignments', 'id=eq.'+id+'&athlete_id=eq.'+window._authUser.id, {completed_at: new Date().toISOString()});
-  loadTrainAssignments();
-  if((document.querySelector('.screen.active')||{}).id === 'screen-home') loadHomeScreen();
+  if(!window._authUser || !id) return { ok: false };
+  var cached = (_trainAssignmentsCache || []).find(function(x){ return String(x.id) === String(id); });
+  if(cached && cached.completed_at) return { ok: true, skipped: true };
+  var res = await sbU(
+    'assignments',
+    'id=eq.'+id+'&athlete_id=eq.'+window._authUser.id+'&completed_at=is.null',
+    {completed_at: new Date().toISOString()}
+  );
+  if(sbFailed(res)) return { ok: false };
+  if(cached) cached.completed_at = new Date().toISOString();
+  await loadTrainAssignments();
+  if(typeof renderTrainHubDue === 'function') renderTrainHubDue();
+  if(typeof renderTrainHubLandingStats === 'function') renderTrainHubLandingStats();
+  if(typeof loadHomeDueList === 'function') await loadHomeDueList();
+  else if((document.querySelector('.screen.active')||{}).id === 'screen-home') loadHomeScreen();
+  return { ok: true };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -14177,8 +14255,8 @@ function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
     library_item_id: sourceMeta.library_item_id || null,
     custom_workout_item_id: sourceMeta.custom_workout_item_id || null,
     // Set when launching from an existing assignment card so save does not
-    // insert a duplicate assignments row. Completing the assignment stays
-    // a separate Mark complete tap.
+    // insert a duplicate assignments row. After a successful save the app
+    // may mark that assignment complete, or prompt if any block is still open.
     source_assignment_id: sourceMeta.source_assignment_id || null
   };
 }
@@ -15661,8 +15739,15 @@ async function saveTrainSession(){
   // When the session came from the Train picker, also write an assignments
   // row with XOR library_item_id / custom_workout_item_id (never both).
   // Sessions launched from an existing assignment already have that row —
-  // do not insert a duplicate. Finishing the session does not auto-mark
-  // the assignment complete: logging reps is not the same signal as "done".
+  // do not insert a duplicate. Linked sessions may mark the assignment
+  // complete after save (all blocks done, or a prompt if any are open).
+  var linkedAssignmentId = trainSessionState.source_assignment_id || null;
+  var linkedAssignmentTitle = '';
+  if(linkedAssignmentId){
+    var linkedA = (_trainAssignmentsCache || []).find(function(x){ return String(x.id) === String(linkedAssignmentId); });
+    linkedAssignmentTitle = (linkedA && linkedA.title) || trainSessionState.title || 'assignment';
+  }
+  var linkedBlocksComplete = trainSessionBlocksAllComplete(trainSessionState);
   var libId = trainSessionState.library_item_id || null;
   var customId = trainSessionState.custom_workout_item_id || null;
   if(libId && customId){
@@ -15703,6 +15788,9 @@ async function saveTrainSession(){
   clearTrainSessionDraft();
   populateTrainDoneScreen(_trainDoneSnapshot, true);
   showScreen('screen-train-done');
+  if(!queuedOffline && linkedAssignmentId){
+    await maybeCompleteLinkedAssignment(linkedAssignmentId, linkedAssignmentTitle, linkedBlocksComplete);
+  }
 }
 
 async function saveTrainSessionAsWorkout(){
@@ -15751,6 +15839,7 @@ function formatTrainDuration(start, end){
 
 function populateTrainDoneScreen(snap, resetReflection){
   snap = snap || _trainDoneSnapshot || {};
+  hideTrainDoneAssignPrompt();
   var titleEl = document.getElementById('train-done-title');
   var metaEl = document.getElementById('train-done-meta');
   var noteBtn = document.getElementById('train-done-add-note');
