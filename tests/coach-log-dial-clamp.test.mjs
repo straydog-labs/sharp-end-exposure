@@ -11,8 +11,8 @@ const staging = readFileSync(join(__dirname, '../index-staging.html'), 'utf8');
 const sw = readFileSync(join(__dirname, '../sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index281'/.test(index));
-assert.ok(/APP_VERSION = 'index281'/.test(sw));
+assert.ok(/var app_version = 'index282'/.test(index));
+assert.ok(/APP_VERSION = 'index282'/.test(sw));
 
 const ptr = logJs.match(/function scoreFromPointer\(clientX, clientY\) \{[\s\S]*?\n    \}/);
 assert.ok(ptr, 'scoreFromPointer present in js/coach-log-session.js');

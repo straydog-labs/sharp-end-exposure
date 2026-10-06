@@ -11,8 +11,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index281'/.test(index));
-assert.ok(/APP_VERSION = 'index281'/.test(sw));
+assert.ok(/var app_version = 'index282'/.test(index));
+assert.ok(/APP_VERSION = 'index282'/.test(sw));
 assert.ok(!/hub-primary-card/.test(dash), 'coach-dashboard untouched');
 
 assert.ok(/\.hub-primary-card/.test(index));
@@ -31,7 +31,8 @@ assert.ok(/trainDuplicateSession\(rows\[0\]\.id\)/.test(index));
 assert.ok(!/CREATE TABLE/i.test(index.match(/function trainRepeatLastSession[\s\S]+?function trainDuplicateSession/)[0]));
 
 const train = index.slice(index.indexOf('id="screen-train"'), index.indexOf('id="screen-train-start"'));
-assert.ok(/id="train-hub-card-repeat"/.test(train));
+assert.ok(!/id="train-hub-card-repeat"/.test(train));
+assert.ok(/id="train-landing-col"/.test(train));
 assert.ok(/id="train-hub-card-start"/.test(train));
 assert.ok(/Start training/.test(train));
 assert.ok(/id="train-hub-card-build"/.test(train));
@@ -45,7 +46,7 @@ assert.ok(/id="train-pinned-strip"/.test(train));
 assert.ok(/>More</.test(train));
 assert.ok(train.indexOf('id="train-hub-card-start"') < train.indexOf('hub-more-label'));
 assert.ok(train.indexOf('hub-more-label') < train.indexOf('id="train-hub-card-recent"'));
-assert.ok(!/te-sub/.test(train.slice(train.indexOf('id="train-hub-cards"'), train.indexOf('id="train-hub-card-repeat"'))));
+assert.ok(!/te-sub/.test(train.slice(train.indexOf('id="train-hub-cards"'))));
 
 const drill = index.slice(index.indexOf('id="screen-drill"'), index.indexOf('id="screen-psyche-bee"'));
 assert.ok(/id="psyche-card-checkin"/.test(drill));

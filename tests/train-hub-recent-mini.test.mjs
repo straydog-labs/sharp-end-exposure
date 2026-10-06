@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index281'/.test(index));
-assert.ok(/APP_VERSION = 'index281'/.test(sw));
+assert.ok(/var app_version = 'index282'/.test(index));
+assert.ok(/APP_VERSION = 'index282'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -39,8 +39,8 @@ assert.ok(/View all/.test(landing) || /See all/.test(landing));
 assert.ok(!/id="train-energy-grid"/.test(landing), 'landingLean: no #train-energy-grid on screen-train');
 assert.ok(!/id="train-goals-section"/.test(landing));
 assert.ok(!/id="coach-chat-section"/.test(landing));
-assert.ok(/id="train-hub-card-repeat"/.test(landing));
-assert.ok(/trainRepeatLastSession/.test(landing));
+assert.ok(!/id="train-hub-card-repeat"/.test(landing));
+assert.ok(!/trainRepeatLastSession\(/.test(landing));
 assert.ok(/id="train-hub-primary"/.test(landing));
 assert.ok(/id="train-hub-card-chat"/.test(landing), 'hub cards stay in place');
 
@@ -57,7 +57,9 @@ assert.ok(/function trainDuplicateSession/.test(index));
 assert.ok(/\.train-hub-duplicate-btn\{/.test(index));
 
 const recentList = extractFn(index, 'renderTrainSessionList');
-assert.ok(/trainDuplicateSession/.test(recentList), 'full recent list has Duplicate');
+assert.ok(/trainDuplicateSession/.test(recentList), 'full recent list has Repeat');
+assert.ok(/>Repeat</.test(recentList));
+assert.ok(!/>Duplicate</.test(recentList));
 assert.ok(/train-hub-duplicate-btn/.test(recentList));
 
 let uidN = 0;
@@ -110,6 +112,8 @@ assert.strictEqual((ctx.lastHtml.match(/train-hub-duplicate-btn/g) || []).length
 assert.ok(/Repeaters 1/.test(ctx.lastHtml) && /Repeaters 3/.test(ctx.lastHtml) && /Repeaters 5/.test(ctx.lastHtml));
 assert.ok(!/Repeaters 6/.test(ctx.lastHtml), 'mini list caps at 5');
 assert.ok(/trainDuplicateSession\('sess-1'\)/.test(ctx.lastHtml));
+assert.ok(/>Repeat</.test(ctx.lastHtml));
+assert.ok(!/>Duplicate</.test(ctx.lastHtml));
 assert.ok(/openTrainSessionDetail\('sess-1'\)/.test(ctx.lastHtml));
 assert.ok(/1 block/.test(ctx.lastHtml));
 
@@ -172,7 +176,7 @@ assert.ok(ctx.trainSessionState.id !== 'old-in-progress');
 assert.strictEqual(ctx.trainSessionState.blocks.length, 1);
 assert.strictEqual(ctx.trainSessionState.blocks[0].complete, false);
 assert.strictEqual(ctx.trainSessionState.blocks[0].attempts.length, 0);
-assert.strictEqual(ctx.toast, 'Duplicated — ready to log');
+assert.strictEqual(ctx.toast, 'Repeat — ready to log');
 assert.strictEqual(ctx.shown, 'screen-train-session');
 assert.ok(/Repeaters 1/.test(ctx.trainSessionState.title));
 

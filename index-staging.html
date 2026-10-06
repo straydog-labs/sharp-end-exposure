@@ -80,6 +80,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .page-header{padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;}
 .climb-page-col{max-width:480px;margin-left:auto;margin-right:auto;width:100%;box-sizing:border-box;}
 .climb-page-col > .content{max-width:none;padding-left:16px;padding-right:16px;}
+#train-landing-col .content{max-width:none;padding-left:16px;padding-right:16px;}
 .wordmark{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
 .wordmark span{color:var(--accent);}
 .back-btn{background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;-webkit-tap-highlight-color:transparent;}
@@ -244,8 +245,13 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .train-hub-primary .train-energy-card{min-height:120px;padding:16px 12px;}
 .train-landing-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
 .train-pinned-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 16px;margin-bottom:8px;}
-#train-pinned-strip{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+#train-pinned-strip,#train-start-pinned-strip{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+#train-start-pinned-wrap[hidden]{display:none;}
 .train-hub-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 16px;}
+.train-week-bars{display:flex;align-items:flex-end;gap:6px;height:32px;margin-top:8px;}
+.train-week-bar{flex:1;min-width:0;background:var(--accent);border-radius:3px 3px 0 0;opacity:.85;}
+.train-stat-least{width:100%;background:none;border:none;padding:0;text-align:left;color:var(--accent);font-family:'Space Mono',monospace;font-size:16px;font-weight:700;line-height:1.25;cursor:pointer;}
+.train-stat-least[disabled]{color:var(--muted);cursor:default;}
 .train-hub-empty-cta{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px;}
 .train-start-search{
   width:100%;
@@ -4245,6 +4251,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
+  <div class="climb-page-col" id="train-landing-col">
   <div id="train-log-train-hint" hidden>Train is a workout. To log a send or attempt, use Log a climb.</div>
   <div id="train-anon-prompt" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px 18px;margin:12px 16px 0;">
     <div style="font-size:14px;color:var(--muted);line-height:1.6;">Sign in to track your training.</div>
@@ -4285,13 +4292,12 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
           <div id="train-stat-week-plan" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">—</div>
         </div>
         <div class="insight-card" style="padding:16px;">
-          <div class="insight-label" style="margin-bottom:6px;">Streak</div>
-          <div id="train-stat-streak" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">—</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px;">days</div>
+          <div class="insight-label" style="margin-bottom:6px;">Least trained</div>
+          <button type="button" class="train-stat-least" id="train-stat-least" onclick="openLeastTrainedFocus()" disabled>—</button>
         </div>
         <div class="insight-card" style="padding:16px;">
-          <div class="insight-label" style="margin-bottom:6px;">Days since last</div>
-          <div id="train-stat-since" style="font-size:28px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;">—</div>
+          <div class="insight-label" style="margin-bottom:6px;">Last 4 weeks</div>
+          <div id="train-stat-weeks4">—</div>
         </div>
         <div class="insight-card" style="padding:16px;">
           <div class="insight-label" style="margin-bottom:6px;">4-week adherence</div>
@@ -4327,11 +4333,8 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
       </div>
     </div>
   </div>
-  <button type="button" class="train-energy-card hub-primary-card" id="train-hub-card-repeat" onclick="trainRepeatLastSession()" hidden>
-    <div class="te-title">Repeat</div>
-    <div class="te-sub" id="train-hub-repeat-sub">Last session</div>
-  </button>
   <div id="train-hub-primary" hidden></div>
+  </div>
 </div>
 
 <div class="screen" id="screen-train-start">
@@ -4340,19 +4343,11 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
     <button type="button" class="back-btn" onclick="showScreen('screen-train')">← Train</button>
   </div>
   <div class="content">
-    <div class="screen-title">Start a session<span class="sub">Pick a focus, then a workout.</span></div>
+    <div class="screen-title">Start a session</div>
     <input type="search" id="train-start-search" class="train-start-search" placeholder="Search workouts" autocomplete="off" oninput="onTrainStartSearchInput(this.value)">
-    <div class="insight-card" style="margin-top:8px;">
-      <div class="insight-label" style="margin-bottom:6px;">Energy mix</div>
-      <svg id="train-arc-svg" width="100%" viewBox="0 0 320 72" style="display:block;overflow:visible;">
-        <rect x="0" y="0" width="320" height="24" fill="rgba(232,118,58,.06)"/>
-        <rect x="0" y="24" width="320" height="24" fill="rgba(61,184,201,.05)"/>
-        <rect x="0" y="48" width="320" height="24" fill="rgba(126,200,122,.05)"/>
-        <text x="6" y="14" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(232,118,58,.45)" letter-spacing=".06em">STR/PWR</text>
-        <text x="6" y="38" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(61,184,201,.5)" letter-spacing=".06em">END/CAP</text>
-        <text x="6" y="62" font-family="Space Grotesk,sans-serif" font-size="7" fill="rgba(126,200,122,.5)" letter-spacing=".06em">SKL/MOB</text>
-        <g id="train-arc-dots"></g>
-      </svg>
+    <div id="train-start-pinned-wrap" hidden>
+      <div class="train-pinned-label">Pinned</div>
+      <div id="train-start-pinned-strip"></div>
     </div>
     <div class="train-energy-grid" id="train-energy-grid"></div>
     <div id="train-start-search-results" style="display:none;"></div>
@@ -5747,7 +5742,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index281'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index282'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -9267,6 +9262,7 @@ async function toggleCustomWorkoutStar(id){
     }
     if(item) item.is_starred = next;
     renderTrainPinnedStrip();
+    renderTrainStartPinnedStrip();
   } finally {
     delete _workoutStarBusy[id];
   }
@@ -9291,6 +9287,51 @@ function pickTrainPinnedWorkouts(rows){
   var starred = rows.filter(isCustomWorkoutStarred);
   if(starred.length) return starred.slice(0, 6);
   return rows.slice(0, 3);
+}
+function pickTrainStartPinned(customs, lastSession){
+  var starred = (customs || []).filter(isCustomWorkoutStarred);
+  var out = [];
+  var i;
+  var room = lastSession ? 2 : 3;
+  for(i = 0; i < starred.length && out.length < room; i++){
+    out.push({ kind: 'workout', item: starred[i] });
+  }
+  if(lastSession) out.push({ kind: 'repeat', session: lastSession });
+  return out;
+}
+function renderTrainStartPinnedStrip(){
+  var wrap = document.getElementById('train-start-pinned-wrap');
+  var strip = document.getElementById('train-start-pinned-strip');
+  if(!wrap || !strip) return;
+  var customs = savedCustomWorkoutsFromCatalog();
+  var last = (_trainSessionsCache || [])[0] || null;
+  var pinned = pickTrainStartPinned(customs, last);
+  if(!pinned.length){
+    wrap.hidden = true;
+    strip.innerHTML = '';
+    return;
+  }
+  wrap.hidden = false;
+  strip.innerHTML = pinned.map(function(entry){
+    if(entry.kind === 'repeat'){
+      var sid = String((entry.session && entry.session.id) || '').replace(/'/g, '');
+      return pinnedStripCardHtml({
+        titleHtml: escTrainHtml(trainSessionWorkoutName(entry.session)),
+        metaHtml: 'Repeat',
+        ctaLabel: 'Repeat',
+        ctaOnclick: 'trainDuplicateSession(\''+sid+'\')'
+      });
+    }
+    var item = entry.item || {};
+    var id = String(item.id || '').replace(/'/g, '');
+    return pinnedStripCardHtml({
+      titleHtml: escTrainHtml(item.name || 'Workout'),
+      starHtml: customWorkoutStarButtonHtml(item),
+      metaHtml: escTrainHtml(item.training_focus || item._canonicalFocus || ''),
+      ctaLabel: 'Start',
+      ctaOnclick: 'startPinnedCustomWorkout(\''+id+'\')'
+    });
+  }).join('');
 }
 function renderTrainPinnedStrip(){
   var strip = document.getElementById('train-pinned-strip');
@@ -10060,8 +10101,7 @@ function homeAssignmentDueKind(a, now){
   if(!day) return 'week';
   if(day.getTime() < today.getTime()) return 'overdue';
   if(day.getTime() === today.getTime()) return 'today';
-  if(isHomeAssignmentDueSoon(a, now)) return 'week';
-  return '';
+  return 'week';
 }
 function homeAssignmentDueLabel(kind){
   if(kind === 'overdue') return 'Overdue';
@@ -10069,7 +10109,10 @@ function homeAssignmentDueLabel(kind){
   return 'This week';
 }
 function homeTodayKickerLabel(a, now){
-  return homeAssignmentDueKind(a, now) === 'today' ? 'TODAY' : 'UP NEXT';
+  var kind = homeAssignmentDueKind(a, now);
+  if(kind === 'today') return 'TODAY';
+  if(kind === 'overdue') return 'OVERDUE';
+  return 'UP NEXT';
 }
 function homeAssignmentTypeLabel(a){
   var type = String((a && (a.training_focus || a.category || a.energy_type)) || '').trim();
@@ -10078,7 +10121,7 @@ function homeAssignmentTypeLabel(a){
 function pickHomeTodayAssignment(rows, now){
   now = now || new Date();
   var rank = { overdue: 0, today: 1, week: 2 };
-  var due = (rows || []).filter(function(a){ return isHomeAssignmentDueSoon(a, now); });
+  var due = (rows || []).filter(function(a){ return a && !a.completed_at; });
   due.sort(function(a, b){
     var ka = rank[homeAssignmentDueKind(a, now)];
     var kb = rank[homeAssignmentDueKind(b, now)];
@@ -10089,6 +10132,10 @@ function pickHomeTodayAssignment(rows, now){
     var db = b && b.due_date ? String(b.due_date) : '9999-99-99';
     if(da < db) return -1;
     if(da > db) return 1;
+    var ca = a && a.created_at ? String(a.created_at) : '';
+    var cb = b && b.created_at ? String(b.created_at) : '';
+    if(ca < cb) return -1;
+    if(ca > cb) return 1;
     return 0;
   });
   return due[0] || null;
@@ -10429,7 +10476,7 @@ async function loadHomeDueList(){
   _trainAssignmentsCache = rows;
   var now = new Date();
   var due = _trainAssignmentsCache.filter(function(a){ return isHomeAssignmentDueSoon(a, now); });
-  var todayItem = pickHomeTodayAssignment(due, now);
+  var todayItem = pickHomeTodayAssignment(_trainAssignmentsCache, now);
   paintHomeTodayCard(todayItem, now);
   paintHomeWeekDots(now);
   var rest = due.filter(function(a){ return !todayItem || a.id !== todayItem.id; }).slice(0, 3);
@@ -13317,18 +13364,77 @@ function computeTrainLandingStats(sessions, assignments, fromDate){
     week: dash || (weekDone + ' / ' + weekDue),
     streak: (dayCount < 3) ? '—' : String(streak),
     since: dash || (since == null ? '—' : String(since)),
-    adhere: assigned4.length < 3 ? '—' : Math.round(done4 / assigned4.length * 100) + '%'
+    adhere: assigned4.length < 3 ? '—' : Math.round(done4 / assigned4.length * 100) + '%',
+    least: computeLeastTrainedFocus(sessions, fromDate),
+    weekBars: dash ? null : computeTrainWeeklyBars(sessions, fromDate)
   };
+}
+function trainSessionFocus(row){
+  return normalizeTrainingFocus(row && row.energy_type)
+    || legacyTrainingFocusFromCategory(row && row.energy_type)
+    || '';
+}
+function computeLeastTrainedFocus(sessions, fromDate){
+  fromDate = fromDate || new Date();
+  if(!sessions || sessions.length < 3) return { focus: '', days: null, label: '—' };
+  var last = {};
+  sessions.forEach(function(r){
+    var f = trainSessionFocus(r);
+    if(!f) return;
+    var t = new Date(r && (r.started_at || r.created_at));
+    if(isNaN(t.getTime())) return;
+    if(!last[f] || t > last[f]) last[f] = t;
+  });
+  var worst = '', worstDays = -1;
+  Object.keys(last).forEach(function(f){
+    var days = Math.max(0, Math.floor((fromDate.getTime() - last[f].getTime()) / 86400000));
+    if(days > worstDays){ worstDays = days; worst = f; }
+  });
+  if(!worst) return { focus: '', days: null, label: '—' };
+  return { focus: worst, days: worstDays, label: worst + ' · ' + worstDays + 'd' };
+}
+function computeTrainWeeklyBars(sessions, fromDate){
+  fromDate = fromDate || new Date();
+  var bars = [];
+  var i;
+  for(i = 3; i >= 0; i--){
+    var d = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() - (i * 7));
+    var b = athleteWeekBounds(d);
+    bars.push((sessions || []).filter(function(r){
+      var t = new Date(r && (r.started_at || r.created_at));
+      return !isNaN(t.getTime()) && t >= b.start && t < b.end;
+    }).length);
+  }
+  return bars;
+}
+function trainWeeklyBarsHtml(bars){
+  bars = bars || [];
+  if(bars.length !== 4) return '—';
+  var max = 1;
+  bars.forEach(function(n){ if(n > max) max = n; });
+  return '<div class="train-week-bars">' + bars.map(function(n){
+    var h = Math.max(2, Math.round(n / max * 28));
+    return '<span class="train-week-bar" style="height:' + h + 'px" title="' + n + '"></span>';
+  }).join('') + '</div>';
+}
+function openLeastTrainedFocus(){
+  var el = document.getElementById('train-stat-least');
+  var focus = el && el.dataset ? el.dataset.focus : '';
+  if(focus) openTrainFocus(focus);
 }
 function renderTrainHubLandingStats(){
   var stats = computeTrainLandingStats(_trainSessionsCache, _trainAssignmentsCache, new Date());
   var weekEl = document.getElementById('train-stat-week-plan');
-  var streakEl = document.getElementById('train-stat-streak');
-  var sinceEl = document.getElementById('train-stat-since');
+  var leastEl = document.getElementById('train-stat-least');
+  var weeksEl = document.getElementById('train-stat-weeks4');
   var adhereEl = document.getElementById('train-stat-adhere');
   if(weekEl) weekEl.textContent = stats.week;
-  if(streakEl) streakEl.textContent = stats.streak;
-  if(sinceEl) sinceEl.textContent = stats.since;
+  if(leastEl){
+    leastEl.textContent = (stats.least && stats.least.label) || '—';
+    leastEl.dataset.focus = (stats.least && stats.least.focus) || '';
+    leastEl.disabled = !leastEl.dataset.focus;
+  }
+  if(weeksEl) weeksEl.innerHTML = stats.weekBars ? trainWeeklyBarsHtml(stats.weekBars) : '—';
   if(adhereEl) adhereEl.textContent = stats.adhere;
 }
 function renderTrainHubDue(){
@@ -13441,7 +13547,7 @@ function renderTrainSessionList(){
       + '</div>'
       + '<span class="res-card-chevron" aria-hidden="true">›</span>'
       + '</button>'
-      + '<button type="button" class="train-hub-duplicate-btn" onclick="trainDuplicateSession(\''+safeSid+'\')">Duplicate</button>'
+      + '<button type="button" class="train-hub-duplicate-btn" onclick="trainDuplicateSession(\''+safeSid+'\')">Repeat</button>'
       + '</div>';
   }).join('');
   if(extra > 0){
@@ -13478,7 +13584,7 @@ function renderTrainHubRecentMini(){
       + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' + escTrainHtml(when) + ' · ' + n + ' block' + (n===1?'':'s') + '</div>'
       + '</div>'
       + '</button>'
-      + '<button type="button" class="train-hub-duplicate-btn" onclick="trainDuplicateSession(\''+safeSid+'\')">Duplicate</button>'
+      + '<button type="button" class="train-hub-duplicate-btn" onclick="trainDuplicateSession(\''+safeSid+'\')">Repeat</button>'
       + '</div>';
   }).join('');
 }
@@ -13595,7 +13701,7 @@ function trainStartDuplicatedSession(row){
   state.warm_up = row.warm_up || '';
   state.cool_down = row.cool_down || '';
   trainSessionState = state;
-  showToast('Duplicated — ready to log');
+  showToast('Repeat — ready to log');
   showScreen('screen-train-session');
 }
 
@@ -13901,6 +14007,7 @@ function onTrainStartSearchInput(value){
 
 async function loadTrainStartScreen(){
   await loadTrainWorkoutCatalog();
+  renderTrainStartPinnedStrip();
   var input = document.getElementById('train-start-search');
   paintTrainStartSearchResults(input ? input.value : '');
 }
@@ -13911,6 +14018,21 @@ function openTrainStartSearchItem(idx){
   openTrainCatalogItem(item, 'screen-train-start');
 }
 
+function trainFocusIconSvg(focus){
+  var inner = {
+    'Boulders': '<polyline points="3 20 9 10 13 15 17 9 21 20"/><line x1="3" y1="20" x2="21" y2="20"/>',
+    'Routes': '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>',
+    'Boards': '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/>',
+    'Hangboard': '<path d="M8 20V10M12 20V6M16 20V12"/>',
+    'Strength & Weights': '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+    'Mobility & Flexibility': '<path d="M4 14c2-6 4 6 6 0s4 6 6 0 4 6 6 0"/>',
+    'Technique & Footwork': '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+    'Cardio & Capacity': '<path d="M3 12 Q6 8 9 12 Q12 16 15 12 Q18 8 21 12"/>',
+    'Mental/Other': '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    'Warm-Ups': '<polygon points="6 4 20 12 6 20 6 4"/>'
+  }[focus] || '<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
+}
 function paintTrainStartFocusGrid(){
   var grid = document.getElementById('train-energy-grid');
   if(!grid) return;
@@ -13918,7 +14040,7 @@ function paintTrainStartFocusGrid(){
     var meta = TRAINING_FOCUS_META[focus] || { label: 'Focus', sub: '' };
     var mental = focus === 'Mental/Other' ? ' mental' : '';
     return '<button type="button" class="train-energy-card' + mental + '" data-focus="' + escTrainHtml(focus) + '">' +
-      '<div class="te-card-top"><div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></div></div>' +
+      '<div class="te-card-top"><div class="te-icon">' + trainFocusIconSvg(focus) + '</div></div>' +
       '<div class="te-label">' + escTrainHtml(meta.label) + '</div>' +
       '<div class="te-title">' + escTrainHtml(focus) + '</div>' +
       '<div class="te-sub">' + escTrainHtml(meta.sub) + '</div>' +
@@ -22032,11 +22154,23 @@ async function runSEETests(){
       { id: 'w', title: 'Week', due_date: '2026-08-20', training_focus: 'Boulders' },
       { id: 'o', title: 'Over', due_date: '2026-08-10', training_focus: 'Hangboard' }
     ], now);
+    var farPick = pickHomeTodayAssignment([
+      { id: 'f', title: 'Far EMOM', due_date: '2026-09-01', completed_at: null }
+    ], now);
+    var donePick = pickHomeTodayAssignment([
+      { id: 'd', title: 'Done', due_date: '2026-08-18', completed_at: '2026-08-18T00:00:00Z' }
+    ], now);
     var filterOk = dueSoon && overdue && !far && !done && noDate
       && homeAssignmentDueKind({ due_date: '2026-08-10' }, now) === 'overdue'
       && homeAssignmentDueKind({ due_date: '2026-08-18' }, now) === 'today'
       && homeAssignmentDueKind({ due_date: '2026-08-20' }, now) === 'week'
       && todayPick && todayPick.id === 'o'
+      && farPick && farPick.id === 'f'
+      && !donePick
+      && homeTodayKickerLabel({ due_date: '2026-08-10' }, now) === 'OVERDUE'
+      && homeTodayKickerLabel({ due_date: '2026-08-18' }, now) === 'TODAY'
+      && homeTodayKickerLabel({ due_date: '2026-08-20' }, now) === 'UP NEXT'
+      && homeTodayKickerLabel({ title: 'No date' }, now) === 'UP NEXT'
       && homeGreetingText('Alex') === 'Alex'
       && homeGreetingText('') === 'Home';
     var showSrc = String(showScreen);
@@ -24193,8 +24327,9 @@ async function runSEETests(){
     var landingLean = !document.querySelector('#screen-train #train-energy-grid')
       && !document.querySelector('#screen-train #train-goals-section')
       && !document.querySelector('#screen-train #coach-chat-section');
-    var startSub = ((document.querySelector('#screen-train-start .screen-title .sub') || {}).textContent || '').trim();
-    var startCopyOk = startSub === 'Pick a focus, then a workout.';
+    var startSubEl = document.querySelector('#screen-train-start .screen-title .sub');
+    var startCopyOk = !startSubEl
+      && !/Pick a focus, then a workout/.test((document.getElementById('screen-train-start') || {}).innerHTML || '');
     var startBtn = document.getElementById('train-hub-card-start');
     var buildBtn = document.getElementById('train-hub-card-build');
     var primaryOk = !!(startBtn && /Start training/.test(startBtn.textContent || '')
