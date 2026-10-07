@@ -3722,24 +3722,35 @@
 
     var zoneSvg = '';
     if(series.hasZoneTrend){
+      var zoneDefs = [
+        { key: 'comfort', color: '#7ec87a', label: 'Comfort' },
+        { key: 'learning', color: '#f5a623', label: 'Learning' },
+        { key: 'panic', color: '#e84444', label: 'Panic' }
+      ];
+      var zoneSeries = [];
+      var zoneLegend = zoneDefs.map(function(z){
+        var logged = series.zonePoints.some(function(p){ return p.zones[z.key] > 0; });
+        if(logged){
+          zoneSeries.push({
+            color: z.color,
+            xs: series.labels,
+            values: series.zonePoints.map(function(p){ return p.total ? p[z.key] : null; })
+          });
+          return '<span><span class="insight-swatch" style="background:' + z.color + '"></span>' + z.label + '</span>';
+        }
+        return '<span style="opacity:.45"><span class="insight-swatch" style="background:' + z.color + '"></span>' +
+          z.label + ' — none logged</span>';
+      });
       zoneSvg = insightChartTitleWithHelp(
         'Zone share (%)',
-        'The percent of that week\'s sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A 0% or missing zone just means no sessions were logged in it that week — not an assessment of the athlete. Comfort/Learning/Panic come from the athlete\'s own in-the-moment activation rating, not from grade or send/fall outcome.'
+        'The percent of that week\'s sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete\'s own in-the-moment activation rating, not from grade or send/fall outcome.'
       ) +
-        renderSharedAxisSvg([
-          { color: '#7ec87a', xs: series.labels, values: series.zonePoints.map(function(p){ return p.total ? p.comfort : null; }) },
-          { color: '#f5a623', xs: series.labels, values: series.zonePoints.map(function(p){ return p.total ? p.learning : null; }) },
-          { color: '#e84444', xs: series.labels, values: series.zonePoints.map(function(p){ return p.total ? p.panic : null; }) }
-        ], 0, 100, [
+        renderSharedAxisSvg(zoneSeries, 0, 100, [
           { value: 0, label: '0' },
           { value: 50, label: '50' },
           { value: 100, label: '100' }
         ], 720, 168) +
-        '<div class="insight-legend">' +
-          '<span><span class="insight-swatch" style="background:#7ec87a"></span>Comfort</span>' +
-          '<span><span class="insight-swatch" style="background:#f5a623"></span>Learning</span>' +
-          '<span><span class="insight-swatch" style="background:#e84444"></span>Panic</span>' +
-        '</div>';
+        '<div class="insight-legend">' + zoneLegend.join('') + '</div>';
     }
 
     var boulderEmpty = 'No bouldering sessions in this window.';

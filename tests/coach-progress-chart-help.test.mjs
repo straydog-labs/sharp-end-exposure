@@ -6,7 +6,7 @@ import assert from 'assert';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
-const ZONE_HELP = "The percent of that week's sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A 0% or missing zone just means no sessions were logged in it that week — not an assessment of the athlete. Comfort/Learning/Panic come from the athlete's own in-the-moment activation rating, not from grade or send/fall outcome.";
+const ZONE_HELP = "The percent of that week's sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete's own in-the-moment activation rating, not from grade or send/fall outcome.";
 const BOULDER_HELP = "The athlete's logged bouldering grade over time, plotted by terrain type. A gap in a line means nothing was logged on that terrain that week — not a drop in ability.";
 const ROPED_HELP = "The athlete's logged roped-climbing grade over time, plotted by terrain type, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A gap in a line means nothing was logged on that terrain (or in that discipline) that week — not a drop in ability.";
 
