@@ -1115,6 +1115,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .result-btn.selected-attempt{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
 .result-btn.selected-dna{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
 .result-btn.selected-took{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
+.result-btn.selected-practice{background:rgba(94,200,200,.16);border-color:#5ec8c8;color:#5ec8c8;}
 #edit-gauge,#edit-gauge .gauge-dial-target,#edit-gauge .gauge-drag-handle{touch-action:none;}
 #edit-sheet{overscroll-behavior:contain;}
 
@@ -1750,6 +1751,12 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
           <div id="real-hardest" style="font-size:18px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent);line-height:1.2;">—</div>
         </div>
       </div>
+      <div id="real-practice-falls-wrap" style="display:none;margin:-6px 0 16px;">
+        <div class="insight-card" style="padding:14px 16px;">
+          <div class="insight-label" style="margin-bottom:4px;">Practice falls (30d)</div>
+          <div id="real-practice-falls" style="font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:#5ec8c8;line-height:1;">0</div>
+        </div>
+      </div>
 
       <!-- Real zone arc — moved to lead the page, directly under stats (Fix 1, build 176) -->
       <div class="insight-card" style="margin-bottom:16px;">
@@ -2324,8 +2331,24 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 21 12 12 21 3 12z"/></svg>
           <span>Took</span>
         </button>
+        <button class="result-btn" id="btn-fall_practice" onclick="selectLogResult('fall_practice')" style="grid-column:1 / -1;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M5 19h14"/></svg>
+          <span>Fall practice</span>
+        </button>
       </div>
     </div>
+    </div>
+
+    <div class="insight-card" id="log-fall-practice-group" style="display:none;margin-bottom:10px;">
+      <div class="field-label">How many falls?</div>
+      <div class="stepper" style="margin:8px 0 14px;">
+        <button type="button" class="stepper-btn" id="log-fall-count-minus" onclick="stepFallCount(-1,false)">−</button>
+        <div class="stepper-val" id="log-fall-count-val">1</div>
+        <button type="button" class="stepper-btn" id="log-fall-count-plus" onclick="stepFallCount(1,false)">+</button>
+        <div class="stepper-unit">falls</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything else worth noting</div>
+      <textarea id="log-fall-practice-notes" placeholder="Optional..." style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
     </div>
 
     <!-- TELL US ABOUT THE FALL — shown only when Result = Fell -->
@@ -5056,6 +5079,18 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
       <button id="edit-btn-fell" onclick="editSelResult('fell')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fell</button>
       <button id="edit-btn-dna" onclick="editSelResult('dna')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">— Backed off</button>
       <button id="edit-btn-took" onclick="editSelResult('took')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◇ Took</button>
+      <button id="edit-btn-fall_practice" onclick="editSelResult('fall_practice')" style="grid-column:1 / -1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fall practice</button>
+    </div>
+    <div id="edit-fall-practice-group" style="display:none;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How many falls?</div>
+      <div class="stepper" style="margin:8px 0 14px;">
+        <button type="button" class="stepper-btn" id="edit-fall-count-minus" onclick="stepFallCount(-1,true)">−</button>
+        <div class="stepper-val" id="edit-fall-count-val">1</div>
+        <button type="button" class="stepper-btn" id="edit-fall-count-plus" onclick="stepFallCount(1,true)">+</button>
+        <div class="stepper-unit">falls</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Anything else worth noting</div>
+      <textarea id="edit-fall-practice-notes" placeholder="Optional..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:none;min-height:60px;box-sizing:border-box;"></textarea>
     </div>
 
     <!-- TELL US ABOUT THE FALL — Edit sheet equivalent (Feature 2), shown only when Result = Fell -->
@@ -5761,7 +5796,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index290'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index291'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -6062,6 +6097,10 @@ async function sbInsertSession(payload){
     delete p.gym_climb_id;
     raw = await sbI('sessions', p);
   }
+  if(isSbHttpFail(raw) && Object.prototype.hasOwnProperty.call(p, 'fall_count')){
+    delete p.fall_count;
+    raw = await sbI('sessions', p);
+  }
   if(!sbFailed(raw) && raw) Object.assign(payload, p);
   return raw;
 }
@@ -6137,17 +6176,90 @@ function resolveZone(data){
   // Rough midpoint score per zone, used only for gauge needle placement (no real score exists pre-Go-Deeper)
   var estMidpoints={comfort:2,learning:6.5,panic:11};
   if(r==='sent')return{zone:'comfort',confidence:'estimated',score:estMidpoints.comfort};
-  if(r==='fell' || r==='took')return{zone:'learning',confidence:'estimated',score:estMidpoints.learning};
+  if(r==='fell' || r==='took' || r==='fall_practice')return{zone:'learning',confidence:'estimated',score:estMidpoints.learning};
   if(r==='dna')return{zone:'panic',confidence:'estimated',score:estMidpoints.panic};
   return{zone:'learning',confidence:'estimated',score:estMidpoints.learning};
 }
 
-var RESULT_LABELS = {sent:'Sent', fell:'Fell', dna:'Backed off', took:'Took'};
-var RESULT_LABELS_MARKED = {sent:'✓ Sent', fell:'◎ Fell', dna:'— Backed off', took:'◇ Took'};
-var RESULT_COLORS = {sent:'#7ec87a', fell:'#f5a623', dna:'#e84444', took:'#f5a623'};
+var RESULT_LABELS = {sent:'Sent', fell:'Fell', dna:'Backed off', took:'Took', fall_practice:'Fall practice'};
+var RESULT_LABELS_MARKED = {sent:'✓ Sent', fell:'◎ Fell', dna:'— Backed off', took:'◇ Took', fall_practice:'◎ Fall practice'};
+var RESULT_COLORS = {sent:'#7ec87a', fell:'#f5a623', dna:'#e84444', took:'#f5a623', fall_practice:'#5ec8c8'};
+function sessionResultCode(s){
+  if(!s) return '';
+  if(typeof s === 'string') return s;
+  return String(s.baseline_zone || s.result || '');
+}
+function sentFlag(s){
+  var r = sessionResultCode(s);
+  if(r === 'fall_practice') return null;
+  return r === 'sent';
+}
+function fellFlag(s){
+  var r = sessionResultCode(s);
+  if(r === 'fall_practice') return null;
+  return r === 'fell';
+}
+function attemptCountsTowardSendRate(s){
+  return sentFlag(s) !== null;
+}
+function computeSendRate(rows){
+  var rated = (rows || []).filter(attemptCountsTowardSendRate);
+  if(!rated.length) return null;
+  var sends = rated.filter(function(row){ return sentFlag(row) === true; }).length;
+  return sends / rated.length;
+}
+function clampFallCount(n){
+  n = parseInt(n, 10);
+  if(isNaN(n) || n < 1) return 1;
+  if(n > 20) return 20;
+  return n;
+}
+function readFallCount(isEdit){
+  var el = document.getElementById(isEdit ? 'edit-fall-count-val' : 'log-fall-count-val');
+  if(el) return clampFallCount(el.textContent);
+  return clampFallCount(logState && logState.fallCount);
+}
+function readFallPracticeNotes(isEdit){
+  var el = document.getElementById(isEdit ? 'edit-fall-practice-notes' : 'log-fall-practice-notes');
+  if(el && el.value.trim()) return el.value.trim();
+  return null;
+}
+function stepFallCount(delta, isEdit){
+  var n = clampFallCount(readFallCount(isEdit) + delta);
+  if(typeof logState === 'object' && logState) logState.fallCount = n;
+  var el = document.getElementById(isEdit ? 'edit-fall-count-val' : 'log-fall-count-val');
+  if(el) el.textContent = String(n);
+}
+function resetFallPracticeSection(){
+  if(typeof logState === 'object' && logState) logState.fallCount = 1;
+  ['log-fall-count-val','edit-fall-count-val'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.textContent = '1';
+  });
+  ['log-fall-practice-notes','edit-fall-practice-notes'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  var g=document.getElementById('log-fall-practice-group');
+  if(g) g.style.display='none';
+  var eg=document.getElementById('edit-fall-practice-group');
+  if(eg) eg.style.display='none';
+}
 function resultLabel(code, marked){
+  if(code === 'fall_practice'){
+    return marked ? RESULT_LABELS_MARKED.fall_practice : RESULT_LABELS.fall_practice;
+  }
   var map = marked ? RESULT_LABELS_MARKED : RESULT_LABELS;
   return map[code] || code || '—';
+}
+function sessionResultLabel(s, marked){
+  var code = sessionResultCode(s);
+  if(code === 'fall_practice'){
+    var n = clampFallCount(s && s.fall_count);
+    var base = 'Fall practice - ' + n + ' fall' + (n === 1 ? '' : 's');
+    return marked ? ('◎ ' + base) : base;
+  }
+  return resultLabel(code, marked);
 }
 
 // ── ZONE HELPERS ─────────────────────────────────────
@@ -6859,7 +6971,7 @@ function selectGrade(btn,sys){
 // ═══════════════════════════════════════════════════════
 // LOG FLOW
 // ═══════════════════════════════════════════════════════
-var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null};
+var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null,fallCount:1};
 
 
 var _climbTableSort = {col:'date', dir:'desc'};
@@ -7194,14 +7306,14 @@ function renderClimbDataTable(){
     else {av=(a[{terrain:'climbing_type',setting:'setting',result:'baseline_zone'}[col]||col]||'');bv=(b[{terrain:'climbing_type',setting:'setting',result:'baseline_zone'}[col]||col]||'');}
     return av<bv?-dir:av>bv?dir:0;
   });
-  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',took:'Took'};
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',took:'Took',fall_practice:'Fall practice'};
   var confLabels={'confirmed':'✓','estimated':'~','manual':'✓'};
   tbody.innerHTML=climbs.map(function(s){
     var hasNotes=true;
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
     var c=zoneColor(s.zone||'learning');
     var rowAttrs=s.climb_id?'data-cid="'+s.climb_id+'" onclick="openClimbExposure(this.dataset.cid)" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);"':'style="border-bottom:1px solid rgba(255,255,255,.05);"';
-    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.climb_id?'<span style="display:inline-flex;align-items:center;gap:4px;max-width:100%;">'+climbStarButtonHtml(s.climb_id)+'<span style="overflow:hidden;text-overflow:ellipsis;">'+climbDisplayNameHtml(s.route_name)+'</span>'+(climbBetaNoteCount(s.climb_id)?' <span class="climb-beta-count">'+escTrainHtml(climbBetaCountLabel(s.climb_id))+'</span>':'')+'</span>':climbDisplayNameHtml(s.route_name))+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 6px;white-space:nowrap;">'+climbAttemptLaunchBtnHtml(s,'climb-table')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(resultLabel(s.baseline_zone)||s.baseline_zone||'—')+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'      +'</tr>';
+    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.climb_id?'<span style="display:inline-flex;align-items:center;gap:4px;max-width:100%;">'+climbStarButtonHtml(s.climb_id)+'<span style="overflow:hidden;text-overflow:ellipsis;">'+climbDisplayNameHtml(s.route_name)+'</span>'+(climbBetaNoteCount(s.climb_id)?' <span class="climb-beta-count">'+escTrainHtml(climbBetaCountLabel(s.climb_id))+'</span>':'')+'</span>':climbDisplayNameHtml(s.route_name))+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 6px;white-space:nowrap;">'+climbAttemptLaunchBtnHtml(s,'climb-table')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+sessionResultLabel(s)+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'      +'</tr>';
   }).join('');
 }
 
@@ -7858,12 +7970,12 @@ function selectSetting(val, btn){
 function selectResult(r){
   logState.result=r;
   // Update button styles — apply correct per-result selected class
-  var classMap={sent:'selected-send',fell:'selected-attempt',dna:'selected-dna',took:'selected-took'};
-  ['sent','fell','dna','took'].forEach(function(v){
+  var classMap={sent:'selected-send',fell:'selected-attempt',dna:'selected-dna',took:'selected-took',fall_practice:'selected-practice'};
+  ['sent','fell','dna','took','fall_practice'].forEach(function(v){
     var b=document.getElementById('btn-'+v);
     if(!b)return;
     // Remove all selected classes first
-    b.classList.remove('selected','selected-send','selected-attempt','selected-dna','selected-took');
+    b.classList.remove('selected','selected-send','selected-attempt','selected-dna','selected-took','selected-practice');
     // Apply correct class if this is the selected result
     if(v===r && classMap[v]) b.classList.add(classMap[v]);
   });
@@ -7877,6 +7989,17 @@ function selectResult(r){
   if(fallGroup){
     if(r==='fell'){ fallGroup.style.display='block'; }
     else { fallGroup.style.display='none'; resetFallSection(); }
+  }
+  var practiceGroup=document.getElementById('log-fall-practice-group');
+  if(practiceGroup){
+    if(r==='fall_practice'){
+      practiceGroup.style.display='block';
+      if(!logState.fallCount) logState.fallCount = 1;
+      var pv=document.getElementById('log-fall-count-val');
+      if(pv) pv.textContent=String(clampFallCount(logState.fallCount));
+    } else {
+      practiceGroup.style.display='none';
+    }
   }
   // Show/hide "Tell us why you backed off" — only when Result is Backed off (Fix 4)
   var backoffGroup=document.getElementById('log-backoff-group');
@@ -8449,9 +8572,15 @@ async function logFlowSaveSession(how){
     crux_count: detailsPayload.crux_count,
     gym_name: detailsPayload.gym_name,
     gym_climb_id: logState.gymClimbId || null,
-    take_high_point: logState.result === 'took' ? readTakeHighPoint(false) : null
+    take_high_point: logState.result === 'took' ? readTakeHighPoint(false) : null,
+    fall_count: logState.result === 'fall_practice' ? readFallCount(false) : null
   };
+  if(logState.result === 'fall_practice'){
+    var practiceNotes = readFallPracticeNotes(false);
+    if(practiceNotes) payload.session_notes = practiceNotes;
+  }
   logState.takeHighPoint = payload.take_high_point;
+  logState.fallCount = payload.fall_count;
 
   try{
     var baselineRange = localStorage.getItem('see_baseline_grade_range');
@@ -8816,6 +8945,7 @@ async function logClimb(){
     session_duration_seconds: window._sessionStartTime ? Math.round((Date.now()-window._sessionStartTime)/1000) : null,
     gym_climb_id: logState.gymClimbId || null,
     take_high_point: logState.result === 'took' ? readTakeHighPoint(false) : null,
+    fall_count: logState.result === 'fall_practice' ? readFallCount(false) : null,
     // Silent capture: default focus
     session_focus: 'unset',
     // Reflection (optional — only if filled in)
@@ -8826,7 +8956,12 @@ async function logClimb(){
     still_learning_chips:(function(){return Array.from(document.querySelectorAll('#log-reflection-group .refl-chip.selected[onclick*="still-learning"]')).map(function(b){return b.textContent.trim();}).join(',')||null;})(),
     surprised_chips:(function(){return Array.from(document.querySelectorAll('#log-reflection-group .refl-chip.selected[onclick*="surprised"]')).map(function(b){return b.textContent.trim();}).join(',')||null;})()
   };
+  if(logState.result === 'fall_practice'){
+    var practiceNotesClimb = readFallPracticeNotes(false);
+    if(practiceNotesClimb) payload.session_notes = practiceNotesClimb;
+  }
   logState.takeHighPoint = payload.take_high_point;
+  logState.fallCount = payload.fall_count;
 
   // 6.10: Grade vs baseline (silent)
   try{
@@ -16360,11 +16495,12 @@ function resetLogScreen(){
   _selectedClimbId=null;
   hideBadge();
   // Always clear result button visual state — never carry over from previous session
-  ['btn-sent','btn-fell','btn-dna','btn-took'].forEach(function(id){
+  ['btn-sent','btn-fell','btn-dna','btn-took','btn-fall_practice'].forEach(function(id){
     var b=document.getElementById(id);
-    if(b){b.classList.remove('selected','selected-send','selected-attempt','selected-dna','selected-took');b.style.borderColor='';b.style.background='';}
+    if(b){b.classList.remove('selected','selected-send','selected-attempt','selected-dna','selected-took','selected-practice');b.style.borderColor='';b.style.background='';}
   });
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null};
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null,fallCount:1};
+  resetFallPracticeSection();
   // Reset reflection section (panel wrapper + inner body — resetLogScreen hides body so toggle must reopen both)
   var reflPanel=document.getElementById('log-reflection-panel');
   var noteBtn=document.getElementById('log-done-add-note');
@@ -16469,10 +16605,20 @@ function openEditSheet(){
     });
   }
   // Set result buttons
-  ['sent','fell','dna','took'].forEach(function(v){
+  ['sent','fell','dna','took','fall_practice'].forEach(function(v){
     var b=document.getElementById('edit-btn-'+v);
     if(b)b.style.borderColor=v===logState.result?'var(--accent)':'var(--border)';
   });
+  var editPractice=document.getElementById('edit-fall-practice-group');
+  if(editPractice){
+    if(logState.result==='fall_practice'){
+      editPractice.style.display='block';
+      var ev=document.getElementById('edit-fall-count-val');
+      if(ev) ev.textContent=String(clampFallCount(logState.fallCount || logState._editFallCount || 1));
+    } else {
+      editPractice.style.display='none';
+    }
+  }
   // Show/hide "Tell us about the fall" (Feature 2) — initial state on open
   var editFallGroup=document.getElementById('edit-fall-group');
   resetEditFallSection();
@@ -16557,7 +16703,7 @@ function openEditSheet(){
 }
 function editSelResult(r){
   logState.result=r;
-  ['sent','fell','dna','took'].forEach(function(v){
+  ['sent','fell','dna','took','fall_practice'].forEach(function(v){
     var b=document.getElementById('edit-btn-'+v);
     if(b)b.style.borderColor=v===r?'var(--accent)':'var(--border)';
   });
@@ -16565,6 +16711,17 @@ function editSelResult(r){
   if(editFallGroup){
     if(r==='fell'){ editFallGroup.style.display='block'; }
     else { editFallGroup.style.display='none'; resetEditFallSection(); }
+  }
+  var editPractice=document.getElementById('edit-fall-practice-group');
+  if(editPractice){
+    if(r==='fall_practice'){
+      editPractice.style.display='block';
+      if(!logState.fallCount) logState.fallCount = 1;
+      var ev=document.getElementById('edit-fall-count-val');
+      if(ev) ev.textContent=String(clampFallCount(logState.fallCount));
+    } else {
+      editPractice.style.display='none';
+    }
   }
   var editTakeGroup=document.getElementById('edit-take-group');
   if(editTakeGroup){
@@ -16670,15 +16827,25 @@ async function saveEditedClimb(){
   var stillLearning=(function(){var t=document.getElementById('edit-still-learning-text');var chips=Array.from(document.querySelectorAll('#edit-sheet .edit-refl-chip.selected[onclick*="still-learning"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})();
   var surprisedBy=(function(){var t=document.getElementById('edit-surprised-text');var chips=Array.from(document.querySelectorAll('#edit-sheet .edit-refl-chip.selected[onclick*="surprised"]')).map(function(b){return b.textContent.trim();}).join(',');return(t&&t.value.trim())?t.value.trim():(chips||null);})();
   var takeHp=logState.result==='took'?readTakeHighPoint(true):null;
+  var editFallCount=logState.result==='fall_practice'?readFallCount(true):null;
   var editPayload={
     baseline_zone:logState.result,grade_value:logState.grade,climbing_type:logState.terrain,
     route_name:logState.routeName||null,zone:logState.zone,zone_confidence:logState.zoneConf,
     went_well:wentWell,still_learning:stillLearning,surprised_by:surprisedBy,
-    take_high_point:takeHp
+    take_high_point:takeHp,
+    fall_count:editFallCount
   };
+  if(logState.result==='fall_practice'){
+    var editPracticeNotes=readFallPracticeNotes(true);
+    if(editPracticeNotes) editPayload.session_notes=editPracticeNotes;
+  }
   var savedClimb = await sbU('sessions','id=eq.'+logState.sessId, editPayload);
   if(sbFailed(savedClimb) && Object.prototype.hasOwnProperty.call(editPayload,'take_high_point')){
     delete editPayload.take_high_point;
+    savedClimb = await sbU('sessions','id=eq.'+logState.sessId, editPayload);
+  }
+  if(sbFailed(savedClimb) && Object.prototype.hasOwnProperty.call(editPayload,'fall_count')){
+    delete editPayload.fall_count;
     savedClimb = await sbU('sessions','id=eq.'+logState.sessId, editPayload);
   }
   if(sbFailed(savedClimb)){
@@ -16703,6 +16870,8 @@ async function saveEditedClimb(){
   }
   logState._editTakeHighPoint=takeHp||'';
   logState.takeHighPoint=takeHp||'';
+  logState.fallCount=editFallCount;
+  logState._editFallCount=editFallCount;
   // Fall-capture data (Feature 2) — upsert: update if a falls row already exists
   // for this session, insert if not. Guarded to signed-in users (falls RLS
   // requires a real user_id match, same reasoning as logClimb()'s save).
@@ -16892,7 +17061,7 @@ function renderReflection(){
   var rZone=document.getElementById('reflect-zone-pill');
   if(rGrade)rGrade.textContent=grade;
   if(rTerrain)rTerrain.textContent=terrain;
-  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',took:'Took'};
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',took:'Took',fall_practice:'Fall practice'};
   if(rResult)rResult.textContent=resultLabel(logState.result);
   if(rZone)rZone.innerHTML=zonePill(logState.zone,false);
 
@@ -16983,8 +17152,11 @@ function computeClimbLandingStats(climbs, now){
     zoneMix = Math.round(c / zoned.length * 100) + '% / ' + Math.round(l / zoned.length * 100) + '% / ' + Math.round(p / zoned.length * 100) + '%';
   }
   var project30 = last30.filter(function(s){ return s && s.climb_id && isClimbProject(s.climb_id); });
-  var projSends = project30.filter(function(s){ return s.baseline_zone === 'sent'; }).length;
-  var sendRate = project30.length < 5 ? '—' : Math.round(projSends / project30.length * 100) + '%';
+  var projectRated = project30.filter(attemptCountsTowardSendRate);
+  var projSends = projectRated.filter(function(s){ return sentFlag(s) === true; }).length;
+  var sendRate = projectRated.length < 5 ? '—' : Math.round(projSends / projectRated.length * 100) + '%';
+  var practiceFalls30 = last30.filter(function(s){ return sessionResultCode(s) === 'fall_practice'; })
+    .reduce(function(sum, s){ return sum + clampFallCount(s && s.fall_count); }, 0);
   var sends = climbs.filter(function(s){ return s && s.baseline_zone === 'sent' && s.grade_value; });
   var hardest = '—';
   if(sends.length >= 1){
@@ -16998,7 +17170,7 @@ function computeClimbLandingStats(climbs, now){
       hardest = top.grade_value + (d ? (' · ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })) : '');
     }
   }
-  return { week: week, zoneMix: zoneMix, sendRate: sendRate, hardest: hardest };
+  return { week: week, zoneMix: zoneMix, sendRate: sendRate, hardest: hardest, practiceFalls30: practiceFalls30 };
 }
 function paintClimbLandingStats(climbs){
   var stats = computeClimbLandingStats(climbs, new Date());
@@ -17006,10 +17178,14 @@ function paintClimbLandingStats(climbs){
   var mixEl = document.getElementById('real-zone-mix');
   var sentEl = document.getElementById('real-sent');
   var hardEl = document.getElementById('real-hardest');
+  var practiceWrap = document.getElementById('real-practice-falls-wrap');
+  var practiceEl = document.getElementById('real-practice-falls');
   if(weekEl) weekEl.textContent = stats.week;
   if(mixEl) mixEl.textContent = stats.zoneMix;
   if(sentEl) sentEl.textContent = stats.sendRate;
   if(hardEl) hardEl.textContent = stats.hardest;
+  if(practiceWrap) practiceWrap.style.display = stats.practiceFalls30 > 0 ? 'block' : 'none';
+  if(practiceEl) practiceEl.textContent = String(stats.practiceFalls30 || 0);
 }
 
 async function loadClimbLog(){
@@ -17232,7 +17408,7 @@ function buildZoneArcDetail(sessions){
     path.setAttribute('stroke','rgba(255,255,255,.1)');path.setAttribute('stroke-width','1.5');
     g.appendChild(path);
   }
-  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',took:'Took'};
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',took:'Took',fall_practice:'Fall practice'};
   pts.forEach(function(p, idx){
     var c=zoneColor(p.z);
     var circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
@@ -17250,7 +17426,7 @@ function buildZoneArcDetail(sessions){
           var dateStr = session.created_at ? new Date(session.created_at).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'}) : 'Unknown date';
           panelEl.innerHTML = '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">'+dateStr+'</div>'
             + '<div style="font-size:18px;font-weight:700;font-family:\'Space Mono\',monospace;color:var(--accent);margin-bottom:4px;">'+(session.grade_value||'—')+'</div>'
-            + '<div style="font-size:13px;color:var(--muted);margin-bottom:8px;">'+(session.climbing_type||'—')+' · '+(resultLabels[session.baseline_zone]||session.baseline_zone||'—')+'</div>'
+            + '<div style="font-size:13px;color:var(--muted);margin-bottom:8px;">'+(session.climbing_type||'—')+' · '+sessionResultLabel(session)+'</div>'
             + '<div style="font-size:12px;font-weight:700;color:'+c+';">'+zoneName(session.zone||'learning')+(session.zone_confidence==='estimated'?' ~':'')+'</div>';
           panelEl.style.display='block';
         }
@@ -17272,7 +17448,7 @@ function buildZoneArcDetail(sessions){
         + '<div style="font-size:13px;font-weight:700;color:var(--text);">'+dateStr+'</div>'
         + '<div style="font-size:11px;font-weight:700;color:'+c+';">'+zoneName(s.zone||'learning')+'</div>'
         + '</div>'
-        + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">'+(s.grade_value||'—')+' · '+(s.climbing_type||'—')+' · '+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</div>'
+        + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">'+(s.grade_value||'—')+' · '+(s.climbing_type||'—')+' · '+sessionResultLabel(s)+'</div>'
         + '</div>';
     }).join('');
   }
@@ -17287,7 +17463,7 @@ function renderClimbList(climbs, isExample){
     el.innerHTML='<div style="text-align:center;padding:20px 0;font-size:13px;color:var(--muted);">Log climbs to build your history.</div>';
     return;
   }
-  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',took:'Took'};
+  var resultLabels={sent:'Sent',fell:'Fell',dna:'Backed off',took:'Took',fall_practice:'Fall practice'};
   var toggleHtml='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
     +'<div style="font-size:11px;color:var(--muted);">'+climbs.length+' climbs</div>'
 
@@ -17331,7 +17507,7 @@ function climbRow(s,resultLabels){
     +'<div style="font-size:15px;font-weight:700;font-family:\'Space Mono\',monospace;color:var(--accent);">'+(s.grade_value||'—')+'</div>'
     +'<div style="font-size:11px;color:var(--muted2);">'+timeAgo+'</div>'
     +'</div>'
-    +'<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">'+(s.climbing_type||'—')+' · '+(resultLabels[s.baseline_zone]||s.baseline_zone||'—')+'</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">'+(s.climbing_type||'—')+' · '+sessionResultLabel(s)+'</div>'
     +'<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">'
     +'<span style="font-size:10px;font-weight:700;color:'+c+';background:'+c+'1a;padding:2px 7px;border-radius:99px;'+pillStyle+'">'+(conf?zoneName(s.zone):zoneName(s.zone)+' ~')+'</span>'
     +routeLabel
@@ -19025,7 +19201,7 @@ function showZoneConfirmed(prevZone, confirmedZone){
   var resultEl=document.getElementById('zc-result');
   if(gradeEl)gradeEl.textContent=logState.grade||'—';
   if(terrEl)terrEl.textContent=logState.terrain||'—';
-  var resultLabels={sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',took:'◇ Took'};
+  var resultLabels={sent:'✓ Sent',fell:'◎ Fell',dna:'— Backed off',took:'◇ Took',fall_practice:'◎ Fall practice'};
   var resultColors={sent:'#7ec87a',fell:'#f5a623',dna:'#e84444',took:'#f5a623'};
   if(resultEl){resultEl.textContent=resultLabel(logState.result, true);resultEl.style.color=RESULT_COLORS[logState.result]||'var(--muted)';}
 
@@ -19821,6 +19997,10 @@ function editClimbFromLog(sessId, origin){
   logState._editClimbId = sess.climb_id || null;
   logState._editOriginalRouteName = sess.route_name || '';
   logState._editTakeHighPoint = sess.take_high_point || '';
+  logState._editFallCount = sess.fall_count || 1;
+  logState.fallCount = sess.fall_count || 1;
+  var editPracticeNotesEl = document.getElementById('edit-fall-practice-notes');
+  if(editPracticeNotesEl) editPracticeNotesEl.value = sess.session_notes || '';
   // Reset zone/zoneConf to THIS session's actual stored values — prevents a manual
   // override from a previously-edited session leaking into this one's save logic
   logState.zone = sess.zone || null;
@@ -20947,7 +21127,7 @@ function climbAttemptRowHtml(s, opts){
   var idPrefix = opts.idPrefix || 'rh';
   var c = zoneColor(s.zone || 'learning');
   var conf = (s.zone_confidence === 'confirmed' || s.zone_confidence === 'manual');
-  var result = resultLabel(s.baseline_zone || s.result);
+  var result = sessionResultLabel(s);
   if(showRoute){
     result = climbDisplayNameHtml(s.route_name) + ' · ' + result;
   }
@@ -21400,6 +21580,7 @@ function extractResultFromTranscript(t){
   t = t.replace(/\bsend\b/g, 'sent').replace(/\boverhead\b/g, 'overhang');
   if(t.includes('sent') || t.includes('topped') || t.includes('topped out') || t.includes('flashed')) return 'sent';
   if(t.includes('backed off') || t.includes('back off') || t.includes('bailed') || t.includes('dna') || t.includes('did not')) return 'dna';
+  if(t.includes('fall practice') || t.includes('practice fall') || t.includes('practice falls')) return 'fall_practice';
   if(t.includes('fell') || t.includes('fall') || t.includes('took a fall') || t.includes('whipped')) return 'fell';
   // projecting result type removed
   return null;
@@ -25560,9 +25741,11 @@ async function runSEETests(){
     var rzFell = resolveZone({result:'fell'});
     var rzDna = resolveZone({result:'dna'});
     var rzSent = resolveZone({result:'sent'});
+    var rzPractice = resolveZone({result:'fall_practice'});
     var scoreOk = rzTook.zone === 'learning' && rzTook.score === 6.5 && rzTook.confidence === 'estimated'
       && rzFell.score === 6.5 && rzDna.zone === 'panic' && rzDna.score === 11
-      && rzSent.zone === 'comfort' && rzSent.score === 2;
+      && rzSent.zone === 'comfort' && rzSent.score === 2
+      && rzPractice && rzPractice.zone === 'learning' && rzPractice.score === 6.5 && rzPractice.confidence === 'estimated';
     var prevResult = logState.result;
     selectResult('took');
     var takeShown = takeGroup && takeGroup.style.display === 'block';
