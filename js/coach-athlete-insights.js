@@ -5,7 +5,7 @@
 (function (global) {
   'use strict';
 
-  var TERRAIN_TYPES = ['Slab', 'Vertical', 'Overhang', 'Roof', 'Crack'];
+  var TERRAIN_TYPES = ['Slab', 'Vertical', 'Overhang', 'Roof', 'Arête', 'Dihedral', 'Crack'];
 
   var GRADE_ORDER = [
     'VB',
@@ -244,6 +244,7 @@
     var raw = String(value || '').trim();
     if (!raw) return '';
     var lower = raw.toLowerCase();
+    if (lower === 'arete') return 'Arête';
     for (var i = 0; i < TERRAIN_TYPES.length; i++) {
       if (TERRAIN_TYPES[i].toLowerCase() === lower) return TERRAIN_TYPES[i];
     }
@@ -696,7 +697,7 @@
     if (!name) return { ok: false, error: 'Name is required.' };
     var terrain = normalizeTerrainType(input && input.terrain_type);
     if (input && String(input.terrain_type || '').trim() && !terrain) {
-      return { ok: false, error: 'Terrain must be Slab, Vertical, Overhang, Roof, or Crack.' };
+      return { ok: false, error: 'Terrain must be Slab, Vertical, Overhang, Roof, Arête, Dihedral, or Crack.' };
     }
     return {
       ok: true,

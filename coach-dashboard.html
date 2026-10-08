@@ -3199,7 +3199,7 @@
     var terrainsEl = document.getElementById('clog-terrains');
     if(terrainsEl){
       var types = (window.CoachInsights && window.CoachInsights.TERRAIN_TYPES) ||
-        ['Slab','Vertical','Overhang','Roof','Crack'];
+        ['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack'];
       terrainsEl.innerHTML = types.map(function(t){
         return '<button type="button"' + (_coachLogState.terrain === t ? ' class="selected"' : '') +
           ' data-terrain="' + t + '">' + t + '</button>';
@@ -3425,6 +3425,8 @@
     Vertical: '#c4b5e0',
     Overhang: '#e8a072',
     Roof: '#d4a0c8',
+    'Arête': '#e0c36a',
+    Dihedral: '#7aa6d4',
     Crack: '#a8c47a'
   };
 
@@ -3928,13 +3930,13 @@
             zoneBarSegsHtml(row.summary.zones) +
           '</div>';
         }).join('')
-      : '<div class="empty-state">No sessions with a Slab / Vertical / Overhang / Roof / Crack terrain tag.</div>';
+      : '<div class="empty-state">No sessions with a Slab / Vertical / Overhang / Roof / Arête / Dihedral / Crack terrain tag.</div>';
 
     var extras = [];
     if(gap.otherTerrainCount){
       extras.push(gap.otherTerrainCount +
         (gap.otherTerrainCount === 1 ? ' session uses' : ' sessions use') +
-        ' a terrain label outside the five-type catalog.');
+        ' a terrain label outside the catalog.');
     }
 
     return headlineHtml +
@@ -3960,7 +3962,7 @@
 
   function gymClimbTerrainOptions(selected){
     var opts = '<option value="">Terrain (optional)</option>';
-    (window.CoachInsights ? window.CoachInsights.TERRAIN_TYPES : ['Slab','Vertical','Overhang','Roof','Crack']).forEach(function(t){
+    (window.CoachInsights ? window.CoachInsights.TERRAIN_TYPES : ['Slab','Vertical','Overhang','Roof','Arête','Dihedral','Crack']).forEach(function(t){
       opts += '<option value="' + t + '"' + (selected === t ? ' selected' : '') + '>' + t + '</option>';
     });
     return opts;
@@ -3987,7 +3989,7 @@
       '</div>' +
       '<div class="insight-panel">' +
         '<div class="team-zone-label">CSV import</div>' +
-        '<div class="form-note">Columns: name, wall_lane, angle, steepness, terrain_type. Terrain must be Slab, Vertical, Overhang, Roof, or Crack. This loads into your catalog only.</div>' +
+        '<div class="form-note">Columns: name, wall_lane, angle, steepness, terrain_type. Terrain must be Slab, Vertical, Overhang, Roof, Arête, Dihedral, or Crack. This loads into your catalog only.</div>' +
         '<div class="gym-climbs-toolbar">' +
           '<button type="button" class="btn-cancel" id="gc-template">Download template</button>' +
           '<label class="btn-cancel" for="gc-file" style="cursor:pointer;margin:0;">Choose CSV</label>' +

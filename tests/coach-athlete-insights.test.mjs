@@ -22,7 +22,9 @@ function fail(msg) {
 
 // --- classify boulder vs lead from real columns only ---
 assert.strictEqual(CI.normalizeTerrainType('overhang'), 'Overhang');
-assert.strictEqual(CI.normalizeTerrainType('Arête'), '');
+assert.strictEqual(CI.normalizeTerrainType('Arête'), 'Arête');
+assert.strictEqual(CI.normalizeTerrainType('Arete'), 'Arête');
+assert.strictEqual(CI.normalizeTerrainType('Dihedral'), 'Dihedral');
 assert.strictEqual(CI.gradeRank('V5'), CI.GRADE_ORDER.indexOf('V5'));
 assert.strictEqual(CI.gradeRank('not-a-grade'), null);
 assert.strictEqual(CI.classifyBoulderVsLead, undefined);
@@ -81,7 +83,7 @@ const boundaryWeek = boundaryProg.zonePoints.find((p) => p.key === '2026-08-24')
 assert.ok(boundaryWeek && boundaryWeek.panic === 100, 'Sunday 11pm local stays in the journal week');
 assert.ok(!boundaryProg.zonePoints.some((p) => p.key === '2026-08-31' && p.total > 0));
 
-// --- gap diagnostic: zone mix by terrain only (any athlete, 1–5 terrains) ---
+// --- gap diagnostic: zone mix by terrain only (any athlete, 1–7 terrains) ---
 const gapRows = [
   { zone: 'comfort', baseline_zone: 'sent', climbing_type: 'Slab', discipline: 'Boulder', grade_value: 'V4', is_checkin: false },
   { zone: 'comfort', baseline_zone: 'sent', climbing_type: 'Slab', discipline: 'Boulder', grade_value: 'V3', is_checkin: false },
@@ -95,15 +97,15 @@ const gap = CI.computeGapDiagnostic(gapRows);
 assert.strictEqual(gap.boulder, undefined);
 assert.strictEqual(gap.lead, undefined);
 assert.strictEqual(gap.unclassifiedCount, undefined);
-assert.strictEqual(gap.highestComfortShare.terrain, 'Slab');
+assert.strictEqual(gap.highestComfortShare.terrain, 'Arête');
 assert.strictEqual(gap.highestPanicShare.terrain, 'Overhang');
-assert.strictEqual(gap.otherTerrainCount, 1);
-assert.ok(!gap.terrains.some((t) => t.terrain === 'Arête'));
-assert.strictEqual(gap.terrains.length, 2);
+assert.strictEqual(gap.otherTerrainCount, 0);
+assert.ok(gap.terrains.some((t) => t.terrain === 'Arête'));
+assert.strictEqual(gap.terrains.length, 3);
 
 const contrastHead = CI.gapHeadlineModel(gap);
 assert.strictEqual(contrastHead.contrast, true);
-assert.ok(/Most comfortable on Slab/.test(contrastHead.lines[0].text));
+assert.ok(/Most comfortable on Arête/.test(contrastHead.lines[0].text));
 assert.ok(/Least comfortable on Overhang/.test(contrastHead.lines[1].text));
 assert.ok(!/boulder|lead/i.test(contrastHead.lines.map((l) => l.text).join(' ')));
 
@@ -131,8 +133,9 @@ assert.strictEqual(sameHead.contrast, false);
 assert.ok(/both peak on Overhang/.test(sameHead.lines[0].text));
 assert.ok(!/Most comfortable|Least comfortable/.test(sameHead.lines[0].text));
 
+const fiveOnly = ['Slab', 'Vertical', 'Overhang', 'Roof', 'Crack'];
 const fiveTerrainGap = CI.computeGapDiagnostic(
-  CI.TERRAIN_TYPES.map((t, i) => ({
+  fiveOnly.map((t, i) => ({
     zone: i === 0 ? 'comfort' : (i === 4 ? 'panic' : 'learning'),
     climbing_type: t
   }))
@@ -142,6 +145,18 @@ const fiveHead = CI.gapHeadlineModel(fiveTerrainGap);
 assert.strictEqual(fiveHead.contrast, true);
 assert.ok(/Most comfortable on Slab/.test(fiveHead.lines[0].text));
 assert.ok(/Least comfortable on Crack/.test(fiveHead.lines[1].text));
+
+const catalogGap = CI.computeGapDiagnostic(
+  CI.TERRAIN_TYPES.map((t, i) => ({
+    zone: i === 0 ? 'comfort' : (i === CI.TERRAIN_TYPES.length - 1 ? 'panic' : 'learning'),
+    climbing_type: t
+  }))
+);
+assert.strictEqual(catalogGap.terrains.length, 7);
+const catalogHead = CI.gapHeadlineModel(catalogGap);
+assert.strictEqual(catalogHead.contrast, true);
+assert.ok(/Most comfortable on Slab/.test(catalogHead.lines[0].text));
+assert.ok(/Least comfortable on Crack/.test(catalogHead.lines[1].text));
 
 const emptyGap = CI.computeGapDiagnostic([]);
 assert.strictEqual(emptyGap.sessionCount, 0);
@@ -154,13 +169,15 @@ const parsed = CI.parseGymClimbsCsv(
   '"Red, overhang",Lane 4,45,steep,Overhang\n' +
   ',,,,Slab\n' +
   'Ok climb,Cave,30,slight,Arete\n' +
+  'Prow line,Lane 3,,,Prow\n' +
   'Crack line,Lane 2,,,Crack\n'
 );
-assert.strictEqual(parsed.rows.length, 2);
+assert.strictEqual(parsed.rows.length, 3);
 assert.strictEqual(parsed.rows[0].name, 'Red, overhang');
 assert.strictEqual(parsed.rows[0].wall_lane, 'Lane 4');
 assert.strictEqual(parsed.rows[0].terrain_type, 'Overhang');
-assert.strictEqual(parsed.rows[1].terrain_type, 'Crack');
+assert.strictEqual(parsed.rows[1].terrain_type, 'Arête');
+assert.strictEqual(parsed.rows[2].terrain_type, 'Crack');
 assert.ok(parsed.errors.some((e) => /Name is required/.test(e)));
 assert.ok(parsed.errors.some((e) => /Terrain must be/.test(e)));
 
