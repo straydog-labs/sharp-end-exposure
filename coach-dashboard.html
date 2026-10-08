@@ -545,6 +545,23 @@
   .journal-zone.comfort{color:var(--comfort);}
   .journal-zone.learning{color:var(--learning);}
   .journal-zone.panic{color:var(--panic);}
+  .journal-sort{display:flex;gap:6px;margin:8px 0 12px;}
+  .journal-sort button{
+    background:var(--surface);border:1px solid var(--border);border-radius:6px;
+    color:var(--text-secondary);font-family:'Space Grotesk',sans-serif;
+    font-size:11.5px;font-weight:700;padding:5px 10px;cursor:pointer;
+  }
+  .journal-sort button.on{border-color:var(--accent);color:var(--accent);}
+  .journal-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;}
+  .journal-chip{
+    font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 8px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text);
+  }
+  .journal-chip.comfort{color:var(--comfort);border-color:rgba(126,200,122,.45);}
+  .journal-chip.learning{color:var(--learning);border-color:rgba(245,166,35,.45);}
+  .journal-chip.panic{color:var(--panic);border-color:rgba(232,68,68,.45);}
+  .journal-chip.result{color:var(--text);}
+  .journal-meta-line{font-size:12.5px;color:var(--text-secondary);margin-bottom:6px;}
   .journal-field{margin-bottom:10px;}
   .journal-field-label{
     font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
@@ -7047,6 +7064,7 @@
   var _journalNotesBySession = {};
   var _journalNotesError = null;
   var _journalTrainingError = null;
+  var _journalSortNewest = true;
   var _journalCtx = null;
   var _editingJournalNoteId = null;
 
@@ -7176,9 +7194,81 @@
     return m ? (h + 'h ' + m + 'm') : (h + 'h');
   }
 
+  function journalClimbTitle(s){
+    var name = String((s && s.route_name) || '').trim();
+    if(name) return name;
+    var grade = String((s && s.grade_value) || '').trim();
+    if(grade) return grade;
+    return 'Unnamed climb';
+  }
+
+  function journalActivationScore(s){
+    var raw = (s && s.coach_activation_score != null && s.coach_activation_score !== '')
+      ? s.coach_activation_score
+      : (s && s.user_activation_estimate);
+    if(raw == null || raw === '') return '';
+    var n = Number(raw);
+    if(isNaN(n)) return String(raw);
+    return (Math.round(n * 10) / 10).toFixed(1);
+  }
+
+  function journalZoneChipLabel(s){
+    var zone = String((s && s.zone) || '').toLowerCase();
+    var cap = zone === 'comfort' ? 'Comfort' : zone === 'learning' ? 'Learning' : zone === 'panic' ? 'Panic' : String((s && s.zone) || '').trim();
+    var score = journalActivationScore(s);
+    if(cap && score) return cap + ' ' + score;
+    return cap || '';
+  }
+
+  function journalResultLabel(s){
+    var r = String((s && s.baseline_zone) || '').trim().toLowerCase();
+    if(r === 'sent') return 'Sent';
+    if(r === 'fell') return 'Fell';
+    if(r === 'dna') return 'DNA';
+    if(r === 'took') return 'Took';
+    if(r === 'fall_practice'){
+      var n = s && s.fall_count;
+      if(n != null && n !== '') return 'Fall practice ×' + n;
+      return 'Fall practice';
+    }
+    return '';
+  }
+
+  function journalTerrainLabel(s){
+    var raw = (s && (s.terrain || s.climbing_type)) || '';
+    if(window.CoachInsights && typeof window.CoachInsights.normalizeTerrainType === 'function'){
+      return window.CoachInsights.normalizeTerrainType(raw) || '';
+    }
+    return String(raw || '').trim();
+  }
+
+  function journalHowClimbedLabel(s){
+    var map = { lead: 'Lead', 'top rope': 'Top Rope', boulder: 'Boulder', 'auto belay': 'Auto Belay' };
+    var disc = String((s && s.discipline) || '').trim();
+    if(map[disc.toLowerCase()]) return map[disc.toLowerCase()];
+    var climb = String((s && s.climbing_type) || '').trim();
+    if(map[climb.toLowerCase()]) return map[climb.toLowerCase()];
+    return disc;
+  }
+
+  function journalChip(text, extraClass){
+    if(!text) return '';
+    return '<span class="journal-chip' + (extraClass ? ' ' + extraClass : '') + '">' + escapeHtml(text) + '</span>';
+  }
+
   function journalClimbEntryHtml(s, notes, notesError, coachUserId, athleteLabel){
     var zone = (s.zone || '').toLowerCase();
     var zoneClass = (zone === 'comfort' || zone === 'learning' || zone === 'panic') ? zone : '';
+    var zoneLabel = journalZoneChipLabel(s);
+    var resultLabel = journalResultLabel(s);
+    var grade = String(s.grade_value || '').trim();
+    var terrain = journalTerrainLabel(s);
+    var how = journalHowClimbedLabel(s);
+    var chips = journalChip(zoneLabel, 'journal-zone' + (zoneClass ? ' ' + zoneClass : '')) +
+      journalChip(resultLabel, 'result') +
+      journalChip(grade) +
+      journalChip(terrain) +
+      journalChip(how);
     var refl =
       journalFieldHtml('Note', s.session_notes) +
       journalFieldHtml('What went well', s.went_well) +
@@ -7196,15 +7286,13 @@
       '<div class="journal-head">' +
         '<div>' +
           '<div class="journal-route"><span class="journal-kind climb">Climb</span>' +
-            escapeHtml(s.route_name || 'Unnamed climb') +
+            escapeHtml(journalClimbTitle(s)) +
             (s.logged_by_coach ? '<span class="journal-coach-tag">Logged by coach</span>' : '') +
             '</div>' +
           '<div class="journal-when">' + fmtChatTime(s.created_at) + '</div>' +
         '</div>' +
-        '<span class="journal-zone' + (zoneClass ? ' ' + zoneClass : '') + '">' +
-          escapeHtml(s.zone || 'No zone') +
-        '</span>' +
       '</div>' +
+      (chips ? '<div class="journal-chips">' + chips + '</div>' : '') +
       refl +
       (somas ? '<div class="journal-somatics">' + somas + '</div>' : '') +
       emptyRefl +
@@ -7267,9 +7355,15 @@
       return;
     }
     var feed = _lastSessionRows.slice().sort(function(a, b){
-      return new Date(a._sortAt || a.created_at) - new Date(b._sortAt || b.created_at);
+      var diff = new Date(a._sortAt || a.created_at) - new Date(b._sortAt || b.created_at);
+      return _journalSortNewest ? -diff : diff;
     });
+    var sortToggle = '<div class="journal-sort" role="group" aria-label="Journal sort">' +
+      '<button type="button" id="journal-sort-newest"' + (_journalSortNewest ? ' class="on"' : '') + '>Newest</button>' +
+      '<button type="button" id="journal-sort-oldest"' + (!_journalSortNewest ? ' class="on"' : '') + '>Oldest</button>' +
+      '</div>';
     el.innerHTML = '<div class="panel-title">Journal · last ' + feed.length + '</div>' +
+      sortToggle +
       trainNote +
       feed.map(function(s){
         return journalEntryHtml(
@@ -7287,6 +7381,16 @@
 
   function wireJournalFeed(rootEl){
     if(!rootEl) return;
+    var newestBtn = rootEl.querySelector('#journal-sort-newest');
+    var oldestBtn = rootEl.querySelector('#journal-sort-oldest');
+    if(newestBtn) newestBtn.addEventListener('click', function(){
+      _journalSortNewest = true;
+      renderJournalFeed(rootEl);
+    });
+    if(oldestBtn) oldestBtn.addEventListener('click', function(){
+      _journalSortNewest = false;
+      renderJournalFeed(rootEl);
+    });
     Array.prototype.forEach.call(rootEl.querySelectorAll('.journal-reply-btn'), function(btn){
       btn.addEventListener('click', function(){
         postJournalNote(btn.getAttribute('data-session-id'));
@@ -7352,24 +7456,36 @@
       athleteId: athleteId,
       athleteLabel: athleteLabel || ''
     };
-    var cols = 'id,created_at,route_name,zone,went_well,still_learning,surprised_by,' +
-      'breathing_post,gut_post,crux_response,body_state,session_notes,logged_by_coach,logged_by';
-    var climbP = sbSelect(
-      token,
-      'sessions',
-      'select=' + cols +
-        '&user_id=eq.' + athleteId +
-        '&deleted_at=is.null&order=created_at.desc&limit=20'
-    ).catch(function(){
+    // Terrain lives in climbing_type (no sessions.terrain column).
+    // coach_activation_score may be missing until the coach-log form ships it.
+    var requiredCols = ['id','created_at','route_name','zone','went_well','still_learning','surprised_by',
+      'breathing_post','gut_post','crux_response','body_state'];
+    var extraCols = ['session_notes','logged_by_coach','logged_by',
+      'baseline_zone','fall_count','coach_activation_score','grade_value','climbing_type',
+      'discipline','user_activation_estimate'];
+    var cols = requiredCols.concat(extraCols);
+    function fetchClimbSessions(){
       return sbSelect(
         token,
         'sessions',
-        'select=id,created_at,route_name,zone,went_well,still_learning,surprised_by,' +
-          'breathing_post,gut_post,crux_response,body_state' +
+        'select=' + cols.join(',') +
           '&user_id=eq.' + athleteId +
           '&deleted_at=is.null&order=created_at.desc&limit=20'
-      );
-    });
+      ).catch(function(err){
+        var removed = false;
+        var i;
+        for(i = cols.length - 1; i >= 0; i--){
+          if(requiredCols.indexOf(cols[i]) !== -1) continue;
+          if(isCoachLogMissingColumn(err, cols[i])){
+            cols.splice(i, 1);
+            removed = true;
+          }
+        }
+        if(!removed) throw err;
+        return fetchClimbSessions();
+      });
+    }
+    var climbP = fetchClimbSessions();
     var trainP = sbSelect(
       token,
       'training_sessions',
@@ -7406,6 +7522,49 @@
       return [];
     });
   }
+
+  window.__coachJournalTest = {
+    render: function(rows){
+      _journalCtx = {
+        token: 'test-token',
+        coachUser: { id: 'coach-1' },
+        athleteId: 'ath-1',
+        athleteLabel: 'Jordan'
+      };
+      _journalNotesBySession = {};
+      _journalNotesError = null;
+      _journalTrainingError = null;
+      _lastSessionRows = (rows || []).map(function(s){
+        return Object.assign({ _entryKind: 'climb', _sortAt: s.created_at }, s);
+      });
+      var el = document.getElementById('journal-test-host');
+      if(!el){
+        el = document.createElement('div');
+        el.id = 'journal-test-host';
+        document.body.appendChild(el);
+      }
+      renderJournalFeed(el);
+      return el.id;
+    },
+    cards: function(){
+      var el = document.getElementById('journal-test-host');
+      if(!el) return [];
+      return Array.prototype.map.call(el.querySelectorAll('.journal-entry[data-kind="climb"]'), function(card){
+        return {
+          id: card.getAttribute('data-session-id'),
+          text: card.textContent
+        };
+      });
+    },
+    clickOldest: function(){
+      var btn = document.getElementById('journal-sort-oldest');
+      if(btn) btn.click();
+    },
+    clickNewest: function(){
+      var btn = document.getElementById('journal-sort-newest');
+      if(btn) btn.click();
+    }
+  };
 
   function postJournalNote(sessionId){
     if(!_journalCtx || !sessionId) return;

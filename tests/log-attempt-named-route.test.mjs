@@ -12,8 +12,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index292'/.test(index), 'app_version');
-assert.ok(/APP_VERSION = 'index292'/.test(sw), 'sw APP_VERSION');
+assert.ok(/var app_version = 'index293'/.test(index), 'app_version');
+assert.ok(/APP_VERSION = 'index293'/.test(sw), 'sw APP_VERSION');
 assert.ok(/from '\.\/pw-browser\.mjs'/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
   'named-route test uses installed browser helper');
 assert.ok(!/execSync\([^)]*playwright[^)]*install/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
