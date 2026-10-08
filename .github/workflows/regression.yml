@@ -5,6 +5,8 @@ on:
     branches: [main]
   push:
     branches: [main]
+  schedule:
+    - cron: '15 6 * * *'
 
 jobs:
   real-flow:
@@ -23,3 +25,17 @@ jobs:
         run: npm install --no-save --no-fund --no-audit playwright@1.55.0
       - name: Run regression net
         run: node tests/run-regression.mjs
+
+  # Sept 9 class: live DB missing a column the app inserts. Fail on 400 / PGRST204.
+  # Required check on main is regression-net / real-flow (John: mark it required
+  # in branch protection — gh cannot set that from this agent).
+  live-schema:
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgREST select=<col> for every sessions/climbs/falls insert column
+        run: node tests/live-schema-check.mjs

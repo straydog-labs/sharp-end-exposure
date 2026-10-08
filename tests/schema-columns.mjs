@@ -287,6 +287,25 @@ export function extractSqlColumns(){
   return cols;
 }
 
+export function extractGrandfatheredColumns(){
+  var cols = [];
+  var sql = readFileSync(join(ROOT, 'sql', 'baseline-insert-columns.sql'), 'utf8');
+  var knownRe = /^--\s*known:\s*([a-z0-9_]+)\.([a-z0-9_]+)\s*$/gim;
+  var m;
+  while((m = knownRe.exec(sql))){
+    cols.push(m[1] + '.' + m[2]);
+  }
+  return cols.sort();
+}
+
+export function printGrandfatheredColumns(log){
+  log = log || console.log;
+  var cols = extractGrandfatheredColumns();
+  log('GRANDFATHERED ' + cols.length + ' columns (burn-down list from sql/baseline-insert-columns.sql):');
+  cols.forEach(function(key){ log('  -- known: ' + key); });
+  return cols;
+}
+
 export function driftReport(){
   var app = extractAppInsertColumns();
   var sql = extractSqlColumns();
@@ -294,5 +313,5 @@ export function driftReport(){
   Array.from(app.keys()).sort().forEach(function(key){
     if(!sql.has(key)) missing.push(Object.assign({ key: key }, app.get(key)));
   });
-  return { app: app, sql: sql, missing: missing };
+  return { app: app, sql: sql, missing: missing, grandfathered: extractGrandfatheredColumns() };
 }
