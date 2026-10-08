@@ -35,6 +35,7 @@ export function resolveChromiumPath(){
   var roots = [
     process.env.PLAYWRIGHT_BROWSERS_PATH,
     '/opt/pw-browsers',
+    '/ms-playwright',
     process.env.HOME ? join(process.env.HOME, '.cache/ms-playwright') : null,
     '/home/ubuntu/.cache/ms-playwright'
   ];
@@ -64,11 +65,18 @@ export function loadPlaywright(){
   return createRequire('/tmp/pw-log-attempt/node_modules/playwright/package.json')('playwright');
 }
 
+function noDownload(){
+  return process.env.SEE_PW_NO_DOWNLOAD === '1' || process.env.CI === 'true' || process.env.CI === '1';
+}
+
 export async function launchChromium(){
   var playwright = loadPlaywright();
   var exe = resolveChromiumPath();
   if(exe){
     return playwright.chromium.launch({ headless: true, executablePath: exe });
+  }
+  if(noDownload()){
+    throw new Error('No Chromium on disk. Set PLAYWRIGHT_BROWSERS_PATH or install browsers at /opt/pw-browsers. Tests must not download Chromium.');
   }
   try{
     return await playwright.chromium.launch({ headless: true });

@@ -1,0 +1,25 @@
+name: regression-net
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  real-flow:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-jammy
+    env:
+      CI: '1'
+      SEE_PW_NO_DOWNLOAD: '1'
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm installed Chromium (no download)
+        run: node tests/pw-no-download.test.mjs
+      - name: Install Playwright library (browsers already in the image)
+        run: npm install --no-save --no-fund --no-audit playwright@1.55.0
+      - name: Run regression net
+        run: node tests/run-regression.mjs
