@@ -14,6 +14,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
 assert.ok(/var app_version = 'index288'/.test(index), 'app_version');
 assert.ok(/APP_VERSION = 'index288'/.test(sw), 'sw APP_VERSION');
+assert.ok(!/playwright install chromium/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
+  'named-route test must not download Chromium');
 
 const ROUTE = 'Green 30 degree';
 const CLIMB_ID = 'climb-green-30';
