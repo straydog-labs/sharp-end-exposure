@@ -9,16 +9,16 @@ export const FLOWS = [
   { id: 'fall-practice', group: 'athlete', file: 'fall-practice.test.mjs', covered: true, asserts: 'POST fall_practice+fall_count, no falls insert' },
   { id: 'edit-sheet', group: 'athlete', file: 'real-flow-edit-sheet.test.mjs', covered: true, asserts: 'PATCH sessions baseline_zone' },
   { id: 'coach-log-athlete', group: 'coach', file: 'real-flow-coach-log.test.mjs', covered: true, asserts: 'POST sessions logged_by_coach+user_id' },
+  { id: 'voice-log', group: 'athlete', file: 'real-flow-voice-log.test.mjs', covered: true, asserts: 'parse spoken sentence then POST baseline_zone+grade+terrain' },
+  { id: 'prepare-checkin', group: 'athlete', file: 'real-flow-prepare-checkin.test.mjs', covered: true, asserts: 'POST sessions is_checkin+baseline_zone checkin' },
+  { id: 'home-day-attempt', group: 'athlete', file: 'real-flow-home-day-attempt.test.mjs', covered: true, asserts: 'openHomeDaySheet +Attempt POST route_name+climb_id' },
+  { id: 'go-deeper-confirm', group: 'athlete', file: 'real-flow-go-deeper-confirm.test.mjs', covered: true, asserts: 'PATCH sessions zone_confidence confirmed' },
   { id: 'attempt-inventory', group: 'meta', file: 'attempt-inventory.test.mjs', covered: true, asserts: 'every addAttemptFromLog/launchLogWithClimb site maps to a flow' },
   { id: 'schema-drift', group: 'meta', file: 'schema-drift.test.mjs', covered: true, asserts: 'every insert column exists in sql/' },
   { id: 'pw-no-download', group: 'meta', file: 'pw-no-download.test.mjs', covered: true, asserts: 'PLAYWRIGHT_BROWSERS_PATH /opt/pw-browsers, no test-level Chromium download' }
 ];
 
 export const NOT_COVERED = [
-  { id: 'voice-log', group: 'athlete', reason: 'voice parse has unit checks in-page; no stubbed-REST Playwright POST' },
-  { id: 'prepare-checkin', group: 'athlete', reason: 'prepare flow POSTs sessions is_checkin; not in this net yet' },
-  { id: 'home-day-attempt', group: 'athlete', reason: 'same climbAttemptRowHtml as Home recent; no separate day-sheet flow' },
-  { id: 'go-deeper-confirm', group: 'athlete', reason: 'Go Deeper PATCH zone_confidence not in this net' },
   { id: 'offline-queue-generic', group: 'athlete', reason: 'offline replay covered for fall_practice only' }
 ];
 

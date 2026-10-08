@@ -2,6 +2,7 @@ import { spawnSync } from 'child_process';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { FLOWS, NOT_COVERED } from './regression-manifest.mjs';
+import { printGrandfatheredColumns } from './schema-columns.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const files = [];
@@ -30,6 +31,8 @@ FLOWS.forEach(function(f){
 NOT_COVERED.forEach(function(f){
   console.log('NOT COVERED  ' + f.group + '/' + f.id + '  ' + f.reason);
 });
+console.log('\n=== grandfathered columns (burn down) ===');
+printGrandfatheredColumns(console.log);
 
 if(failed.length){
   console.error('\nFAILED\n' + failed.join('\n'));
