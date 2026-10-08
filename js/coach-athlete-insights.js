@@ -877,6 +877,52 @@
     return { tagged: tagged, approximate: approximate };
   }
 
+  function isFallPracticeRow(row) {
+    return String((row && row.baseline_zone) || '').trim().toLowerCase() === 'fall_practice';
+  }
+
+  function rowInTerrainWindow(row, days, endDate) {
+    if (days == null) return true;
+    var t = new Date((row && row.created_at) || '');
+    if (isNaN(t.getTime())) return false;
+    var end = endDate ? new Date(endDate) : new Date();
+    var start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+    return t >= start && t <= end;
+  }
+
+  function computeTerrainVolume(sessions, opts) {
+    opts = opts || {};
+    var days = opts.days;
+    if (days !== 30 && days !== 90) days = days == null ? null : days;
+    var endDate = opts.endDate;
+    var counts = {};
+    TERRAIN_TYPES.forEach(function (t) { counts[t] = 0; });
+
+    function addRow(row) {
+      if (!row || row.deleted_at || row.is_checkin) return;
+      if (isFallPracticeRow(row)) return;
+      if (!rowInTerrainWindow(row, days, endDate)) return;
+      var terrain = normalizeTerrainType(row.terrain || row.climbing_type);
+      if (terrain && Object.prototype.hasOwnProperty.call(counts, terrain)) {
+        counts[terrain] += 1;
+      }
+      if (Array.isArray(row.attempts)) row.attempts.forEach(addRow);
+    }
+
+    (sessions || []).forEach(addRow);
+    var used = TERRAIN_TYPES.filter(function (t) { return counts[t] > 0; });
+    var total = 0;
+    used.forEach(function (t) { total += counts[t]; });
+    return {
+      counts: counts,
+      used: used,
+      usedCount: used.length,
+      total: total,
+      days: days,
+      mode: used.length === 0 ? 'empty' : (used.length < 3 ? 'bars' : 'radar')
+    };
+  }
+
   var api = {
     TERRAIN_TYPES: TERRAIN_TYPES,
     GRADE_ORDER: GRADE_ORDER,
@@ -903,6 +949,7 @@
     computeTrainingVolumeSeries: computeTrainingVolumeSeries,
     computePsycheVolumeSeries: computePsycheVolumeSeries,
     computeGapDiagnostic: computeGapDiagnostic,
+    computeTerrainVolume: computeTerrainVolume,
     gapHeadlineModel: gapHeadlineModel,
     parseGymClimbsCsv: parseGymClimbsCsv,
     validateGymClimbRow: validateGymClimbRow,

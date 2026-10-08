@@ -417,13 +417,18 @@
   .insight-legend{
     display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11.5px;color:var(--text-secondary);margin-top:8px;
   }
-  .roped-filter{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 10px;}
-  .roped-filter button{
+  .roped-filter,.terrain-volume-range{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 10px;}
+  .roped-filter button,.terrain-volume-range button{
     background:var(--surface);border:1px solid var(--border);border-radius:999px;
     padding:8px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;
     font-size:12.5px;font-weight:600;cursor:pointer;
   }
-  .roped-filter button.selected{border-color:var(--accent);color:var(--accent);}
+  .roped-filter button.selected,.terrain-volume-range button.selected{border-color:var(--accent);color:var(--accent);}
+  .terrain-volume-bar{display:flex;align-items:center;gap:8px;margin:6px 0;}
+  .terrain-volume-bar-label{width:84px;font-size:12px;font-weight:700;}
+  .terrain-volume-bar-track{flex:1;height:10px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;}
+  .terrain-volume-bar-fill{height:100%;background:var(--accent);border-radius:999px;}
+  .terrain-volume-bar-n{width:28px;font-size:12px;font-weight:700;text-align:right;}
   .project-row{
     display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;min-width:0;
     padding:10px 0;border-bottom:1px solid var(--border);
@@ -1251,6 +1256,9 @@
     #athlete-gap-body > :first-child {
       break-before: avoid;
     }
+    .terrain-volume-unit {
+      break-inside: avoid;
+    }
     .team-zone-label,
     .team-zone-note,
     .form-note,
@@ -1260,6 +1268,7 @@
       break-after: avoid;
     }
     .roped-filter,
+    .terrain-volume-range,
     .insight-chart-empty {
       display: none !important;
     }
@@ -3774,6 +3783,7 @@
   var _athletePsycheCheckinCache = {};
   var _athletePsycheDrillCache = {};
   var _ropedDisciplineFilter = 'all';
+  var _terrainVolumeDays = 90;
   var TERRAIN_LINE_COLOR = {
     Slab: '#8ec8d8',
     Vertical: '#c4b5e0',
@@ -3978,6 +3988,7 @@
       var drills = parts[4];
       if(progressEl) progressEl.innerHTML = renderProgressPanelHtml(rows);
       wireRopedDisciplineChips();
+      wireTerrainVolumeChips();
       if(volumeEl) volumeEl.innerHTML = renderTrainingVolumePanelHtml(trainingRows);
       if(psycheEl) psycheEl.innerHTML = renderPsycheVolumePanelHtml(checkins, drills);
       if(gapEl) gapEl.innerHTML = renderGapPanelHtml(rows);
@@ -4123,8 +4134,117 @@
         var rows = athleteId ? (_athleteInsightCache[athleteId] || []) : [];
         host.innerHTML = renderProgressPanelHtml(rows);
         wireRopedDisciplineChips();
+        wireTerrainVolumeChips();
       });
     });
+  }
+
+  function wireTerrainVolumeChips(){
+    var host = document.getElementById('athlete-progress-body') || document.getElementById('terrain-volume-test-host');
+    if(!host) return;
+    Array.prototype.forEach.call(host.querySelectorAll('[data-terrain-days]'), function(btn){
+      btn.addEventListener('click', function(){
+        var raw = btn.getAttribute('data-terrain-days');
+        _terrainVolumeDays = raw === 'all' ? null : parseInt(raw, 10);
+        var athleteId = _detailCtx && _detailCtx.athleteId;
+        var rows = athleteId ? (_athleteInsightCache[athleteId] || []) : (_terrainVolumeTestRows || []);
+        host.innerHTML = renderProgressPanelHtml(rows);
+        wireRopedDisciplineChips();
+        wireTerrainVolumeChips();
+      });
+    });
+  }
+
+  var _terrainVolumeTestRows = null;
+
+  function renderTerrainVolumeHtml(sessions){
+    var CI = window.CoachInsights;
+    if(!CI || !CI.computeTerrainVolume) return '';
+    var vol = CI.computeTerrainVolume(sessions, { days: _terrainVolumeDays });
+    var chips = [
+      { id: '30', label: '30 days' },
+      { id: '90', label: '90 days' },
+      { id: 'all', label: 'All time' }
+    ];
+    var current = _terrainVolumeDays == null ? 'all' : String(_terrainVolumeDays);
+    var chipHtml = '<div class="terrain-volume-range" role="tablist" aria-label="Terrain volume window">' +
+      chips.map(function(c){
+        return '<button type="button" data-terrain-days="' + c.id + '"' +
+          (c.id === current ? ' class="selected"' : '') + '>' + escapeHtml(c.label) + '</button>';
+      }).join('') +
+    '</div>';
+    var title = insightChartTitleWithHelp(
+      'Terrain volume',
+      'Count of logged climbs per terrain in the selected window. Fall practice rows are excluded. Descriptive only.'
+    );
+    if(vol.mode === 'empty'){
+      return '<div class="insight-chart-unit terrain-volume-unit insight-chart-empty" data-terrain-volume="empty">' +
+        title + chipHtml +
+        '<div class="empty-state">No terrain-tagged climbs in this window.</div>' +
+      '</div>';
+    }
+    if(vol.mode === 'bars'){
+      var max = 1;
+      vol.used.forEach(function(t){ if(vol.counts[t] > max) max = vol.counts[t]; });
+      var bars = vol.used.map(function(t){
+        var n = vol.counts[t];
+        var pct = Math.round((n / max) * 100);
+        return '<div class="terrain-volume-bar" data-terrain="' + escapeHtml(t) + '" data-count="' + n + '" title="' +
+          escapeHtml(t) + ' ' + n + '">' +
+          '<div class="terrain-volume-bar-label">' + escapeHtml(t) + '</div>' +
+          '<div class="terrain-volume-bar-track"><div class="terrain-volume-bar-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="terrain-volume-bar-n">' + n + '</div>' +
+        '</div>';
+      }).join('');
+      return '<div class="insight-chart-unit terrain-volume-unit" data-terrain-volume="bars">' +
+        title + chipHtml + bars + '</div>';
+    }
+    var axes = CI.TERRAIN_TYPES.map(function(t){ return { key: t, label: t, n: vol.counts[t] || 0 }; });
+    var scale = 1;
+    axes.forEach(function(a){ if(a.n > scale) scale = a.n; });
+    var cx = 170, cy = 158, maxR = 70;
+    var n = axes.length;
+    var angleStep = (2 * Math.PI) / n;
+    var startAngle = -Math.PI / 2;
+    function axisPoint(i, r){
+      var angle = startAngle + i * angleStep;
+      return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+    }
+    var rings = [0.25, 0.5, 0.75, 1.0];
+    var ringHtml = rings.map(function(r){
+      var pts = axes.map(function(_, i){ var p = axisPoint(i, maxR * r); return p.x + ',' + p.y; }).join(' ');
+      return '<polygon points="' + pts + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/>';
+    }).join('');
+    var axisHtml = axes.map(function(_, i){
+      var p = axisPoint(i, maxR);
+      return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p.x + '" y2="' + p.y + '" stroke="rgba(255,255,255,.08)" stroke-width="1"/>';
+    }).join('');
+    var dataPoints = axes.map(function(a, i){
+      return axisPoint(i, maxR * Math.max(0.06, a.n / scale));
+    });
+    var polyPts = dataPoints.map(function(p){ return p.x + ',' + p.y; }).join(' ');
+    var polyHtml = '<polygon points="' + polyPts + '" fill="var(--accent)" fill-opacity=".15" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>';
+    var dotHtml = dataPoints.map(function(p, i){
+      return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5" title="' +
+        escapeHtml(axes[i].label) + ' ' + axes[i].n + '"></circle>';
+    }).join('');
+    var labelHtml = axes.map(function(a, i){
+      var p = axisPoint(i, maxR + 30);
+      var anchor = 'middle';
+      var x = p.x;
+      var y = p.y;
+      if(p.x < cx - 20){ anchor = 'end'; x = Math.max(8, p.x); }
+      else if(p.x > cx + 20){ anchor = 'start'; x = Math.min(332, p.x); }
+      else { y = p.y < cy ? p.y + 2 : p.y + 4; }
+      return '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anchor +
+        '" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)" data-terrain="' +
+        escapeHtml(a.label) + '" data-count="' + a.n + '">' + escapeHtml(a.label) + ' ' + a.n + '</text>';
+    }).join('');
+    return '<div class="insight-chart-unit terrain-volume-unit" data-terrain-volume="radar">' +
+      title + chipHtml +
+      '<svg class="insight-svg terrain-volume-radar" width="100%" viewBox="0 0 340 320" role="img">' +
+        ringHtml + axisHtml + polyHtml + dotHtml + labelHtml +
+      '</svg></div>';
   }
 
   function renderProgressPanelHtml(sessions){
@@ -4134,6 +4254,8 @@
       ropedDiscipline: _ropedDisciplineFilter || 'all'
     });
     if(!series.hasZoneTrend && !series.hasBoulderGradeTrend && !series.hasRopedGradeTrend && !series.hasGradeTrend){
+      var terrainOnly = (typeof renderTerrainVolumeHtml === 'function') ? renderTerrainVolumeHtml(sessions) : '';
+      if(terrainOnly) return terrainOnly;
       return '<div class="empty-state">No logged climb sessions in the last 12 weeks.</div>';
     }
     var weekBars = '<div class="progress-week-bars" aria-hidden="true">' +
@@ -4218,7 +4340,8 @@
     return '<div class="form-note">' + series.sessionCount +
       (series.sessionCount === 1 ? ' logged session' : ' logged sessions') +
       ' in this window.</div>' +
-      weekBars + zoneSvg + boulderSvg + ropedSvg;
+      weekBars + zoneSvg + boulderSvg + ropedSvg +
+      ((typeof renderTerrainVolumeHtml === 'function') ? renderTerrainVolumeHtml(sessions) : '');
   }
 
   function renderTrainingVolumePanelHtml(trainingSessions){
@@ -7772,6 +7895,38 @@
     clickNewest: function(){
       var btn = document.getElementById('journal-sort-newest');
       if(btn) btn.click();
+    }
+  };
+
+  window.__coachTerrainVolumeTest = {
+    render: function(rows, days){
+      _terrainVolumeTestRows = rows || [];
+      _terrainVolumeDays = days === 'all' || days === null ? null : (days != null ? days : 90);
+      var el = document.getElementById('terrain-volume-test-host');
+      if(!el){
+        el = document.createElement('div');
+        el.id = 'terrain-volume-test-host';
+        document.body.appendChild(el);
+      }
+      el.innerHTML = renderProgressPanelHtml(_terrainVolumeTestRows);
+      wireTerrainVolumeChips();
+      return el.id;
+    },
+    clickDays: function(days){
+      var id = days == null || days === 'all' ? 'all' : String(days);
+      var btn = document.querySelector('#terrain-volume-test-host [data-terrain-days="' + id + '"]');
+      if(btn) btn.click();
+    },
+    mode: function(){
+      var el = document.querySelector('#terrain-volume-test-host [data-terrain-volume]');
+      return el ? el.getAttribute('data-terrain-volume') : '';
+    },
+    counts: function(){
+      var out = {};
+      Array.prototype.forEach.call(document.querySelectorAll('#terrain-volume-test-host [data-terrain][data-count]'), function(n){
+        out[n.getAttribute('data-terrain')] = parseInt(n.getAttribute('data-count'), 10);
+      });
+      return out;
     }
   };
 

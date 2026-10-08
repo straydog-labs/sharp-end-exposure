@@ -101,7 +101,7 @@ assert.ok(/Arête/.test(gapHtml));
 assert.ok(/Dihedral/.test(gapHtml));
 assert.ok(/gap-terrain-row/.test(gapHtml));
 
-assert.ok(/var app_version = 'index294'/.test(index));
-assert.ok(/APP_VERSION = 'index294'/.test(sw));
+assert.ok(/var app_version = 'index295'/.test(index));
+assert.ok(/APP_VERSION = 'index295'/.test(sw));
 
 console.log('coach-terrain-catalog-parity tests: ok');
