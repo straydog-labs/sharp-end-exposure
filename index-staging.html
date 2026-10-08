@@ -5761,7 +5761,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index287'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index288'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -7109,7 +7109,7 @@ function pinnedStripCardHtml(opts){
     +(opts.starHtml||'')
     +'</div>'
     +'<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">'+(opts.metaHtml||'&nbsp;')+'</div>'
-    +'<button type="button" onclick="'+String(opts.ctaOnclick||'')+'" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:inherit;font-size:12px;font-weight:700;padding:7px;cursor:pointer;">'
+    +'<button type="button" onclick="'+String(opts.ctaOnclick||'').replace(/"/g,'&quot;')+'" style="width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:inherit;font-size:12px;font-weight:700;padding:7px;cursor:pointer;">'
     +(opts.ctaLabel||'')+'</button>'
     +'</div>';
 }
@@ -8375,7 +8375,7 @@ async function logFlowSaveSession(how){
   deepScores = { breath: null, gut: null, crux: null, body: null };
 
   var nameInp = document.getElementById('log-rname-input');
-  if(nameInp) logState.routeName = nameInp.value.trim() || null;
+  if(nameInp && !logState._routeLocked) logState.routeName = nameInp.value.trim() || null;
 
   if(!logState.result || !logState.grade || !logState.terrain){
     showToast('Complete result, grade, and terrain first');
@@ -8385,14 +8385,19 @@ async function logFlowSaveSession(how){
   if(!logState.routeName && drillState && drillState.routeName){
     logState.routeName = drillState.routeName;
   }
+  var lockedSelectedId = (logState._routeLocked && _selectedClimbId) ? _selectedClimbId : null;
   var climbIdEarly = await trustedSelectedClimbId(logState.routeName, _selectedClimbId);
+  if(lockedSelectedId && !climbIdEarly) climbIdEarly = lockedSelectedId;
   if(climbIdEarly !== _selectedClimbId) _selectedClimbId = climbIdEarly;
   if((!logState.routeName || isUnnamedClimbName(logState.routeName)) && !climbIdEarly){
     if(how !== 'unnamed'){
-      showToast('Name this climb or tap Skip - leave unnamed', true);
-      return;
+      if(!(logState._routeLocked && lockedSelectedId)){
+        showToast('Name this climb or tap Skip - leave unnamed', true);
+        return;
+      }
+    } else {
+      logState.routeName = null;
     }
-    logState.routeName = null;
   }
 
   _logFlowSaveBusy = true;
@@ -8410,7 +8415,7 @@ async function logFlowSaveSession(how){
     logState.userActivationEstimate = logFlowState.activationScore;
   }
 
-  var climbId = _selectedClimbId || null;
+  var climbId = _selectedClimbId || lockedSelectedId || null;
   if(!climbId && logState.routeName){
     climbId = await findOrCreateClimbIdByName(logState.routeName);
     if(climbId) _selectedClimbId = climbId;
@@ -9594,6 +9599,8 @@ function lockRouteIdentityFields(routeName, grade, terrain, setting){
   // (Fix 2, build 173 — supersedes the old dim/disable + "🔒 Locked to this
   // route" label treatment; the header itself now communicates the lock)
   logState._routeLocked = true;
+  var rnameInput = document.getElementById('log-rname-input');
+  if(rnameInput && routeName) rnameInput.value = routeName;
   var terrainCard = document.getElementById('log-terrain-card');
   if(terrainCard) terrainCard.style.display = 'none';
   var gradeCard = document.getElementById('log-grade-card');
@@ -19991,6 +19998,10 @@ function launchLogWithClimb(climbId, climbName, grade, terrain, setting){
       // we do have so the user isn't retyping known info.
       var rnameInput = document.getElementById('log-rname-input');
       if(rnameInput) rnameInput.value = climbName;
+    }
+    if(climbName){
+      var lockedNameInp = document.getElementById('log-rname-input');
+      if(lockedNameInp && !lockedNameInp.value) lockedNameInp.value = climbName;
     }
 
     checkLogReady();
