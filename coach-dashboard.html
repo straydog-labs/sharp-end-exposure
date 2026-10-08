@@ -890,6 +890,24 @@
   .aw-content{
     max-width:520px;margin:0 auto;padding:20px 20px calc(48px + env(safe-area-inset-bottom, 0px));width:100%;box-sizing:border-box;
   }
+  #coach-log-overlay .aw-content{padding-bottom:24px;}
+  #coach-log-overlay .clog-footer{
+    position:sticky;bottom:0;z-index:6;
+    background:var(--bg);
+    padding:10px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top:1px solid var(--border);
+    max-width:520px;margin:0 auto;width:100%;box-sizing:border-box;
+  }
+  .clog-stepper{display:flex;align-items:center;gap:10px;margin:8px 0 14px;}
+  .clog-stepper button{
+    width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text);font-size:18px;font-weight:700;cursor:pointer;
+  }
+  .clog-stepper span{min-width:28px;text-align:center;font-weight:700;}
+  .clog-zone-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;}
+  .clog-zone-chips button.comfort.selected{border-color:var(--comfort);color:var(--comfort);}
+  .clog-zone-chips button.learning.selected{border-color:var(--learning);color:var(--learning);}
+  .clog-zone-chips button.panic.selected{border-color:var(--panic);color:var(--panic);}
   #assign-wizard-overlay .aw-top{
     max-width:920px;
   }
@@ -1318,12 +1336,37 @@
         <div class="aw-hero" id="clog-hero">How did it feel?</div>
         <div class="aw-hero-sub" id="clog-hero-sub">Zone is the only required field. Drag the dial, then save.</div>
         <div id="clog-gauge" class="clog-gauge"></div>
-        <div class="aw-section-label">Climb (optional)</div>
+        <div class="form-row"><label for="clog-activation">Activation (0–10)</label>
+          <input id="clog-activation" type="number" min="0" max="10" step="0.5" inputmode="decimal">
+        </div>
+        <div class="aw-section-label">Zone</div>
+        <div id="clog-zone-chips" class="clog-terrain clog-zone-chips"></div>
+        <div class="form-row"><label for="clog-name">Climb name</label><input id="clog-name" type="text" autocomplete="off" placeholder="Name, or leave blank to use the grade"></div>
         <div id="clog-catalog" class="clog-catalog"></div>
-        <div class="aw-section-label">Terrain (optional)</div>
+        <div class="form-row"><label for="clog-grade">Grade</label><input id="clog-grade" type="text" autocomplete="off" placeholder="e.g. V4 or 5.11a"></div>
+        <div class="aw-section-label">How climbed</div>
+        <div id="clog-how" class="clog-terrain"></div>
+        <div class="aw-section-label">Indoor / outdoor</div>
+        <div id="clog-setting" class="clog-terrain"></div>
+        <div id="clog-discipline-wrap" hidden>
+          <div class="aw-section-label">Style</div>
+          <div id="clog-discipline" class="clog-terrain"></div>
+        </div>
+        <div class="aw-section-label">Terrain</div>
         <div id="clog-terrains" class="clog-terrain"></div>
-        <div class="form-row"><label for="clog-grade">Grade (optional)</label><input id="clog-grade" type="text" autocomplete="off" placeholder="e.g. V4 or 5.11a"></div>
+        <div class="aw-section-label">Result</div>
+        <div id="clog-result" class="clog-terrain"></div>
+        <div id="clog-fall-wrap" hidden>
+          <div class="aw-section-label">How many falls?</div>
+          <div class="clog-stepper">
+            <button type="button" id="clog-fall-minus" aria-label="Fewer falls">−</button>
+            <span id="clog-fall-count-val">1</span>
+            <button type="button" id="clog-fall-plus" aria-label="More falls">+</button>
+          </div>
+        </div>
         <div class="form-row"><label for="clog-note">Short note (optional)</label><textarea id="clog-note" rows="2" placeholder="Anything you want on this attempt"></textarea></div>
+      </div>
+      <div class="clog-footer">
         <div class="form-actions">
           <button type="button" class="btn-primary" id="clog-save">Save</button>
           <button type="button" class="btn-cancel" id="clog-again" style="display:none;">Log another</button>
@@ -3116,6 +3159,11 @@
     grade: '',
     note: '',
     catalog: [],
+    howClimbed: '',
+    setting: '',
+    discipline: '',
+    result: '',
+    fallCount: 1,
     activationScore: 6,
     activationTouched: false
   };
@@ -3155,14 +3203,23 @@
     _coachLogState.routeName = '';
     _coachLogState.grade = '';
     _coachLogState.note = '';
+    _coachLogState.howClimbed = '';
+    _coachLogState.setting = '';
+    _coachLogState.discipline = '';
+    _coachLogState.result = '';
+    _coachLogState.fallCount = 1;
     _coachLogState.activationScore = 6;
     _coachLogState.activationTouched = false;
     unlockCoachLogForm();
     clearCoachLogGauge();
+    var nameEl = document.getElementById('clog-name');
     var gradeEl = document.getElementById('clog-grade');
     var noteEl = document.getElementById('clog-note');
+    var actEl = document.getElementById('clog-activation');
+    if(nameEl) nameEl.value = '';
     if(gradeEl) gradeEl.value = '';
     if(noteEl) noteEl.value = '';
+    if(actEl) actEl.value = '';
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -3211,18 +3268,113 @@
       locked: locked,
       onChange: function(score, zone){
         if(coachLogFormLocked()) return;
-        _coachLogState.activationScore = score;
+        var saved = window.CoachLogSession.clampActivationSave
+          ? window.CoachLogSession.clampActivationSave(score)
+          : score;
+        _coachLogState.activationScore = saved != null ? saved : score;
         _coachLogState.activationTouched = true;
         _coachLogState.zone = zone;
+        var actEl = document.getElementById('clog-activation');
+        if(actEl && String(actEl.value) !== String(_coachLogState.activationScore)){
+          actEl.value = _coachLogState.activationScore;
+        }
+        paintCoachLogChips();
       }
     });
     host.setAttribute('data-gauge-ready', '1');
     host.setAttribute('data-gauge-locked', locked ? '1' : '0');
   }
 
+  function paintChipGroup(el, items, selected, onPick){
+    if(!el) return;
+    el.innerHTML = items.map(function(item){
+      var value = item.value;
+      var label = item.label;
+      var extra = item.cls ? ' ' + item.cls : '';
+      return '<button type="button" data-value="' + escapeHtml(value) + '"' +
+        (selected === value ? ' class="selected' + extra + '"' : (extra ? ' class="' + extra.trim() + '"' : '')) +
+        '>' + escapeHtml(label) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('button'), function(btn){
+      btn.addEventListener('click', function(){
+        if(coachLogFormLocked()) return;
+        onPick(btn.getAttribute('data-value'));
+      });
+    });
+  }
+
+  function syncCoachLogZoneFromScore(score){
+    if(!window.CoachLogSession) return;
+    var saved = window.CoachLogSession.clampActivationSave
+      ? window.CoachLogSession.clampActivationSave(score)
+      : score;
+    _coachLogState.activationScore = saved != null ? saved : score;
+    _coachLogState.activationTouched = true;
+    _coachLogState.zone = window.CoachLogSession.scoreToZone(_coachLogState.activationScore);
+  }
+
+  function paintCoachLogChips(){
+    var Log = window.CoachLogSession || {};
+    paintChipGroup(document.getElementById('clog-zone-chips'), [
+      { value: 'comfort', label: 'Comfort', cls: 'comfort' },
+      { value: 'learning', label: 'Learning', cls: 'learning' },
+      { value: 'panic', label: 'Panic', cls: 'panic' }
+    ], _coachLogState.zone, function(z){
+      _coachLogState.zone = z;
+      _coachLogState.activationTouched = true;
+      if(z === 'comfort') _coachLogState.activationScore = 2;
+      else if(z === 'panic') _coachLogState.activationScore = 10;
+      else _coachLogState.activationScore = 6.5;
+      clearCoachLogGauge();
+      paintCoachLogForm();
+    });
+    paintChipGroup(document.getElementById('clog-how'),
+      (Log.HOW_CLIMBED || ['Lead','Top Rope','Boulder','Auto Belay']).map(function(v){ return { value: v, label: v }; }),
+      _coachLogState.howClimbed, function(v){
+        _coachLogState.howClimbed = _coachLogState.howClimbed === v ? '' : v;
+        paintCoachLogChips();
+      });
+    paintChipGroup(document.getElementById('clog-setting'), [
+      { value: 'indoor', label: 'Indoor' },
+      { value: 'outdoor', label: 'Outdoor' }
+    ], _coachLogState.setting, function(v){
+      _coachLogState.setting = _coachLogState.setting === v ? '' : v;
+      if(_coachLogState.setting !== 'outdoor') _coachLogState.discipline = '';
+      paintCoachLogForm();
+    });
+    paintChipGroup(document.getElementById('clog-discipline'),
+      (Log.OUTDOOR_STYLES || ['Sport','Trad']).map(function(v){ return { value: v, label: v }; }),
+      _coachLogState.discipline, function(v){
+        _coachLogState.discipline = _coachLogState.discipline === v ? '' : v;
+        paintCoachLogChips();
+      });
+    paintChipGroup(document.getElementById('clog-result'), [
+      { value: 'sent', label: 'Sent' },
+      { value: 'fell', label: 'Fell' },
+      { value: 'dna', label: 'DNA' },
+      { value: 'took', label: 'Took' },
+      { value: 'fall_practice', label: 'Fall practice' }
+    ], _coachLogState.result, function(v){
+      _coachLogState.result = _coachLogState.result === v ? '' : v;
+      if(_coachLogState.result !== 'fall_practice') _coachLogState.fallCount = 1;
+      paintCoachLogForm();
+    });
+    var discWrap = document.getElementById('clog-discipline-wrap');
+    if(discWrap) discWrap.hidden = _coachLogState.setting !== 'outdoor';
+    var fallWrap = document.getElementById('clog-fall-wrap');
+    if(fallWrap) fallWrap.hidden = _coachLogState.result !== 'fall_practice';
+    var fallVal = document.getElementById('clog-fall-count-val');
+    if(fallVal) fallVal.textContent = String(_coachLogState.fallCount || 1);
+    var actEl = document.getElementById('clog-activation');
+    if(actEl && _coachLogState.activationTouched && String(actEl.value) !== String(_coachLogState.activationScore)){
+      actEl.value = _coachLogState.activationScore;
+    }
+  }
+
   function paintCoachLogForm(){
     readCoachLogFields();
     ensureCoachLogGauge();
+    paintCoachLogChips();
     var terrainsEl = document.getElementById('clog-terrains');
     if(terrainsEl){
       var types = (window.CoachInsights && window.CoachInsights.TERRAIN_TYPES) ||
@@ -3273,17 +3425,25 @@
         });
       }
     }
+    var nameEl = document.getElementById('clog-name');
     var gradeEl = document.getElementById('clog-grade');
     var noteEl = document.getElementById('clog-note');
+    if(nameEl && nameEl.value !== (_coachLogState.routeName || '')) nameEl.value = _coachLogState.routeName || '';
     if(gradeEl && gradeEl.value !== _coachLogState.grade) gradeEl.value = _coachLogState.grade || '';
     if(noteEl && noteEl.value !== _coachLogState.note) noteEl.value = _coachLogState.note || '';
   }
 
   function readCoachLogFields(){
+    var nameEl = document.getElementById('clog-name');
     var gradeEl = document.getElementById('clog-grade');
     var noteEl = document.getElementById('clog-note');
+    var actEl = document.getElementById('clog-activation');
+    if(nameEl) _coachLogState.routeName = nameEl.value;
     if(gradeEl) _coachLogState.grade = gradeEl.value;
     if(noteEl) _coachLogState.note = noteEl.value;
+    if(actEl && actEl.value !== ''){
+      syncCoachLogZoneFromScore(actEl.value);
+    }
   }
 
   function loadCoachLogCatalog(){
@@ -3462,6 +3622,17 @@
         });
       }
       throw err;
+    })
+    .catch(function retryExtras(err){
+      if(!state.firstErr) state.firstErr = err;
+      var extras = ['coach_activation_score','fall_count','baseline_zone','setting','discipline','climbing_type'];
+      var i;
+      for(i = 0; i < extras.length; i++){
+        if(isCoachLogMissingColumn(err, extras[i])){
+          return stripKnown(err, [extras[i]]).catch(retryExtras);
+        }
+      }
+      throw err;
     });
   }
 
@@ -3509,7 +3680,13 @@
       gymClimbId: _coachLogState.gymClimbId,
       routeName: _coachLogState.routeName,
       grade: _coachLogState.grade,
-      note: _coachLogState.note
+      note: _coachLogState.note,
+      howClimbed: _coachLogState.howClimbed,
+      setting: _coachLogState.setting,
+      discipline: _coachLogState.discipline,
+      result: _coachLogState.result,
+      fallCount: _coachLogState.fallCount,
+      activationScore: _coachLogState.activationScore
     });
     var msg = document.getElementById('clog-msg');
     if(!built.ok){
@@ -7029,16 +7206,48 @@
     saveCoachLogSession();
   });
   document.getElementById('clog-again').addEventListener('click', resetCoachLogAnother);
+  var clogAct = document.getElementById('clog-activation');
+  if(clogAct){
+    clogAct.addEventListener('input', function(){
+      if(coachLogFormLocked()) return;
+      if(clogAct.value === '') return;
+      syncCoachLogZoneFromScore(clogAct.value);
+      clearCoachLogGauge();
+      paintCoachLogForm();
+    });
+  }
+  var fallMinus = document.getElementById('clog-fall-minus');
+  var fallPlus = document.getElementById('clog-fall-plus');
+  if(fallMinus) fallMinus.addEventListener('click', function(){
+    if(coachLogFormLocked()) return;
+    var n = window.CoachLogSession && window.CoachLogSession.clampFallCount
+      ? window.CoachLogSession.clampFallCount((_coachLogState.fallCount || 1) - 1)
+      : Math.max(1, (_coachLogState.fallCount || 1) - 1);
+    _coachLogState.fallCount = n;
+    paintCoachLogChips();
+  });
+  if(fallPlus) fallPlus.addEventListener('click', function(){
+    if(coachLogFormLocked()) return;
+    var n = window.CoachLogSession && window.CoachLogSession.clampFallCount
+      ? window.CoachLogSession.clampFallCount((_coachLogState.fallCount || 1) + 1)
+      : Math.min(20, (_coachLogState.fallCount || 1) + 1);
+    _coachLogState.fallCount = n;
+    paintCoachLogChips();
+  });
   window.__coachLogTest = {
     arm: function(ctx, extras){
       _detailCtx = ctx;
       openCoachLogOverlay();
       if(extras){
         Object.assign(_coachLogState, extras);
+        var nameEl = document.getElementById('clog-name');
         var gradeEl = document.getElementById('clog-grade');
         var noteEl = document.getElementById('clog-note');
+        var actEl = document.getElementById('clog-activation');
+        if(nameEl && extras.routeName != null) nameEl.value = extras.routeName;
         if(gradeEl && extras.grade != null) gradeEl.value = extras.grade;
         if(noteEl && extras.note != null) noteEl.value = extras.note;
+        if(actEl && extras.activationScore != null) actEl.value = extras.activationScore;
         paintCoachLogForm();
       }
     },

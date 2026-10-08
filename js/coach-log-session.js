@@ -5,11 +5,15 @@
   'use strict';
 
   var ZONES = ['comfort', 'learning', 'panic'];
+  var HOW_CLIMBED = ['Lead', 'Top Rope', 'Boulder', 'Auto Belay'];
+  var RESULTS = ['sent', 'fell', 'dna', 'took', 'fall_practice'];
+  var OUTDOOR_STYLES = ['Sport', 'Trad'];
   // Same score bands as index.html scoreToZone / getZone / resolveZone.
   var SCORE_COMFORT_MAX = 4;
   var SCORE_LEARNING_MAX = 9;
   var SCORE_MIN = 0;
   var SCORE_MAX = 12;
+  var ACTIVATION_SAVE_MAX = 10;
 
   function normalizeZone(value) {
     var z = String(value || '').trim().toLowerCase();
@@ -41,9 +45,53 @@
     return z === 'comfort' ? 'Comfort' : z === 'panic' ? 'Panic' : 'Learning';
   }
 
+  function pickAllowed(value, allowed) {
+    var s = String(value || '').trim();
+    var i;
+    for (i = 0; i < allowed.length; i++) {
+      if (allowed[i].toLowerCase() === s.toLowerCase()) return allowed[i];
+    }
+    return '';
+  }
+
+  function normalizeHowClimbed(value) {
+    return pickAllowed(value, HOW_CLIMBED);
+  }
+
+  function normalizeSetting(value) {
+    var s = String(value || '').trim().toLowerCase();
+    return (s === 'indoor' || s === 'outdoor') ? s : '';
+  }
+
+  function normalizeResult(value) {
+    var s = String(value || '').trim().toLowerCase();
+    return RESULTS.indexOf(s) !== -1 ? s : '';
+  }
+
+  function normalizeDiscipline(value) {
+    return pickAllowed(value, OUTDOOR_STYLES.concat(HOW_CLIMBED));
+  }
+
+  function clampFallCount(n) {
+    n = parseInt(n, 10);
+    if (isNaN(n) || n < 1) return 1;
+    if (n > 20) return 20;
+    return n;
+  }
+
+  function clampActivationSave(score) {
+    var n = Number(score);
+    if (isNaN(n)) return null;
+    n = Math.max(SCORE_MIN, Math.min(ACTIVATION_SAVE_MAX, n));
+    return Math.round(n * 2) / 2;
+  }
+
   function buildPayload(opts) {
     opts = opts || {};
     var zone = normalizeZone(opts.zone);
+    if (!zone && opts.activationScore != null && opts.activationScore !== '') {
+      zone = scoreToZone(opts.activationScore);
+    }
     if (!zone) return { ok: false, error: 'Drag the dial to set a zone.' };
     if (!opts.athleteId) return { ok: false, error: 'Athlete is required.' };
     if (!opts.coachId) return { ok: false, error: 'Coach is required.' };
@@ -53,20 +101,40 @@
     } else {
       terrain = String(opts.terrain || '').trim();
     }
+    var how = normalizeHowClimbed(opts.howClimbed);
+    var setting = normalizeSetting(opts.setting);
+    var discipline = normalizeDiscipline(opts.discipline);
+    if (setting === 'outdoor') {
+      discipline = pickAllowed(opts.discipline, OUTDOOR_STYLES) || discipline;
+    } else if (setting === 'indoor') {
+      discipline = how || pickAllowed(opts.discipline, HOW_CLIMBED);
+    }
+    var grade = String(opts.grade || '').trim();
+    var routeName = String(opts.routeName || '').trim() || grade || null;
+    var result = normalizeResult(opts.result);
+    var score = clampActivationSave(opts.activationScore);
     var payload = {
       user_id: opts.athleteId,
       device_id: 'coach:' + String(opts.coachId),
       zone: zone,
-      climbing_type: terrain || null,
-      route_name: String(opts.routeName || '').trim() || null,
+      climbing_type: how || terrain || null,
+      route_name: routeName,
       gym_climb_id: opts.gymClimbId || null,
-      grade_value: String(opts.grade || '').trim() || null,
+      grade_value: grade || null,
       session_notes: String(opts.note || '').trim() || null,
       is_checkin: false,
       logged_by_coach: true,
       logged_by: opts.coachId,
       zone_confirmed_by_athlete: false
     };
+    if (setting) payload.setting = setting;
+    if (discipline) payload.discipline = discipline;
+    if (score != null) payload.coach_activation_score = score;
+    if (result) payload.baseline_zone = result;
+    if (result === 'fall_practice') {
+      payload.baseline_zone = 'fall_practice';
+      payload.fall_count = clampFallCount(opts.fallCount);
+    }
     if (global.SessionsInsertRequired && typeof global.SessionsInsertRequired.assertPayload === 'function') {
       var required = global.SessionsInsertRequired.assertPayload(payload);
       if (!required.ok) return { ok: false, error: required.error };
@@ -75,14 +143,18 @@
   }
 
   function keepAfterLogAnother(state) {
-    state = state || {};
     return {
       zone: '',
-      terrain: state.terrain || '',
-      gymClimbId: state.gymClimbId || null,
-      routeName: state.routeName || '',
-      grade: state.grade || '',
-      note: state.note || '',
+      terrain: '',
+      gymClimbId: null,
+      routeName: '',
+      grade: '',
+      note: '',
+      howClimbed: '',
+      setting: '',
+      discipline: '',
+      result: '',
+      fallCount: 1,
       activationScore: 6,
       activationTouched: false
     };
@@ -274,9 +346,19 @@
 
   global.CoachLogSession = {
     ZONES: ZONES,
+    HOW_CLIMBED: HOW_CLIMBED,
+    RESULTS: RESULTS,
+    OUTDOOR_STYLES: OUTDOOR_STYLES,
     SCORE_COMFORT_MAX: SCORE_COMFORT_MAX,
     SCORE_LEARNING_MAX: SCORE_LEARNING_MAX,
+    SCORE_MAX: SCORE_MAX,
+    ACTIVATION_SAVE_MAX: ACTIVATION_SAVE_MAX,
     normalizeZone: normalizeZone,
+    normalizeHowClimbed: normalizeHowClimbed,
+    normalizeSetting: normalizeSetting,
+    normalizeResult: normalizeResult,
+    clampFallCount: clampFallCount,
+    clampActivationSave: clampActivationSave,
     clampScore: clampScore,
     scoreToZone: scoreToZone,
     zoneColorFromScore: zoneColorFromScore,

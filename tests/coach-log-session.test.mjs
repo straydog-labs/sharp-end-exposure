@@ -48,6 +48,44 @@ assert.strictEqual(built.payload.session_notes, 'watched the crux');
 assert.strictEqual(built.payload.zone_confirmed_by_athlete, false);
 assert.strictEqual(built.payload.device_id, 'coach:coach-1');
 
+const full = Log.buildPayload({
+  athleteId: 'athlete-1',
+  coachId: 'coach-1',
+  zone: 'learning',
+  terrain: 'Overhang',
+  routeName: 'Power of Now',
+  grade: '5.12a',
+  note: 'watched the crux',
+  howClimbed: 'Lead',
+  setting: 'outdoor',
+  discipline: 'Sport',
+  result: 'sent',
+  activationScore: 7
+});
+assert.strictEqual(full.ok, true);
+assert.strictEqual(full.payload.climbing_type, 'Lead');
+assert.strictEqual(full.payload.setting, 'outdoor');
+assert.strictEqual(full.payload.discipline, 'Sport');
+assert.strictEqual(full.payload.coach_activation_score, 7);
+assert.strictEqual(full.payload.baseline_zone, 'sent');
+assert.strictEqual(full.payload.route_name, 'Power of Now');
+
+const practice = Log.buildPayload({
+  athleteId: 'athlete-1',
+  coachId: 'coach-1',
+  zone: 'learning',
+  howClimbed: 'Top Rope',
+  setting: 'indoor',
+  result: 'fall_practice',
+  fallCount: 4,
+  grade: '5.10a',
+  activationScore: 6
+});
+assert.strictEqual(practice.payload.baseline_zone, 'fall_practice');
+assert.strictEqual(practice.payload.fall_count, 4);
+assert.strictEqual(practice.payload.climbing_type, 'Top Rope');
+assert.strictEqual(practice.payload.route_name, '5.10a');
+
 const again = Log.keepAfterLogAnother({
   zone: 'panic',
   terrain: 'Overhang',
@@ -55,14 +93,21 @@ const again = Log.keepAfterLogAnother({
   routeName: 'Example climb',
   grade: 'V4',
   note: 'watched the crux',
+  howClimbed: 'Lead',
+  setting: 'outdoor',
+  discipline: 'Sport',
+  result: 'sent',
+  fallCount: 3,
   activationScore: 11,
   activationTouched: true
 });
 assert.strictEqual(again.zone, '');
-assert.strictEqual(again.terrain, 'Overhang');
-assert.strictEqual(again.gymClimbId, 'climb-1');
-assert.strictEqual(again.routeName, 'Example climb');
-assert.strictEqual(again.grade, 'V4');
+assert.strictEqual(again.terrain, '');
+assert.strictEqual(again.gymClimbId, null);
+assert.strictEqual(again.routeName, '');
+assert.strictEqual(again.grade, '');
+assert.strictEqual(again.howClimbed, '');
+assert.strictEqual(again.result, '');
 assert.strictEqual(again.activationScore, 6);
 assert.strictEqual(again.activationTouched, false);
 
@@ -129,8 +174,9 @@ assert.ok(/activationTouched/.test(dash));
 assert.ok(/zone_confirmed_by_athlete/.test(dash));
 assert.ok(/zone_confirmed_by_athlete/.test(dash));
 assert.ok(/delete payload\[col\]/.test(dash));
-assert.ok(!/clog-zone/.test(dash));
-assert.ok(!/clog-zones/.test(dash));
+assert.ok(/clog-zone-chips/.test(dash));
+assert.ok(!/id="clog-zone"/.test(dash));
+assert.ok(!/id="clog-zones"/.test(dash));
 assert.ok(!/saveCoachLogSession\(true\)/.test(dash));
 assert.ok(!/fromZoneTap/.test(dash));
 assert.ok(!/Tap a zone to save/.test(dash));
