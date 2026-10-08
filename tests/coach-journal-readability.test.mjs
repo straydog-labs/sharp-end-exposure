@@ -17,6 +17,12 @@ assert.ok(/APP_VERSION = 'index293'/.test(sw));
 assert.ok(/function renderJournalFeed/.test(dash));
 assert.ok(/function loadAthleteSessions/.test(dash));
 assert.ok(/function journalClimbEntryHtml/.test(dash));
+assert.ok(/_journalSortNewest/.test(dash));
+assert.ok(/baseline_zone/.test(dash) && /fall_count/.test(dash));
+assert.ok(/coach_activation_score/.test(dash));
+assert.ok(/grade_value/.test(dash) && /climbing_type/.test(dash));
+assert.ok(/isCoachLogMissingColumn\(err, cols\[i\]\)/.test(dash));
+assert.ok(/journal-sort-newest/.test(dash) && /journal-sort-oldest/.test(dash));
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
