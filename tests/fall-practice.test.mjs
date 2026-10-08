@@ -13,8 +13,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const sql = readFileSync(join(root, 'sql/sessions-fall-practice.sql'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index295'/.test(index), 'app_version');
-assert.ok(/APP_VERSION = 'index295'/.test(sw), 'sw APP_VERSION');
+assert.ok(/var app_version = 'index296'/.test(index), 'app_version');
+assert.ok(/APP_VERSION = 'index296'/.test(sw), 'sw APP_VERSION');
 assert.ok(!/coach-dashboard\.html/.test(sql));
 assert.ok(/add column if not exists fall_count integer/.test(sql));
 assert.ok(/selectLogResult\('fall_practice'\)/.test(index));
