@@ -12,8 +12,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index291'/.test(index));
-assert.ok(/APP_VERSION = 'index291'/.test(sw));
+assert.ok(/var app_version = 'index292'/.test(index));
+assert.ok(/APP_VERSION = 'index292'/.test(sw));
 assert.ok(!/train-done-assign-prompt/.test(dash), 'coach-dashboard untouched');
 
 function extractFn(src, name){

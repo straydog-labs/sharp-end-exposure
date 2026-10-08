@@ -511,6 +511,10 @@
   .form-error{font-size:11.5px;color:var(--danger);margin-top:8px;}
   .form-error:empty{display:none;margin:0;}
   .form-success{font-size:11.5px;color:#7fbf3f;margin-top:8px;}
+  .form-warning{font-size:11.5px;color:#e0b050;margin-top:8px;}
+  .form-warning:empty{display:none;margin:0;}
+  .clog-queue-banner{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;padding:8px 10px;border:1px solid #e0b050;border-radius:6px;background:rgba(224,176,80,.08);font-size:12px;color:#e0b050;}
+  .clog-queue-banner[hidden]{display:none;}
 
   .note-card{
     background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;
@@ -1308,6 +1312,10 @@
           <button type="button" class="btn-cancel" id="clog-again" style="display:none;">Log another</button>
         </div>
         <div class="form-error" id="clog-msg"></div>
+        <div id="clog-queue-banner" class="clog-queue-banner" hidden>
+          <span id="clog-queue-text">Saved on this device, will retry</span>
+          <button type="button" class="btn-cancel" id="clog-retry-now">Retry now</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2955,6 +2963,7 @@
       athleteLabel: title,
       athleteEmail: athleteEmail || ''
     };
+    replayCoachLogQueue();
     _lastCoachAssignments = [];
     _coachGoalsCache = [];
     _lastSessionRows = [];
@@ -3148,6 +3157,7 @@
     if(hero) hero.textContent = 'How did it feel?';
     paintCoachLogForm();
     loadCoachLogCatalog();
+    paintCoachLogQueueBanner();
   }
 
   function closeCoachLogOverlay(){
@@ -3277,49 +3287,197 @@
   }
 
   // Retry a coach-log POST only when PostgREST/Postgres names that column as
-  // missing (PGRST204 / 42703). That is not 23502 — "column exists but got
-  // null". Required sessions fields (see js/sessions-insert-required.js,
-  // live-probed: device_id) must already be set; never strip them here.
+  // missing (PGRST204 / 42703 / "column ... does not exist"). That is not
+  // 23502 — "column exists but got null". Required sessions fields (see
+  // js/sessions-insert-required.js, live-probed: device_id) must already be
+  // set; never strip them here. Strip only keys the payload actually has
+  // (hasOwnProperty, not truthiness) so false/null fields still retry.
+  var COACH_LOG_QUEUE_KEY = 'see-coach-log-queue-v1';
+  var _coachLogReplayInFlight = null;
+
+  function newCoachLogClientId(){
+    try{
+      if(window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    }catch(e){}
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+      var r = Math.random() * 16 | 0;
+      var v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  function readCoachLogQueue(){
+    try{
+      var list = JSON.parse(localStorage.getItem(COACH_LOG_QUEUE_KEY) || '[]');
+      return Array.isArray(list) ? list : [];
+    }catch(e){ return []; }
+  }
+
+  function writeCoachLogQueue(list){
+    try{ localStorage.setItem(COACH_LOG_QUEUE_KEY, JSON.stringify(list || [])); }
+    catch(e){}
+  }
+
+  function enqueueCoachLogPayload(payload){
+    if(!payload) return;
+    if(!payload.id) payload.id = newCoachLogClientId();
+    var list = readCoachLogQueue();
+    var i;
+    for(i = 0; i < list.length; i++){
+      if(list[i] && list[i].id === payload.id) return;
+    }
+    list.push(payload);
+    writeCoachLogQueue(list);
+  }
+
+  function dequeueCoachLogPayload(id){
+    if(!id) return;
+    writeCoachLogQueue(readCoachLogQueue().filter(function(p){ return !p || p.id !== id; }));
+  }
+
+  function paintCoachLogQueueBanner(){
+    var banner = document.getElementById('clog-queue-banner');
+    if(banner) banner.hidden = readCoachLogQueue().length === 0;
+  }
+
+  function isCoachLogDuplicateSuccess(err){
+    if(!err) return false;
+    return err.status === 409 || err.code === '23505';
+  }
+
+  function isCoachLogNetworkErr(err){
+    if(!err) return true;
+    if(err.status >= 500) return true;
+    var msg = String(err.message || err.name || '');
+    return err.name === 'TypeError' || /Failed to fetch|NetworkError|Load failed|network/i.test(msg);
+  }
+
+  function formatCoachLogSaveError(err){
+    var status = err && (err.status || err.statusCode);
+    var text = friendlyErrorMessage(err, (err && err.message) || 'Request failed');
+    if(status) return String(status) + ' ' + text;
+    return text;
+  }
+
+  function parseCoachLogFetchResponse(res){
+    return res.text().then(function(text){
+      var body = null;
+      if(text){
+        try{ body = JSON.parse(text); }catch(e){ body = { message: text }; }
+      }
+      if(res.ok) return body;
+      var err = (body && typeof body === 'object' && !Array.isArray(body))
+        ? body
+        : { message: String(body || res.statusText || 'Request failed') };
+      err.status = res.status;
+      throw err;
+    });
+  }
+
+  function postCoachLogSession(body){
+    if(!_detailCtx || !_detailCtx.token){
+      return Promise.reject({ message: 'Not signed in.', status: 401 });
+    }
+    var required = window.SessionsInsertRequired && window.SessionsInsertRequired.assertPayload
+      ? window.SessionsInsertRequired.assertPayload(body)
+      : { ok: !!(body && body.device_id), error: 'sessions insert missing required: device_id' };
+    if(!required.ok){
+      return Promise.reject({ code: '23502', message: required.error });
+    }
+    return fetch(SB_URL + '/rest/v1/sessions', {
+      method: 'POST',
+      headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify(body)
+    }).then(parseCoachLogFetchResponse);
+  }
+
   function isCoachLogMissingColumn(err, column){
     if(!err || !column) return false;
-    if(err.code !== 'PGRST204' && err.code !== '42703') return false;
-    return String(err.message || '').indexOf(column) !== -1;
+    var msg = String(err.message || '');
+    if(msg.indexOf(column) === -1) return false;
+    if(err.code !== 'PGRST204' && err.code !== '42703'){
+      return /does not exist|Could not find the/i.test(msg);
+    }
+    return true;
   }
 
   function postCoachLogSessionWithColumnFallbacks(postFn, payload, state){
     state = state || {};
     state.firstErr = null;
     state.untaggedFallback = false;
+    if(!state.dropped) state.dropped = [];
+    function stripKnown(err, columns){
+      if(!state.firstErr) state.firstErr = err;
+      var any = false;
+      var i;
+      for(i = 0; i < columns.length; i++){
+        var col = columns[i];
+        if(Object.prototype.hasOwnProperty.call(payload, col)){
+          delete payload[col];
+          if(state.dropped.indexOf(col) === -1) state.dropped.push(col);
+          any = true;
+        }
+      }
+      if(!any) throw err;
+      return postFn(payload);
+    }
     return postFn(payload)
     .catch(function(err){
       if(!state.firstErr) state.firstErr = err;
       if(isCoachLogMissingColumn(err, 'gym_climb_id')){
-        delete payload.gym_climb_id;
-        return postFn(payload);
+        return stripKnown(err, ['gym_climb_id']);
       }
       throw err;
     })
     .catch(function(err){
       if(!state.firstErr) state.firstErr = err;
       if(isCoachLogMissingColumn(err, 'zone_confirmed_by_athlete')){
-        delete payload.zone_confirmed_by_athlete;
-        return postFn(payload);
+        return stripKnown(err, ['zone_confirmed_by_athlete']);
       }
       throw err;
     })
     .catch(function(err){
       if(!state.firstErr) state.firstErr = err;
       if(isCoachLogMissingColumn(err, 'logged_by_coach')){
-        delete payload.logged_by_coach;
-        delete payload.logged_by;
-        delete payload.session_notes;
-        return postFn(payload).then(function(rows){
+        return stripKnown(err, ['logged_by_coach', 'logged_by', 'session_notes']).then(function(rows){
           state.untaggedFallback = true;
           return rows;
         });
       }
       throw err;
     });
+  }
+
+  function replayCoachLogQueue(){
+    if(_coachLogReplayInFlight) return _coachLogReplayInFlight;
+    if(!_detailCtx || !_detailCtx.token) return Promise.resolve();
+    var list = readCoachLogQueue();
+    if(!list.length) return Promise.resolve();
+    function replayOne(payload){
+      if(!payload || !payload.id) return Promise.resolve();
+      var retryState = {};
+      return postCoachLogSessionWithColumnFallbacks(postCoachLogSession, payload, retryState)
+        .then(function(){ dequeueCoachLogPayload(payload.id); })
+        .catch(function(err){
+          if(isCoachLogDuplicateSuccess(err)){
+            dequeueCoachLogPayload(payload.id);
+            return;
+          }
+          throw err;
+        });
+    }
+    var chain = Promise.resolve();
+    list.forEach(function(payload){
+      chain = chain.then(function(){ return replayOne(payload); });
+    });
+    _coachLogReplayInFlight = chain.then(function(){
+      _coachLogReplayInFlight = null;
+      paintCoachLogQueueBanner();
+    }, function(){
+      _coachLogReplayInFlight = null;
+      paintCoachLogQueueBanner();
+    });
+    return _coachLogReplayInFlight;
   }
 
   function saveCoachLogSession(){
@@ -3346,30 +3504,23 @@
     paintCoachLogForm();
     if(msg) msg.textContent = '';
     var payload = built.payload;
+    if(!payload.id) payload.id = newCoachLogClientId();
     var retryState = {};
-    function postCoachLogSession(body){
-      var required = window.SessionsInsertRequired && window.SessionsInsertRequired.assertPayload
-        ? window.SessionsInsertRequired.assertPayload(body)
-        : { ok: !!(body && body.device_id), error: 'sessions insert missing required: device_id' };
-      if(!required.ok){
-        return Promise.reject({ code: '23502', message: required.error });
-      }
-      return fetch(SB_URL + '/rest/v1/sessions', {
-        method: 'POST',
-        headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
-        body: JSON.stringify(body)
-      }).then(function(res){
-        if(res.ok) return res.json();
-        return res.json().then(function(err){ throw err; });
-      });
-    }
     postCoachLogSessionWithColumnFallbacks(postCoachLogSession, payload, retryState)
     .then(function(){
+      dequeueCoachLogPayload(payload.id);
+      paintCoachLogQueueBanner();
       _coachLogSaving = false;
       _coachLogLocked = true;
       setCoachLogSaveEnabled(false, 'Save');
       paintCoachLogForm();
-      if(retryState.untaggedFallback){
+      if(retryState.dropped && retryState.dropped.length){
+        showCoachToast('Climb logged — some fields were dropped.');
+        if(msg){
+          msg.className = 'form-warning';
+          msg.textContent = 'Saved without ' + retryState.dropped.join(', ') + ' (column missing on server).';
+        }
+      } else if(retryState.untaggedFallback){
         showCoachToast('Climb logged — not tagged Logged by coach.');
         if(msg){
           msg.className = 'form-success';
@@ -3393,9 +3544,18 @@
       _coachLogLocked = false;
       setCoachLogSaveEnabled(true, 'Save');
       paintCoachLogForm();
+      enqueueCoachLogPayload(payload);
+      paintCoachLogQueueBanner();
       if(msg){
-        msg.className = 'form-error';
-        msg.textContent = 'Could not save. ' + friendlyErrorMessage(retryState.firstErr || err, 'Apply the coach-log SQL if this is a first run.');
+        var rawErr = retryState.firstErr || err;
+        var detail = friendlyErrorMessage(retryState.firstErr || err, 'Apply the coach-log SQL if this is a first run.');
+        if(isCoachLogNetworkErr(rawErr) && !(rawErr && rawErr.status >= 400 && rawErr.status < 500)){
+          msg.className = 'form-warning';
+          msg.textContent = 'Saved on this device, will retry';
+        } else {
+          msg.className = 'form-error';
+          msg.textContent = formatCoachLogSaveError(rawErr) || detail;
+        }
       }
     });
   }
@@ -6852,6 +7012,36 @@
     saveCoachLogSession();
   });
   document.getElementById('clog-again').addEventListener('click', resetCoachLogAnother);
+  window.__coachLogTest = {
+    arm: function(ctx, extras){
+      _detailCtx = ctx;
+      openCoachLogOverlay();
+      if(extras){
+        Object.assign(_coachLogState, extras);
+        var gradeEl = document.getElementById('clog-grade');
+        var noteEl = document.getElementById('clog-note');
+        if(gradeEl && extras.grade != null) gradeEl.value = extras.grade;
+        if(noteEl && extras.note != null) noteEl.value = extras.note;
+        paintCoachLogForm();
+      }
+    },
+    save: saveCoachLogSession,
+    getState: function(){
+      var gradeEl = document.getElementById('clog-grade');
+      var noteEl = document.getElementById('clog-note');
+      return {
+        zone: _coachLogState.zone,
+        grade: gradeEl ? gradeEl.value : _coachLogState.grade,
+        note: noteEl ? noteEl.value : _coachLogState.note,
+        locked: _coachLogLocked
+      };
+    },
+    replay: replayCoachLogQueue
+  };
+  var clogRetryNow = document.getElementById('clog-retry-now');
+  if(clogRetryNow) clogRetryNow.addEventListener('click', function(){ replayCoachLogQueue(); });
+  window.addEventListener('online', function(){ replayCoachLogQueue(); });
+  paintCoachLogQueueBanner();
 
   var _lastSessionRows = [];
   var _journalNotesBySession = {};

@@ -37,6 +37,10 @@ assert.ok(/err\.code !== 'PGRST204'/.test(helperSrc));
 assert.ok(/err\.code !== '42703'/.test(helperSrc));
 assert.ok(/indexOf\(column\)/.test(helperSrc));
 
+const fallbackSrc = extractFn(dash, 'postCoachLogSessionWithColumnFallbacks');
+assert.ok(/hasOwnProperty\.call\(payload/.test(fallbackSrc), 'fallback must strip via hasOwnProperty, not truthiness');
+assert.ok(/state\.dropped/.test(fallbackSrc));
+
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(extractFn(dash, 'isCoachLogMissingColumn'), ctx);
@@ -117,6 +121,20 @@ assert.strictEqual(zoneCalls.length, 2);
 assert.ok(!zonePayload.hasOwnProperty('zone_confirmed_by_athlete'));
 assert.strictEqual(zonePayload.logged_by_coach, true);
 assert.strictEqual(zonePayload.gym_climb_id, 'climb-1');
+assert.ok(zoneResult.state.dropped.indexOf('zone_confirmed_by_athlete') !== -1);
+
+const falsePayload = samplePayload();
+falsePayload.zone_confirmed_by_athlete = false;
+const falseCalls = [];
+const falseResult = await runRetries(function(body){
+  falseCalls.push(Object.prototype.hasOwnProperty.call(body, 'zone_confirmed_by_athlete'));
+  if(Object.prototype.hasOwnProperty.call(body, 'zone_confirmed_by_athlete')){
+    return Promise.reject(missingColErr('zone_confirmed_by_athlete'));
+  }
+  return Promise.resolve([{ id: 'ok-false' }]);
+}, falsePayload);
+assert.strictEqual(falseResult.ok, true);
+assert.deepStrictEqual(falseCalls, [true, false], 'false value must still strip via hasOwnProperty');
 
 const exhaustedCalls = [];
 const exhaustedPayload = samplePayload();
