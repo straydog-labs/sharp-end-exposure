@@ -27,6 +27,17 @@ async function run(){
         return !!(el && el.classList.contains('open'));
       }, null, { timeout: 8000 });
       await page.waitForSelector('#clog-gauge .gauge-dial-target', { timeout: 8000 });
+      var before = await page.evaluate(function(){
+        var save = document.getElementById('clog-save');
+        return {
+          saveDisabled: !!(save && save.disabled),
+          hasNumber: !!document.getElementById('clog-activation'),
+          hasZoneChips: !!document.getElementById('clog-zone-chips')
+        };
+      });
+      assert.strictEqual(before.hasNumber, false, 'no Activation number box');
+      assert.strictEqual(before.hasZoneChips, false, 'no zone chips');
+      assert.ok(before.saveDisabled, 'Save disabled until the dial is set');
       await page.evaluate(function(){
         var target = document.querySelector('#clog-gauge .gauge-dial-target');
         var wrap = document.querySelector('#clog-gauge .clog-gauge-wrap');
@@ -36,8 +47,11 @@ async function run(){
         var y = rect.top + rect.height * 0.2;
         var opts = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX: x, clientY: y };
         target.dispatchEvent(new PointerEvent('pointerdown', opts));
+        wrap.dispatchEvent(new PointerEvent('pointerdown', opts));
         target.dispatchEvent(new PointerEvent('pointermove', opts));
+        wrap.dispatchEvent(new PointerEvent('pointermove', opts));
         target.dispatchEvent(new PointerEvent('pointerup', opts));
+        wrap.dispatchEvent(new PointerEvent('pointerup', opts));
       });
       await page.waitForFunction(function(){
         var el = document.querySelector('.clog-gauge-readout');
@@ -60,9 +74,13 @@ async function run(){
       assert.strictEqual(body.logged_by_coach, true);
       assert.strictEqual(body.logged_by, COACH_ID);
       assert.ok(body.zone === 'comfort' || body.zone === 'learning' || body.zone === 'panic', 'zone=' + body.zone);
+      assert.ok(typeof body.coach_activation_score === 'number', 'dial must post coach_activation_score');
+      if(body.coach_activation_score <= 4) assert.strictEqual(body.zone, 'comfort');
+      else if(body.coach_activation_score <= 9) assert.strictEqual(body.zone, 'learning');
+      else assert.strictEqual(body.zone, 'panic');
       assert.ok(body.device_id, 'device_id required');
       assert.ok(/Saved/.test(postMsg) || /logged/i.test(postMsg), 'visible save result: ' + postMsg);
-      console.log('ok - coach-log POST logged_by_coach user_id=' + body.user_id + ' zone=' + body.zone);
+      console.log('ok - coach-log POST logged_by_coach user_id=' + body.user_id + ' zone=' + body.zone + ' score=' + body.coach_activation_score);
     });
   }finally{
     await browser.close();

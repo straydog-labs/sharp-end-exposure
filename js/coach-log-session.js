@@ -7,6 +7,7 @@
   var ZONES = ['comfort', 'learning', 'panic'];
   var HOW_CLIMBED = ['Lead', 'Top Rope', 'Boulder', 'Auto Belay'];
   var RESULTS = ['sent', 'fell', 'dna', 'took', 'fall_practice'];
+  var RESULT_LABELS = { sent: 'Sent', fell: 'Fell', dna: 'Backed off', took: 'Took', fall_practice: 'Fall practice' };
   var OUTDOOR_STYLES = ['Sport', 'Trad'];
   // Same score bands as index.html scoreToZone / getZone / resolveZone.
   var SCORE_COMFORT_MAX = 4;
@@ -210,9 +211,8 @@
         : (score <= 9 ? 'approaching the edge' : 'high activation'));
     var unreadout = untouched
       ? '<div class="clog-gauge-score" style="font-size:16px;font-weight:700;color:var(--text-secondary);line-height:1.3;">Drag to set their zone</div>'
-      : ('<div class="clog-gauge-score" style="font-size:30px;font-weight:700;color:' + needleColor + ';line-height:1;">' + score.toFixed(1) + '</div>' +
-        '<div class="clog-gauge-zone" style="font-size:14px;font-weight:700;color:' + needleColor + ';margin-top:4px;">' + zoneName + '</div>' +
-        '<div class="clog-gauge-sub" style="font-size:12px;color:var(--text-secondary);margin-top:2px;">' + subLabel + '</div>');
+      : ('<div class="clog-gauge-score" style="font-size:28px;font-weight:700;color:' + needleColor + ';line-height:1.15;">' + score.toFixed(1) + ' ' + zoneName + '</div>' +
+        '<div class="clog-gauge-sub" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">' + subLabel + '</div>');
 
     container.innerHTML =
       '<div class="clog-gauge-wrap" style="position:relative;' + (locked ? 'pointer-events:none;opacity:.55;' : '') + '">' +
@@ -234,13 +234,19 @@
     var handleSize = 22;
     var handle = document.createElement('div');
     handle.className = 'gauge-drag-handle';
-    handle.style.cssText = 'position:absolute;width:' + handleSize + 'px;height:' + handleSize + 'px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:grab;touch-action:none;z-index:5;';
+    handle.style.cssText = 'position:absolute;width:' + handleSize + 'px;height:' + handleSize + 'px;border-radius:50%;background:#fff;border:3px solid var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:grab;touch-action:none;z-index:5;pointer-events:none;';
     wrap.appendChild(handle);
 
     var dialTarget = document.createElement('div');
     dialTarget.className = 'gauge-dial-target';
+    dialTarget.setAttribute('tabindex', '0');
+    dialTarget.setAttribute('role', 'slider');
+    dialTarget.setAttribute('aria-label', 'Activation');
+    dialTarget.setAttribute('aria-valuemin', String(SCORE_MIN));
+    dialTarget.setAttribute('aria-valuemax', String(SCORE_MAX));
     dialTarget.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;cursor:grab;touch-action:none;z-index:4;';
     wrap.appendChild(dialTarget);
+    wrap.style.touchAction = 'none';
 
     var currentScore = score;
     var dragging = false;
@@ -273,6 +279,11 @@
       if (needleHub) needleHub.setAttribute('fill', color);
     }
 
+    function syncAria(s) {
+      dialTarget.setAttribute('aria-valuenow', String(s));
+      dialTarget.setAttribute('aria-valuetext', s.toFixed(1) + ' ' + zoneLabelFromScore(s));
+    }
+
     function updateReadout(s) {
       var readout = container.querySelector('.clog-gauge-readout');
       if (!readout) return;
@@ -282,15 +293,15 @@
         : (s <= 7 ? 'sweet spot range'
           : (s <= 9 ? 'approaching the edge' : 'high activation'));
       readout.innerHTML =
-        '<div class="clog-gauge-score" style="font-size:30px;font-weight:700;color:' + color + ';line-height:1;">' + s.toFixed(1) + '</div>' +
-        '<div class="clog-gauge-zone" style="font-size:14px;font-weight:700;color:' + color + ';margin-top:4px;">' + label + '</div>' +
-        '<div class="clog-gauge-sub" style="font-size:12px;color:var(--text-secondary);margin-top:2px;">' + sub + '</div>';
+        '<div class="clog-gauge-score" style="font-size:28px;font-weight:700;color:' + color + ';line-height:1.15;">' + s.toFixed(1) + ' ' + label + '</div>' +
+        '<div class="clog-gauge-sub" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">' + sub + '</div>';
     }
 
     function applyScore(s, fromUser) {
       currentScore = clampScore(s);
       positionHandle(currentScore);
       positionNeedle(currentScore);
+      syncAria(currentScore);
       if (fromUser) untouched = false;
       if (fromUser || !untouched) updateReadout(currentScore);
       if (fromUser && onChange) onChange(currentScore, scoreToZone(currentScore));
@@ -308,7 +319,8 @@
 
     function startDrag(e) {
       dragging = true;
-      try { dialTarget.setPointerCapture(e.pointerId); } catch (err) {}
+      try { wrap.setPointerCapture(e.pointerId); } catch (err) {}
+      wrap.style.cursor = 'grabbing';
       dialTarget.style.cursor = 'grabbing';
       applyScore(scoreFromPointer(e.clientX, e.clientY), true);
       e.preventDefault();
@@ -320,26 +332,50 @@
     function endDrag(e) {
       if (!dragging) return;
       dragging = false;
+      wrap.style.cursor = 'grab';
       dialTarget.style.cursor = 'grab';
-      try { dialTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+      try { wrap.releasePointerCapture(e.pointerId); } catch (err) {}
       applyScore(Math.round(currentScore * 2) / 2, true);
+    }
+    function nudge(delta) {
+      var next = Math.round((currentScore + delta) * 2) / 2;
+      applyScore(next, true);
+    }
+    function onKey(e) {
+      var key = e.key;
+      if (key === 'ArrowRight' || key === 'ArrowUp') {
+        e.preventDefault();
+        nudge(0.5);
+      } else if (key === 'ArrowLeft' || key === 'ArrowDown') {
+        e.preventDefault();
+        nudge(-0.5);
+      } else if (key === 'Home') {
+        e.preventDefault();
+        applyScore(SCORE_MIN, true);
+      } else if (key === 'End') {
+        e.preventDefault();
+        applyScore(SCORE_MAX, true);
+      }
     }
 
     applyScore(score, false);
-    dialTarget.addEventListener('pointerdown', startDrag);
-    dialTarget.addEventListener('pointermove', moveDrag);
-    dialTarget.addEventListener('pointerup', endDrag);
-    dialTarget.addEventListener('pointercancel', function () {
+    wrap.addEventListener('pointerdown', startDrag);
+    wrap.addEventListener('pointermove', moveDrag);
+    wrap.addEventListener('pointerup', endDrag);
+    wrap.addEventListener('pointercancel', function () {
       dragging = false;
+      wrap.style.cursor = 'grab';
       dialTarget.style.cursor = 'grab';
     });
+    dialTarget.addEventListener('keydown', onKey);
 
     return {
       score: function () { return currentScore; },
       destroy: function () {
-        dialTarget.removeEventListener('pointerdown', startDrag);
-        dialTarget.removeEventListener('pointermove', moveDrag);
-        dialTarget.removeEventListener('pointerup', endDrag);
+        wrap.removeEventListener('pointerdown', startDrag);
+        wrap.removeEventListener('pointermove', moveDrag);
+        wrap.removeEventListener('pointerup', endDrag);
+        dialTarget.removeEventListener('keydown', onKey);
       }
     };
   }
@@ -348,6 +384,7 @@
     ZONES: ZONES,
     HOW_CLIMBED: HOW_CLIMBED,
     RESULTS: RESULTS,
+    RESULT_LABELS: RESULT_LABELS,
     OUTDOOR_STYLES: OUTDOOR_STYLES,
     SCORE_COMFORT_MAX: SCORE_COMFORT_MAX,
     SCORE_LEARNING_MAX: SCORE_LEARNING_MAX,

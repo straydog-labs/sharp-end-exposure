@@ -12,12 +12,46 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 const logJs = readFileSync(join(root, 'js/coach-log-session.js'), 'utf8');
 
-assert.ok(/var app_version = 'index296'/.test(index));
-assert.ok(/APP_VERSION = 'index296'/.test(sw));
+assert.ok(/var app_version = 'index297'/.test(index));
+assert.ok(/APP_VERSION = 'index297'/.test(sw));
+
+const overlayStart = dash.indexOf('id="coach-log-overlay"');
+const overlayEnd = dash.indexOf('id="assign-wizard-overlay"');
+const overlay = overlayStart >= 0 && overlayEnd > overlayStart
+  ? dash.slice(overlayStart, overlayEnd)
+  : '';
+assert.ok(overlay, 'coach-log overlay markup');
+
+assert.ok(!/id="clog-activation"/.test(overlay), 'no Activation (0-10) number box');
+assert.ok(!/Activation \(0/.test(overlay), 'no Activation (0-10) label');
+assert.ok(!/id="clog-zone-chips"/.test(overlay), 'no Comfort/Learning/Panic zone chips');
+assert.ok(!/>Comfort<\/button>/.test(overlay) && !/label: 'Comfort'/.test(overlay.slice(0, 1)),
+  'zone chips are not hardcoded in overlay markup');
+assert.ok(/clog-gauge/.test(overlay));
+assert.ok(/Backed off/.test(overlay) || /Backed off/.test(logJs), 'result label matches athlete app');
+assert.ok(!/>DNA</.test(overlay), 'DNA is athlete-labeled Backed off');
+assert.ok(/id="clog-more"/.test(overlay) && /<summary>More<\/summary>/.test(overlay),
+  'Indoor/Outdoor and Sport/Trad live under More');
+
+function pos(id){
+  var i = overlay.indexOf('id="' + id + '"');
+  assert.ok(i >= 0, 'missing #' + id);
+  return i;
+}
+const order = ['clog-gauge', 'clog-name', 'clog-grade', 'clog-terrains', 'clog-how', 'clog-result', 'clog-note', 'clog-more'];
+for(var i = 1; i < order.length; i++){
+  assert.ok(pos(order[i]) > pos(order[i - 1]),
+    order[i - 1] + ' must come before ' + order[i]);
+}
+assert.ok(pos('clog-setting') > pos('clog-more'));
+assert.ok(pos('clog-discipline') > pos('clog-more'));
+assert.ok(pos('clog-setting') > pos('clog-note'));
 
 assert.ok(/data-terrain="Arête"/.test(dash) || /'Arête'/.test(dash));
 assert.ok(/Dihedral/.test(dash));
 assert.ok(/function buildPayload/.test(logJs));
+assert.ok(/keydown/.test(logJs) && /ArrowRight/.test(logJs), 'dial arrow keys ±0.5');
+assert.ok(/role=['"]slider['"]/.test(logJs) || /setAttribute\('role', 'slider'\)/.test(logJs));
 
 const SB_HOST = 'kwtbqgoqtewrlsjgepwq.supabase.co';
 const MIME = {
@@ -91,56 +125,137 @@ async function withPage(port, fn){
   }
 }
 
-async function fillAndSave(page, extras){
-  await page.evaluate(function(extra){
-    window.__coachLogTest.arm({
-      token: 'test-token',
-      athleteId: 'ath-1',
-      athleteLabel: 'Jordan',
-      coachUser: { id: 'coach-1' }
-    }, extra);
+function armBlank(){
+  window.__coachLogTest.arm({
+    token: 'test-token',
+    athleteId: 'ath-1',
+    athleteLabel: 'Jordan',
+    coachUser: { id: 'coach-1' }
+  });
+}
+
+async function setDialScore(page, score){
+  await page.waitForSelector('#clog-gauge .clog-gauge-wrap', { timeout: 8000 });
+  await page.evaluate(function(s){
+    var wrap = document.querySelector('#clog-gauge .clog-gauge-wrap');
+    var target = document.querySelector('#clog-gauge .gauge-dial-target') || wrap;
+    if(!wrap || !target) throw new Error('dial missing');
+    var rect = wrap.getBoundingClientRect();
+    var wantAng = 180 * (1 - Number(s) / 12);
+    var rad = wantAng * Math.PI / 180;
+    var clientX = rect.left + rect.width / 2 + Math.cos(rad) * 40;
+    var clientY = rect.top + rect.height - Math.sin(rad) * 40;
+    var opts = { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX: clientX, clientY: clientY };
+    target.dispatchEvent(new PointerEvent('pointerdown', opts));
+    wrap.dispatchEvent(new PointerEvent('pointerdown', opts));
+    target.dispatchEvent(new PointerEvent('pointerup', opts));
+    wrap.dispatchEvent(new PointerEvent('pointerup', opts));
+  }, score);
+  await page.waitForFunction(function(){
+    var el = document.querySelector('.clog-gauge-readout');
+    return !!(el && !/Drag to set|set the dial/i.test(el.textContent || '') && /\d/.test(el.textContent || ''));
+  }, null, { timeout: 5000 });
+}
+
+async function fillFields(page, extra){
+  await page.evaluate(function(ex){
     var name = document.getElementById('clog-name');
-    if(name && extra.routeName) name.value = extra.routeName;
+    if(name && ex.routeName) name.value = ex.routeName;
     var grade = document.getElementById('clog-grade');
-    if(grade && extra.grade) grade.value = extra.grade;
+    if(grade && ex.grade) grade.value = ex.grade;
     var note = document.getElementById('clog-note');
-    if(note && extra.note) note.value = extra.note;
-    var act = document.getElementById('clog-activation');
-    if(act && extra.activationScore != null){
-      act.value = String(extra.activationScore);
-      act.dispatchEvent(new Event('input', { bubbles: true }));
-    }
+    if(note && ex.note) note.value = ex.note;
     function clickChip(sel, val){
       var el = document.querySelector(sel + '[data-value="' + val + '"]');
       if(el && !/\bselected\b/.test(el.className)) el.click();
     }
-    if(extra.howClimbed) clickChip('#clog-how button', extra.howClimbed);
-    if(extra.setting) clickChip('#clog-setting button', extra.setting);
-    if(extra.discipline) clickChip('#clog-discipline button', extra.discipline);
-    if(extra.terrain){
-      var t = document.querySelector('#clog-terrains button[data-terrain="' + extra.terrain + '"]');
+    if(ex.howClimbed) clickChip('#clog-how button', ex.howClimbed);
+    if(ex.setting){
+      var more = document.getElementById('clog-more');
+      if(more) more.open = true;
+      clickChip('#clog-setting button', ex.setting);
+    }
+    if(ex.discipline){
+      var more2 = document.getElementById('clog-more');
+      if(more2) more2.open = true;
+      clickChip('#clog-discipline button', ex.discipline);
+    }
+    if(ex.terrain){
+      var t = document.querySelector('#clog-terrains button[data-terrain="' + ex.terrain + '"]');
       if(t) t.click();
     }
-    if(extra.result) clickChip('#clog-result button', extra.result);
-    if(extra.fallCount != null){
+    if(ex.result) clickChip('#clog-result button', ex.result);
+    if(ex.fallCount != null){
+      var plus = document.getElementById('clog-fall-plus');
       var n = document.getElementById('clog-fall-count-val');
-      if(n) n.textContent = String(extra.fallCount);
+      var want = ex.fallCount;
+      var guard = 0;
+      while(plus && n && parseInt(n.textContent, 10) < want && guard++ < 25) plus.click();
     }
-    var save = document.getElementById('clog-save');
-    if(save) save.click();
-    else window.__coachLogTest.save();
-  }, extras);
-  await page.waitForTimeout(300);
+  }, extra);
 }
 
 const { server, port } = await startStaticServer();
 
 try{
   await withPage(port, async function(page, posts){
-    await fillAndSave(page, {
-      zone: 'learning',
-      activationScore: 7,
-      activationTouched: true,
+    await page.evaluate(armBlank);
+    await page.waitForSelector('#coach-log-overlay.open', { timeout: 8000 });
+
+    const chrome = await page.evaluate(function(){
+      var save = document.getElementById('clog-save');
+      var results = Array.prototype.map.call(
+        document.querySelectorAll('#clog-result button'),
+        function(btn){ return (btn.textContent || '').trim(); }
+      );
+      var more = document.getElementById('clog-more');
+      return {
+        hasNumber: !!document.getElementById('clog-activation'),
+        hasZoneChips: !!document.getElementById('clog-zone-chips'),
+        zoneChipCount: document.querySelectorAll('#clog-zone-chips button').length,
+        saveDisabled: !!(save && save.disabled),
+        results: results,
+        moreClosed: !!(more && !more.open),
+        moreHasSetting: !!(more && more.querySelector('#clog-setting'))
+      };
+    });
+    assert.strictEqual(chrome.hasNumber, false, 'Activation number box must be gone');
+    assert.ok(!chrome.hasZoneChips && chrome.zoneChipCount === 0, 'zone chips must be gone');
+    assert.strictEqual(chrome.saveDisabled, true, 'Save disabled until the dial is set');
+    assert.deepStrictEqual(chrome.results, ['Sent', 'Fell', 'Backed off', 'Took', 'Fall practice']);
+    assert.ok(chrome.moreClosed, 'More starts collapsed');
+    assert.ok(chrome.moreHasSetting, 'Setting lives under More');
+
+    await setDialScore(page, 7);
+    const afterDial = await page.evaluate(function(){
+      var save = document.getElementById('clog-save');
+      var readout = (document.querySelector('.clog-gauge-readout') || {}).textContent || '';
+      var slider = document.querySelector('#clog-gauge [role="slider"], #clog-gauge .gauge-dial-target');
+      return {
+        saveDisabled: !!(save && save.disabled),
+        readout: readout.replace(/\s+/g, ' ').trim(),
+        ariaNow: slider ? slider.getAttribute('aria-valuenow') : null
+      };
+    });
+    assert.strictEqual(afterDial.saveDisabled, false, 'Save enables once the dial is set');
+    assert.ok(/7\.0/.test(afterDial.readout) && /Learning/.test(afterDial.readout),
+      'readout e.g. 7.0 Learning, got ' + afterDial.readout);
+
+    await page.evaluate(function(){
+      var el = document.querySelector('#clog-gauge [role="slider"], #clog-gauge .gauge-dial-target');
+      if(!el) throw new Error('slider missing');
+      el.focus();
+      el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    });
+    const afterKey = await page.evaluate(function(){
+      var readout = (document.querySelector('.clog-gauge-readout') || {}).textContent || '';
+      return readout.replace(/\s+/g, ' ').trim();
+    });
+    assert.ok(/6\.5/.test(afterKey) && /Learning/.test(afterKey),
+      'ArrowLeft nudges -0.5, got ' + afterKey);
+
+    await setDialScore(page, 7);
+    await fillFields(page, {
       routeName: 'Power of Now',
       grade: '5.12a',
       note: 'watched the crux',
@@ -150,6 +265,8 @@ try{
       terrain: 'Overhang',
       result: 'sent'
     });
+    await page.click('#clog-save');
+    await page.waitForTimeout(400);
     assert.ok(posts.length >= 1, 'full form should POST a session');
     const body = posts[0];
     assert.strictEqual(body.route_name, 'Power of Now', 'climb name');
@@ -158,7 +275,7 @@ try{
     assert.strictEqual(body.setting, 'outdoor');
     assert.strictEqual(body.discipline, 'Sport');
     assert.strictEqual(body.coach_activation_score, 7);
-    assert.strictEqual(body.zone, 'learning');
+    assert.strictEqual(body.zone, 'learning', 'zone derived from dial');
     assert.strictEqual(body.baseline_zone, 'sent');
     assert.strictEqual(body.session_notes, 'watched the crux');
     assert.strictEqual(body.logged_by_coach, true);
@@ -167,10 +284,10 @@ try{
   });
 
   await withPage(port, async function(page, posts){
-    await fillAndSave(page, {
-      zone: 'learning',
-      activationScore: 6,
-      activationTouched: true,
+    await page.evaluate(armBlank);
+    await page.waitForSelector('#coach-log-overlay.open', { timeout: 8000 });
+    await setDialScore(page, 6);
+    await fillFields(page, {
       routeName: 'Practice wall',
       grade: '5.10a',
       howClimbed: 'Top Rope',
@@ -178,6 +295,8 @@ try{
       result: 'fall_practice',
       fallCount: 4
     });
+    await page.click('#clog-save');
+    await page.waitForTimeout(400);
     assert.ok(posts.length >= 1, 'fall practice should POST');
     const body = posts[0];
     assert.strictEqual(body.baseline_zone, 'fall_practice');
@@ -185,6 +304,8 @@ try{
     assert.strictEqual(body.climbing_type, 'Top Rope');
     assert.strictEqual(body.setting, 'indoor');
     assert.strictEqual(body.route_name, 'Practice wall');
+    assert.strictEqual(body.coach_activation_score, 6);
+    assert.strictEqual(body.zone, 'learning');
   });
 
   console.log('coach-log-form tests: ok');
