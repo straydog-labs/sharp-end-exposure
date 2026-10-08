@@ -14,7 +14,9 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
 assert.ok(/var app_version = 'index291'/.test(index), 'app_version');
 assert.ok(/APP_VERSION = 'index291'/.test(sw), 'sw APP_VERSION');
-assert.ok(!/playwright install chromium/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
+assert.ok(/from '\.\/pw-browser\.mjs'/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
+  'named-route test uses installed browser helper');
+assert.ok(!/execSync\([^)]*playwright[^)]*install/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
   'named-route test must not download Chromium');
 
 const ROUTE = 'Green 30 degree';
