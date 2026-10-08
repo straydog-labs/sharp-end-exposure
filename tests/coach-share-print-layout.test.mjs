@@ -7,8 +7,8 @@ import vm from 'vm';
 
 const index = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../index.html'), 'utf8');
 const sw = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../sw.js'), 'utf8');
-assert.ok(/var app_version = 'index288'/.test(index));
-assert.ok(/APP_VERSION = 'index288'/.test(sw));
+assert.ok(/var app_version = 'index289'/.test(index));
+assert.ok(/APP_VERSION = 'index289'/.test(sw));
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -37,7 +37,7 @@ assert.ok(/\.gap-headline\.comfort\{color:var\(--comfort\);\}/.test(screenCss.re
 
 const printCss = dash.match(/@media print \{[\s\S]*?\n  \}/);
 assert.ok(printCss, '@media print stylesheet');
-assert.ok(!/\.insight-panel[^{]*\{[^}]*break-inside:\s*avoid/.test(printCss[0]));
+assert.ok(!/\.insight-panel\s*\{[^}]*break-inside:\s*avoid/.test(printCss[0]));
 assert.ok(/\.roster-stat,\s*\.athlete-zone-wrap\s*\{[\s\S]*break-inside:\s*avoid/.test(printCss[0]));
 assert.ok(/\.insight-chart-unit,\s*\.gap-terrain-row\s*\{[\s\S]*break-inside:\s*avoid/.test(printCss[0]));
 assert.ok(/break-after:\s*avoid/.test(printCss[0]));
@@ -46,6 +46,83 @@ assert.ok(/\.roped-filter/.test(printCss[0]) && /display:\s*none/.test(printCss[
 assert.ok(/\.insight-chart-empty/.test(printCss[0]));
 assert.ok(/\.gap-headline[\s\S]*#111/.test(printCss[0]));
 assert.ok(/max-height:\s*110px/.test(printCss[0]));
+assert.ok(/insight-panel-head/.test(dash), 'each panel title+note wraps in insight-panel-head');
+assert.ok(/\.insight-panel-head\s*\{[\s\S]*break-after:\s*avoid/.test(printCss[0]),
+  'panel head stays with the next unit');
+assert.ok(/#athlete-progress-body\s*>\s*:first-child/.test(printCss[0]) &&
+  /#athlete-psyche-volume-body\s*>\s*:first-child/.test(printCss[0]) &&
+  /break-before:\s*avoid/.test(printCss[0]),
+  'first content unit cannot start on the next page without its title');
+assert.ok((dash.match(/class="insight-panel-head"/g) || []).length >= 4,
+  'progress, training, psyche, and gap each have a keep-together head');
+
+function assertNoOrphanedPanelHeads(pages, label){
+  const TITLES = [
+    'PROGRESS OVER TIME',
+    'TRAINING VOLUME',
+    'PSYCHE PRACTICE',
+    "WHERE'S THE GAP?",
+    'ZONE MIX'
+  ];
+    const FIRST = [
+    'LOGGED SESSION',
+    'LOGGED PSYCHE',
+    'LOGGED TRAINING',
+    'NO LOGGED',
+    'ZONE SHARE',
+    'SESSIONS PER WEEK',
+    'PSYCHE PRACTICES PER WEEK',
+    'MOST COMFORTABLE',
+    'LEAST COMFORTABLE',
+    'ONLY LOGGED TERRAIN',
+    'BOTH PEAK',
+    'ZONE MIX BY TERRAIN',
+    'NO SESSIONS WITH',
+    'NO ZONE-TAGGED',
+    'SHARE OF THIS ATHLETE'
+  ];
+  pages.forEach(function(page, i){
+    const lastBand = page.pageH * 0.85;
+    (page.blocks || []).forEach(function(b){
+      const text = String(b.text || '').replace(/\s+/g, ' ').trim().toUpperCase();
+      const isTitle = TITLES.some(function(t){ return text === t || text.indexOf(t) === 0; });
+      if(!isTitle) return;
+      if(b.y1 < lastBand) return;
+      const hasFirst = (page.blocks || []).some(function(c){
+        if(c === b) return false;
+        if(c.y0 < b.y0 - 2) return false;
+        const ct = String(c.text || '').replace(/\s+/g, ' ').toUpperCase();
+        return FIRST.some(function(f){ return ct.indexOf(f) !== -1; });
+      });
+      assert.ok(hasFirst,
+        label + ' page ' + (i + 1) + ' title/note ends in the last 15% without its first content unit: ' + text);
+    });
+  });
+}
+
+const orphanPages = [
+  {
+    pageH: 1000,
+    blocks: [
+      { text: 'Psyche practice', y0: 900, y1: 920 },
+      { text: 'Descriptive only', y0: 930, y1: 960 }
+    ]
+  }
+];
+let orphanFailed = false;
+try {
+  assertNoOrphanedPanelHeads(orphanPages, 'synthetic');
+} catch (e) {
+  orphanFailed = /last 15%/.test(String(e.message || e));
+}
+assert.ok(orphanFailed, 'orphan checker flags a title parked in the last 15% without its body');
+assertNoOrphanedPanelHeads([{
+  pageH: 1000,
+  blocks: [
+    { text: 'Psyche practice', y0: 900, y1: 920 },
+    { text: '8 logged psyche practices in this window.', y0: 930, y1: 950 }
+  ]
+}], 'synthetic-ok');
 
 assert.ok(/function shareAthleteLandingPrint/.test(dash));
 assert.ok(/window\.print\(\)/.test(dash));
@@ -179,5 +256,29 @@ const emptyBoulder = vm.runInContext(
 );
 assert.ok(/insight-chart-unit insight-chart-empty/.test(emptyBoulder));
 assert.ok(/No bouldering sessions in this window/.test(emptyBoulder));
+
+const pdfDir = process.env.SHARE_PRINT_PDF_DIR;
+if(pdfDir){
+  const { spawnSync } = await import('child_process');
+  const { existsSync } = await import('fs');
+  ['30', '1', '0'].forEach(function(n){
+    const pdf = join(pdfDir, 'share-print-' + n + '.pdf');
+    assert.ok(existsSync(pdf), 'missing print PDF ' + pdf);
+    const py = [
+      'import json,sys,pymupdf',
+      'doc=pymupdf.open(sys.argv[1])',
+      'pages=[]',
+      'for page in doc:',
+      '    blocks=[]',
+      '    for b in page.get_text("blocks"):',
+      '        blocks.append({"text":b[4],"y0":b[1],"y1":b[3]})',
+      '    pages.append({"pageH":page.rect.height,"blocks":blocks})',
+      'print(json.dumps(pages))'
+    ].join('\n');
+    const r = spawnSync('python3', ['-c', py, pdf], { encoding: 'utf8' });
+    assert.strictEqual(r.status, 0, 'pdf extract failed: ' + (r.stderr || r.stdout));
+    assertNoOrphanedPanelHeads(JSON.parse(r.stdout), n + '-session PDF');
+  });
+}
 
 console.log('coach-share-print-layout tests: ok');

@@ -65,7 +65,7 @@ assert.ok(/size:\s*letter/.test(printCss[0]));
 assert.ok(!/#athlete-progress-panel\s*\{[^}]*display:\s*none/.test(printCss[0]));
 assert.ok(/\.roster-stat,\s*\.athlete-zone-wrap\s*\{[\s\S]*?break-inside:\s*avoid/.test(printCss[0]),
   'roster-stat and athlete-zone-wrap stay unbreakable in print');
-assert.ok(!/\.insight-panel[^{]*\{[^}]*break-inside:\s*avoid/.test(printCss[0]),
+assert.ok(!/\.insight-panel\s*\{[^}]*break-inside:\s*avoid/.test(printCss[0]),
   'insight-panel must not jump whole to the next page');
 assert.ok(/\.insight-chart-unit,\s*\.gap-terrain-row\s*\{[\s\S]*?break-inside:\s*avoid/.test(printCss[0]));
 assert.ok(/\.team-zone-label,[\s\S]*?\.insight-chart-help\s*>\s*summary\s*\{[\s\S]*?break-after:\s*avoid/.test(printCss[0]));
