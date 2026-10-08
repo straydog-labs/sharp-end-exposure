@@ -1,10 +1,9 @@
 import { readFileSync, existsSync } from 'fs';
 import { createServer } from 'http';
-import { fileURLToPath, pathToFileURL } from 'url';
+import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
-import { createRequire } from 'module';
-import { execSync } from 'child_process';
 import assert from 'assert';
+import { launchChromium } from './pw-browser.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -15,6 +14,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
 assert.ok(/var app_version = 'index288'/.test(index), 'app_version');
 assert.ok(/APP_VERSION = 'index288'/.test(sw), 'sw APP_VERSION');
+assert.ok(!/playwright install chromium/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
+  'named-route test must not download Chromium');
 
 const ROUTE = 'Green 30 degree';
 const CLIMB_ID = 'climb-green-30';
@@ -32,24 +33,6 @@ const MIME = {
   '.png': 'image/png',
   '.ico': 'image/x-icon'
 };
-
-function loadPlaywright(){
-  const candidates = [
-    join(root, 'node_modules/playwright'),
-    '/tmp/pw-log-attempt/node_modules/playwright'
-  ];
-  for(const p of candidates){
-    if(existsSync(p)) return createRequire(p + '/package.json')('playwright');
-  }
-  execSync('npm install --silent --no-fund --no-audit playwright@1.55.0 --prefix /tmp/pw-log-attempt', {
-    stdio: 'inherit'
-  });
-  execSync('npx --yes playwright@1.55.0 install chromium', {
-    stdio: 'inherit',
-    cwd: '/tmp/pw-log-attempt'
-  });
-  return createRequire('/tmp/pw-log-attempt/node_modules/playwright/package.json')('playwright');
-}
 
 function startStaticServer(){
   return new Promise(function(resolve){
@@ -453,9 +436,8 @@ async function finishUnlockedAttempt(page, recorded){
 }
 
 async function run(){
-  const { chromium } = loadPlaywright();
   const { server, port } = await startStaticServer();
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchChromium();
 
   try{
     await runFlow('quick-strip', async function(){
