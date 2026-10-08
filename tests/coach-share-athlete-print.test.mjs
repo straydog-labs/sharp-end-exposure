@@ -61,7 +61,19 @@ assert.ok(/#athlete-share-block/.test(printCss[0]));
 assert.ok(/athlete-share-print-head/.test(printCss[0]));
 assert.ok(/team-zone-note/.test(printCss[0]), 'descriptive notes stay styled in print, not hidden');
 assert.ok(/print-color-adjust: exact/.test(printCss[0]));
+assert.ok(/size:\s*letter/.test(printCss[0]));
 assert.ok(!/#athlete-progress-panel\s*\{[^}]*display:\s*none/.test(printCss[0]));
+assert.ok(/\.roster-stat,\s*\.athlete-zone-wrap\s*\{[\s\S]*?break-inside:\s*avoid/.test(printCss[0]),
+  'roster-stat and athlete-zone-wrap stay unbreakable in print');
+assert.ok(!/\.insight-panel[^{]*\{[^}]*break-inside:\s*avoid/.test(printCss[0]),
+  'insight-panel must not jump whole to the next page');
+assert.ok(/\.insight-chart-unit,\s*\.gap-terrain-row\s*\{[\s\S]*?break-inside:\s*avoid/.test(printCss[0]));
+assert.ok(/\.team-zone-label,[\s\S]*?\.insight-chart-help\s*>\s*summary\s*\{[\s\S]*?break-after:\s*avoid/.test(printCss[0]));
+assert.ok(/\.team-zone-note/.test(printCss[0]) && /break-after:\s*avoid/.test(printCss[0]));
+assert.ok(/\.roped-filter,[\s\S]*?\.insight-chart-empty\s*\{[\s\S]*?display:\s*none/.test(printCss[0]));
+assert.ok(/\.gap-headline[\s\S]*?color:\s*#111/.test(printCss[0]));
+assert.ok(/\.insight-svg\s*\{[\s\S]*?max-height:\s*110px/.test(printCss[0]));
+assert.ok(/\.insight-panel\s*\{[\s\S]*?margin:\s*6px 0 0[\s\S]*?padding:\s*8px/.test(printCss[0]));
 
 const shareFn = dash.match(/function shareAthleteLandingPrint\(\)\{[\s\S]*?\n  function showAthleteLanding/);
 assert.ok(shareFn);

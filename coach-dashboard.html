@@ -1127,7 +1127,7 @@
 
   /* Share with athlete — browser print path. Direct file download later if this is clunky. */
   @media print {
-    @page { margin: 12mm; }
+    @page { size: letter; margin: 12mm; }
     html, body {
       height: auto !important;
       background: #fff !important;
@@ -1172,21 +1172,67 @@
     #athlete-share-block { color: #111; }
     .athlete-share-print-head {
       display: block !important;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
       border-bottom: 1px solid #ccc;
     }
-    .athlete-share-print-name { font-size: 22px; font-weight: 700; color: #111; letter-spacing: -.02em; }
-    .athlete-share-print-date { font-size: 12px; color: #555; margin-top: 4px; }
+    .athlete-share-print-name { font-size: 20px; font-weight: 700; color: #111; letter-spacing: -.02em; }
+    .athlete-share-print-date { font-size: 12px; color: #555; margin-top: 2px; }
     .team-zone-note, .team-zone-label, .roster-stat-label, .insight-chart-title, .insight-legend, .progress-week-lbl {
       color: #555 !important;
     }
-    .roster-stat, .insight-panel, .athlete-zone-wrap {
+    .roster-stats { margin-bottom: 6px; gap: 6px; }
+    .roster-insights { margin-bottom: 6px; }
+    .roster-stat, .athlete-zone-wrap {
       background: #fff !important;
       border-color: #ccc !important;
       color: #111 !important;
       break-inside: avoid;
+      min-height: 0;
+      padding: 8px 10px;
     }
+    .insight-panel {
+      background: #fff !important;
+      border-color: #ccc !important;
+      color: #111 !important;
+      margin: 6px 0 0;
+      padding: 8px;
+    }
+    .insight-chart-unit,
+    .gap-terrain-row {
+      break-inside: avoid;
+    }
+    .team-zone-label,
+    .team-zone-note,
+    .form-note,
+    .insight-chart-title,
+    .insight-chart-help,
+    .insight-chart-help > summary {
+      break-after: avoid;
+    }
+    .roped-filter,
+    .insight-chart-empty {
+      display: none !important;
+    }
+    .gap-headline,
+    .gap-headline.comfort,
+    .gap-headline.panic,
+    .gap-headline.single,
+    .gap-headline.same {
+      color: #111 !important;
+    }
+    .insight-svg {
+      max-height: 110px;
+      width: auto;
+      max-width: 100%;
+    }
+    .insight-chart-help { margin: 6px 0 2px; }
+    .insight-legend { margin-top: 4px; }
+    .progress-week-bars { margin: 4px 0 2px; }
+    .gap-terrain-row { margin-top: 6px; }
+    .gap-headlines { margin: 6px 0 2px; }
+    .gap-headline { font-size: 14px; margin-bottom: 4px; }
+    .team-zone-note, .form-note { margin-top: 4px; }
     .roster-stat-val { color: #111 !important; }
     .roster-stat-val.flagged { color: #c62828 !important; }
     .zone-bar-track { background: #f3f3f3 !important; border-color: #ccc !important; }
@@ -3651,12 +3697,15 @@
   function renderGradeFamilyChartHtml(title, seriesList, axis, labels, emptyMsg, extraTopHtml, extraNote, helpText){
     var titleHtml = insightChartTitleWithHelp(title, helpText);
     if(!seriesList || !seriesList.length || !axis || !axis.ticks || !axis.ticks.length){
-      return titleHtml +
+      return '<div class="insight-chart-unit insight-chart-empty">' +
+        titleHtml +
         (extraTopHtml || '') +
         '<div class="empty-state">' + escapeHtml(emptyMsg) + '</div>' +
-        (extraNote || '');
+        (extraNote || '') +
+      '</div>';
     }
-    return titleHtml +
+    return '<div class="insight-chart-unit">' +
+      titleHtml +
       (extraTopHtml || '') +
       renderSharedAxisSvg(seriesList.map(function(s){
         return {
@@ -3670,7 +3719,8 @@
           (TERRAIN_LINE_COLOR[s.terrain] || 'var(--accent)') + '"></span>' +
           escapeHtml(s.terrain) + '</span>';
       }).join('') + '</div>' +
-      (extraNote || '');
+      (extraNote || '') +
+    '</div>';
   }
 
   function ropedFilterChipsHtml(selected){
@@ -3741,16 +3791,18 @@
         return '<span style="opacity:.45"><span class="insight-swatch" style="background:' + z.color + '"></span>' +
           z.label + ' — none logged</span>';
       });
-      zoneSvg = insightChartTitleWithHelp(
-        'Zone share (%)',
-        'The percent of that week\'s sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete\'s own in-the-moment activation rating, not from grade or send/fall outcome.'
-      ) +
+      zoneSvg = '<div class="insight-chart-unit">' +
+        insightChartTitleWithHelp(
+          'Zone share (%)',
+          'The percent of that week\'s sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete\'s own in-the-moment activation rating, not from grade or send/fall outcome.'
+        ) +
         renderSharedAxisSvg(zoneSeries, 0, 100, [
           { value: 0, label: '0' },
           { value: 50, label: '50' },
           { value: 100, label: '100' }
         ], 720, 168) +
-        '<div class="insight-legend">' + zoneLegend.join('') + '</div>';
+        '<div class="insight-legend">' + zoneLegend.join('') + '</div>' +
+      '</div>';
     }
 
     var boulderEmpty = 'No bouldering sessions in this window.';
@@ -3800,7 +3852,7 @@
     var series = CI.computeTrainingVolumeSeries(trainingSessions, { weekCount: 12 });
     if(!series.sessionCount) return '<div class="empty-state">No logged training sessions in the last 12 weeks.</div>';
     var yMax = Math.max(1, series.maxCount);
-    var svg = insightChartTitleWithHelp(
+    var svg = '<div class="insight-chart-unit">' + insightChartTitleWithHelp(
       'Sessions per week',
       'Count of logged training sessions (Train tab) each week. Descriptive only — not a target or prescription.'
     ) + renderSharedAxisSvg([
@@ -3809,7 +3861,7 @@
       { value: 0, label: '0' },
       { value: Math.round(yMax / 2), label: String(Math.round(yMax / 2)) },
       { value: yMax, label: String(yMax) }
-    ], 720, 168);
+    ], 720, 168) + '</div>';
     return '<div class="form-note">' + series.sessionCount +
       (series.sessionCount === 1 ? ' logged training session' : ' logged training sessions') +
       ' in this window.</div>' + svg;
@@ -3820,7 +3872,7 @@
     var series = CI.computePsycheVolumeSeries(checkins, drills, { weekCount: 12 });
     if(!series.sessionCount) return '<div class="empty-state">No logged psyche practice in the last 12 weeks.</div>';
     var yMax = Math.max(1, series.maxCount);
-    var svg = insightChartTitleWithHelp(
+    var svg = '<div class="insight-chart-unit">' + insightChartTitleWithHelp(
       'Psyche practices per week',
       'Quick check-ins, pre-climb prep, and breathing/relaxation/visualization drills, combined — same definition as the athlete\'s own Psyche tab. Descriptive only.'
     ) + renderSharedAxisSvg([
@@ -3829,7 +3881,7 @@
       { value: 0, label: '0' },
       { value: Math.round(yMax / 2), label: String(Math.round(yMax / 2)) },
       { value: yMax, label: String(yMax) }
-    ], 720, 168);
+    ], 720, 168) + '</div>';
     return '<div class="form-note">' + series.sessionCount +
       (series.sessionCount === 1 ? ' logged psyche practice' : ' logged psyche practices') +
       ' in this window.</div>' + svg;
