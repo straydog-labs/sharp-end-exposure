@@ -138,6 +138,9 @@ export async function withPage(browser, port, opts, fn){
     if(method === 'PATCH' && url.indexOf('/rest/v1/sessions') !== -1){
       return fulfillJson(route, 200, [body || {}]);
     }
+    if(method === 'PATCH' && url.indexOf('/rest/v1/climbs') !== -1){
+      return fulfillJson(route, 200, [body || {}]);
+    }
     if(method === 'POST' && url.indexOf('/rest/v1/falls') !== -1){
       return fulfillJson(route, 201, [Object.assign({ id: 'fall-1' }, body || {})]);
     }

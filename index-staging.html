@@ -1369,6 +1369,12 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .project-complete-actions{display:flex;gap:8px;}
 .project-complete-actions button{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;}
 #log-done-project-yes{background:var(--accent);border-color:var(--accent);color:#fff;}
+.project-pick-route{position:fixed;inset:0;z-index:240;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;}
+.project-pick-route[hidden]{display:none !important;}
+.project-pick-route-card{width:100%;max-width:640px;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;}
+.project-pick-route-hint{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.4;}
+.project-pick-route-item{display:block;width:100%;text-align:left;margin:0 0 8px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:12px 14px;cursor:pointer;}
+.project-pick-route-cancel{width:100%;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;}
 .climb-beta-count{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;}
 
 .pattern-line{font-size:12px;color:var(--muted);font-weight:300;margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:6px;border-left:2px solid var(--accent);display:none;}
@@ -1420,6 +1426,14 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 <div class="app">
 <div id="toast-el" class="toast"></div>
 <div id="error-toast-el" class="error-toast"></div>
+<div id="project-pick-route" hidden class="project-pick-route">
+  <div class="project-pick-route-card">
+    <div class="project-complete-copy">Pick the route</div>
+    <p class="project-pick-route-hint">More than one climb uses this name. Choose which one to star.</p>
+    <div id="project-pick-route-list"></div>
+    <button type="button" id="project-pick-route-cancel" class="project-pick-route-cancel" onclick="hideProjectPickRoute()">Cancel</button>
+  </div>
+</div>
 <div id="sync-banner" class="see-sys-banner" hidden>
   <button type="button" id="sync-banner-msg" class="see-sys-banner-msg" onclick="retryOfflineQueue()" style="background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;">Climbs pending sync. Tap to retry.</button>
   <button type="button" id="sync-banner-view" class="see-sys-banner-secondary" onclick="viewOfflineQueue()">View</button>
@@ -5816,7 +5830,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index298'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index299'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -9629,15 +9643,27 @@ function patchCachedSessionClimbId(sessionId, climbId){
 async function ensureClimbForProject(opts){
   opts = opts || {};
   if(opts.climbId) return opts.climbId;
-  var name = opts.routeName;
+  var sess = opts.sessionId ? findClimbLogSession(opts.sessionId) : null;
+  var name = (sess && sess.route_name) || opts.routeName;
   if(!name || isUnnamedClimbName(name)){
     showToast('Name this climb first', true);
     return null;
   }
-  var id = await findOrCreateClimbIdByName(name, {
-    grade_value: opts.grade || null,
-    climbing_type: opts.terrain || null
+  var grade = sess ? (sess.grade_value || null) : (opts.grade || null);
+  var terrain = sess ? (sess.climbing_type || null) : (opts.terrain || null);
+  var found = await findOrCreateClimbForProject(name, {
+    grade_value: grade,
+    climbing_type: terrain
   });
+  if(found && found.ambiguous){
+    showProjectPickRoute({
+      name: name,
+      sessionId: opts.sessionId || '',
+      climbs: found.climbs
+    });
+    return null;
+  }
+  var id = found && found.id;
   if(!id){
     showToast('Could not link this climb - try again', true);
     return null;
@@ -9720,20 +9746,21 @@ function paintEditProjectUi(){
   host.innerHTML = climbProjectToggleHtml({
     climbId: (logState && logState._editClimbId) || (sess && sess.climb_id) || _selectedClimbId || '',
     sessionId: (logState && logState.sessId) || '',
-    routeName: (logState && logState.routeName) || (sess && sess.route_name) || '',
-    grade: (logState && logState.grade) || (sess && sess.grade_value) || '',
-    terrain: (logState && logState.terrain) || (sess && sess.climbing_type) || ''
+    routeName: (sess && sess.route_name) || (logState && logState.routeName) || '',
+    grade: (sess && sess.grade_value) || '',
+    terrain: (sess && sess.climbing_type) || ''
   });
 }
 
 async function toggleProjectControl(btn){
   if(!btn) return;
   var climbId = btn.getAttribute('data-cid') || '';
-  var sessionId = btn.getAttribute('data-sid') || '';
+  var sessionId = btn.getAttribute('data-sid') || (logState && logState.sessId) || '';
   var pending = btn.getAttribute('data-pending') === '1';
-  var routeName = btn.getAttribute('data-rname') || (logState && logState.routeName) || '';
-  var grade = btn.getAttribute('data-grade') || (logState && logState.grade) || '';
-  var terrain = btn.getAttribute('data-terrain') || (logState && logState.terrain) || '';
+  var sess = sessionId ? findClimbLogSession(sessionId) : null;
+  var routeName = (sess && sess.route_name) || btn.getAttribute('data-rname') || '';
+  var grade = sess ? (sess.grade_value || '') : (btn.getAttribute('data-grade') || '');
+  var terrain = sess ? (sess.climbing_type || '') : (btn.getAttribute('data-terrain') || '');
   if(pending && !climbId && !sessionId){
     logState.wantProject = !logState.wantProject;
     paintLogProjectToggle();
@@ -9742,7 +9769,7 @@ async function toggleProjectControl(btn){
   }
   if(!climbId){
     climbId = await ensureClimbForProject({
-      sessionId: sessionId || (logState && logState.sessId) || '',
+      sessionId: sessionId,
       routeName: routeName,
       grade: grade,
       terrain: terrain
@@ -9824,6 +9851,98 @@ function paintLockedClimbProjectUi(){
 
 function normalizeClimbName(s){
   return (s||'').toLowerCase().trim().replace(/  +/g,' ');
+}
+
+function normalizeClimbGrade(s){
+  return String(s == null ? '' : s).toLowerCase().replace(/\s+/g, '');
+}
+
+function normalizeClimbTerrain(s){
+  return String(s == null ? '' : s).toLowerCase().trim().replace(/  +/g, ' ');
+}
+
+function climbsWithNormalizedName(climbs, name){
+  var q = normalizeClimbName(name);
+  return (climbs || []).filter(function(c){ return c && normalizeClimbName(c.name) === q; });
+}
+
+function matchClimbForProject(climbs, name, grade, terrain){
+  var named = climbsWithNormalizedName(climbs, name);
+  var hasGrade = !!String(grade == null ? '' : grade).trim();
+  var hasTerrain = !!String(terrain == null ? '' : terrain).trim();
+  if(hasGrade && hasTerrain){
+    var g = normalizeClimbGrade(grade);
+    var t = normalizeClimbTerrain(terrain);
+    var hit = named.find(function(c){
+      return normalizeClimbGrade(c.grade_value) === g && normalizeClimbTerrain(c.climbing_type) === t;
+    });
+    return { climb: hit || null, ambiguous: false };
+  }
+  if(named.length === 1) return { climb: named[0], ambiguous: false };
+  if(named.length > 1) return { climb: null, ambiguous: true, climbs: named };
+  return { climb: null, ambiguous: false };
+}
+
+async function findOrCreateClimbForProject(routeName, extras){
+  extras = extras || {};
+  if(!routeName || isUnnamedClimbName(routeName)) return { id: null, ambiguous: false };
+  var climbs = await loadClimbCache();
+  var grade = extras.grade_value || null;
+  var terrain = extras.climbing_type || null;
+  var matched = matchClimbForProject(climbs, routeName, grade, terrain);
+  if(matched.ambiguous){
+    return { id: null, ambiguous: true, climbs: matched.climbs || climbsWithNormalizedName(climbs, routeName) };
+  }
+  if(matched.climb && matched.climb.id) return { id: matched.climb.id, ambiguous: false };
+  var created = await sbI('climbs', {
+    device_id: getDeviceId(),
+    user_id: window._authUser ? window._authUser.id : null,
+    name: String(routeName).trim(),
+    grade_value: grade,
+    climbing_type: terrain
+  });
+  if(created && created.id){
+    _climbCache = null;
+    return { id: created.id, ambiguous: false };
+  }
+  return { id: null, ambiguous: false };
+}
+
+function hideProjectPickRoute(){
+  var el = document.getElementById('project-pick-route');
+  if(el) el.hidden = true;
+}
+
+function showProjectPickRoute(opts){
+  opts = opts || {};
+  var host = document.getElementById('project-pick-route');
+  var list = document.getElementById('project-pick-route-list');
+  if(!host || !list){
+    showToast('Pick the route', true);
+    return;
+  }
+  var climbs = opts.climbs || [];
+  list.innerHTML = '';
+  climbs.forEach(function(c){
+    if(!c || !c.id) return;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'project-pick-route-item';
+    b.textContent = [c.name, c.grade_value, c.climbing_type].filter(Boolean).join(' · ');
+    b.setAttribute('data-cid', c.id);
+    b.setAttribute('data-sid', opts.sessionId || '');
+    b.onclick = function(){ pickProjectRoute(c.id, opts.sessionId || ''); };
+    list.appendChild(b);
+  });
+  host.hidden = false;
+}
+
+async function pickProjectRoute(climbId, sessionId){
+  hideProjectPickRoute();
+  if(!climbId) return;
+  var id = await ensureClimbForProject({ climbId: climbId, sessionId: sessionId });
+  if(!id) return;
+  await toggleClimbProject(id);
 }
 
 function isUnnamedClimbName(name){
@@ -17063,6 +17182,20 @@ async function saveEditedClimb(){
     showToast('Could not update - try again', true);
     return;
   }
+  function patchCachedSessionFields(list){
+    if(!Array.isArray(list)) return;
+    list.forEach(function(s){
+      if(!s || s.id !== logState.sessId) return;
+      s.grade_value = logState.grade;
+      s.climbing_type = logState.terrain;
+      s.route_name = logState.routeName || null;
+      s.baseline_zone = logState.result;
+    });
+  }
+  patchCachedSessionFields(window._cachedClimbs);
+  patchCachedSessionFields(window._cachedSessions);
+  patchCachedSessionFields(window._homeRecentSessions);
+  patchCachedSessionFields(window._rhSessions);
   var extrasFailed=false;
   if(!(await syncClimbCatalogFields(climbId, logState.grade, logState.terrain))) extrasFailed=true;
   if(renameAll && climbId){
