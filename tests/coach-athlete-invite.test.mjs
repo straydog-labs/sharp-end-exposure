@@ -255,7 +255,7 @@ assert.ok(/invite'\) !== 'open'|invite' !== 'open'/.test(
 ));
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index298'/.test(index));
-assert.ok(/APP_VERSION = 'index298'/.test(sw));
+assert.ok(/var app_version = 'index299'/.test(index));
+assert.ok(/APP_VERSION = 'index299'/.test(sw));
 
 console.log('coach-athlete-invite tests: ok');

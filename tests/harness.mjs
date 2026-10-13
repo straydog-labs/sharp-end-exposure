@@ -127,7 +127,7 @@ export async function withPage(browser, port, opts, fn){
       return fulfillJson(route, 200, { access_token: 'test-token', user: { id: opts.userId || USER_ID } });
     }
     if(method === 'GET' && url.indexOf('/rest/v1/climbs') !== -1){
-      return fulfillJson(route, 200, [climbRow()]);
+      return fulfillJson(route, 200, opts.climbs || [climbRow()]);
     }
     if(method === 'GET' && url.indexOf('/rest/v1/sessions') !== -1){
       return fulfillJson(route, 200, opts.sessions || [], { 'content-range': '0-0/1' });
@@ -136,6 +136,9 @@ export async function withPage(browser, port, opts, fn){
       return fulfillJson(route, 201, [Object.assign({ id: 'sess-saved-' + recorded.length }, body || {})]);
     }
     if(method === 'PATCH' && url.indexOf('/rest/v1/sessions') !== -1){
+      return fulfillJson(route, 200, [body || {}]);
+    }
+    if(method === 'PATCH' && url.indexOf('/rest/v1/climbs') !== -1){
       return fulfillJson(route, 200, [body || {}]);
     }
     if(method === 'POST' && url.indexOf('/rest/v1/falls') !== -1){

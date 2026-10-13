@@ -21,6 +21,62 @@ function climbPosts(recorded){
     return r.method === 'POST' && r.url.indexOf('/rest/v1/climbs') !== -1;
   });
 }
+function patchedId(r){
+  var m = String(r.url || '').match(/[?&]id=eq\.([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function projectTrueWrites(recorded){
+  return climbPatches(recorded).concat(climbPosts(recorded)).filter(function(r){
+    var b = firstBody([r]);
+    return b && b.is_project === true;
+  });
+}
+function sessionClimbAttaches(recorded){
+  return sessionPatches(recorded).filter(function(r){
+    var b = firstBody([r]);
+    return b && b.climb_id;
+  });
+}
+
+const CLIMB_YELLOW_510 = {
+  id: 'climb-yellow-510',
+  name: YELLOW,
+  grade_value: '5.10a',
+  climbing_type: 'Slab',
+  is_project: false
+};
+const CLIMB_YELLOW_512 = {
+  id: 'climb-yellow-512',
+  name: YELLOW,
+  grade_value: '5.12a',
+  climbing_type: 'Overhang',
+  is_project: false
+};
+const TWO_YELLOWS = [CLIMB_YELLOW_510, CLIMB_YELLOW_512];
+
+function yellowSession(overrides){
+  return sessionRow(Object.assign({
+    id: 'sess-yellow-512',
+    route_name: YELLOW,
+    climb_id: null,
+    grade_value: '5.12a',
+    climbing_type: 'Overhang'
+  }, overrides || {}));
+}
+
+async function openEditSheet(page, session, climbs){
+  await page.evaluate(function(args){
+    window._cachedClimbs = args.sessions;
+    window._cachedSessions = args.sessions;
+    window._climbCache = args.climbs;
+    editClimbFromLog(args.sessionId, 'climb-table');
+  }, {
+    sessions: Array.isArray(session) ? session : [session],
+    sessionId: Array.isArray(session) ? session[0].id : session.id,
+    climbs: climbs || []
+  });
+  await page.waitForTimeout(80);
+}
 
 async function authPage(page){
   await page.waitForFunction(function(){
@@ -285,6 +341,173 @@ async function run(){
         assert.strictEqual(state.on, false, 'failed star must roll back');
         assert.ok(state.toastShow || /project|try again|could not/i.test(state.toast),
           'visible error after failed star, got toast=' + state.toast);
+      });
+    });
+
+    await flow('grade-normalize-5-10a-equals-spaced', async function(){
+      await withPage(browser, port, {}, async function(page){
+        await authPage(page);
+        var out = await page.evaluate(function(){
+          if(typeof normalizeClimbGrade !== 'function'){
+            return { ok: false, reason: 'normalizeClimbGrade is not a function' };
+          }
+          var a = normalizeClimbGrade('5.10a');
+          var b = normalizeClimbGrade('5.10 a');
+          var c = normalizeClimbGrade('5.10A');
+          return { ok: a === b && a === c && !!a, a: a, b: b, c: c };
+        });
+        assert.ok(out.ok, '5.10a / "5.10 a" / 5.10A must normalize equal, got ' + JSON.stringify(out));
+      });
+    });
+
+    await flow('same-name-stars-session-grade-not-sibling', async function(){
+      var sess512 = yellowSession({ id: 'sess-yellow-512' });
+      var sessOther = yellowSession({ id: 'sess-yellow-other' });
+      await withPage(browser, port, {
+        climbs: TWO_YELLOWS,
+        sessions: [sess512, sessOther]
+      }, async function(page, recorded){
+        await authPage(page);
+        await openEditSheet(page, [sess512, sessOther], TWO_YELLOWS);
+        await tap(page, '#edit-sheet .project-toggle');
+        await page.waitForTimeout(700);
+        var starred510 = projectTrueWrites(recorded).some(function(r){
+          return patchedId(r) === 'climb-yellow-510';
+        });
+        var starred512 = projectTrueWrites(recorded).some(function(r){
+          return patchedId(r) === 'climb-yellow-512';
+        });
+        var created512 = climbPosts(recorded).some(function(r){
+          var b = firstBody([r]);
+          return b && b.name === YELLOW && b.grade_value === '5.12a' && b.climbing_type === 'Overhang';
+        });
+        assert.strictEqual(starred510, false, 'must never set is_project on the 5.10a/Slab sibling');
+        assert.ok(starred512 || created512, 'is_project must land on the 5.12a/Overhang row or a new 5.12a row');
+        var otherAttached = sessionClimbAttaches(recorded).some(function(r){
+          return patchedId(r) === 'sess-yellow-other';
+        });
+        assert.strictEqual(otherAttached, false, 'second same-name null session must stay detached');
+        var editedAttached = sessionClimbAttaches(recorded).some(function(r){
+          var b = firstBody([r]);
+          return patchedId(r) === 'sess-yellow-512' && b && b.climb_id;
+        });
+        assert.ok(editedAttached, 'starred session must attach a climb_id');
+      });
+    });
+
+    await flow('edit-grade-then-star-no-duplicate', async function(){
+      var sess = yellowSession({
+        id: 'sess-yellow-edit',
+        grade_value: '5.10a',
+        climbing_type: 'Slab'
+      });
+      await withPage(browser, port, {
+        climbs: TWO_YELLOWS,
+        sessions: [sess]
+      }, async function(page, recorded){
+        await authPage(page);
+        await openEditSheet(page, sess, TWO_YELLOWS);
+        await tap(page, '#edit-grade-chips .chip:has-text("5.12a")');
+        await tap(page, '#edit-terrain-group .chip:has-text("Overhang")');
+        await tap(page, '#edit-save-changes-btn');
+        await page.waitForTimeout(400);
+        var gradePatch = sessionPatches(recorded).some(function(r){
+          var b = firstBody([r]);
+          return b && b.grade_value === '5.12a' && b.climbing_type === 'Overhang';
+        });
+        assert.ok(gradePatch, 'edit save must PATCH the session to 5.12a/Overhang');
+        var postsBefore = climbPosts(recorded).length;
+        await page.evaluate(function(){
+          var sess = findClimbLogSession('sess-yellow-edit');
+          if(sess){
+            sess.grade_value = '5.12a';
+            sess.climbing_type = 'Overhang';
+          }
+          editClimbFromLog('sess-yellow-edit', 'climb-table');
+        });
+        await page.waitForTimeout(80);
+        await tap(page, '#edit-sheet .project-toggle');
+        await page.waitForTimeout(700);
+        assert.strictEqual(climbPosts(recorded).length, postsBefore, 'editing grade then starring must not create a duplicate climb');
+        assert.strictEqual(projectTrueWrites(recorded).some(function(r){
+          return patchedId(r) === 'climb-yellow-510';
+        }), false, 'must not star the old 5.10a row after the grade edit');
+        assert.ok(projectTrueWrites(recorded).some(function(r){
+          return patchedId(r) === 'climb-yellow-512';
+        }), 'star after grade edit must set is_project on the 5.12a climb');
+      });
+    });
+
+    await flow('star-uses-session-not-log-form', async function(){
+      var sess = yellowSession({ id: 'sess-yellow-old' });
+      await withPage(browser, port, {
+        climbs: [],
+        sessions: [sess]
+      }, async function(page, recorded){
+        await authPage(page);
+        await page.evaluate(function(args){
+          window._cachedClimbs = [args.session];
+          window._cachedSessions = [args.session];
+          window._climbCache = [];
+          logState.grade = '5.10a';
+          logState.terrain = 'Slab';
+          logState.routeName = 'Other Route';
+          editClimbFromLog(args.session.id, 'climb-table');
+          logState.grade = '5.10a';
+          logState.terrain = 'Slab';
+          paintEditProjectUi();
+        }, { session: sess });
+        await page.waitForTimeout(80);
+        await tap(page, '#edit-sheet .project-toggle');
+        await page.waitForTimeout(700);
+        var created = climbPosts(recorded).map(function(r){ return firstBody([r]); }).filter(Boolean);
+        var usedSession = created.some(function(b){
+          return b.grade_value === '5.12a' && b.climbing_type === 'Overhang';
+        });
+        var usedForm = created.some(function(b){
+          return b.grade_value === '5.10a' || b.climbing_type === 'Slab';
+        });
+        var starredExisting512 = projectTrueWrites(recorded).some(function(r){
+          return patchedId(r) === 'climb-yellow-512';
+        });
+        assert.ok(usedSession || starredExisting512, 'climb row must use the session 5.12a/Overhang, not the log form');
+        assert.strictEqual(usedForm, false, 'must not write the log form 5.10a/Slab onto the climb row');
+      });
+    });
+
+    await flow('ambiguous-name-prompts-no-write', async function(){
+      var sess = yellowSession({
+        id: 'sess-yellow-bare',
+        grade_value: null,
+        climbing_type: null
+      });
+      await withPage(browser, port, {
+        climbs: TWO_YELLOWS,
+        sessions: [sess]
+      }, async function(page, recorded){
+        await authPage(page);
+        await openEditSheet(page, sess, TWO_YELLOWS);
+        var writesBefore = recorded.length;
+        await tap(page, '#edit-sheet .project-toggle');
+        await page.waitForTimeout(700);
+        assert.strictEqual(climbPosts(recorded).length, 0, 'ambiguous name must not POST a climb');
+        assert.strictEqual(projectTrueWrites(recorded).length, 0, 'ambiguous name must not set is_project');
+        assert.strictEqual(sessionClimbAttaches(recorded).length, 0, 'ambiguous name must not attach climb_id');
+        var prompt = await page.evaluate(function(){
+          var el = document.getElementById('project-pick-route');
+          var text = (document.body && document.body.innerText) || '';
+          return {
+            visible: !!(el && !el.hidden && el.style.display !== 'none'),
+            text: text
+          };
+        });
+        assert.ok(prompt.visible || /pick the route/i.test(prompt.text),
+          'must show a pick-the-route prompt when two same-name climbs and session lacks grade/terrain');
+        assert.ok(recorded.length === writesBefore || (
+          climbPosts(recorded).length === 0
+          && projectTrueWrites(recorded).length === 0
+          && sessionClimbAttaches(recorded).length === 0
+        ), 'no climb/session write after the prompt');
       });
     });
   }finally{

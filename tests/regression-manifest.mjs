@@ -13,7 +13,7 @@ export const FLOWS = [
   { id: 'prepare-checkin', group: 'athlete', file: 'real-flow-prepare-checkin.test.mjs', covered: true, asserts: 'POST sessions is_checkin+baseline_zone checkin' },
   { id: 'home-day-attempt', group: 'athlete', file: 'real-flow-home-day-attempt.test.mjs', covered: true, asserts: 'openHomeDaySheet +Attempt POST route_name+climb_id' },
   { id: 'go-deeper-confirm', group: 'athlete', file: 'real-flow-go-deeper-confirm.test.mjs', covered: true, asserts: 'PATCH sessions zone_confidence confirmed' },
-  { id: 'project-toggle', group: 'athlete', file: 'real-flow-project-toggle.test.mjs', covered: true, asserts: 'Project star log/edit/null-climb_id/unproject/send-prompt/rollback' },
+  { id: 'project-toggle', group: 'athlete', file: 'real-flow-project-toggle.test.mjs', covered: true, asserts: 'Project star log/edit/null-climb_id/unproject/send-prompt/rollback + same-name grade/terrain match' },
   { id: 'coach-log-durability', group: 'coach', file: 'coach-log-durability.test.mjs', covered: true, asserts: 'PGRST204 strip+warn, network queue replay once, 403 no strip' },
   { id: 'coach-journal-readability', group: 'coach', file: 'coach-journal-readability.test.mjs', covered: true, asserts: 'newest-first journal cards with zone+score result grade terrain' },
   { id: 'coach-log-form', group: 'coach', file: 'coach-log-form.test.mjs', covered: true, asserts: 'dial-only activation, no number/chips, POST score+derived zone' },
