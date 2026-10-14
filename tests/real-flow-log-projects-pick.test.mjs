@@ -29,6 +29,9 @@ assert.ok(/pickLogMyProject[\s\S]{0,900}launchLogWithClimb\(|pickLogWhichClimb[\
   'picker must reuse launchLogWithClimb');
 assert.ok(!/pickLogMyProject[\s\S]{0,900}skipToResult:\s*true/.test(index),
   'row tap must not skip the activation dial');
+assert.ok(/function backFromLogActivation\(/.test(index), 'dial Back must go through backFromLogActivation');
+assert.ok(/backFromLogActivation[\s\S]{0,500}_selectedClimbId = null/.test(index),
+  'Back from dial must clear the selected climb');
 
 const YELLOW = 'Yellow 30 degree';
 const CLIMB_A = 'climb-yellow-overhang';
@@ -426,6 +429,91 @@ async function run(){
       assert.strictEqual(state.grade, '5.9', 'known grade pre-filled');
       assert.ok(!state.terrain, 'null terrain stays empty, got ' + state.terrain);
       console.log('ok - null-terrain-dial-then-identity-not-blank-result');
+    });
+
+    await withPage(browser, port, {
+      climbs: [climbA(), climbB()],
+      sessions: [
+        sessionRow({ id: 'sess-a', climb_id: CLIMB_A, route_name: YELLOW, grade_value: '5.11a', climbing_type: 'Overhang', created_at: daysAgo(1) }),
+        sessionRow({ id: 'sess-b', climb_id: CLIMB_B, route_name: YELLOW, grade_value: '5.10a', climbing_type: 'Slab', created_at: daysAgo(2) })
+      ]
+    }, async function(page, recorded){
+      await bootLog(page, [climbA(), climbB()], [
+        sessionRow({ id: 'sess-a', climb_id: CLIMB_A, route_name: YELLOW, grade_value: '5.11a', climbing_type: 'Overhang', created_at: daysAgo(1) }),
+        sessionRow({ id: 'sess-b', climb_id: CLIMB_B, route_name: YELLOW, grade_value: '5.10a', climbing_type: 'Slab', created_at: daysAgo(2) })
+      ]);
+      await waitForScreen(page, 'screen-log-which');
+      await tap(page, '#log-my-projects [data-cid="' + CLIMB_A + '"]');
+      await waitForScreen(page, 'screen-log-act');
+      await page.waitForTimeout(250);
+      var onDial = await logPickState(page);
+      assert.strictEqual(onDial.climbId, CLIMB_A, 'row tap selects climb A');
+      await tap(page, '#screen-log-act .back-btn');
+      await waitForScreen(page, 'screen-log-which');
+      var afterBack = await logPickState(page);
+      assert.strictEqual(afterBack.id, 'screen-log-which', 'Back from dial returns to picker');
+      assert.ok(!afterBack.climbId, 'Back from dial must clear selected climb, got ' + afterBack.climbId);
+      assert.ok(!afterBack.routeName, 'Back from dial must clear pre-filled identity');
+      await tap(page, '#log-my-projects [data-cid="' + CLIMB_B + '"]');
+      await page.waitForTimeout(250);
+      await saveThroughDial(page);
+      var body = firstBody(postsTo(recorded, 'sessions', 'POST'));
+      assert.ok(body, 'second row after Back must POST');
+      assert.strictEqual(body.climb_id, CLIMB_B,
+        'different row after Back must save B, not leftover A, got ' + body.climb_id);
+      console.log('ok - back-from-dial-clears-then-other-row-saves-own-id');
+    });
+
+    await withPage(browser, port, {
+      climbs: [climbA(), climbB()],
+      sessions: [
+        sessionRow({ id: 'sess-a', climb_id: CLIMB_A, route_name: YELLOW, created_at: daysAgo(1) })
+      ]
+    }, async function(page, recorded){
+      await bootLog(page, [climbA(), climbB()], [
+        sessionRow({ id: 'sess-a', climb_id: CLIMB_A, route_name: YELLOW, created_at: daysAgo(1) })
+      ]);
+      await waitForScreen(page, 'screen-log-which');
+      await tap(page, '#log-my-projects [data-cid="' + CLIMB_A + '"]');
+      await waitForScreen(page, 'screen-log-act');
+      await page.waitForTimeout(250);
+      await tap(page, '#screen-log-act .back-btn');
+      await waitForScreen(page, 'screen-log-which');
+      var afterBack = await logPickState(page);
+      assert.ok(!afterBack.climbId, 'Back from dial clears climb before New climb');
+      await tap(page, '#log-new-climb-btn');
+      await waitForScreen(page, 'screen-log-act');
+      var onNew = await logPickState(page);
+      assert.ok(!onNew.climbId, 'New climb after Back must not keep the previous climb_id');
+      await readyDial(page);
+      await tap(page, '#log-act-continue');
+      await waitForScreen(page, 'screen-log-result');
+      await tap(page, '#btn-sent');
+      await tap(page, '#log-result-continue');
+      await page.waitForTimeout(300);
+      var catalogOn = await page.evaluate(function(){
+        var el = document.getElementById('screen-log-catalog');
+        return !!(el && el.classList.contains('active'));
+      });
+      if(catalogOn) await tap(page, '#gym-catalog-skip');
+      await waitForScreen(page, 'screen-log-terrain');
+      await tap(page, '.terrain-chips .chip:has-text("Overhang")');
+      await tap(page, '#log-terrain-continue');
+      await waitForScreen(page, 'screen-log-details');
+      await tap(page, '#log-details-continue');
+      await waitForScreen(page, 'screen-log-grade');
+      await tap(page, '#grade-grid .grade-btn:has-text("5.11a")');
+      await tap(page, '#log-grade-continue');
+      await waitForScreen(page, 'screen-log-name');
+      await page.fill('#log-rname-input', ROUTE);
+      await tap(page, '#log-name-save');
+      await page.waitForTimeout(700);
+      var body = firstBody(postsTo(recorded, 'sessions', 'POST'));
+      assert.ok(body, 'New climb after Back must POST');
+      assert.notStrictEqual(body.climb_id, CLIMB_A,
+        'New climb after Back must not save leftover project climb_id');
+      assert.strictEqual(body.route_name, ROUTE);
+      console.log('ok - back-from-dial-clears-then-new-climb-does-not-reuse-id');
     });
   }finally{
     await browser.close();

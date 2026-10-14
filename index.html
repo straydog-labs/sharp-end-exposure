@@ -8207,6 +8207,7 @@ function scoreToZone(score){
 }
 
 var _logFromWhich = false;
+var _logLaunchGen = 0;
 
 function showLogActivationStep(initGauge){
   showScreen('screen-log-act');
@@ -8222,6 +8223,17 @@ function beginLogNewClimb(){
 }
 
 function backFromLogActivation(){
+  _logLaunchGen++;
+  _selectedClimbId = null;
+  if(typeof unlockRouteIdentityFields === 'function') unlockRouteIdentityFields();
+  if(logState){
+    logState.routeName = null;
+    logState.grade = null;
+    logState.terrain = null;
+    logState.setting = null;
+  }
+  var rname = document.getElementById('log-rname-input');
+  if(rname) rname.value = '';
   if(_logFromWhich && hasLogWhichClimbItems()){
     paintLogWhichClimb();
     showScreen('screen-log-which');
@@ -8232,6 +8244,7 @@ function backFromLogActivation(){
 
 function startLogFlow(opts){
   opts = opts || {};
+  _logLaunchGen++;
   var climbsSnap = _climbCache;
   var sessSnap = window._cachedClimbs;
   resetLogScreen();
@@ -20789,9 +20802,11 @@ function launchLogWithClimb(climbId, climbName, grade, terrain, setting, opts){
   opts = opts || {};
   startLogFlow({ skipPick: true, skipActGauge: !!opts.skipToResult });
   // startLogFlow() clears any leftover selection — re-apply the intended climb after.
+  var launchGen = _logLaunchGen;
   _selectedClimbId = climbId || null;
 
   setTimeout(function(){
+    if(launchGen !== _logLaunchGen) return;
     // Fix 7 (build 180): startLogFlow() synchronously runs
     // resetLogScreen(), which wipes logState back to nulls — so the real
     // values have to be (re)applied here, AFTER that reset, not before it.
