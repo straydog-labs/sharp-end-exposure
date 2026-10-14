@@ -13,8 +13,10 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index301'/.test(index));
-assert.ok(/APP_VERSION = 'index301'/.test(sw));
+assert.ok(/var app_version = 'index303'/.test(index));
+assert.ok(/APP_VERSION = 'index303'/.test(sw));
+assert.ok(/col-zone/.test(index) && /col-conf/.test(index), 'Zone and Conf columns stay');
+assert.ok(/overflow-x:\s*auto/.test(index), 'table wrap scrolls instead of dropping columns');
 
 function extractFn(src, name){
   let start = src.indexOf('function ' + name + '(');
@@ -68,6 +70,12 @@ async function run(){
         var btn = document.querySelector('#climb-table .project-toggle');
         if(!btn) return { missing: true };
         var label = btn.querySelector('.project-toggle-label');
+        var svg = btn.querySelector('svg');
+        var cs = getComputedStyle(btn);
+        var svgBox = svg ? svg.getBoundingClientRect() : { width: 0, height: 0 };
+        var heads = Array.prototype.map.call(document.querySelectorAll('#climb-table thead th'), function(th){
+          return th.className + ':' + (th.innerText || '').replace(/\s+/g, ' ').trim();
+        });
         return {
           missing: false,
           aria: btn.getAttribute('aria-label') || '',
@@ -75,7 +83,14 @@ async function run(){
           labelText: label ? label.textContent.trim() : '',
           labelVisible: !!(label && label.offsetParent !== null && getComputedStyle(label).display !== 'none'),
           hasProjectClass: btn.classList.contains('project-toggle'),
-          innerText: (btn.innerText || '').trim()
+          innerText: (btn.innerText || '').trim(),
+          bg: cs.backgroundColor,
+          border: cs.borderStyle + ' ' + cs.borderWidth,
+          radius: cs.borderRadius,
+          svgW: Math.round(svgBox.width),
+          svgH: Math.round(svgBox.height),
+          valign: getComputedStyle(document.querySelector('#climb-table td')).verticalAlign,
+          heads: heads
         };
       });
       assert.strictEqual(info.missing, false, 'dense table row must render a project-toggle');
@@ -84,6 +99,14 @@ async function run(){
       assert.strictEqual(info.labelVisible, false, 'dense star must not show Project label text');
       assert.ok(!/^Project$/i.test(info.innerText), 'dense star innerText must not be Project, got ' + info.innerText);
       assert.ok(info.hasProjectClass, 'keep .project-toggle for the existing handler');
+      assert.ok(info.bg === 'rgba(0, 0, 0, 0)' || info.bg === 'transparent',
+        'dense star must be a bare icon, bg=' + info.bg);
+      assert.ok(/none/.test(info.border) || /0px/.test(info.border),
+        'dense star must have no pill border, got ' + info.border);
+      assert.ok(info.svgW <= 22 && info.svgH <= 22, 'dense glyph ~20px, got ' + info.svgW + 'x' + info.svgH);
+      assert.strictEqual(info.valign, 'middle', 'row cells vertically centered');
+      assert.ok(info.heads.some(function(h){ return /col-zone/.test(h); }), 'Zone column present');
+      assert.ok(info.heads.some(function(h){ return /col-conf/.test(h); }), 'Conf column present');
 
       var form = await page.evaluate(function(){
         var html = climbProjectToggleHtml({ climbId: 'c1', filled: false });
