@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index308'/.test(index));
-assert.ok(/APP_VERSION = 'index308'/.test(sw));
+assert.ok(/var app_version = 'index309'/.test(index));
+assert.ok(/APP_VERSION = 'index309'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -67,8 +67,12 @@ assert.ok(/Set a goal to guide your training/.test(home));
 assert.ok(/id="home-goals-title"/.test(home));
 assert.ok(/id="home-day-sheet"/.test(home));
 assert.ok(/id="home-today-kicker"/.test(home));
-assert.ok(/id="home-card-log"[\s\S]*?te-icon[\s\S]*?Log a climb/.test(home));
-assert.ok(/id="home-action-train"[\s\S]*?te-icon[\s\S]*?Start training/.test(home));
+assert.ok(/id="home-card-log"[\s\S]*Log a climb/.test(home));
+assert.ok(/id="home-action-train"[\s\S]*Start training/.test(home));
+assert.ok(/id="home-today-log-climb"/.test(home));
+assert.ok(/id="home-today-star"/.test(home));
+assert.ok(/id="home-today-checklist"/.test(home));
+assert.ok(/class="home-action-link"/.test(home));
 assert.ok(/id="home-goals-strip"[\s\S]*?te-icon[\s\S]*?Set a goal to guide your training/.test(home));
 assert.ok(/id="home-assign-detail"/.test(home));
 assert.ok(!/What to do today/.test(home));
@@ -122,6 +126,7 @@ const helpers = [
   extractFn(index, 'homeTodayKickerLabel'),
   extractFn(index, 'homeAssignmentTypeLabel'),
   extractFn(index, 'pickHomeTodayAssignment'),
+  extractFn(index, 'pickHomeDueSoonAssignment'),
   extractFn(index, 'athleteLocalMondayIndex'),
   extractFn(index, 'homeWeekDayNames'),
   extractFn(index, 'homeWeekDotsHtml'),
@@ -167,7 +172,7 @@ const weekFrom = new Date(2026, 8, 8);
 const days = { '2026-09-07': true, '2026-09-08': true };
 assert.strictEqual(helperCtx.homeWeekStatusLabel(0, {}, weekFrom), 'No sessions yet this week');
 assert.ok(/streak/.test(helperCtx.homeWeekStatusLabel(3, days, weekFrom)));
-assert.strictEqual(helperCtx.homeWeekSessionLabel(0), '0 sessions this week');
+assert.strictEqual(helperCtx.homeWeekSessionLabel(0), 'No sessions this week');
 assert.strictEqual(helperCtx.homeWeekSessionLabel(1), '1 session this week');
 assert.strictEqual(helperCtx.homeWeekSessionLabel(3), '3 sessions this week');
 assert.ok((helperCtx.homeWeekDotsHtml(days, weekFrom).match(/home-week-dot/g) || []).length === 7);
@@ -202,12 +207,16 @@ assert.strictEqual(helperCtx.homeTodayKickerLabel({ due_date: '2026-08-10' }, no
 const farOnly = helperCtx.pickHomeTodayAssignment([
   { id: 'far', title: 'EMOM', due_date: '2026-09-01', completed_at: null }
 ], now);
-assert.ok(farOnly && farOnly.id === 'far', 'incomplete far-future assignment still shows on Home');
+assert.ok(farOnly && farOnly.id === 'far', 'incomplete far-future assignment still ranks in any-incomplete picker');
+const farDue = helperCtx.pickHomeDueSoonAssignment([
+  { id: 'far', title: 'EMOM', due_date: '2026-09-01', completed_at: null }
+], now);
+assert.ok(!farDue, 'Home prompt excludes far-future assignments');
 const doneOnly = helperCtx.pickHomeTodayAssignment([
   { id: 'done', title: 'Done', due_date: '2026-08-18', completed_at: '2026-08-18T00:00:00Z' }
 ], now);
 assert.ok(!doneOnly, 'completed assignment is hidden');
-assert.ok(/pickHomeTodayAssignment\(_trainAssignmentsCache/.test(dueSrc));
+assert.ok(/pickHomeDueSoonAssignment\(_trainAssignmentsCache/.test(dueSrc));
 
 const dayItems = helperCtx.collectHomeDayItems('2026-09-08', [
   { created_at: '2026-09-08T10:00:00', zone: 'learning' },
@@ -231,6 +240,8 @@ assert.strictEqual(emptyItems.climbs.length + emptyItems.trains.length + emptyIt
 const boot = {
   _active: '',
   loads: 0,
+  paints: 0,
+  _homeDataReady: false,
   document: {
     querySelector: function(){ return boot._active ? { id: boot._active } : null; }
   },
@@ -238,7 +249,8 @@ const boot = {
     boot._active = id;
     if(id === 'screen-home') boot.loadHomeScreen();
   },
-  loadHomeScreen: function(){ boot.loads++; }
+  loadHomeScreen: function(){ boot.loads++; boot._homeDataReady = true; },
+  paintHomePrimaryCard: function(){ boot.paints++; }
 };
 vm.createContext(boot);
 vm.runInContext(extractFn(index, 'routeSignedInHome'), boot);
@@ -252,6 +264,8 @@ const loadChunk = [
   'var _homeDataReady = false;',
   'var _homeHasDueAssignment = false;',
   'var _homeSessRows = null;',
+  'var _homeSettledViaTimeout = false;',
+  'var _homeLoadsFinished = false;',
   'var LOG_WHICH_LOAD_MS = 2000;',
   extractFn(index, 'loadHomeScreen')
 ].join('\n');
@@ -260,11 +274,14 @@ const loadCtx = {
   _homeDataReady: false,
   _homeHasDueAssignment: false,
   _homeSessRows: null,
+  _homeSettledViaTimeout: false,
+  _homeLoadsFinished: false,
   LOG_WHICH_LOAD_MS: 2000,
   closeHomeAssignmentDetail: function(){ loadCtx.closes++; },
   closeHomeDaySheet: function(){},
   hideHomeDataSections: function(){ loadCtx.hides++; },
   settleHomeData: function(){ loadCtx.settled++; },
+  paintHomeAfterLoad: function(){ loadCtx.painted++; },
   applyHomeGreeting: async function(){ loadCtx.parts.push('g'); },
   loadHomeDueList: async function(){ loadCtx.parts.push('d'); },
   loadHomeGoalsStrip: async function(){ loadCtx.parts.push('o'); },
@@ -276,6 +293,7 @@ const loadCtx = {
   closes: 0,
   hides: 0,
   settled: 0,
+  painted: 0,
   cleared: 0,
   parts: []
 };
