@@ -10,8 +10,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index304'/.test(index));
-assert.ok(/APP_VERSION = 'index304'/.test(sw));
+assert.ok(/var app_version = 'index305'/.test(index));
+assert.ok(/APP_VERSION = 'index305'/.test(sw));
 
 assert.ok(/function setUnreadSource\(/.test(index));
 assert.ok(/function syncAppIconBadge\(/.test(index));

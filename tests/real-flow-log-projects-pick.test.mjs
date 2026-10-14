@@ -14,8 +14,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index302'/.test(index));
-assert.ok(/APP_VERSION = 'index302'/.test(sw));
+assert.ok(/var app_version = 'index305'/.test(index));
+assert.ok(/APP_VERSION = 'index305'/.test(sw));
 
 assert.ok(/id="log-my-projects"/.test(index), 'screen-log-act must host #log-my-projects');
 assert.ok(/function paintLogMyProjects\(/.test(index) || /function renderLogMyProjects\(/.test(index),
@@ -36,6 +36,26 @@ function climbB(){
 }
 function climbDone(){
   return { id: 'climb-done', name: 'Finished Project', grade_value: '5.12a', climbing_type: 'Roof', is_project: false };
+}
+function climbNullGrade(){
+  return { id: 'climb-null-grade', name: 'Mystery Roof', grade_value: null, climbing_type: 'Roof', is_project: true, setting: 'indoor' };
+}
+function climbNullTerrain(){
+  return { id: 'climb-null-terrain', name: 'No Terrain', grade_value: '5.9', climbing_type: null, is_project: true, setting: 'indoor' };
+}
+
+async function logPickState(page){
+  return page.evaluate(function(){
+    var el = document.querySelector('.screen.active');
+    var nameInp = document.getElementById('log-rname-input');
+    return {
+      id: el ? el.id : null,
+      routeName: window.logState && window.logState.routeName,
+      grade: window.logState && window.logState.grade,
+      terrain: window.logState && window.logState.terrain,
+      nameInput: nameInp ? nameInp.value : ''
+    };
+  });
 }
 
 async function bootLog(page, climbs, sessions){
@@ -156,6 +176,44 @@ async function run(){
       var row = await projectRow(page);
       assert.ok(row.missing || !row.visible, 'no My projects row when zero open projects');
       console.log('ok - no-row-with-zero-projects');
+    });
+
+    await withPage(browser, port, {
+      climbs: [climbNullGrade()],
+      sessions: []
+    }, async function(page){
+      await bootLog(page, [climbNullGrade()], []);
+      var row = await projectRow(page);
+      assert.strictEqual(row.visible, true, 'null-grade project still listed');
+      await tap(page, '.log-my-project-item[data-cid="climb-null-grade"]');
+      await page.waitForTimeout(250);
+      var state = await logPickState(page);
+      assert.notStrictEqual(state.id, 'screen-log-result',
+        'null grade must not jump to result, got ' + state.id);
+      assert.strictEqual(state.id, 'screen-log-grade',
+        'null grade opens the grade identity step, got ' + state.id);
+      assert.strictEqual(state.routeName, 'Mystery Roof', 'known name pre-filled');
+      assert.strictEqual(state.terrain, 'Roof', 'known terrain pre-filled');
+      assert.ok(!state.grade, 'null grade stays empty, got ' + state.grade);
+      console.log('ok - null-grade-opens-identity-not-result');
+    });
+
+    await withPage(browser, port, {
+      climbs: [climbNullTerrain()],
+      sessions: []
+    }, async function(page){
+      await bootLog(page, [climbNullTerrain()], []);
+      await tap(page, '.log-my-project-item[data-cid="climb-null-terrain"]');
+      await page.waitForTimeout(250);
+      var state = await logPickState(page);
+      assert.notStrictEqual(state.id, 'screen-log-result',
+        'null terrain must not jump to result, got ' + state.id);
+      assert.strictEqual(state.id, 'screen-log-terrain',
+        'null terrain opens the terrain identity step, got ' + state.id);
+      assert.strictEqual(state.routeName, 'No Terrain', 'known name pre-filled');
+      assert.strictEqual(state.grade, '5.9', 'known grade pre-filled');
+      assert.ok(!state.terrain, 'null terrain stays empty, got ' + state.terrain);
+      console.log('ok - null-terrain-opens-identity-not-result');
     });
   }finally{
     await browser.close();

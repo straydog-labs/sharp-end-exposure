@@ -5893,7 +5893,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index304'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index305'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -20720,9 +20720,22 @@ function launchLogWithClimb(climbId, climbName, grade, terrain, setting, opts){
 
     checkLogReady();
     if(opts.skipToResult){
-      showScreen('screen-log-result');
-      updateLogFlowProgress(2);
-      paintLogProjectToggle();
+      // Identity must be complete before jumping to result — a project with
+      // null grade or terrain would otherwise land on a blank result step.
+      if(climbName && grade && terrain){
+        showScreen('screen-log-result');
+        updateLogFlowProgress(2);
+        paintLogProjectToggle();
+      } else if(!terrain){
+        showScreen('screen-log-terrain');
+        updateLogFlowProgress(3);
+      } else if(!grade){
+        showScreen('screen-log-grade');
+        updateLogFlowProgress(5);
+      } else {
+        showScreen('screen-log-name');
+        updateLogFlowProgress(6);
+      }
     }
   }, 50);
 }
