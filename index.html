@@ -1408,6 +1408,18 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   #climb-table .climb-stack-sub{display:block;}
 }
 .log-project-slot{margin:10px 0 14px;}
+#log-my-projects[hidden]{display:none !important;}
+.log-my-projects{margin:0 0 16px;}
+.log-my-projects-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.log-my-projects-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.log-my-projects-see-all{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;cursor:pointer;padding:0;}
+.log-my-projects-see-all[hidden]{display:none !important;}
+.log-my-projects-row{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 0 4px;}
+.log-my-projects-row::-webkit-scrollbar{display:none;}
+.log-my-projects-row.is-expanded{flex-wrap:wrap;overflow:visible;}
+.log-my-project-item{flex:0 0 auto;min-width:148px;max-width:200px;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;padding:10px 12px;cursor:pointer;}
+.log-my-project-item .lmp-name{font-size:14px;font-weight:700;line-height:1.25;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.log-my-project-item .lmp-meta{font-size:11px;color:var(--muted);line-height:1.35;}
 .project-complete-prompt{margin-top:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);}
 .project-complete-copy{font-size:14px;font-weight:600;margin-bottom:10px;}
 .project-complete-actions{display:flex;gap:8px;}
@@ -2348,6 +2360,13 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
     <button class="back-btn" onclick="showScreen('screen-sessions')">← Climb Log</button>
   </div>
   <div class="log-flow-body">
+    <div id="log-my-projects" class="log-my-projects" hidden>
+      <div class="log-my-projects-head">
+        <div class="log-my-projects-label">My projects</div>
+        <button type="button" id="log-my-projects-see-all" class="log-my-projects-see-all" hidden onclick="toggleLogMyProjectsAll()">See all</button>
+      </div>
+      <div id="log-my-projects-row" class="log-my-projects-row"></div>
+    </div>
     <div class="screen-title">How activated did you feel?<span class="sub">Drag the dial — your first read.</span></div>
     <div id="log-act-gauge" style="width:100%;max-width:280px;margin:24px auto 0;"></div>
     <button type="button" class="zone-info-icon" aria-label="What do these zones mean?" onclick="openResearchSheet('general')">ⓘ</button>
@@ -5874,7 +5893,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index304'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index305'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -8159,7 +8178,8 @@ function scoreToZone(score){
   return score <= 4 ? 'comfort' : score <= 9 ? 'learning' : 'panic';
 }
 
-function startLogFlow(){
+function startLogFlow(opts){
+  opts = opts || {};
   resetLogScreen();
   // A fresh "Log a climb" must never inherit a suggestion tap from the last flow.
   // launchLogWithClimb() re-sets _selectedClimbId after this returns.
@@ -8170,10 +8190,14 @@ function startLogFlow(){
   window._sessionStartTime = Date.now();
   _resetLogFlowContinueButtons();
   populateLogDoneScreen(true);
+  _logMyProjectsExpanded = false;
   paintLogProjectToggle();
+  paintLogMyProjects();
   showScreen('screen-log-act');
   updateLogFlowProgress(1);
-  setTimeout(initLogActivationGauge, 50);
+  if(!opts.skipActGauge){
+    setTimeout(initLogActivationGauge, 50);
+  }
 }
 
 function _resetLogFlowContinueButtons(){
@@ -8210,6 +8234,7 @@ function _applyPremiumGaugeClasses(containerId){
 }
 
 function initLogActivationGauge(){
+  if(logFlowState && logFlowState.step !== 1) return;
   var actScreen = document.getElementById('screen-log-act');
   if(actScreen && !actScreen.classList.contains('active')){
     showScreen('screen-log-act');
@@ -9779,6 +9804,90 @@ async function applyWantProjectAfterSave(climbId){
     _climbCache = _climbCache || [];
     _climbCache.push({ id: climbId, is_project: true, name: logState.routeName || null });
   }
+}
+
+var _logMyProjectsExpanded = false;
+
+function listOpenLogProjects(){
+  var climbs = Array.isArray(_climbCache) ? _climbCache : [];
+  var sessions = Array.isArray(window._cachedClimbs) ? window._cachedClimbs : [];
+  var out = [];
+  climbs.forEach(function(c){
+    if(!c || !c.id || !c.is_project || c.deleted_at) return;
+    var atts = sessions.filter(function(s){
+      return s && s.climb_id === c.id && !s.is_baseline && !s.is_checkin && !s.deleted_at;
+    });
+    var latest = null;
+    atts.forEach(function(s){
+      if(!latest || new Date(s.created_at) > new Date(latest.created_at)) latest = s;
+    });
+    out.push({
+      id: c.id,
+      name: c.name || 'Unnamed',
+      grade: c.grade_value || '',
+      terrain: c.climbing_type || '',
+      setting: (latest && latest.setting) || c.setting || null,
+      attempts: atts.length,
+      lastAt: (latest && latest.created_at) || c.updated_at || c.created_at || ''
+    });
+  });
+  out.sort(function(a, b){
+    return new Date(b.lastAt || 0) - new Date(a.lastAt || 0);
+  });
+  return out;
+}
+
+function paintLogMyProjects(){
+  var wrap = document.getElementById('log-my-projects');
+  var row = document.getElementById('log-my-projects-row');
+  var seeAll = document.getElementById('log-my-projects-see-all');
+  if(!wrap || !row) return;
+  var items = listOpenLogProjects();
+  if(!items.length){
+    wrap.hidden = true;
+    row.innerHTML = '';
+    if(seeAll) seeAll.hidden = true;
+    if(!_climbCache && !_climbCacheInflight){
+      loadClimbCache().then(function(){ paintLogMyProjects(); });
+    }
+    return;
+  }
+  wrap.hidden = false;
+  var expanded = !!_logMyProjectsExpanded;
+  var shown = expanded ? items : items.slice(0, 5);
+  if(seeAll){
+    seeAll.hidden = items.length <= 5;
+    seeAll.textContent = expanded ? 'Show less' : 'See all';
+  }
+  row.classList.toggle('is-expanded', expanded);
+  row.innerHTML = shown.map(function(p){
+    var attLabel = p.attempts === 1 ? '1 attempt' : (p.attempts + ' attempts');
+    var meta = [p.grade, p.terrain, attLabel].filter(Boolean).join(' · ');
+    return '<button type="button" class="log-my-project-item" data-cid="'+escTrainHtml(p.id)+'" onclick="pickLogMyProject(this.dataset.cid)">'
+      + '<div class="lmp-name">'+escTrainHtml(p.name)+'</div>'
+      + '<div class="lmp-meta">'+escTrainHtml(meta)+'</div>'
+      + '</button>';
+  }).join('');
+}
+
+function toggleLogMyProjectsAll(){
+  _logMyProjectsExpanded = !_logMyProjectsExpanded;
+  paintLogMyProjects();
+}
+
+function pickLogMyProject(climbId){
+  if(!climbId) return;
+  var items = listOpenLogProjects();
+  var rec = null;
+  for(var i = 0; i < items.length; i++){
+    if(items[i].id === climbId){ rec = items[i]; break; }
+  }
+  if(!rec){
+    var c = climbById(climbId);
+    if(!c) return;
+    rec = { id: c.id, name: c.name, grade: c.grade_value, terrain: c.climbing_type, setting: c.setting };
+  }
+  launchLogWithClimb(rec.id, rec.name, rec.grade, rec.terrain, rec.setting, { skipToResult: true });
 }
 
 function paintLogProjectToggle(){
@@ -20541,8 +20650,9 @@ function returnToClimbLogOrHome(){
 // launchLogWithClimb — shared entry point for any flow
 // that already knows which climb it's logging against
 // ═══════════════════════════════════════════════════════
-function launchLogWithClimb(climbId, climbName, grade, terrain, setting){
-  startLogFlow();
+function launchLogWithClimb(climbId, climbName, grade, terrain, setting, opts){
+  opts = opts || {};
+  startLogFlow({ skipActGauge: !!opts.skipToResult });
   // startLogFlow() clears any leftover selection — re-apply the intended climb after.
   _selectedClimbId = climbId || null;
 
@@ -20609,6 +20719,24 @@ function launchLogWithClimb(climbId, climbName, grade, terrain, setting){
     }
 
     checkLogReady();
+    if(opts.skipToResult){
+      // Identity must be complete before jumping to result — a project with
+      // null grade or terrain would otherwise land on a blank result step.
+      if(climbName && grade && terrain){
+        showScreen('screen-log-result');
+        updateLogFlowProgress(2);
+        paintLogProjectToggle();
+      } else if(!terrain){
+        showScreen('screen-log-terrain');
+        updateLogFlowProgress(3);
+      } else if(!grade){
+        showScreen('screen-log-grade');
+        updateLogFlowProgress(5);
+      } else {
+        showScreen('screen-log-name');
+        updateLogFlowProgress(6);
+      }
+    }
   }, 50);
 }
 

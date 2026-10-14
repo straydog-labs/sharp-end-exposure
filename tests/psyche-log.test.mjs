@@ -10,8 +10,8 @@ const sw = readFileSync(join(__dirname, '../sw.js'), 'utf8');
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index304'/.test(index));
-assert.ok(/APP_VERSION = 'index304'/.test(sw));
+assert.ok(/var app_version = 'index305'/.test(index));
+assert.ok(/APP_VERSION = 'index305'/.test(sw));
 
 assert.ok(/function startPrepare\(/.test(index));
 assert.ok(/function startPrepareClimb\(/.test(index));

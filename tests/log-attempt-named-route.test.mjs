@@ -12,8 +12,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index304'/.test(index));
-assert.ok(/APP_VERSION = 'index304'/.test(sw));
+assert.ok(/var app_version = 'index305'/.test(index));
+assert.ok(/APP_VERSION = 'index305'/.test(sw));
 assert.ok(/from '\.\/pw-browser\.mjs'/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
   'named-route test uses installed browser helper');
 assert.ok(!/execSync\([^)]*playwright[^)]*install/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
@@ -121,6 +121,7 @@ const CALL_SITE_RULES = [
   { fn: 'launchLogWithClimb', test: 'quick-strip', match: /ctaOnclick: 'launchLogWithClimb\(/ },
   { fn: 'launchLogWithClimb', test: 'complete-drill', match: /launchLogWithClimb\(match\.climb_id/ },
   { fn: 'launchLogWithClimb', test: 'add-attempt-with-id', match: /launchLogWithClimb\(climbId,\s*routeName/ },
+  { fn: 'launchLogWithClimb', test: 'add-attempt-with-id', match: /launchLogWithClimb\(rec\.id/ },
   { fn: 'addAttemptFromLog', test: 'climb-table', match: /climb-table-attempt/ },
   { fn: 'addAttemptFromLog', test: 'home-recent', match: /this\.dataset\.origin/ },
   { fn: 'addAttemptFromLog', test: 'route-history', match: /_rhClimbName/ },

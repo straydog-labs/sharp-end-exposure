@@ -16,6 +16,7 @@ export const FLOWS = [
   { id: 'project-toggle', group: 'athlete', file: 'real-flow-project-toggle.test.mjs', covered: true, asserts: 'Project star log/edit/null-climb_id/unproject/send-prompt/rollback + same-name grade/terrain match' },
   { id: 'climb-table-dense-star', group: 'athlete', file: 'climb-table-dense-star.test.mjs', covered: true, asserts: 'dense-row star aria-label, no visible Project label' },
   { id: 'log-auth-refocus', group: 'athlete', file: 'real-flow-log-auth-refocus.test.mjs', covered: true, asserts: 'same-user SIGNED_IN keeps log step 6; new/other user routes Home' },
+  { id: 'log-projects-pick', group: 'athlete', file: 'real-flow-log-projects-pick.test.mjs', covered: true, asserts: 'My projects quick-pick saves exact climb_id; same-name siblings; hidden when none; null grade/terrain opens identity not blank result' },
   { id: 'coach-log-durability', group: 'coach', file: 'coach-log-durability.test.mjs', covered: true, asserts: 'PGRST204 strip+warn, network queue replay once, 403 no strip' },
   { id: 'coach-journal-readability', group: 'coach', file: 'coach-journal-readability.test.mjs', covered: true, asserts: 'newest-first journal cards with zone+score result grade terrain' },
   { id: 'coach-log-form', group: 'coach', file: 'coach-log-form.test.mjs', covered: true, asserts: 'dial-only activation, no number/chips, POST score+derived zone' },
@@ -96,6 +97,7 @@ export const ATTEMPT_SITE_RULES = [
   { fn: 'launchLogWithClimb', flow: 'attempt-pinned-strip', match: /ctaOnclick:\s*'launchLogWithClimb\(/ },
   { fn: 'launchLogWithClimb', flow: 'attempt-complete-drill', match: /launchLogWithClimb\(match\.climb_id/ },
   { fn: 'launchLogWithClimb', flow: 'attempt-locked-route', match: /launchLogWithClimb\(climbId,\s*routeName/ },
+  { fn: 'launchLogWithClimb', flow: 'log-projects-pick', match: /launchLogWithClimb\(rec\.id/ },
   { fn: 'addAttemptFromLog', flow: 'attempt-climb-table', match: /climb-table-attempt/ },
   { fn: 'addAttemptFromLog', flow: 'attempt-route-history', match: /_rhClimbName/ },
   { fn: 'addAttemptFromLog', flow: 'attempt-home-recent', match: /this\.dataset\.origin/ }
