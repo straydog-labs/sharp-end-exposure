@@ -97,6 +97,7 @@ export const ATTEMPT_SITE_RULES = [
   { fn: 'launchLogWithClimb', flow: 'attempt-pinned-strip', match: /ctaOnclick:\s*'launchLogWithClimb\(/ },
   { fn: 'launchLogWithClimb', flow: 'attempt-complete-drill', match: /launchLogWithClimb\(match\.climb_id/ },
   { fn: 'launchLogWithClimb', flow: 'attempt-locked-route', match: /launchLogWithClimb\(climbId,\s*routeName/ },
+  { fn: 'launchLogWithClimb', flow: 'log-projects-pick', match: /launchLogWithClimb\(rec\.id/ },
   { fn: 'addAttemptFromLog', flow: 'attempt-climb-table', match: /climb-table-attempt/ },
   { fn: 'addAttemptFromLog', flow: 'attempt-route-history', match: /_rhClimbName/ },
   { fn: 'addAttemptFromLog', flow: 'attempt-home-recent', match: /this\.dataset\.origin/ }

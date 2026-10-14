@@ -121,6 +121,7 @@ const CALL_SITE_RULES = [
   { fn: 'launchLogWithClimb', test: 'quick-strip', match: /ctaOnclick: 'launchLogWithClimb\(/ },
   { fn: 'launchLogWithClimb', test: 'complete-drill', match: /launchLogWithClimb\(match\.climb_id/ },
   { fn: 'launchLogWithClimb', test: 'add-attempt-with-id', match: /launchLogWithClimb\(climbId,\s*routeName/ },
+  { fn: 'launchLogWithClimb', test: 'add-attempt-with-id', match: /launchLogWithClimb\(rec\.id/ },
   { fn: 'addAttemptFromLog', test: 'climb-table', match: /climb-table-attempt/ },
   { fn: 'addAttemptFromLog', test: 'home-recent', match: /this\.dataset\.origin/ },
   { fn: 'addAttemptFromLog', test: 'route-history', match: /_rhClimbName/ },

@@ -14,8 +14,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index302'/.test(index) || /var app_version = 'index299'/.test(index));
-assert.ok(/APP_VERSION = 'index302'/.test(sw) || /APP_VERSION = 'index299'/.test(sw));
+assert.ok(/var app_version = 'index302'/.test(index));
+assert.ok(/APP_VERSION = 'index302'/.test(sw));
 
 assert.ok(/id="log-my-projects"/.test(index), 'screen-log-act must host #log-my-projects');
 assert.ok(/function paintLogMyProjects\(/.test(index) || /function renderLogMyProjects\(/.test(index),
@@ -50,12 +50,16 @@ async function bootLog(page, climbs, sessions){
     window._cachedClimbs = args.sessions;
     window.loadClimbLog = function(){ return Promise.resolve(); };
     window.loadHomeScreen = function(){ return Promise.resolve(); };
-    window.loadClimbCache = function(){ return Promise.resolve(window._climbCache); };
+    window.loadClimbCache = function(){
+      window._climbCache = args.climbs;
+      return Promise.resolve(window._climbCache);
+    };
     var sk = document.getElementById('route-loading-skeleton');
     if(sk) sk.style.display = 'none';
     startLogFlow();
+    window._climbCache = args.climbs;
+    window._cachedClimbs = args.sessions;
     if(typeof paintLogMyProjects === 'function') paintLogMyProjects();
-    if(typeof renderLogMyProjects === 'function') renderLogMyProjects();
   }, { userId: USER_ID, climbs: climbs, sessions: sessions });
   await waitForScreen(page, 'screen-log-act');
   await page.waitForTimeout(80);
