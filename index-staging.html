@@ -149,9 +149,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 #home-compact{display:flex;flex-direction:column;gap:12px;width:100%;}
 #screen-home .screen-title{font-size:20px;margin:0;}
 #screen-home .screen-title .sub{display:none;}
-.home-streak-band{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 12px;}
-.home-streak-label{font-size:13px;font-weight:700;margin-bottom:8px;}
-.home-week-dots{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.home-streak-band{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;overflow:visible;box-sizing:border-box;}
+.home-streak-band[hidden]{display:none;}
+.home-streak-label{font-size:13px;font-weight:700;margin:0 0 8px;padding:0 4px;line-height:1.35;overflow:visible;text-indent:0;}
+.home-week-dots{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 2px;overflow:visible;}
 .home-week-dot{flex:1;min-width:0;height:28px;border-radius:99px;background:transparent;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:default;}
 button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-week-dot.is-on{background:rgba(232,118,58,.18);border:1px solid rgba(232,118,58,.45);color:var(--accent);}
@@ -181,6 +182,21 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-today-title{width:100%;background:none;border:none;padding:0;text-align:left;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;line-height:1.25;cursor:pointer;}
 .home-today-meta{font-size:12px;color:var(--muted);margin:6px 0 12px;}
 .home-today-start{width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;}
+.home-today-start[hidden]{display:none;}
+.home-welcome-hint{font-size:13px;color:var(--muted);line-height:1.45;padding:0 2px;}
+.home-welcome-hint[hidden]{display:none;}
+.home-projects-wrap[hidden],.home-recent-wrap[hidden]{display:none;}
+.home-projects-strip{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.home-projects-strip::-webkit-scrollbar{display:none;}
+.home-project-chip{flex:0 0 auto;width:168px;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.home-project-chip .hp-name{font-size:14px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.home-project-chip .hp-meta{font-size:12px;color:var(--muted);line-height:1.35;margin-top:4px;}
+.home-recent-row{width:100%;display:flex;align-items:center;gap:10px;padding:10px 2px;border:none;border-bottom:1px solid var(--border);background:none;color:var(--text);font-family:'Space Grotesk',sans-serif;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.home-recent-row:last-child{border-bottom:none;}
+.home-recent-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.home-recent-main{flex:1;min-width:0;}
+.home-recent-name{font-size:14px;font-weight:700;line-height:1.25;}
+.home-recent-meta{font-size:12px;color:var(--muted);margin-top:2px;}
 .home-action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .home-action-row .hub-compact-row{margin:0;min-height:52px;}
 .home-due-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
@@ -1650,18 +1666,12 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   <div class="content">
     <div class="screen-title" id="home-greeting">Home</div>
     <div id="home-compact">
-      <div id="home-streak-band" class="home-streak-band">
-        <div class="home-streak-label" id="home-streak-label">No sessions yet this week</div>
-        <div class="home-week-dots" id="home-week-dots" aria-label="This week's sessions"></div>
-        <div class="home-zone-bar" id="home-zone-bar" hidden></div>
-        <div class="home-zone-legend" id="home-zone-legend" hidden></div>
-      </div>
-
       <div id="home-today-card" class="home-today-card" hidden>
-        <div class="home-today-kicker" id="home-today-kicker">TODAY</div>
+        <div class="home-today-kicker" id="home-today-kicker">UP NEXT</div>
         <button type="button" class="home-today-title" id="home-today-title" onclick="openHomeAssignmentDetail(this.dataset.id)"></button>
         <div class="home-today-meta" id="home-today-meta"></div>
         <button type="button" class="home-today-start" id="home-today-start" onclick="startTrainSessionFromAssignment(this.dataset.id)">Start</button>
+        <button type="button" class="home-today-start" id="home-today-log-attempt" hidden onclick="launchHomeProjectLog(this.dataset.cid,this.dataset.name,this.dataset.grade,this.dataset.terrain,this.dataset.setting)">Log attempt</button>
       </div>
 
       <div class="home-action-row" id="home-action-row">
@@ -1675,7 +1685,31 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
         </button>
       </div>
 
-      <div id="home-due-wrap">
+      <div id="home-welcome-hint" class="home-welcome-hint" hidden>Log a climb or start training when you're ready.</div>
+
+      <div id="home-projects-wrap" class="home-projects-wrap" hidden>
+        <div class="home-due-head">
+          <div class="home-due-label">My projects</div>
+          <button type="button" class="home-due-see-all" id="home-projects-see-all" onclick="showClimbTable()">See all</button>
+        </div>
+        <div id="home-projects-strip" class="home-projects-strip"></div>
+      </div>
+
+      <div id="home-streak-band" class="home-streak-band" hidden>
+        <div class="home-streak-label" id="home-streak-label"></div>
+        <div class="home-week-dots" id="home-week-dots" aria-label="This week's sessions"></div>
+        <div class="home-zone-bar" id="home-zone-bar" hidden></div>
+        <div class="home-zone-legend" id="home-zone-legend" hidden></div>
+      </div>
+
+      <div id="home-recent-wrap" class="home-recent-wrap" hidden>
+        <div class="home-due-head">
+          <div class="home-due-label">Recent</div>
+        </div>
+        <div id="home-recent-list"></div>
+      </div>
+
+      <div id="home-due-wrap" hidden>
         <div class="home-due-head">
           <div class="home-due-label">Due this week</div>
           <button type="button" class="home-due-see-all" id="home-due-see-all" onclick="showScreen('screen-train-assignments')">See all</button>
@@ -1683,7 +1717,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
         <div id="home-due-list"></div>
       </div>
 
-      <button type="button" id="home-goals-strip" class="hub-compact-row home-goals-strip" onclick="showScreen('screen-train-goals')">
+      <button type="button" id="home-goals-strip" class="hub-compact-row home-goals-strip" hidden onclick="showScreen('screen-train-goals')">
         <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></svg></div>
         <div class="te-title" id="home-goals-title">Set a goal to guide your training</div>
       </button>
@@ -1712,7 +1746,6 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
         <div class="te-title">Research</div>
         <div class="te-sub">The science behind SEE</div>
       </button>
-      <div id="home-recent-list"></div>
     </div>
   </div>
 </div>
@@ -5924,7 +5957,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index307'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index308'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -11102,13 +11135,14 @@ function homeWeekDotsHtml(daySet, fromDate, counts, selectedKey){
   var names = homeWeekDayNames();
   var todayKey = athleteLocalDayKeyFromDate(fromDate ? new Date(fromDate) : new Date());
   var html = '';
-  var i, d, key, n, on, cls, label;
+  var i, d, key, n, on, filled, cls, label;
   for(i = 0; i < 7; i++){
     d = new Date(b.start.getFullYear(), b.start.getMonth(), b.start.getDate() + i);
     key = athleteLocalDayKeyFromDate(d);
     n = counts && Object.prototype.hasOwnProperty.call(counts, key) ? counts[key] : ((daySet && daySet[key]) ? 1 : 0);
+    filled = !!(daySet && daySet[key]);
     on = n > 0;
-    cls = 'home-week-dot' + (on ? ' is-on' : ' is-empty') + (key === todayKey ? ' is-today' : '') + (selectedKey && key === selectedKey ? ' is-selected' : '');
+    cls = 'home-week-dot' + (filled ? ' is-on' : ' is-empty') + (key === todayKey ? ' is-today' : '') + (selectedKey && key === selectedKey ? ' is-selected' : '');
     if(on){
       label = names[i] + ', ' + n + (n === 1 ? ' item' : ' items');
       html += '<button type="button" class="'+cls+'" data-day="'+key+'" aria-label="'+label+'" onclick="openHomeDaySheet(\''+key+'\')">'+labels[i]+'</button>';
@@ -11131,13 +11165,63 @@ function homeWeekStatusLabel(streak, daySet, fromDate){
   if(streak > 0) return streak === 1 ? '1-day streak' : (streak + '-day streak');
   return n === 1 ? '1 session this week' : (n + ' sessions this week');
 }
+function homeWeekSessionLabel(n){
+  n = Number(n) || 0;
+  return n === 1 ? '1 session this week' : (n + ' sessions this week');
+}
+function countHomeWeekSessions(climbs, trains, psyche, drills, fromDate){
+  var b = athleteWeekBounds(fromDate);
+  var n = 0;
+  function inWeek(iso){
+    if(!iso) return false;
+    var t = new Date(iso);
+    return !isNaN(t.getTime()) && t >= b.start && t < b.end;
+  }
+  (climbs || []).forEach(function(s){ if(isAthleteStreakClimb(s) && inWeek(s.created_at)) n++; });
+  (trains || []).forEach(function(t){ if(isAthleteStreakTraining(t) && inWeek(t.created_at || t.started_at)) n++; });
+  (psyche || []).forEach(function(s){ if(isAthleteStreakPsyche(s) && inWeek(s.created_at)) n++; });
+  (drills || []).forEach(function(d){ if(isAthleteStreakPsycheDrill(d) && inWeek(d.created_at)) n++; });
+  return n;
+}
+function homeProjectLastLabel(iso){
+  if(!iso) return '';
+  var d = iso instanceof Date ? iso : new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function homeZoneDotColor(zone){
+  var z = String(zone || '').toLowerCase();
+  if(z === 'comfort') return 'var(--comfort)';
+  if(z === 'learning') return 'var(--learning)';
+  if(z === 'panic') return 'var(--panic)';
+  return 'var(--muted)';
+}
+function homeResultLabel(s){
+  var raw = String((s && (s.result || s.baseline_zone)) || '').trim();
+  if(!raw) return '';
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+function launchHomeProjectLog(climbId, routeName, grade, terrain, setting){
+  if(!climbId) return;
+  launchLogWithClimb(climbId, routeName, grade, terrain, setting);
+}
 function paintHomeTodayCard(a, now){
   var card = document.getElementById('home-today-card');
   var titleEl = document.getElementById('home-today-title');
   var metaEl = document.getElementById('home-today-meta');
   var startEl = document.getElementById('home-today-start');
   var kickerEl = document.getElementById('home-today-kicker');
+  var logEl = document.getElementById('home-today-log-attempt');
   if(!card || !titleEl || !metaEl || !startEl) return;
+  if(logEl){
+    logEl.hidden = true;
+    logEl.dataset.cid = '';
+    logEl.dataset.name = '';
+    logEl.dataset.grade = '';
+    logEl.dataset.terrain = '';
+    logEl.dataset.setting = '';
+  }
+  startEl.hidden = false;
   if(!a){
     card.hidden = true;
     titleEl.textContent = '';
@@ -11153,6 +11237,54 @@ function paintHomeTodayCard(a, now){
   metaEl.textContent = homeAssignmentTypeLabel(a) + ' · ' + homeAssignmentDueLabel(homeAssignmentDueKind(a, now));
   if(kickerEl) kickerEl.textContent = homeTodayKickerLabel(a, now);
   card.hidden = false;
+}
+function paintHomeProjectNextCard(p){
+  var card = document.getElementById('home-today-card');
+  var titleEl = document.getElementById('home-today-title');
+  var metaEl = document.getElementById('home-today-meta');
+  var startEl = document.getElementById('home-today-start');
+  var kickerEl = document.getElementById('home-today-kicker');
+  var logEl = document.getElementById('home-today-log-attempt');
+  if(!card || !titleEl || !metaEl || !p) return;
+  var att = (p.attempts === 1) ? '1 attempt' : ((p.attempts || 0) + ' attempts');
+  var last = homeProjectLastLabel(p.lastAt);
+  titleEl.textContent = 'Next: ' + (p.name || 'Unnamed');
+  titleEl.dataset.id = '';
+  metaEl.textContent = att + (last ? ', last ' + last : '');
+  if(kickerEl) kickerEl.textContent = 'NEXT';
+  if(startEl){
+    startEl.hidden = true;
+    startEl.dataset.id = '';
+  }
+  if(logEl){
+    logEl.hidden = false;
+    logEl.dataset.cid = p.id || '';
+    logEl.dataset.name = p.name || '';
+    logEl.dataset.grade = p.grade || '';
+    logEl.dataset.terrain = p.terrain || '';
+    logEl.dataset.setting = p.setting || '';
+  }
+  card.hidden = false;
+}
+function paintHomePrimaryCard(){
+  var now = new Date();
+  var todayItem = pickHomeTodayAssignment(_trainAssignmentsCache, now);
+  if(todayItem){
+    _homeHasDueAssignment = true;
+    paintHomeTodayCard(todayItem, now);
+    return;
+  }
+  _homeHasDueAssignment = false;
+  if(!_homeDataReady && !Array.isArray(_climbCache)){
+    paintHomeTodayCard(null);
+    return;
+  }
+  var projects = listOpenLogProjects();
+  if(projects.length){
+    paintHomeProjectNextCard(projects[0]);
+    return;
+  }
+  paintHomeTodayCard(null);
 }
 function openHomeAssignmentDetail(id){
   if(!id) return;
@@ -11245,9 +11377,9 @@ function paintHomeWeekDots(fromDate){
   var dotsEl = document.getElementById('home-week-dots');
   if(!dotsEl) return;
   fromDate = fromDate || new Date();
+  var fill = collectAthleteStreakDays(_homeLoadedClimbs, _homeLoadedTrains, _homeLoadedPsyche, _homeLoadedDrills);
   var counts = collectHomeDayCounts(_homeLoadedClimbs, _homeLoadedTrains, _trainAssignmentsCache);
-  var fill = {};
-  Object.keys(counts).forEach(function(k){ if(counts[k]) fill[k] = true; });
+  Object.keys(fill).forEach(function(k){ if(!counts[k]) counts[k] = 1; });
   dotsEl.innerHTML = homeWeekDotsHtml(fill, fromDate, counts, _homeSelectedDayKey);
 }
 function openHomeDaySheet(dayKey){
@@ -11370,18 +11502,21 @@ function homePrimaryGoalText(rows){
 function homeRecentActivityHtml(rows){
   rows = (rows || []).filter(function(s){
     return s && !s.is_checkin && !s.is_baseline && !s.deleted_at;
-  }).slice(0, 5);
-  if(!rows.length){
-    return '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No climbs logged yet.</div>';
-  }
-  return rows.map(function(s, i){
-    return climbAttemptRowHtml(s, {
-      origin: 'home-recent',
-      rowIdx: i,
-      showAddAttempt: true,
-      showRouteName: true,
-      idPrefix: 'home'
-    });
+  }).slice(0, 3);
+  if(!rows.length) return '';
+  return rows.map(function(s){
+    var sid = escHomeAttr(s.id || '');
+    var grade = String(s.grade_value || '').trim();
+    var nameHtml = (typeof climbDisplayNameHtml === 'function')
+      ? climbDisplayNameHtml(s.route_name)
+      : escTrainHtml(s.route_name || 'Climb');
+    var result = homeResultLabel(s);
+    var color = homeZoneDotColor(s.zone);
+    return '<button type="button" class="home-recent-row" data-sid="'+sid+'" data-origin="home-recent" onclick="editClimbFromLog(this.dataset.sid,this.dataset.origin)">'
+      + '<span class="home-recent-dot" style="background:'+color+'"></span>'
+      + '<span class="home-recent-main"><span class="home-recent-name">'+nameHtml+(grade ? ' · '+escTrainHtml(grade) : '')+'</span>'
+      + (result ? '<span class="home-recent-meta">'+escTrainHtml(result)+'</span>' : '')
+      + '</span></button>';
   }).join('');
 }
 function homeStreakBandHtml(streak, share){
@@ -11406,11 +11541,14 @@ async function loadHomeDueList(){
   var dueEl = document.getElementById('home-due-list');
   var wrap = document.getElementById('home-due-wrap');
   if(!dueEl) return;
+  if(wrap) wrap.hidden = true;
   if(!window._authUser){
-    paintHomeTodayCard(null);
+    _trainAssignmentsCache = [];
+    _homeHasDueAssignment = false;
+    if(_homeDataReady) paintHomePrimaryCard();
+    else paintHomeTodayCard(null);
     paintHomeWeekDots();
     dueEl.innerHTML = '';
-    if(wrap) wrap.hidden = true;
     return;
   }
   var rows = await fetchTrainAssignmentsForAthlete();
@@ -11418,58 +11556,187 @@ async function loadHomeDueList(){
   var now = new Date();
   var due = _trainAssignmentsCache.filter(function(a){ return isHomeAssignmentDueSoon(a, now); });
   var todayItem = pickHomeTodayAssignment(_trainAssignmentsCache, now);
-  paintHomeTodayCard(todayItem, now);
+  if(todayItem){
+    _homeHasDueAssignment = true;
+    paintHomeTodayCard(todayItem, now);
+  } else {
+    _homeHasDueAssignment = false;
+    if(_homeDataReady) paintHomePrimaryCard();
+    else paintHomeTodayCard(null);
+  }
   paintHomeWeekDots(now);
   var rest = due.filter(function(a){ return !todayItem || a.id !== todayItem.id; }).slice(0, 3);
   dueEl.innerHTML = rest.length ? rest.map(homeDueRowHtml).join('') : '';
-  if(wrap) wrap.hidden = rest.length === 0;
+  if(wrap) wrap.hidden = true;
 }
 
 async function loadHomeGoalsStrip(){
   var el = document.getElementById('home-goals-strip');
-  if(!el) return;
-  var empty = 'Set a goal to guide your training';
-  var title = document.getElementById('home-goals-title');
-  if(!window._authUser){
-    if(title) title.textContent = empty;
-    el.hidden = false;
+  if(el) el.hidden = true;
+}
+
+var _homeSessRows = null;
+var _homeSessInflight = null;
+function loadHomeSessionCaches(){
+  if(Array.isArray(_homeSessRows)) return Promise.resolve(_homeSessRows);
+  if(_homeSessInflight) return _homeSessInflight;
+  _homeSessInflight = (async function(){
+    try{
+      if(!window._authUser){
+        _homeSessRows = [];
+        if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs = [];
+        return _homeSessRows;
+      }
+      var uid = window._authUser.id;
+      var sessRows = await sbS(
+        'sessions',
+        'select=*&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=80'
+      );
+      sessRows = Array.isArray(sessRows) ? sessRows : [];
+      _homeSessRows = sessRows;
+      if(!Array.isArray(window._cachedClimbs)){
+        window._cachedClimbs = sessRows.filter(function(s){
+          return s && !s.is_checkin && (s.grade_value || s.zone || s.climb_id);
+        });
+      }
+      return _homeSessRows;
+    }catch(e){
+      if(!Array.isArray(_homeSessRows)) _homeSessRows = [];
+      if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs = [];
+      return _homeSessRows;
+    }finally{
+      _homeSessInflight = null;
+    }
+  })();
+  return _homeSessInflight;
+}
+
+function paintHomeWeekFromCaches(){
+  var labelEl = document.getElementById('home-streak-label');
+  var band = document.getElementById('home-streak-band');
+  var barEl = document.getElementById('home-zone-bar');
+  var legendEl = document.getElementById('home-zone-legend');
+  if(!labelEl || !band) return;
+  if(barEl){ barEl.innerHTML = ''; barEl.hidden = true; }
+  if(legendEl){ legendEl.innerHTML = ''; legendEl.hidden = true; }
+  if(!_homeDataReady){
+    band.hidden = true;
     return;
   }
-  var rows = await sbS(
-    'athlete_goals',
-    'select=id,text,priority,created_at&athlete_id=eq.' + window._authUser.id + '&order=created_at.desc'
-  );
-  var text = homePrimaryGoalText(Array.isArray(rows) ? rows : []);
-  if(text){
-    el.hidden = true;
-  } else {
-    if(title) title.textContent = empty;
-    el.hidden = false;
+  var now = new Date();
+  var n = countHomeWeekSessions(_homeLoadedClimbs, _homeLoadedTrains, _homeLoadedPsyche, _homeLoadedDrills, now);
+  paintHomeWeekDots(now);
+  if(!n){
+    labelEl.textContent = '';
+    band.hidden = true;
+    return;
   }
+  labelEl.textContent = homeWeekSessionLabel(n);
+  band.hidden = false;
+}
+
+function paintHomeRecentFromCaches(){
+  var wrap = document.getElementById('home-recent-wrap');
+  var el = document.getElementById('home-recent-list');
+  if(!wrap || !el) return;
+  if(!_homeDataReady){
+    wrap.hidden = true;
+    return;
+  }
+  var html = homeRecentActivityHtml(window._homeRecentSessions || []);
+  el.innerHTML = html;
+  wrap.hidden = !html;
+}
+
+function paintHomeProjectsStrip(){
+  var wrap = document.getElementById('home-projects-wrap');
+  var strip = document.getElementById('home-projects-strip');
+  if(!wrap || !strip) return;
+  if(!_homeDataReady && !Array.isArray(_climbCache)){
+    wrap.hidden = true;
+    return;
+  }
+  var projects = listOpenLogProjects().slice(0, 5);
+  if(!projects.length){
+    wrap.hidden = true;
+    strip.innerHTML = '';
+    return;
+  }
+  strip.innerHTML = projects.map(function(p){
+    var att = p.attempts === 1 ? '1 attempt' : ((p.attempts || 0) + ' attempts');
+    var last = homeProjectLastLabel(p.lastAt);
+    var args = [p.id, p.name, p.grade, p.terrain, p.setting].map(function(v){
+      return JSON.stringify(v == null ? '' : v);
+    }).join(',');
+    return '<button type="button" class="home-project-chip" data-cid="'+escHomeAttr(p.id)+'" onclick="launchHomeProjectLog('+args+')">'
+      + '<div class="hp-name">'+escTrainHtml(p.name || 'Unnamed')+'</div>'
+      + '<div class="hp-meta">'+escTrainHtml([p.grade, att].filter(Boolean).join(' · '))+'</div>'
+      + '<div class="hp-meta">last: '+escTrainHtml(last || '—')+'</div>'
+      + '</button>';
+  }).join('');
+  wrap.hidden = false;
+}
+
+function paintHomeWelcomeHint(){
+  var el = document.getElementById('home-welcome-hint');
+  if(!el) return;
+  if(!_homeDataReady){
+    el.hidden = true;
+    return;
+  }
+  var today = document.getElementById('home-today-card');
+  var projects = document.getElementById('home-projects-wrap');
+  var week = document.getElementById('home-streak-band');
+  var recent = document.getElementById('home-recent-wrap');
+  var hasCard = !!(today && !today.hidden);
+  var hasProjects = !!(projects && !projects.hidden);
+  var hasWeek = !!(week && !week.hidden);
+  var hasRecent = !!(recent && !recent.hidden);
+  el.hidden = hasCard || hasProjects || hasWeek || hasRecent;
+}
+
+function hideHomeDataSections(){
+  ['home-projects-wrap','home-streak-band','home-recent-wrap','home-welcome-hint','home-due-wrap','home-goals-strip'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.hidden = true;
+  });
+  if(!_homeHasDueAssignment) paintHomeTodayCard(null);
+}
+
+function failOpenHomeCaches(){
+  if(!Array.isArray(_climbCache)) _climbCache = [];
+  if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs = [];
+  if(!Array.isArray(_homeSessRows)) _homeSessRows = [];
+}
+
+function settleHomeData(){
+  if(_homeDataReady) return;
+  _homeDataReady = true;
+  failOpenHomeCaches();
+  paintHomePrimaryCard();
+  paintHomeProjectsStrip();
+  paintHomeWeekFromCaches();
+  paintHomeRecentFromCaches();
+  paintHomeWelcomeHint();
 }
 
 async function loadHomeStreakBand(){
   var labelEl = document.getElementById('home-streak-label');
-  var dotsEl = document.getElementById('home-week-dots');
   var barEl = document.getElementById('home-zone-bar');
   var legendEl = document.getElementById('home-zone-legend');
   if(!labelEl) return;
-  var now = new Date();
-  var emptyDays = {};
   _homeLoadedClimbs = [];
   _homeLoadedTrains = [];
   _homeLoadedPsyche = [];
   _homeLoadedDrills = [];
-  paintHomeWeekDots(now);
-  labelEl.textContent = homeWeekStatusLabel(0, emptyDays, now);
   if(barEl){ barEl.innerHTML = ''; barEl.hidden = true; }
   if(legendEl){ legendEl.innerHTML = ''; legendEl.hidden = true; }
-  if(!window._authUser) return;
+  if(!window._authUser){
+    if(_homeDataReady) paintHomeWeekFromCaches();
+    return;
+  }
   var uid = window._authUser.id;
-  var sessRows = await sbS(
-    'sessions',
-    'select=id,created_at,zone,is_checkin,is_baseline,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=80'
-  );
+  var sessRows = await loadHomeSessionCaches();
   var trainRows = await sbS(
     'training_sessions',
     'select=id,created_at,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=40'
@@ -11481,16 +11748,11 @@ async function loadHomeStreakBand(){
   sessRows = Array.isArray(sessRows) ? sessRows : [];
   trainRows = Array.isArray(trainRows) ? trainRows : [];
   drillRows = Array.isArray(drillRows) ? drillRows : [];
-  var climbs = sessRows.filter(isAthleteStreakClimb);
-  var psyche = sessRows.filter(isAthleteStreakPsyche);
-  _homeLoadedClimbs = climbs;
+  _homeLoadedClimbs = sessRows.filter(isAthleteStreakClimb);
+  _homeLoadedPsyche = sessRows.filter(isAthleteStreakPsyche);
   _homeLoadedTrains = trainRows;
-  _homeLoadedPsyche = psyche;
   _homeLoadedDrills = drillRows;
-  var days = collectAthleteStreakDays(climbs, trainRows, psyche, drillRows);
-  var streak = computeAthleteStreak(days, now);
-  paintHomeWeekDots(now);
-  labelEl.textContent = homeWeekStatusLabel(streak, days, now);
+  if(_homeDataReady) paintHomeWeekFromCaches();
 }
 
 async function loadHomeRecentActivity(){
@@ -11498,19 +11760,40 @@ async function loadHomeRecentActivity(){
   if(!el) return;
   if(!window._authUser){
     window._homeRecentSessions = [];
-    el.innerHTML = homeRecentActivityHtml([]);
+    if(_homeDataReady) paintHomeRecentFromCaches();
     return;
   }
-  var rows = await sbS(
-    'sessions',
-    'select=*&user_id=eq.' + window._authUser.id + '&is_checkin=eq.false&is_baseline=eq.false&deleted_at=is.null&order=created_at.desc&limit=5'
-  );
-  window._homeRecentSessions = Array.isArray(rows) ? rows : [];
-  el.innerHTML = homeRecentActivityHtml(window._homeRecentSessions);
+  var sessRows = await loadHomeSessionCaches();
+  window._homeRecentSessions = (Array.isArray(sessRows) ? sessRows : []).filter(function(s){
+    return s && !s.is_checkin && !s.is_baseline && !s.deleted_at;
+  });
+  if(_homeDataReady) paintHomeRecentFromCaches();
+}
+
+async function loadHomeProjectsStrip(){
+  if(!window._authUser){
+    if(!Array.isArray(_climbCache)) _climbCache = [];
+    if(_homeDataReady){
+      paintHomePrimaryCard();
+      paintHomeProjectsStrip();
+    }
+    return;
+  }
+  try{
+    await loadClimbCache();
+  }catch(e){
+    if(!Array.isArray(_climbCache)) _climbCache = [];
+  }
+  if(_homeDataReady){
+    paintHomePrimaryCard();
+    paintHomeProjectsStrip();
+  }
 }
 
 var _ownProfileFirstName = '';
 var _homeScreenLoadPromise = null;
+var _homeDataReady = false;
+var _homeHasDueAssignment = false;
 function homeGreetingText(firstName){
   return String(firstName == null ? '' : firstName).trim() || 'Home';
 }
@@ -11533,15 +11816,31 @@ async function loadHomeScreen(){
   if(_homeScreenLoadPromise) return _homeScreenLoadPromise;
   closeHomeAssignmentDetail();
   closeHomeDaySheet();
+  _homeDataReady = false;
+  _homeHasDueAssignment = false;
+  _homeSessRows = null;
+  hideHomeDataSections();
+  var settled = false;
+  function settle(){
+    if(settled) return;
+    settled = true;
+    settleHomeData();
+  }
+  var timer = setTimeout(settle, LOG_WHICH_LOAD_MS);
   _homeScreenLoadPromise = Promise.all([
     applyHomeGreeting(),
     loadHomeDueList(),
     loadHomeGoalsStrip(),
     loadHomeStreakBand(),
-    loadHomeRecentActivity()
+    loadHomeRecentActivity(),
+    loadHomeProjectsStrip()
   ]).then(function(){
+    clearTimeout(timer);
+    settle();
     _homeScreenLoadPromise = null;
   }, function(){
+    clearTimeout(timer);
+    settle();
     _homeScreenLoadPromise = null;
   });
   return _homeScreenLoadPromise;
@@ -22743,7 +23042,7 @@ function runButtonAudit(options){
   var skipPartial = [
     'acknowledgeConsent', 'handleSignIn', 'handleSignUp', 'signOut',
     'saveNote', 'saveGaugeOverride', 'logFlowSaveSession', 'logClimb',
-    'saveEditedClimb', 'confirmEditRouteRename', 'launchLogWithClimb', 'startLogFlow', 'afterQ4', 'openEditSheet',
+    'saveEditedClimb', 'confirmEditRouteRename', 'launchLogWithClimb', 'launchHomeProjectLog', 'startLogFlow', 'afterQ4', 'openEditSheet',
     'showNotesEditor', 'celebrateHomeLink', 'logFlowLogAnother', 'logFlowDoneHome',
     'submitBaseline', 'saveRouteDetails', 'deleteSession', 'flushOfflineQueue', 'resolveClimbIdForQueue',
     'retryOfflineQueue', 'viewOfflineQueue',
@@ -23481,7 +23780,9 @@ async function runSEETests(){
       && greeting && todayCard && actionTrain && seeAll && weekDots && assignDetail
       && removedCards
       && /startLogFlow/.test(logCard.getAttribute('onclick') || '')
-      && /home-log-primary/.test(logCard.className || '')
+      && document.getElementById('home-projects-wrap')
+      && document.getElementById('home-welcome-hint')
+      && document.getElementById('home-today-log-attempt')
       && /showScreen\('screen-train-start'\)/.test(actionTrain.getAttribute('onclick') || '')
       && /showScreen\('screen-train-assignments'\)/.test(seeAll.getAttribute('onclick') || '')
       && /showScreen\('screen-research'\)/.test(researchCard.getAttribute('onclick') || '')
@@ -23537,9 +23838,12 @@ async function runSEETests(){
       && /loadHomeGoalsStrip/.test(loadSrc)
       && /loadHomeStreakBand/.test(loadSrc)
       && /loadHomeRecentActivity/.test(loadSrc)
+      && /loadHomeProjectsStrip/.test(loadSrc)
       && /applyHomeGreeting/.test(loadSrc)
-      && /sbS\(\s*'sessions'/.test(String(loadHomeRecentActivity))
-      && /sbS\(\s*'sessions'/.test(String(loadHomeStreakBand))
+      && /loadHomeSessionCaches/.test(String(loadHomeRecentActivity))
+      && /loadHomeSessionCaches/.test(String(loadHomeStreakBand))
+      && /sbS\(\s*'sessions'/.test(String(loadHomeSessionCaches))
+      && !/athlete_goals/.test(String(loadHomeGoalsStrip))
       && /sbS\(\s*'psyche_drills'/.test(String(loadHomeStreakBand))
       && String(loadHomeStreakBand).indexOf('coach-athlete-insights') === -1
       && loadSrc.indexOf('coach-athlete-insights') === -1;
@@ -23613,13 +23917,11 @@ async function runSEETests(){
       went_well: 'Calm'
     }]);
     var rowOk = /editClimbFromLog\(this\.dataset\.sid,this\.dataset\.origin\)/.test(row)
-      && /addAttemptFromLog\(this\.dataset\.rname/.test(row)
       && /data-origin="home-recent"/.test(row)
-      && /Logged by coach/.test(row)
-      && /Set your own read/.test(row)
-      && /\+ Attempt/.test(row)
-      && /✏/.test(row)
-      && /Arete/.test(row);
+      && /home-recent-dot/.test(row)
+      && /Arete/.test(row)
+      && /5\.10a/.test(row)
+      && /Sent/.test(row);
     var originSrc = String(editClimbFromLog) + String(addAttemptFromLog) + String(setClimbLogReturnFrom) + String(returnToClimbLogOrHome) + String(celebrateHomeLink);
     var originOk = originSrc.indexOf('home-recent') !== -1
       && originSrc.indexOf('screen-home') !== -1
@@ -26642,7 +26944,7 @@ async function runSEETests(){
       climb_id:'c6', setting:'gym', zone:'learning', baseline_zone:'sent',
       created_at:'2026-09-08T12:00:00'
     }]);
-    var homeOk = /climb-unnamed-flag/.test(homeUnnamed) && /\+ Attempt/.test(homeUnnamed);
+    var homeOk = /climb-unnamed-flag/.test(homeUnnamed);
     var renameUi = document.getElementById('edit-rename-confirm')
       && document.getElementById('edit-rename-old')
       && document.getElementById('edit-rename-new')

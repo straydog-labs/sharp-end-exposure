@@ -12,6 +12,7 @@ export const FLOWS = [
   { id: 'voice-log', group: 'athlete', file: 'real-flow-voice-log.test.mjs', covered: true, asserts: 'parse spoken sentence then POST baseline_zone+grade+terrain' },
   { id: 'prepare-checkin', group: 'athlete', file: 'real-flow-prepare-checkin.test.mjs', covered: true, asserts: 'POST sessions is_checkin+baseline_zone checkin' },
   { id: 'home-day-attempt', group: 'athlete', file: 'real-flow-home-day-attempt.test.mjs', covered: true, asserts: 'openHomeDaySheet +Attempt POST route_name+climb_id' },
+  { id: 'home-next', group: 'athlete', file: 'real-flow-home-next.test.mjs', covered: true, asserts: 'assignment first; project card+strip launchLogWithClimb climb_id; empty hides strips; clip; unloaded no empty flash' },
   { id: 'go-deeper-confirm', group: 'athlete', file: 'real-flow-go-deeper-confirm.test.mjs', covered: true, asserts: 'PATCH sessions zone_confidence confirmed' },
   { id: 'project-toggle', group: 'athlete', file: 'real-flow-project-toggle.test.mjs', covered: true, asserts: 'Project star log/edit/null-climb_id/unproject/send-prompt/rollback + same-name grade/terrain match' },
   { id: 'climb-table-dense-star', group: 'athlete', file: 'climb-table-dense-star.test.mjs', covered: true, asserts: 'dense-row star aria-label, no visible Project label' },

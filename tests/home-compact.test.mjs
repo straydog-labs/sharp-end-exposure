@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index307'/.test(index));
-assert.ok(/APP_VERSION = 'index307'/.test(sw));
+assert.ok(/var app_version = 'index308'/.test(index));
+assert.ok(/APP_VERSION = 'index308'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -46,9 +46,21 @@ assert.ok(/id="home-card-log"/.test(home));
 assert.ok(/onclick="startLogFlow\(\)"/.test(home));
 assert.ok(/id="home-action-train"/.test(home));
 assert.ok(/showScreen\('screen-train-start'\)/.test(home));
+assert.ok(home.indexOf('id="home-today-card"') < home.indexOf('id="home-action-row"'));
+assert.ok(home.indexOf('id="home-action-row"') < home.indexOf('id="home-welcome-hint"'));
+assert.ok(home.indexOf('id="home-welcome-hint"') < home.indexOf('id="home-projects-wrap"'));
+assert.ok(home.indexOf('id="home-projects-wrap"') < home.indexOf('id="home-streak-band"'));
+assert.ok(home.indexOf('id="home-streak-band"') < home.indexOf('id="home-recent-wrap"'));
+assert.ok(/id="home-today-log-attempt"/.test(home));
+assert.ok(/launchHomeProjectLog/.test(home));
+assert.ok(/onclick="showClimbTable\(\)"/.test(home));
+assert.ok(/id="home-welcome-hint"/.test(home));
 assert.ok(/id="home-due-see-all"/.test(home));
 assert.ok(/showScreen\('screen-train-assignments'\)/.test(home));
 assert.ok(/id="home-goals-strip"/.test(home));
+assert.ok(/\.home-streak-label\{[^}]*overflow:visible/.test(index));
+assert.ok(/\.home-streak-band\{[^}]*overflow:visible/.test(index));
+assert.ok(/\.home-streak-label\{[^}]*padding:0 4px/.test(index));
 assert.ok(/showScreen\('screen-train-goals'\)/.test(home));
 assert.ok(/Set a goal to guide your training/.test(home));
 assert.ok(/id="home-goals-title"/.test(home));
@@ -87,6 +99,15 @@ assert.ok(/slice\(0,\s*3\)/.test(dueSrc));
 assert.ok(/homeDueRowHtml/.test(dueSrc));
 assert.ok(!/trainCardHtml/.test(dueSrc));
 assert.ok(/openHomeAssignmentDetail/.test(extractFn(index, 'homeDueRowHtml')));
+assert.ok(/wrap\.hidden = true/.test(dueSrc), 'due-this-week list stays hidden on redesigned Home');
+assert.ok(!/athlete_goals/.test(extractFn(index, 'loadHomeGoalsStrip')));
+assert.ok(/loadHomeSessionCaches/.test(extractFn(index, 'loadHomeStreakBand')));
+assert.ok(/loadHomeSessionCaches/.test(extractFn(index, 'loadHomeRecentActivity')));
+assert.ok(/sbS\(\s*'sessions'/.test(extractFn(index, 'loadHomeSessionCaches')));
+assert.ok(/loadClimbCache/.test(extractFn(index, 'loadHomeProjectsStrip')));
+assert.ok(/LOG_WHICH_LOAD_MS/.test(extractFn(index, 'loadHomeScreen')));
+assert.ok(/homeWeekSessionLabel/.test(extractFn(index, 'paintHomeWeekFromCaches')));
+assert.ok(/launchLogWithClimb\(climbId,\s*routeName/.test(extractFn(index, 'launchHomeProjectLog')));
 
 const detailSrc = extractFn(index, 'openHomeAssignmentDetail');
 assert.ok(/trainCardHtml/.test(detailSrc));
@@ -104,6 +125,8 @@ const helpers = [
   extractFn(index, 'homeWeekDayNames'),
   extractFn(index, 'homeWeekDotsHtml'),
   extractFn(index, 'homeWeekStatusLabel'),
+  extractFn(index, 'homeWeekSessionLabel'),
+  extractFn(index, 'countHomeWeekSessions'),
   extractFn(index, 'homeGreetingText'),
   extractFn(index, 'athleteWeekBounds'),
   extractFn(index, 'athleteLocalDayKeyFromDate'),
@@ -111,6 +134,8 @@ const helpers = [
   extractFn(index, 'homeAssignmentDueDay'),
   extractFn(index, 'isAthleteStreakClimb'),
   extractFn(index, 'isAthleteStreakTraining'),
+  extractFn(index, 'isAthleteStreakPsyche'),
+  extractFn(index, 'isAthleteStreakPsycheDrill'),
   extractFn(index, 'collectHomeDayCounts'),
   extractFn(index, 'collectHomeDayItems'),
   extractFn(index, 'homeDayClimbRowHtml'),
@@ -141,7 +166,13 @@ const weekFrom = new Date(2026, 8, 8);
 const days = { '2026-09-07': true, '2026-09-08': true };
 assert.strictEqual(helperCtx.homeWeekStatusLabel(0, {}, weekFrom), 'No sessions yet this week');
 assert.ok(/streak/.test(helperCtx.homeWeekStatusLabel(3, days, weekFrom)));
+assert.strictEqual(helperCtx.homeWeekSessionLabel(0), '0 sessions this week');
+assert.strictEqual(helperCtx.homeWeekSessionLabel(1), '1 session this week');
+assert.strictEqual(helperCtx.homeWeekSessionLabel(3), '3 sessions this week');
 assert.ok((helperCtx.homeWeekDotsHtml(days, weekFrom).match(/home-week-dot/g) || []).length === 7);
+assert.strictEqual(helperCtx.countHomeWeekSessions([
+  { created_at: '2026-09-08T12:00:00' }
+], [], [], [], weekFrom), 1);
 
 const tueLocal = new Date(2026, 9, 6, 15, 30, 0);
 assert.strictEqual(tueLocal.getDay(), 2, 'fixture is a local Tuesday');
@@ -215,17 +246,36 @@ boot.routeSignedInHome();
 assert.strictEqual(boot.loads, 1, 'normal dual boot path must load Home once');
 assert.strictEqual(boot._active, 'screen-home');
 
-const loadChunk = 'var _homeScreenLoadPromise = null;\n' + extractFn(index, 'loadHomeScreen');
+const loadChunk = [
+  'var _homeScreenLoadPromise = null;',
+  'var _homeDataReady = false;',
+  'var _homeHasDueAssignment = false;',
+  'var _homeSessRows = null;',
+  'var LOG_WHICH_LOAD_MS = 2000;',
+  extractFn(index, 'loadHomeScreen')
+].join('\n');
 const loadCtx = {
   _homeScreenLoadPromise: null,
+  _homeDataReady: false,
+  _homeHasDueAssignment: false,
+  _homeSessRows: null,
+  LOG_WHICH_LOAD_MS: 2000,
   closeHomeAssignmentDetail: function(){ loadCtx.closes++; },
   closeHomeDaySheet: function(){},
+  hideHomeDataSections: function(){ loadCtx.hides++; },
+  settleHomeData: function(){ loadCtx.settled++; },
   applyHomeGreeting: async function(){ loadCtx.parts.push('g'); },
   loadHomeDueList: async function(){ loadCtx.parts.push('d'); },
   loadHomeGoalsStrip: async function(){ loadCtx.parts.push('o'); },
   loadHomeStreakBand: async function(){ loadCtx.parts.push('s'); },
   loadHomeRecentActivity: async function(){ loadCtx.parts.push('r'); },
+  loadHomeProjectsStrip: async function(){ loadCtx.parts.push('p'); },
+  setTimeout: function(fn){ loadCtx.timerFn = fn; return 1; },
+  clearTimeout: function(){ loadCtx.cleared++; },
   closes: 0,
+  hides: 0,
+  settled: 0,
+  cleared: 0,
   parts: []
 };
 vm.createContext(loadCtx);

@@ -13,8 +13,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index307'/.test(index));
-assert.ok(/APP_VERSION = 'index307'/.test(sw));
+assert.ok(/var app_version = 'index308'/.test(index));
+assert.ok(/APP_VERSION = 'index308'/.test(sw));
 assert.ok(/col-zone/.test(index) && /col-conf/.test(index), 'Zone and Conf columns stay');
 assert.ok(/overflow-x:\s*auto/.test(index), 'table wrap scrolls instead of dropping columns');
 

@@ -132,6 +132,9 @@ export async function withPage(browser, port, opts, fn){
     if(method === 'GET' && url.indexOf('/rest/v1/sessions') !== -1){
       return fulfillJson(route, 200, opts.sessions || [], { 'content-range': '0-0/1' });
     }
+    if(method === 'GET' && url.indexOf('/rest/v1/assignments') !== -1){
+      return fulfillJson(route, 200, opts.assignments || []);
+    }
     if(method === 'POST' && url.indexOf('/rest/v1/sessions') !== -1){
       return fulfillJson(route, 201, [Object.assign({ id: 'sess-saved-' + recorded.length }, body || {})]);
     }
