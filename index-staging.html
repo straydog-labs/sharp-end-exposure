@@ -1430,6 +1430,8 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 }
 .log-which-item .lmp-name{font-size:15px;font-weight:700;line-height:1.2;}
 .log-which-item .lmp-meta{font-size:12px;color:var(--muted);line-height:1.35;margin-top:2px;}
+.log-which-loading{font-size:13px;color:var(--muted);padding:4px 2px 14px;}
+.log-which-loading[hidden]{display:none !important;}
 .project-complete-prompt{margin-top:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);}
 .project-complete-copy{font-size:14px;font-weight:600;margin-bottom:10px;}
 .project-complete-actions{display:flex;gap:8px;}
@@ -1726,7 +1728,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   <div class="climb-page-col">
   <!-- + Log a climb — always first, always orange -->
   <div style="padding:12px 16px 0;">
-    <button onclick="startLogFlow();"
+    <button type="button" id="sessions-card-log" onclick="startLogFlow();"
       style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;gap:8px;">
       <span style="font-size:20px;">+</span> Log a climb
     </button>
@@ -2372,6 +2374,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   <div class="log-flow-body">
     <div class="screen-title">Which climb?<span class="sub">A project, a recent, or a new one.</span></div>
     <button type="button" class="log-which-new" id="log-new-climb-btn" onclick="beginLogNewClimb()">New climb</button>
+    <div id="log-which-loading" class="log-which-loading" hidden>Loading your climbs…</div>
     <div id="log-my-projects" class="log-which-section" hidden>
       <div class="log-which-head">
         <div class="log-which-label">My projects</div>
@@ -5921,7 +5924,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index306'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index307'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -8245,6 +8248,7 @@ function backFromLogActivation(){
 function startLogFlow(opts){
   opts = opts || {};
   _logLaunchGen++;
+  var gen = _logLaunchGen;
   var climbsSnap = _climbCache;
   var sessSnap = window._cachedClimbs;
   resetLogScreen();
@@ -8263,15 +8267,14 @@ function startLogFlow(opts){
   _logMyProjectsExpanded = false;
   paintLogProjectToggle();
   if(opts.skipPick){
+    hideLogWhichClimbLoading();
     showLogActivationStep(!opts.skipActGauge);
     return;
   }
-  paintLogWhichClimb();
-  if(hasLogWhichClimbItems()){
-    showScreen('screen-log-which');
-    return;
-  }
-  showLogActivationStep(!opts.skipActGauge);
+  // Null/_climbCache or missing sessions means "not loaded", not "none".
+  // Load first; on reject/offline/hang past LOG_WHICH_LOAD_MS fail open
+  // (use whatever is cached, else the dial). Never stick on loading.
+  finishLogWhichOrAct(gen, !opts.skipActGauge);
 }
 
 function _resetLogFlowContinueButtons(){
@@ -9557,6 +9560,7 @@ function dismissGradeNudge(){
 // ═══════════════════════════════════════════════════════
 var _climbCache=null;
 var _climbCacheInflight=null;
+var _sessCacheInflight=null;
 var _selectedClimbId=null;
 var _betaNoteCounts={};
 var _editingBetaNoteId=null;
@@ -9969,6 +9973,89 @@ function hasLogWhichClimbItems(){
   return listOpenLogProjects().length > 0 || listRecentLogClimbs().length > 0;
 }
 
+function logWhichClimbDataReady(){
+  return Array.isArray(_climbCache) && Array.isArray(window._cachedClimbs);
+}
+
+function showLogWhichClimbLoading(){
+  var el=document.getElementById('log-which-loading');
+  if(el) el.hidden=false;
+}
+
+function hideLogWhichClimbLoading(){
+  var el=document.getElementById('log-which-loading');
+  if(el) el.hidden=true;
+}
+
+function ensureSessionCacheForLogWhich(){
+  if(Array.isArray(window._cachedClimbs)) return Promise.resolve(window._cachedClimbs);
+  if(_sessCacheInflight) return _sessCacheInflight;
+  _sessCacheInflight=(async function(){
+    try{
+      var owner=(window._authUser&&window._authUser.id)?'user_id=eq.'+window._authUser.id:'device_id=eq.'+getDeviceId();
+      var sessions=await sbS('sessions','select=*&'+owner+'&deleted_at=is.null&order=created_at.desc&limit=200');
+      if(!Array.isArray(sessions)) sessions=[];
+      window._cachedClimbs=sessions.filter(function(s){
+        return s && !s.is_checkin && (s.grade_value || s.zone || s.climb_id);
+      });
+      return window._cachedClimbs;
+    }catch(e){
+      if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs=[];
+      return window._cachedClimbs;
+    }finally{
+      _sessCacheInflight=null;
+    }
+  })();
+  return _sessCacheInflight;
+}
+
+var LOG_WHICH_LOAD_MS = 2000;
+
+function ensureLogWhichClimbData(){
+  return Promise.all([loadClimbCache(), ensureSessionCacheForLogWhich()]).then(function(){
+    if(!Array.isArray(_climbCache)) _climbCache=[];
+    if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs=[];
+  }, function(){
+    if(!Array.isArray(_climbCache)) _climbCache=[];
+    if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs=[];
+  });
+}
+
+function decideLogWhichOrAct(gen, initGauge){
+  if(gen !== _logLaunchGen) return;
+  hideLogWhichClimbLoading();
+  paintLogWhichClimb();
+  if(hasLogWhichClimbItems()){
+    showScreen('screen-log-which');
+    return;
+  }
+  showLogActivationStep(initGauge);
+}
+
+function finishLogWhichOrAct(gen, initGauge){
+  if(gen !== _logLaunchGen) return;
+  if(logWhichClimbDataReady()){
+    decideLogWhichOrAct(gen, initGauge);
+    return;
+  }
+  showLogWhichClimbLoading();
+  showScreen('screen-log-which');
+  var settled = false;
+  function settle(){
+    if(settled || gen !== _logLaunchGen) return;
+    settled = true;
+    decideLogWhichOrAct(gen, initGauge);
+  }
+  var timer = setTimeout(settle, LOG_WHICH_LOAD_MS);
+  ensureLogWhichClimbData().then(function(){
+    clearTimeout(timer);
+    settle();
+  }, function(){
+    clearTimeout(timer);
+    settle();
+  });
+}
+
 function logWhichItemHtml(p){
   var attLabel = p.attempts === 1 ? '1 attempt' : (p.attempts + ' attempts');
   var meta = [p.grade, p.terrain, attLabel].filter(Boolean).join(' · ');
@@ -9979,6 +10066,7 @@ function logWhichItemHtml(p){
 }
 
 function paintLogWhichClimb(){
+  hideLogWhichClimbLoading();
   var projWrap = document.getElementById('log-my-projects');
   var projRow = document.getElementById('log-my-projects-row');
   var seeAll = document.getElementById('log-my-projects-see-all');
@@ -17207,9 +17295,6 @@ function resetLogScreen(){
 
 function logAnother(){
   logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null};
-  
-  
-  resetLogScreen();
   startLogFlow();
 }
 
