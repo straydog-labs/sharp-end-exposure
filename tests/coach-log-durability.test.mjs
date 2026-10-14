@@ -9,8 +9,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const index = readFileSync(join(root, 'index.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
-assert.ok(/var app_version = 'index303'/.test(index));
-assert.ok(/APP_VERSION = 'index303'/.test(sw));
+assert.ok(/var app_version = 'index304'/.test(index));
+assert.ok(/APP_VERSION = 'index304'/.test(sw));
 
 const SB_HOST = 'kwtbqgoqtewrlsjgepwq.supabase.co';
 const MIME = {

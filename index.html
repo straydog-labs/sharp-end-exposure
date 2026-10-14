@@ -5874,7 +5874,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index303'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index304'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -5941,25 +5941,14 @@ try{
 
 window._authUser = null;
 window._authToken = null;
-var _hasRoutedAfterSignIn = false; // guards against re-routing on background session refreshes
+var _hasRoutedAfterSignIn = false; // genuine new sign-in only; same-user refresh must not hijack
+var _authRoutingResolve = function(){};
 // JS error logger for runSEETests
 window._seeErrorLog = [];
 window.addEventListener('error', function(e){ window._seeErrorLog.push(e.message + ' (' + e.filename?.split('/').pop() + ':' + e.lineno + ')'); });
 
-function initAuth(){
-  if(!supabaseClient) return;
-  // Fix 6: expose a promise routeOnLoad() can await instead of racing a blind
-  // timer — resolves once the real baseline check has run, or immediately if
-  // there's no session to check at all (anonymous/guest load, or signed out)
-  var _authRoutingResolve;
-  window._authRoutingReady = new Promise(function(resolve){ _authRoutingResolve = resolve; });
-
-  supabaseClient.auth.getSession().then(function(res){
-    var session = res.data && res.data.session ? res.data.session : null;
-    window._authUser = session ? session.user : null;
-    window._authToken = session ? session.access_token : null;
-  });
-  supabaseClient.auth.onAuthStateChange(function(event, session){
+function applyAuthStateChange(event, session){
+    var prevId = window._authUser && window._authUser.id;
     window._authUser = session ? session.user : null;
     window._authToken = session ? session.access_token : null;
     try{ refreshCoachDashToggle(); }catch(e){}
@@ -5976,7 +5965,11 @@ function initAuth(){
     // closing the gap Beta's audit found: the original fix only covered
     // SIGNED_IN, leaving INITIAL_SESSION-restored sessions still vulnerable)
     if(event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)){
-      if(_hasRoutedAfterSignIn){ _authRoutingResolve(); return; } // background session refresh — don't hijack navigation
+      var nextId = session && session.user && session.user.id;
+      if(prevId && nextId && prevId === nextId){
+        _authRoutingResolve();
+        return;
+      }
       _hasRoutedAfterSignIn = true;
       // Consent gate: a restored session (INITIAL_SESSION) fires here on every
       // load for already-signed-in users, independent of routeOnLoad(). Without
@@ -6041,7 +6034,21 @@ function initAuth(){
       _authRoutingResolve();
     }
     if(event === 'SIGNED_OUT'){ _hasRoutedAfterSignIn = false; setTrainChatUnreadBadge(false); showScreen('screen-auth'); }
+}
+
+function initAuth(){
+  if(!supabaseClient) return;
+  // Fix 6: expose a promise routeOnLoad() can await instead of racing a blind
+  // timer — resolves once the real baseline check has run, or immediately if
+  // there's no session to check at all (anonymous/guest load, or signed out)
+  window._authRoutingReady = new Promise(function(resolve){ _authRoutingResolve = resolve; });
+
+  supabaseClient.auth.getSession().then(function(res){
+    var session = res.data && res.data.session ? res.data.session : null;
+    window._authUser = session ? session.user : null;
+    window._authToken = session ? session.access_token : null;
   });
+  supabaseClient.auth.onAuthStateChange(applyAuthStateChange);
 }
 
 // ── SUPABASE HELPERS ─────────────────────────────────
@@ -23150,7 +23157,7 @@ async function runSEETests(){
       && homeGreetingText('Alex') === 'Alex'
       && homeGreetingText('') === 'Home';
     var showSrc = String(showScreen);
-    var authSrc = String(initAuth) + String(routeOnLoad);
+    var authSrc = String(initAuth) + String(applyAuthStateChange) + String(routeOnLoad);
     var landHome = /screen-home/.test(showSrc) && /loadHomeScreen/.test(showSrc)
       && /routeSignedInHome/.test(authSrc)
       && !/loadHomeScreen\s*\(/.test(String(initAuth))

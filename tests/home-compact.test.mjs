@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index303'/.test(index));
-assert.ok(/APP_VERSION = 'index303'/.test(sw));
+assert.ok(/var app_version = 'index304'/.test(index));
+assert.ok(/APP_VERSION = 'index304'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -67,9 +67,12 @@ assert.ok(!/0\/1 done/.test(home));
 assert.ok(!/No due date/.test(home));
 
 const initAuth = extractFn(index, 'initAuth');
+const applyAuth = extractFn(index, 'applyAuthStateChange');
 const routeOnLoad = extractFn(index, 'routeOnLoad');
-assert.ok(/routeSignedInHome\s*\(/.test(initAuth), 'signed-in auth route uses routeSignedInHome');
+assert.ok(/routeSignedInHome\s*\(/.test(applyAuth), 'signed-in auth route uses routeSignedInHome');
+assert.ok(/onAuthStateChange\(applyAuthStateChange\)/.test(initAuth), 'initAuth wires applyAuthStateChange');
 assert.ok(/routeSignedInHome\s*\(/.test(routeOnLoad), 'load route uses routeSignedInHome');
+assert.ok(!/loadHomeScreen\s*\(/.test(applyAuth), 'applyAuthStateChange must not call loadHomeScreen');
 assert.ok(!/loadHomeScreen\s*\(/.test(initAuth), 'initAuth must not call loadHomeScreen');
 assert.ok(!/loadHomeScreen\s*\(/.test(routeOnLoad), 'routeOnLoad must not call loadHomeScreen');
 assert.ok(/if\(id==='screen-home'\)\{\s*loadHomeScreen\(\)/.test(extractFn(index, 'showScreen')));
