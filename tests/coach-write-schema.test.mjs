@@ -15,7 +15,8 @@ const logJs = readFileSync(join(root, 'js/coach-log-session.js'), 'utf8');
 const insightsJs = readFileSync(join(root, 'js/coach-athlete-insights.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-var app_version = 'index304'; // keep in sync with APP_VERSION in sw.js
+assert.ok(/var app_version = 'index304'/.test(index));
+assert.ok(/APP_VERSION = 'index304'/.test(sw));
 
 require(join(root, 'js/sessions-insert-required.js'));
 require(join(root, 'js/coach-athlete-insights.js'));
