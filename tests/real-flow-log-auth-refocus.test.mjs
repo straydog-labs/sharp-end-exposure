@@ -1,6 +1,7 @@
 import assert from 'assert';
 import {
   startStaticServer, launchChromium, withPage, tap, readyDial, waitForScreen,
+  continueNewLogIfPicker,
   USER_ID
 } from './harness.mjs';
 
@@ -34,7 +35,7 @@ function bootOpts(extra){
 
 async function finishLogToStep6(page){
   await page.evaluate(function(){ startLogFlow(); });
-  await waitForScreen(page, 'screen-log-act');
+  await continueNewLogIfPicker(page);
   await page.waitForTimeout(80);
   await readyDial(page);
   await tap(page, '#log-act-continue');

@@ -211,6 +211,21 @@ export async function waitForScreen(page, id){
   }, id, { timeout: 8000 });
 }
 
+export async function continueNewLogIfPicker(page){
+  await page.waitForFunction(function(){
+    var el = document.querySelector('.screen.active');
+    return el && (el.id === 'screen-log-act' || el.id === 'screen-log-which');
+  }, null, { timeout: 8000 });
+  var id = await page.evaluate(function(){
+    var el = document.querySelector('.screen.active');
+    return el ? el.id : null;
+  });
+  if(id === 'screen-log-which'){
+    await tap(page, '#log-new-climb-btn');
+  }
+  await waitForScreen(page, 'screen-log-act');
+}
+
 export function postsTo(recorded, table, method){
   method = method || 'POST';
   return recorded.filter(function(r){

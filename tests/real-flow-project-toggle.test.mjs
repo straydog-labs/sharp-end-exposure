@@ -1,6 +1,7 @@
 import assert from 'assert';
 import {
   startStaticServer, launchChromium, withPage, tap, readyDial, waitForScreen,
+  continueNewLogIfPicker,
   postsTo, firstBody, sessionRow, USER_ID, ROUTE, CLIMB_ID, GRADE, TERRAIN
 } from './harness.mjs';
 
@@ -93,7 +94,7 @@ async function authPage(page){
 }
 
 async function finishLogToName(page){
-  await waitForScreen(page, 'screen-log-act');
+  await continueNewLogIfPicker(page);
   await page.waitForTimeout(80);
   await readyDial(page);
   await tap(page, '#log-act-continue');
