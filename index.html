@@ -8272,7 +8272,8 @@ function startLogFlow(opts){
     return;
   }
   // Null/_climbCache or missing sessions means "not loaded", not "none".
-  // Only skip Which climb? after both caches are loaded arrays and truly empty.
+  // Load first; on reject/offline/hang past LOG_WHICH_LOAD_MS fail open
+  // (use whatever is cached, else the dial). Never stick on loading.
   finishLogWhichOrAct(gen, !opts.skipActGauge);
 }
 
@@ -10008,6 +10009,8 @@ function ensureSessionCacheForLogWhich(){
   return _sessCacheInflight;
 }
 
+var LOG_WHICH_LOAD_MS = 2000;
+
 function ensureLogWhichClimbData(){
   return Promise.all([loadClimbCache(), ensureSessionCacheForLogWhich()]).then(function(){
     if(!Array.isArray(_climbCache)) _climbCache=[];
@@ -10018,24 +10021,38 @@ function ensureLogWhichClimbData(){
   });
 }
 
+function decideLogWhichOrAct(gen, initGauge){
+  if(gen !== _logLaunchGen) return;
+  hideLogWhichClimbLoading();
+  paintLogWhichClimb();
+  if(hasLogWhichClimbItems()){
+    showScreen('screen-log-which');
+    return;
+  }
+  showLogActivationStep(initGauge);
+}
+
 function finishLogWhichOrAct(gen, initGauge){
   if(gen !== _logLaunchGen) return;
   if(logWhichClimbDataReady()){
-    hideLogWhichClimbLoading();
-    paintLogWhichClimb();
-    if(hasLogWhichClimbItems()){
-      showScreen('screen-log-which');
-      return;
-    }
-    showLogActivationStep(initGauge);
+    decideLogWhichOrAct(gen, initGauge);
     return;
   }
   showLogWhichClimbLoading();
   showScreen('screen-log-which');
+  var settled = false;
+  function settle(){
+    if(settled || gen !== _logLaunchGen) return;
+    settled = true;
+    decideLogWhichOrAct(gen, initGauge);
+  }
+  var timer = setTimeout(settle, LOG_WHICH_LOAD_MS);
   ensureLogWhichClimbData().then(function(){
-    finishLogWhichOrAct(gen, initGauge);
+    clearTimeout(timer);
+    settle();
   }, function(){
-    finishLogWhichOrAct(gen, initGauge);
+    clearTimeout(timer);
+    settle();
   });
 }
 

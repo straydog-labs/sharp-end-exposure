@@ -26,6 +26,10 @@ assert.ok(/ensureLogWhichClimbData/.test(index),
 assert.ok(/function logWhichClimbDataReady/.test(index),
   'skip is allowed only after climb and session caches are loaded arrays');
 assert.ok(/id="sessions-card-log"/.test(index), 'Climb tab Log a climb needs a stable entry id');
+assert.ok(/LOG_WHICH_LOAD_MS\s*=\s*2000/.test(index),
+  'picker load must fail open after ~2s');
+assert.ok(/setTimeout\(settle,\s*LOG_WHICH_LOAD_MS\)/.test(index),
+  'hanging climb/session fetch must settle via the 2s timer');
 
 const YELLOW = 'Yellow 30 degree';
 const CLIMB_A = 'climb-yellow-overhang';
@@ -128,6 +132,22 @@ async function waitPicker(page){
   await pickerVisible(page);
 }
 
+async function waitFailOpenDial(page, timeout){
+  await page.waitForFunction(function(){
+    var el = document.querySelector('.screen.active');
+    var load = document.getElementById('log-which-loading');
+    var loadingOn = !!(load && !load.hidden);
+    return !!(el && el.id === 'screen-log-act' && !loadingOn);
+  }, null, { timeout: timeout || 3500 });
+  var id = await activeId(page);
+  assert.strictEqual(id, 'screen-log-act', 'fail-open must go to the dial, got ' + id);
+  var loading = await page.evaluate(function(){
+    var load = document.getElementById('log-which-loading');
+    return !!(load && !load.hidden);
+  });
+  assert.strictEqual(loading, false, 'must not stay on Loading your climbs');
+}
+
 async function pickerVisible(page){
   var id = await activeId(page);
   assert.strictEqual(id, 'screen-log-which', 'expected Which climb? picker, got ' + id);
@@ -215,6 +235,49 @@ async function run(){
           return !!(el && el.classList.contains('active'));
         });
         assert.strictEqual(which, false, 'Which climb? must not stay active when lists are empty');
+      });
+    });
+
+    await flow('e-fetch-rejects-fail-open-to-dial', async function(){
+      var blockRest = { on: false };
+      await withPage(browser, port, liveStubOpts({
+        stub: async function(route, info){
+          if(!blockRest.on || info.method !== 'GET') return false;
+          if(info.url.indexOf('/rest/v1/climbs') !== -1 || info.url.indexOf('/rest/v1/sessions') !== -1){
+            await route.abort();
+            return true;
+          }
+          return false;
+        }
+      }), async function(page){
+        await waitHome(page);
+        await wipeCaches(page);
+        blockRest.on = true;
+        await tap(page, '#home-card-log');
+        await waitFailOpenDial(page, 3500);
+      });
+    });
+
+    await flow('f-fetch-hangs-fail-open-to-dial', async function(){
+      var blockRest = { on: false };
+      await withPage(browser, port, liveStubOpts({
+        stub: async function(route, info){
+          if(!blockRest.on || info.method !== 'GET') return false;
+          if(info.url.indexOf('/rest/v1/climbs') !== -1 || info.url.indexOf('/rest/v1/sessions') !== -1){
+            await new Promise(function(){});
+            return true;
+          }
+          return false;
+        }
+      }), async function(page){
+        await waitHome(page);
+        await wipeCaches(page);
+        blockRest.on = true;
+        var t0 = Date.now();
+        await tap(page, '#home-card-log');
+        await waitFailOpenDial(page, 3500);
+        var elapsed = Date.now() - t0;
+        assert.ok(elapsed < 3500, 'hang must fail open before 3.5s, took ' + elapsed);
       });
     });
   }finally{
