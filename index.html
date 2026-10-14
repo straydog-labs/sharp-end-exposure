@@ -1363,6 +1363,32 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .project-toggle{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:6px 10px 6px 8px;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:var(--muted);line-height:1;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
 .project-toggle.is-on{color:var(--accent);border-color:var(--accent);background:rgba(232,118,58,.08);}
 .project-toggle-label{line-height:1;}
+.project-toggle-dense{width:40px;height:40px;min-width:40px;padding:0;justify-content:center;gap:0;border-radius:99px;}
+.project-toggle-dense svg{width:28px;height:28px;}
+.project-toggle-dense .project-toggle-label{display:none;}
+.climb-table-wrap{overflow-x:visible;}
+#climb-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+#climb-table th,#climb-table td{vertical-align:top;}
+#climb-table .col-date{width:52px;white-space:nowrap;padding:8px 6px 8px 0;}
+#climb-table .col-route{width:auto;min-width:0;padding:8px 6px;}
+#climb-table .col-add{width:36px;padding:8px 4px;white-space:nowrap;}
+#climb-table .col-grade{width:44px;padding:8px 4px;font-family:'Space Mono',monospace;font-weight:700;color:var(--accent);}
+#climb-table .col-terrain{width:72px;padding:8px 4px;}
+#climb-table .col-setting{width:58px;padding:8px 4px;}
+#climb-table .col-result{width:58px;padding:8px 4px;}
+#climb-table .col-extra{width:52px;padding:8px 4px;}
+.climb-route-cell{display:flex;align-items:flex-start;gap:2px;min-width:0;}
+.climb-route-name{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25;}
+.climb-route-sub{display:none;font-size:11px;color:var(--muted);margin-top:2px;}
+.climb-table-attempt-icon{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;cursor:pointer;padding:8px;min-width:36px;min-height:40px;line-height:1;-webkit-tap-highlight-color:transparent;}
+@media (max-width:559px){
+  #climb-table .col-terrain,#climb-table .col-setting{display:none;}
+  #climb-table .climb-route-sub{display:block;}
+  #climb-table .col-extra{display:none;}
+}
+@media (max-width:899px){
+  #climb-table .col-extra{display:none;}
+}
 .log-project-slot{margin:10px 0 14px;}
 .project-complete-prompt{margin-top:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);}
 .project-complete-copy{font-size:14px;font-weight:600;margin-bottom:10px;}
@@ -2082,24 +2108,24 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   <div style="padding:0 16px 80px;">
     <div style="font-size:22px;font-weight:700;margin-bottom:4px;">All climbs</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="climb-table-count"></div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-      <table id="climb-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:700px;">
+    <div class="climb-table-wrap">
+      <table id="climb-table">
         <thead>
           <tr style="border-bottom:2px solid var(--border);">
-            <th onclick="sortClimbTable('date')" style="text-align:left;padding:8px 10px 8px 0;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;position:sticky;left:0;background:var(--bg);white-space:nowrap;">Date ↕</th>
-            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Route</th>
-            <th style="text-align:left;padding:8px 6px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Add</th>
-            <th onclick="sortClimbTable('grade')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Grade ↕</th>
-            <th onclick="sortClimbTable('terrain')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Terrain ↕</th>
-            <th onclick="sortClimbTable('setting')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Setting ↕</th>
-            <th onclick="sortClimbTable('result')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Result ↕</th>
-            <th onclick="sortClimbTable('zone')" style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Zone ↕</th>
-            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Conf</th>
-            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Breath</th>
-            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Gut</th>
-            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Crux</th>
-            <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Body</th>
-            <th style="text-align:left;padding:8px 4px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">Notes</th>
+            <th class="col-date" onclick="sortClimbTable('date')" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Date ↕</th>
+            <th class="col-route" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Route</th>
+            <th class="col-add" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Add</th>
+            <th class="col-grade" onclick="sortClimbTable('grade')" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Grade ↕</th>
+            <th class="col-terrain" onclick="sortClimbTable('terrain')" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Terrain ↕</th>
+            <th class="col-setting" onclick="sortClimbTable('setting')" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Setting ↕</th>
+            <th class="col-result" onclick="sortClimbTable('result')" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Result ↕</th>
+            <th class="col-extra" onclick="sortClimbTable('zone')" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;">Zone ↕</th>
+            <th class="col-extra" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Conf</th>
+            <th class="col-extra" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Breath</th>
+            <th class="col-extra" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Gut</th>
+            <th class="col-extra" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Crux</th>
+            <th class="col-extra" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Body</th>
+            <th class="col-extra" style="text-align:left;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Notes</th>
           </tr>
         </thead>
         <tbody id="climb-table-body"></tbody>
@@ -5830,7 +5856,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index299'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index301'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -7347,7 +7373,31 @@ function renderClimbDataTable(){
     var d=s.created_at?new Date(s.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
     var c=zoneColor(s.zone||'learning');
     var rowAttrs=s.climb_id?'data-cid="'+s.climb_id+'" onclick="openClimbExposure(this.dataset.cid)" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);"':'style="border-bottom:1px solid rgba(255,255,255,.05);"';
-    return '<tr '+rowAttrs+'>'      +'<td style="padding:8px 10px 8px 0;color:var(--muted);white-space:nowrap;position:sticky;left:0;background:var(--bg);">'+d+'</td>'      +'<td style="padding:8px 10px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.climb_id?'<span style="display:inline-flex;align-items:center;gap:4px;max-width:100%;">'+climbStarButtonHtml(s.climb_id)+'<span style="overflow:hidden;text-overflow:ellipsis;">'+climbDisplayNameHtml(s.route_name)+'</span>'+(climbBetaNoteCount(s.climb_id)?' <span class="climb-beta-count">'+escTrainHtml(climbBetaCountLabel(s.climb_id))+'</span>':'')+'</span>':climbDisplayNameHtml(s.route_name))+(s.climb_id?' <span style="color:var(--muted2);font-size:10px;">›</span>':'')+'</td>'      +'<td style="padding:8px 6px;white-space:nowrap;">'+climbAttemptLaunchBtnHtml(s,'climb-table')+'</td>'      +'<td style="padding:8px 10px;font-weight:700;font-family:Space Mono,monospace;color:var(--accent);">'+(s.grade_value||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+(s.climbing_type||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(s.setting||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--text);">'+sessionResultLabel(s)+'</td>'      +'<td style="padding:8px 10px;"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'      +'<td style="padding:8px 10px;color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.breathing_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.gut_post||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.crux_response||'—')+'</td>'      +'<td style="padding:8px 10px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.body_state||'—')+'</td>'      +'<td style="padding:8px 4px;text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'      +'</tr>';
+    var routeSub = [s.climbing_type, s.setting].filter(Boolean).join(' · ');
+    var routeCell = '<div class="climb-route-cell">'
+      + (s.climb_id ? climbStarButtonHtml(s.climb_id) : '')
+      + '<div class="climb-route-text" style="flex:1;min-width:0;">'
+      + '<div class="climb-route-name">'+climbDisplayNameHtml(s.route_name)
+      + (climbBetaNoteCount(s.climb_id)?' <span class="climb-beta-count">'+escTrainHtml(climbBetaCountLabel(s.climb_id))+'</span>':'')
+      + '</div>'
+      + (routeSub ? '<div class="climb-route-sub">'+escTrainHtml(routeSub)+'</div>' : '')
+      + '</div></div>';
+    return '<tr '+rowAttrs+'>'
+      +'<td class="col-date" style="color:var(--muted);">'+d+'</td>'
+      +'<td class="col-route">'+routeCell+'</td>'
+      +'<td class="col-add">'+climbAttemptLaunchBtnHtml(s,'climb-table')+'</td>'
+      +'<td class="col-grade">'+(s.grade_value||'—')+'</td>'
+      +'<td class="col-terrain">'+(s.climbing_type||'—')+'</td>'
+      +'<td class="col-setting">'+(s.setting||'—')+'</td>'
+      +'<td class="col-result">'+sessionResultLabel(s)+'</td>'
+      +'<td class="col-extra"><span style="color:'+c+';font-weight:600;">'+(s.zone||'—')+'</span></td>'
+      +'<td class="col-extra" style="color:var(--muted);">'+(confLabels[s.zone_confidence]||'—')+'</td>'
+      +'<td class="col-extra" style="color:var(--muted);">'+(s.breathing_post||'—')+'</td>'
+      +'<td class="col-extra" style="color:var(--muted);">'+(s.gut_post||'—')+'</td>'
+      +'<td class="col-extra" style="color:var(--muted);">'+(s.crux_response||'—')+'</td>'
+      +'<td class="col-extra" style="color:var(--muted);">'+(s.body_state||'—')+'</td>'
+      +'<td class="col-extra" style="text-align:center;">'+(hasNotes?'<span style="cursor:pointer;" data-sid="'+s.id+'" onclick="event.stopPropagation();previewSessionNotes(this.dataset.sid)">📋</span>':'')+'</td>'
+      +'</tr>';
   }).join('');
 }
 
@@ -9458,8 +9508,11 @@ function climbProjectToggleHtml(opts){
     else filled = false;
   }
   if(!climbId && !sessionId && !pending) return '';
-  var aria = filled ? 'Remove project' : 'Star as project';
-  var cls = 'climb-star-btn project-toggle' + (filled ? ' is-on' : '');
+  var dense = !!opts.dense;
+  var aria = filled
+    ? (dense ? 'Remove from projects' : 'Remove project')
+    : (dense ? 'Add to projects' : 'Star as project');
+  var cls = 'climb-star-btn project-toggle' + (filled ? ' is-on' : '') + (dense ? ' project-toggle-dense' : '');
   return '<button type="button" class="'+cls+'"'
     + (climbId ? ' data-cid="'+escTrainHtml(climbId)+'"' : '')
     + (sessionId ? ' data-sid="'+escTrainHtml(sessionId)+'"' : '')
@@ -9468,15 +9521,16 @@ function climbProjectToggleHtml(opts){
     + (terrain ? ' data-terrain="'+escHomeAttr(terrain)+'"' : '')
     + (pending ? ' data-pending="1"' : '')
     + ' aria-label="'+aria+'" aria-pressed="'+(filled?'true':'false')+'"'
+    + (dense ? ' title="'+aria+'"' : '')
     + ' onclick="event.stopPropagation();toggleProjectControl(this)">'
     + climbStarSvg(filled)
-    + '<span class="project-toggle-label">Project</span>'
+    + (dense ? '' : '<span class="project-toggle-label">Project</span>')
     + '</button>';
 }
 
 function climbStarButtonHtml(climbId){
   if(!climbId) return '';
-  return climbProjectToggleHtml({ climbId: climbId }); // generated button calls event.stopPropagation
+  return climbProjectToggleHtml({ climbId: climbId, dense: true });
 }
 
 function isCustomWorkoutStarred(item){
@@ -9995,7 +10049,7 @@ async function findOrCreateClimbIdByName(routeName, extras){
 }
 
 function climbAttemptLaunchBtnHtml(s, origin){
-  return '<button type="button" class="climb-table-attempt" data-rname="' + escHomeAttr(s.route_name || '') + '" data-grade="' + escHomeAttr(s.grade_value || '') + '" data-terrain="' + escHomeAttr(s.climbing_type || '') + '" data-climb="' + escHomeAttr(s.climb_id || '') + '" data-setting="' + escHomeAttr(s.setting || '') + '" data-origin="' + escHomeAttr(origin || 'climb-table') + '" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rname,this.dataset.grade,this.dataset.terrain,this.dataset.climb,this.dataset.origin,this.dataset.setting)">+ Attempt</button>';
+  return '<button type="button" class="climb-table-attempt climb-table-attempt-icon" data-rname="' + escHomeAttr(s.route_name || '') + '" data-grade="' + escHomeAttr(s.grade_value || '') + '" data-terrain="' + escHomeAttr(s.climbing_type || '') + '" data-climb="' + escHomeAttr(s.climb_id || '') + '" data-setting="' + escHomeAttr(s.setting || '') + '" data-origin="' + escHomeAttr(origin || 'climb-table') + '" aria-label="+ Attempt" title="+ Attempt" onclick="event.stopPropagation();addAttemptFromLog(this.dataset.rname,this.dataset.grade,this.dataset.terrain,this.dataset.climb,this.dataset.origin,this.dataset.setting)">+</button>';
 }
 
 // Offline-queue climb resolve: live `climbs` query + normalizeClimbName.
