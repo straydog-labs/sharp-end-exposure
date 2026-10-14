@@ -93,7 +93,7 @@ async function waitHome(page){
   await page.waitForFunction(function(){
     var home = document.getElementById('screen-home');
     var log = document.getElementById('home-card-log');
-    return !!(home && home.classList.contains('active') && log && typeof startLogFlow === 'function');
+    return !!(home && home.classList.contains('active') && log && typeof startLogFlow === 'function' && window._homeDataReady === true);
   }, null, { timeout: 30000 });
 }
 
@@ -120,6 +120,8 @@ async function wipeCaches(page){
     window._climbCacheInflight = null;
     window._cachedClimbs = undefined;
     window._cachedSessions = undefined;
+    window._homeSessRows = null;
+    window._homeSessInflight = null;
   });
 }
 

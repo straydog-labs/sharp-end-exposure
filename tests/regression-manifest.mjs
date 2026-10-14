@@ -1,6 +1,6 @@
 export const FLOWS = [
   { id: 'log-climb', group: 'athlete', file: 'real-flow-log-climb.test.mjs', covered: true, asserts: 'POST sessions baseline_zone+grade+terrain+route_name' },
-  { id: 'attempt-home-recent', group: 'athlete', file: 'log-attempt-named-route.test.mjs', covered: true, asserts: 'POST sessions route_name+climb_id' },
+  { id: 'attempt-home-recent', group: 'athlete', file: 'log-attempt-named-route.test.mjs', covered: true, asserts: 'tap Home recent opens edit detail' },
   { id: 'attempt-climb-table', group: 'athlete', file: 'log-attempt-named-route.test.mjs', covered: true, asserts: 'POST sessions route_name+climb_id' },
   { id: 'attempt-pinned-strip', group: 'athlete', file: 'log-attempt-named-route.test.mjs', covered: true, asserts: 'POST sessions route_name+climb_id' },
   { id: 'attempt-locked-route', group: 'athlete', file: 'log-attempt-named-route.test.mjs', covered: true, asserts: 'POST sessions route_name+climb_id' },

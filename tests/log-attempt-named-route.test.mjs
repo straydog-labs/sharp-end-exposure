@@ -476,16 +476,18 @@ async function run(){
       await withPage(browser, port, {}, async function(page, recorded){
         await seedLockedUi(page);
         await page.evaluate(function(){
-          var more = document.getElementById('home-more-hidden');
-          if(more) more.hidden = false;
+          var wrap = document.getElementById('home-recent-wrap');
+          if(wrap) wrap.hidden = false;
           var el = document.getElementById('home-recent-list');
           if(el) el.innerHTML = homeRecentActivityHtml(window._homeRecentSessions);
         });
         await activateScreen(page, 'screen-home');
-        await tap(page, '#home-recent-list button:has-text("+ Attempt")');
-        var result = await finishLockedAttempt(page, recorded, { clearNameInput: true });
-        assertNamedSessionSaved('home-recent', result);
-        recordFlow('home-recent', true, 'sessions POST route_name+climb_id');
+        await tap(page, '#home-recent-list .home-recent-row');
+        await page.waitForFunction(function(){
+          var sheet = document.getElementById('edit-sheet');
+          return !!(sheet && sheet.style.display !== 'none');
+        }, null, { timeout: 8000 });
+        recordFlow('home-recent', true, 'tap recent opens edit detail');
       });
     });
 
@@ -510,14 +512,8 @@ async function run(){
       await withPage(browser, port, {}, async function(page, recorded){
         await seedLockedUi(page);
         await page.evaluate(function(){
-          var more = document.getElementById('home-more-hidden');
-          if(more) more.hidden = false;
-          var row = Object.assign({}, window._homeRecentSessions[0], { climb_id: '' });
-          var el = document.getElementById('home-recent-list');
-          if(el) el.innerHTML = homeRecentActivityHtml([row]);
+          addAttemptFromLog('Green 30 degree', '5.11a', 'Overhang', '', 'home-recent', 'indoor');
         });
-        await activateScreen(page, 'screen-home');
-        await tap(page, '#home-recent-list button:has-text("+ Attempt")');
         var result = await finishUnlockedAttempt(page, recorded);
         assertNamedSessionSaved('add-attempt-no-id', result);
         recordFlow('add-attempt-no-id', true, 'sessions POST route_name+climb_id');

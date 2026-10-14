@@ -61,6 +61,7 @@ assert.ok(/id="home-goals-strip"/.test(home));
 assert.ok(/\.home-streak-label\{[^}]*overflow:visible/.test(index));
 assert.ok(/\.home-streak-band\{[^}]*overflow:visible/.test(index));
 assert.ok(/\.home-streak-label\{[^}]*padding:0 4px/.test(index));
+assert.ok(/\.home-zone-bar\[hidden\]/.test(index));
 assert.ok(/showScreen\('screen-train-goals'\)/.test(home));
 assert.ok(/Set a goal to guide your training/.test(home));
 assert.ok(/id="home-goals-title"/.test(home));

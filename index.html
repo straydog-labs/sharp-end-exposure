@@ -171,6 +171,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-day-climb-row,.home-day-train-row{padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;}
 .home-day-climb-row .sub,.home-day-train-row .sub{font-size:12px;font-weight:500;color:var(--muted);margin-top:2px;}
 .home-zone-bar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--surface2);margin-bottom:8px;}
+.home-zone-bar[hidden],.home-zone-legend[hidden]{display:none;}
 .home-zone-bar > span{min-width:0;display:block;}
 .home-zone-legend{font-size:11px;color:var(--muted);}
 .home-zone-legend .hz-c{color:var(--comfort);}
@@ -195,8 +196,8 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-recent-row:last-child{border-bottom:none;}
 .home-recent-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
 .home-recent-main{flex:1;min-width:0;}
-.home-recent-name{font-size:14px;font-weight:700;line-height:1.25;}
-.home-recent-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+.home-recent-name{display:block;font-size:14px;font-weight:700;line-height:1.25;}
+.home-recent-meta{display:block;font-size:12px;color:var(--muted);margin-top:2px;}
 .home-action-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .home-action-row .hub-compact-row{margin:0;min-height:52px;}
 .home-due-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
@@ -11665,10 +11666,7 @@ function paintHomeProjectsStrip(){
   strip.innerHTML = projects.map(function(p){
     var att = p.attempts === 1 ? '1 attempt' : ((p.attempts || 0) + ' attempts');
     var last = homeProjectLastLabel(p.lastAt);
-    var args = [p.id, p.name, p.grade, p.terrain, p.setting].map(function(v){
-      return JSON.stringify(v == null ? '' : v);
-    }).join(',');
-    return '<button type="button" class="home-project-chip" data-cid="'+escHomeAttr(p.id)+'" onclick="launchHomeProjectLog('+args+')">'
+    return '<button type="button" class="home-project-chip" data-cid="'+escHomeAttr(p.id)+'" data-name="'+escHomeAttr(p.name || '')+'" data-grade="'+escHomeAttr(p.grade || '')+'" data-terrain="'+escHomeAttr(p.terrain || '')+'" data-setting="'+escHomeAttr(p.setting || '')+'" onclick="launchHomeProjectLog(this.dataset.cid,this.dataset.name,this.dataset.grade,this.dataset.terrain,this.dataset.setting)">'
       + '<div class="hp-name">'+escTrainHtml(p.name || 'Unnamed')+'</div>'
       + '<div class="hp-meta">'+escTrainHtml([p.grade, att].filter(Boolean).join(' · '))+'</div>'
       + '<div class="hp-meta">last: '+escTrainHtml(last || '—')+'</div>'

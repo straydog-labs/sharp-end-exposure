@@ -159,9 +159,10 @@ async function finishLockedAttempt(page, recorded){
 
 async function shot(page, name, width){
   if(!existsSync(SHOT_DIR)) mkdirSync(SHOT_DIR, { recursive: true });
+  var dest = join(SHOT_DIR, name);
   await page.setViewportSize({ width: width, height: 900 });
   await page.waitForTimeout(80);
-  await page.screenshot({ path: join(SHOT_DIR, name), fullPage: true });
+  await page.screenshot({ path: dest, fullPage: true });
 }
 
 function restGets(recorded){
@@ -217,8 +218,8 @@ async function run(){
         var ids = snap.kids.filter(function(k){ return !k.hidden; }).map(function(k){ return k.id; });
         assert.ok(ids.indexOf('home-today-card') < ids.indexOf('home-action-row'));
         assert.ok(ids.indexOf('home-action-row') < ids.indexOf('home-projects-wrap'));
-        await shot(page, 'home_next_assign_390.png', 390);
-        await shot(page, 'home_next_assign_840.png', 840);
+        await shot(page, 'home_redesign_assign_390.png', 390);
+        await shot(page, 'home_redesign_assign_840.png', 840);
         var sess = tableGets(recorded, 'sessions');
         var goals = tableGets(recorded, 'athlete_goals');
         assert.strictEqual(sess.length, 1, 'boot sessions GET once, got ' + sess.length);
@@ -241,8 +242,8 @@ async function run(){
         assert.strictEqual(snap.startHidden, true, 'Start hidden on project card');
         assert.strictEqual(snap.logHidden, false, 'Log attempt shown');
         assert.ok(!/Hangboard/.test(snap.today.text));
-        await shot(page, 'home_next_projects_390.png', 390);
-        await shot(page, 'home_next_projects_840.png', 840);
+        await shot(page, 'home_redesign_projects_390.png', 390);
+        await shot(page, 'home_redesign_projects_840.png', 840);
         await tap(page, '#home-today-log-attempt');
         var posts = await finishLockedAttempt(page, recorded);
         assert.ok(posts.length, 'Log attempt did not POST sessions');
@@ -287,8 +288,8 @@ async function run(){
         assert.strictEqual(snap.welcome.hidden, false, 'welcome hint for brand-new user');
         assert.strictEqual(snap.action.hidden, false, 'Log a climb / Start training stay');
         assert.ok(/Log a climb/.test(snap.action.text) && /Start training/.test(snap.action.text));
-        await shot(page, 'home_next_empty_390.png', 390);
-        await shot(page, 'home_next_empty_840.png', 840);
+        await shot(page, 'home_redesign_empty_390.png', 390);
+        await shot(page, 'home_redesign_empty_840.png', 840);
       });
     });
 
@@ -305,7 +306,11 @@ async function run(){
         await page.setViewportSize({ width: 390, height: 844 });
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.week.hidden, false, 'week shows when there is a session');
-        assert.strictEqual(snap.week.text.replace(/\s+/g, ' ').trim(), '1 session this week');
+        var label = await page.evaluate(function(){
+          var el = document.getElementById('home-streak-label');
+          return el ? String(el.textContent || '').trim() : '';
+        });
+        assert.strictEqual(label, '1 session this week');
         var clip = await clipCheck(page);
         assert.ok(clip.ok, 'first character of week label clipped: ' + JSON.stringify(clip));
         assert.strictEqual(clip.text.charAt(0), '1');
