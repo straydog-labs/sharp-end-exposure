@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index305'/.test(index));
-assert.ok(/APP_VERSION = 'index305'/.test(sw));
+assert.ok(/var app_version = 'index306'/.test(index));
+assert.ok(/APP_VERSION = 'index306'/.test(sw));
 
 assert.ok(/function trustedSelectedClimbId\(/.test(index));
 assert.ok(/function findOrCreateClimbIdByName\(/.test(index));
@@ -31,7 +31,7 @@ var trustedFn = extractFn(index, 'trustedSelectedClimbId');
 
 assert.ok(/_selectedClimbId = null/.test(startFn), 'startLogFlow clears _selectedClimbId');
 assert.ok(/_selectedClimbId=null/.test(resetFn), 'resetLogScreen clears _selectedClimbId');
-assert.ok(launchFn.indexOf('startLogFlow()') < launchFn.indexOf('_selectedClimbId = climbId'),
+assert.ok(launchFn.indexOf('startLogFlow(') < launchFn.indexOf('_selectedClimbId = climbId'),
   'launchLogWithClimb re-sets selection after startLogFlow');
 assert.ok(/climbIdEarly = await trustedSelectedClimbId/.test(index));
 assert.ok(/climbId = await trustedSelectedClimbId\(logState\.routeName, climbId\)/.test(index));
