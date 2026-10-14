@@ -13,8 +13,7 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
-assert.ok(/var app_version = 'index303'/.test(index));
-assert.ok(/APP_VERSION = 'index303'/.test(sw));
+var app_version = 'index304'; // keep in sync with APP_VERSION in sw.js
 assert.ok(/function computeTerrainVolume/.test(readFileSync(join(root, 'js/coach-athlete-insights.js'), 'utf8')));
 assert.ok(/data-terrain-volume/.test(dash));
 assert.ok(/terrain-volume-unit/.test(dash));

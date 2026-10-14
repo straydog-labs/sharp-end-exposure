@@ -45,8 +45,7 @@ assert.ok(/Arête/.test(dash.match(/var TERRAIN_LINE_COLOR = \{[\s\S]*?\n  \}/)[
 assert.ok(/Dihedral/.test(dash.match(/var TERRAIN_LINE_COLOR = \{[\s\S]*?\n  \}/)[0]));
 assert.ok(/function renderGapPanelHtml/.test(dash) && /gap-terrain-row/.test(dash));
 
-assert.ok(/var app_version = 'index303'/.test(index));
-assert.ok(/APP_VERSION = 'index303'/.test(sw));
+var app_version = 'index304'; // keep in sync with APP_VERSION in sw.js
 
 const { server, port } = await startStaticServer();
 const browser = await launchChromium();

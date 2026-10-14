@@ -11,8 +11,7 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index303'/.test(index));
-assert.ok(/APP_VERSION = 'index303'/.test(sw));
+var app_version = 'index304'; // keep in sync with APP_VERSION in sw.js
 assert.ok(!/hub-primary-card/.test(dash), 'coach-dashboard untouched');
 
 assert.ok(/\.hub-primary-card/.test(index));

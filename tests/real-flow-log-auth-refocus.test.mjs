@@ -18,7 +18,18 @@ async function authPage(page, userId){
     window.loadClimbLog = function(){ return Promise.resolve(); };
     window.loadHomeScreen = function(){ return Promise.resolve(); };
     window.loadHomeInsight = function(){ return Promise.resolve(); };
+    if(typeof applyAuthStateChange === 'function'){
+      applyAuthStateChange('INITIAL_SESSION', { user: { id: id }, access_token: 'test-token' });
+    }
   }, userId || USER_ID);
+  await page.waitForTimeout(400);
+}
+
+function bootOpts(extra){
+  return Object.assign({
+    session: { user: { id: USER_ID }, access_token: 'test-token' },
+    sessions: [{ id: 'base-1', is_baseline: true, user_id: USER_ID }]
+  }, extra || {});
 }
 
 async function finishLogToStep6(page){
@@ -100,9 +111,11 @@ async function run(){
 
   try{
     await flow('same-user-signed-in-keeps-log-step-6', async function(){
-      await withPage(browser, port, {}, async function(page){
+      await withPage(browser, port, bootOpts(), async function(page){
         await authPage(page, USER_ID);
         await finishLogToStep6(page);
+        var before = await activeScreen(page);
+        assert.strictEqual(before.id, 'screen-log-name', 'precondition: on step 6');
         await fireSignedIn(page, USER_ID, false);
         var state = await activeScreen(page);
         assert.strictEqual(state.id, 'screen-log-name',
@@ -114,11 +127,13 @@ async function run(){
     });
 
     await flow('different-user-signed-in-routes-home', async function(){
-      await withPage(browser, port, {}, async function(page){
+      await withPage(browser, port, bootOpts({
+        sessions: [{ id: 'base-1', is_baseline: true, user_id: OTHER_USER }]
+      }), async function(page){
         await authPage(page, USER_ID);
         await finishLogToStep6(page);
         await fireSignedIn(page, OTHER_USER, false);
-        await page.waitForTimeout(400);
+        await waitForScreen(page, 'screen-home');
         var state = await activeScreen(page);
         assert.strictEqual(state.id, 'screen-home',
           'different user SIGNED_IN must route Home, got ' + state.id);
@@ -126,11 +141,11 @@ async function run(){
     });
 
     await flow('signed-out-to-signed-in-routes-home', async function(){
-      await withPage(browser, port, {}, async function(page){
+      await withPage(browser, port, bootOpts(), async function(page){
         await authPage(page, USER_ID);
         await finishLogToStep6(page);
         await fireSignedIn(page, USER_ID, true);
-        await page.waitForTimeout(400);
+        await waitForScreen(page, 'screen-home');
         var state = await activeScreen(page);
         assert.strictEqual(state.id, 'screen-home',
           'signed-out -> signed-in must route Home, got ' + state.id);
