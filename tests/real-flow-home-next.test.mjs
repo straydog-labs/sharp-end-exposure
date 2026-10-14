@@ -76,6 +76,24 @@ async function waitHomeReady(page){
   }, null, { timeout: 30000 });
 }
 
+async function waitHomeVisible(page){
+  await page.waitForFunction(function(){
+    var home = document.getElementById('screen-home');
+    var log = document.getElementById('home-card-log');
+    return !!(home && home.classList.contains('active') && log && typeof startLogFlow === 'function');
+  }, null, { timeout: 30000 });
+}
+
+async function waitPicker(page){
+  await waitForScreen(page, 'screen-log-which');
+  await page.waitForFunction(function(){
+    var load = document.getElementById('log-which-loading');
+    var loadingOn = !!(load && !load.hidden);
+    var root = document.getElementById('log-my-projects');
+    return !loadingOn && !!(root && !root.hidden && root.querySelector('[data-cid]'));
+  }, null, { timeout: 8000 });
+}
+
 async function homeSnapshot(page){
   return page.evaluate(function(){
     function vis(id){
@@ -395,6 +413,49 @@ async function run(){
         assert.strictEqual(goals.length, 0, 'no athlete_goals');
         assert.deepStrictEqual(dupes, [], 'each Home data URL once, dupes=' + JSON.stringify(dupes));
         console.log('boot rest GET tables: sessions=' + sess.length + ' climbs=' + climbs.length + ' athlete_goals=' + goals.length + ' homeGets=' + homeGets.length);
+      });
+    });
+
+    await flow('h-log-a-climb-while-home-loads-shows-picker', async function(){
+      var delayMs = 1200;
+      await withPage(browser, port, signedIn({
+        climbs: THREE_PROJECTS,
+        sessions: THREE_SESSIONS,
+        assignments: [],
+        stub: async function(route, info){
+          if(info.method === 'GET' && (info.url.indexOf('/rest/v1/climbs') !== -1 || info.url.indexOf('/rest/v1/sessions') !== -1)){
+            await new Promise(function(resolve){ setTimeout(resolve, delayMs); });
+          }
+          return false;
+        }
+      }), async function(page){
+        await waitHomeVisible(page);
+        var mid = await page.evaluate(function(){
+          return {
+            ready: window._homeDataReady === true,
+            climbCache: window._climbCache,
+            cachedClimbs: window._cachedClimbs
+          };
+        });
+        assert.ok(mid.ready !== true, 'must tap before Home settles, ready=' + mid.ready);
+        assert.ok(!Array.isArray(mid.climbCache), 'climb cache still in flight at tap, got ' + JSON.stringify(mid.climbCache));
+        await tap(page, '#home-card-log');
+        var immediate = await page.evaluate(function(){
+          var el = document.querySelector('.screen.active');
+          return el ? el.id : null;
+        });
+        assert.notStrictEqual(immediate, 'screen-log-act',
+          'must not skip to the dial while Home caches are still loading, got ' + immediate);
+        await waitPicker(page);
+        var ids = await page.evaluate(function(){
+          var root = document.getElementById('log-my-projects');
+          if(!root || root.hidden) return [];
+          return Array.prototype.map.call(root.querySelectorAll('[data-cid]'), function(btn){
+            return btn.getAttribute('data-cid');
+          });
+        });
+        assert.ok(ids.indexOf(P1) !== -1 && ids.indexOf(P2) !== -1,
+          'in-flight Home Log a climb must still list projects, got ' + JSON.stringify(ids));
       });
     });
   }finally{
