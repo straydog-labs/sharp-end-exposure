@@ -145,8 +145,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 .home-profile-btn svg{width:18px;height:18px;}
 .home-goals-strip{width:100%;margin:0;box-sizing:border-box;}
 .home-goals-strip[hidden]{display:none;}
-#screen-home .content{gap:12px;padding:12px 20px 16px;}
-#home-compact{display:flex;flex-direction:column;gap:12px;width:100%;}
+#screen-home .content{gap:12px;padding:12px 20px 16px;max-width:100%;overflow-x:hidden;box-sizing:border-box;}
+#home-compact{display:flex;flex-direction:column;gap:12px;width:100%;max-width:100%;min-width:0;overflow-x:hidden;box-sizing:border-box;}
 #screen-home .screen-title{font-size:20px;margin:0;}
 #screen-home .screen-title .sub{display:none;}
 .home-streak-band{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;overflow:visible;box-sizing:border-box;}
@@ -203,11 +203,12 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-action-filled{width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;text-align:center;}
 .home-action-filled[hidden]{display:none;}
 .home-projects-wrap[hidden],.home-recent-wrap[hidden]{display:none;}
-.home-projects-strip{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.home-projects-strip::-webkit-scrollbar{display:none;}
-.home-project-chip{flex:0 0 auto;width:168px;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.home-project-chip .hp-name{font-size:14px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.home-project-chip .hp-meta{font-size:12px;color:var(--muted);line-height:1.35;margin-top:4px;}
+.home-projects-wrap{width:100%;max-width:100%;min-width:0;overflow-x:hidden;box-sizing:border-box;}
+.home-projects-strip{display:flex;flex-direction:column;gap:8px;overflow:hidden;width:100%;max-width:100%;min-width:0;box-sizing:border-box;}
+.home-project-row{width:100%;max-width:100%;min-width:0;min-height:52px;box-sizing:border-box;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);color:var(--text);font-family:'Space Grotesk',sans-serif;padding:10px 14px;cursor:pointer;overflow:hidden;-webkit-tap-highlight-color:transparent;}
+.home-project-row[aria-current="true"]{border:1px solid rgba(232,118,58,.45);}
+.home-project-row .hp-name{font-size:14px;font-weight:700;line-height:1.25;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;word-break:break-word;white-space:normal;max-width:100%;}
+.home-project-row .hp-meta{font-size:12px;color:var(--muted);line-height:1.35;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
 .home-recent-row{width:100%;display:flex;align-items:center;gap:10px;padding:10px 2px;border:none;border-bottom:1px solid var(--border);background:none;color:var(--text);font-family:'Space Grotesk',sans-serif;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-recent-row:last-child{border-bottom:none;}
 .home-recent-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
@@ -1717,6 +1718,9 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
       </div>
 
       <div id="home-recent-wrap" class="home-recent-wrap" hidden>
+        <div class="home-due-head" id="home-recent-head">
+          <div class="home-due-label" id="home-recent-label">Last session</div>
+        </div>
         <div id="home-recent-list"></div>
       </div>
 
@@ -5968,7 +5972,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index311'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index312'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -11465,10 +11469,27 @@ function hideHomePromptButtons(){
 function homeStarCtaLabel(name){
   return 'Star ' + climbDisplayName(name);
 }
-function homePromptExcludeProjectId(prompt){
+function homePromptTargetProjectId(prompt){
   if(!prompt || !prompt.project || !prompt.project.id) return '';
   if(prompt.state === 's3' || prompt.state === 's5' || prompt.state === 's6-climb') return prompt.project.id;
   return '';
+}
+function pickHomeProjectsForStrip(projects, targetId){
+  var list = (projects || []).filter(function(p){ return p && p.id; });
+  var top = list.slice(0, 3);
+  if(!targetId) return top;
+  var i;
+  for(i = 0; i < top.length; i++){
+    if(top[i].id === targetId) return top;
+  }
+  var target = null;
+  for(i = 0; i < list.length; i++){
+    if(list[i].id === targetId){ target = list[i]; break; }
+  }
+  if(!target) return top;
+  if(top.length >= 3) return [top[0], top[1], target];
+  top.push(target);
+  return top;
 }
 function fillHomeAssignmentStart(a, now){
   var titleEl = document.getElementById('home-today-title');
@@ -11624,7 +11645,7 @@ function paintHomePrompt(prompt, now){
   } else if(prompt.state === 's5' && prompt.assignment){
     fillHomeAssignmentStart(prompt.assignment, now);
   } else if(prompt.state === 's5'){
-    if(kickerEl) kickerEl.textContent = 'LOG';
+    if(kickerEl) kickerEl.textContent = 'PROJECT';
     titleEl.textContent = 'Nothing logged this week';
     if(prompt.project){
       var grade5 = String(prompt.project.grade || '').trim();
@@ -11648,7 +11669,7 @@ function paintHomePrompt(prompt, now){
     }
   } else {
     var p6 = prompt.project;
-    if(kickerEl) kickerEl.textContent = 'CLIMB';
+    if(kickerEl) kickerEl.textContent = p6 ? 'PROJECT' : 'CLIMB';
     if(p6){
       titleEl.textContent = 'Next: ' + (p6.name || 'Unnamed');
       var att = (p6.attempts === 1) ? '1 attempt' : ((p6.attempts || 0) + ' attempts');
@@ -12058,17 +12079,19 @@ function paintHomeProjectsStrip(){
   var wrap = document.getElementById('home-projects-wrap');
   var strip = document.getElementById('home-projects-strip');
   if(!wrap || !strip) return;
-  if(!_homeDataReady && !Array.isArray(_climbCache)){
+  var failOpen = (!_homeDataReady)
+    || (!!_homeSettledViaTimeout && !_homeLoadsFinished)
+    || (_homeDataReady && _homeLoadsFinished && typeof homeCachesOk === 'function' && !homeCachesOk());
+  if(failOpen){
     wrap.hidden = true;
+    strip.innerHTML = '';
     return;
   }
   var prompt = (typeof decideHomePrompt === 'function') ? decideHomePrompt(new Date()) : null;
-  var excludeId = homePromptExcludeProjectId(prompt);
+  var targetId = homePromptTargetProjectId(prompt);
   var labelEl = document.getElementById('home-projects-label');
-  var projects = listOpenLogProjects().filter(function(p){
-    return p && p.id && p.id !== excludeId;
-  }).slice(0, 3);
-  if(labelEl) labelEl.textContent = excludeId ? 'Other projects' : 'My projects';
+  if(labelEl) labelEl.textContent = 'My projects';
+  var projects = pickHomeProjectsForStrip(listOpenLogProjects(), targetId);
   if(!projects.length){
     wrap.hidden = true;
     strip.innerHTML = '';
@@ -12082,7 +12105,8 @@ function paintHomeProjectsStrip(){
       ? (when ? '0 attempts · added ' + when : '0 attempts')
       : (att + (when ? ' · last ' + when : ''));
     var meta = [p.grade, whenBit].filter(Boolean).join(' · ');
-    return '<button type="button" class="home-project-chip" data-cid="'+escHomeAttr(p.id)+'" data-name="'+escHomeAttr(p.name || '')+'" data-grade="'+escHomeAttr(p.grade || '')+'" data-terrain="'+escHomeAttr(p.terrain || '')+'" data-setting="'+escHomeAttr(p.setting || '')+'" onclick="launchHomeProjectLog(this.dataset.cid,this.dataset.name,this.dataset.grade,this.dataset.terrain,this.dataset.setting)">'
+    var current = targetId && p.id === targetId;
+    return '<button type="button" class="home-project-row" data-cid="'+escHomeAttr(p.id)+'" data-name="'+escHomeAttr(p.name || '')+'" data-grade="'+escHomeAttr(p.grade || '')+'" data-terrain="'+escHomeAttr(p.terrain || '')+'" data-setting="'+escHomeAttr(p.setting || '')+'"'+(current ? ' aria-current="true"' : '')+' onclick="launchHomeProjectLog(this.dataset.cid,this.dataset.name,this.dataset.grade,this.dataset.terrain,this.dataset.setting)">'
       + '<div class="hp-name">'+escTrainHtml(p.name || 'Unnamed')+'</div>'
       + '<div class="hp-meta">'+escTrainHtml(meta)+'</div>'
       + '</button>';
