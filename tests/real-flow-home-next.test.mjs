@@ -15,8 +15,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index310'/.test(index));
-assert.ok(/APP_VERSION = 'index310'/.test(sw));
+assert.ok(/var app_version = 'index311'/.test(index));
+assert.ok(/APP_VERSION = 'index311'/.test(sw));
 assert.ok(/id="home-today-card"[\s\S]*id="home-action-row"[\s\S]*id="home-projects-wrap"[\s\S]*id="home-streak-band"[\s\S]*id="home-recent-wrap"/.test(index));
 assert.ok(/function decideHomePrompt/.test(index));
 assert.ok(/function pickHomeDueSoonAssignment/.test(index));
@@ -157,9 +157,68 @@ async function homeSnapshot(page){
       })(),
       checklist: (document.getElementById('home-today-checklist') || {}).innerHTML || '',
       weekDots: (document.getElementById('home-week-dots') || {}).innerHTML || '',
-      hasProjectFlag: window._climbCacheHasProject === true
+      hasProjectFlag: window._climbCacheHasProject === true,
+      kicker: vis('home-today-kicker').text,
+      title: vis('home-today-title').text,
+      meta: vis('home-today-meta').text,
+      starText: ((document.getElementById('home-today-star') || {}).textContent || '').trim(),
+      stripLabel: vis('home-projects-label').text,
+      hit: (function(){
+        function h(id){
+          var el = document.getElementById(id);
+          if(!el || el.hidden) return null;
+          return el.getBoundingClientRect().height;
+        }
+        var log = document.getElementById('home-card-log');
+        var train = document.getElementById('home-action-train');
+        var gap = null;
+        if(log && train && !log.hidden && !train.hidden
+          && /home-action-link/.test(log.className || '') && !/home-action-filled/.test(log.className || '')
+          && /home-action-link/.test(train.className || '') && !/home-action-filled/.test(train.className || '')){
+          var a = log.getBoundingClientRect();
+          var b = train.getBoundingClientRect();
+          gap = Math.round(b.left - a.right);
+        }
+        return { log: h('home-card-log'), train: h('home-action-train'), dismiss: h('home-today-dismiss'), gap: gap };
+      })()
     };
   });
+}
+
+function wordsOf(s){
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(function(w){ return w.length > 2; });
+}
+function assertNoRepeatWords(snap, extraAllow, skipTitleMeta){
+  extraAllow = extraAllow || [];
+  var allow = { next: true };
+  extraAllow.forEach(function(w){ allow[w] = true; });
+  var groups = [
+    ['kicker', snap.kicker, 'title', snap.title],
+    ['kicker', snap.kicker, 'meta', snap.meta]
+  ];
+  if(!skipTitleMeta) groups.push(['title', snap.title, 'meta', snap.meta]);
+  groups.forEach(function(g){
+    var a = wordsOf(g[1]);
+    var b = wordsOf(g[3]);
+    a.forEach(function(w){
+      if(allow[w]) return;
+      assert.ok(b.indexOf(w) === -1, 'repeat "' + w + '" in ' + g[0] + '/' + g[2] + ': ' + g[1] + ' | ' + g[3]);
+    });
+  });
+}
+function assertQuietHit(snap){
+  if(snap.hit.train != null && !/home-action-filled/.test(snap.trainClass)){
+    assert.ok(snap.hit.train >= 44, 'Start training hit ' + snap.hit.train);
+  }
+  if(snap.hit.log != null && /home-action-link/.test(snap.logClass) && !/home-action-filled/.test(snap.logClass)){
+    assert.ok(snap.hit.log >= 44, 'Log a climb quiet hit ' + snap.hit.log);
+  }
+  if(snap.hit.dismiss != null){
+    assert.ok(snap.hit.dismiss >= 44, 'Not now hit ' + snap.hit.dismiss);
+  }
+  if(snap.hit.gap != null){
+    assert.ok(snap.hit.gap >= 12, 'quiet link gap ' + snap.hit.gap);
+  }
 }
 
 async function clipCheck(page){
@@ -274,6 +333,7 @@ async function run(){
         assert.ok(/home-action-filled/.test(snap.logClass), 'S0 filled Log a climb, got ' + snap.logClass);
         assert.ok(/home-action-link/.test(snap.trainClass) && !/home-action-filled/.test(snap.trainClass), 'S0 Start training quiet');
         assert.strictEqual(snap.filled, 1, 'S0 exactly one filled, got ' + snap.filled);
+        assertQuietHit(snap);
         await shot(page, 'home_v3_s0_failopen_390.png', 390);
       });
     });
@@ -293,7 +353,9 @@ async function run(){
         assert.strictEqual(snap.projects.hidden, true);
         assert.strictEqual(snap.recent.hidden, true);
         assert.strictEqual(snap.welcome.hidden, true);
-        assert.ok(/No sessions this week/.test(snap.week.text), snap.week.text);
+        assert.strictEqual(snap.week.hidden, true, 'F3 week hidden at count 0');
+        assertNoRepeatWords(snap);
+        assertQuietHit(snap);
         assert.strictEqual(snap.filled, 1, 'S1 0 of 3 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s1_0of3_390.png', 390);
       });
@@ -313,6 +375,9 @@ async function run(){
         assert.strictEqual(snap.state, 's1', 'first climb stays on checklist, got ' + snap.state);
         assert.ok(/1 of 3/.test(snap.today.text), snap.today.text);
         assert.strictEqual(snap.starHidden, false, 'next item is Star');
+        assert.ok(/^Star Power of Now/.test(snap.starText), 'F4 Star names target, got ' + snap.starText);
+        assertNoRepeatWords(snap);
+        assertQuietHit(snap);
         assert.strictEqual(snap.filled, 1, 'S1 1 of 3 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s1_1of3_390.png', 390);
       });
@@ -334,6 +399,11 @@ async function run(){
         assert.strictEqual(snap.logLinkHidden, false, 'quiet Log a climb stays');
         assert.strictEqual(snap.projects.hidden, false);
         assert.strictEqual(snap.chips.length, 3);
+        assert.strictEqual(snap.stripLabel, 'My projects');
+        assert.strictEqual(snap.kicker, 'TODAY');
+        assert.ok(/Hangboard/.test(snap.meta) && !/Due today/.test(snap.meta), 'F5 TODAY meta type only: ' + snap.meta);
+        assertNoRepeatWords(snap, ['today'], true);
+        assertQuietHit(snap);
         assert.strictEqual(snap.recent.hidden, false);
         assert.strictEqual(snap.recents.length, 1, 'last session is one row, got ' + snap.recents.length);
         assert.ok(/session/.test(snap.week.text), snap.week.text);
@@ -369,7 +439,14 @@ async function run(){
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's3', 'stale project is S3, got ' + snap.state);
         assert.ok(/Revisit/.test(snap.today.text) && /Power of Now/.test(snap.today.text), 'oldest stale not projects[0]: ' + snap.today.text);
+        assert.strictEqual(snap.kicker, 'PROJECT');
+        assert.ok(/attempt/.test(snap.meta) && /, last /.test(snap.meta), 'F5 S3 meta: ' + snap.meta);
+        assert.strictEqual(snap.week.hidden, true, 'F3 week hidden at 0 for S3');
+        assert.strictEqual(snap.stripLabel, 'Other projects');
+        assert.ok(snap.chips.every(function(c){ return c.cid !== P1; }), 'F1 excludes prompt project P');
+        assert.ok(snap.chips.some(function(c){ return c.cid === P2; }), 'other project remains');
         assert.strictEqual(snap.logHidden, false);
+        assertNoRepeatWords(snap);
         assert.strictEqual(snap.filled, 1, 'S3 exactly one filled, got ' + snap.filled);
         assert.strictEqual(snap.hasProjectFlag, true);
         await shot(page, 'home_v3_s3_stale_390.png', 390);
@@ -395,8 +472,11 @@ async function run(){
         }, USER_ID);
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's4', 'two non-project climbs is S4, got ' + snap.state + ' ' + snap.today.text);
-        assert.ok(/Star /.test(snap.today.text) && /project/.test(snap.today.text), snap.today.text);
+        assert.strictEqual(snap.title, NAME1, 'S4 title is climb name, got ' + snap.title);
+        assert.ok(/^Star Power of Now/.test(snap.starText), 'F4 S4 CTA names target: ' + snap.starText);
         assert.strictEqual(snap.starHidden, false);
+        assertNoRepeatWords(snap);
+        assertQuietHit(snap);
         assert.strictEqual(snap.filled, 1, 'S4 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s4_star_390.png', 390);
       });
@@ -413,7 +493,11 @@ async function run(){
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's5', 'fresh unused project + empty week is S5, got ' + snap.state);
         assert.ok(/Nothing logged this week/.test(snap.today.text), snap.today.text);
+        assert.ok(/Next: Power of Now · 5\.12a/.test(snap.meta), 'F2 S5 meta names target: ' + snap.meta);
         assert.strictEqual(snap.logHidden, false);
+        assert.strictEqual(snap.week.hidden, true, 'F3 week hidden at 0 for S5');
+        assert.strictEqual(snap.projects.hidden, true, 'F1 strip hidden when only P remains');
+        assertNoRepeatWords(snap);
         assert.strictEqual(snap.filled, 1, 'S5 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s5_none_week_390.png', 390);
       });
@@ -429,8 +513,13 @@ async function run(){
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's6-climb', 'active projects are S6 climb, got ' + snap.state);
         assert.ok(/Next: Power of Now/.test(snap.today.text), snap.today.text);
+        assert.strictEqual(snap.kicker, 'CLIMB');
+        assert.strictEqual(snap.stripLabel, 'Other projects');
+        assert.ok(snap.chips.every(function(c){ return c.cid !== P1; }), 'F1 S6 excludes prompt project');
+        assert.ok(snap.chips.some(function(c){ return c.cid === P2; }));
         assert.strictEqual(snap.startHidden, true);
         assert.strictEqual(snap.logHidden, false);
+        assertNoRepeatWords(snap);
         assert.strictEqual(snap.filled, 1, 'S6 climb exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s6_climb_390.png', 390);
         await shot(page, 'home_v3_s6_climb_840.png', 840);
@@ -454,8 +543,10 @@ async function run(){
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's6-train', 'training-only week is S6 train, got ' + snap.state);
         assert.ok(/Keep training/.test(snap.today.text), snap.today.text);
+        assert.strictEqual(snap.kicker, 'SESSION');
         assert.strictEqual(snap.startHidden, false);
         assert.strictEqual(snap.trainLinkHidden, true);
+        assertNoRepeatWords(snap);
         assert.strictEqual(snap.filled, 1, 'S6 train exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s6_train_390.png', 390);
       });
@@ -732,11 +823,83 @@ async function run(){
       await withPage(browser, port, signedIn({
         climbs: THREE_PROJECTS,
         sessions: THREE_SESSIONS,
-        assignments: [{ id: 'asg-u', title: 'Undated hang', due_date: null, completed_at: null, athlete_id: USER_ID }]
+        assignments: [{ id: 'asg-u', title: 'Undated hang', due_date: null, completed_at: null, athlete_id: USER_ID, training_focus: 'Hangboard' }]
       }), async function(page){
         await waitHomeReady(page);
         var snap = await homeSnapshot(page);
         assert.notStrictEqual(snap.state, 's2', 'undated assignment is not S2, got ' + snap.state);
+        assert.strictEqual(snap.state, 's6-assign', 'undated with week activity is S6, got ' + snap.state);
+        assert.ok(/Up next: Undated hang/.test(snap.title), snap.title);
+        assert.strictEqual(snap.kicker, 'UP NEXT');
+        assert.strictEqual(snap.startHidden, false);
+        assert.strictEqual(snap.filled, 1);
+        await shot(page, 'home_v3_s6_undated_390.png', 390);
+      });
+    });
+
+    await flow('s5-undated-assignment', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [project(P1, NAME1, '5.12a', 'Overhang', { created_at: daysAgo(3), updated_at: daysAgo(3) })],
+        sessions: [],
+        assignments: [{ id: 'asg-u', title: 'Undated hang', due_date: null, completed_at: null, athlete_id: USER_ID, training_focus: 'Hangboard' }],
+        trainingSessions: [{ id: 'tr-old', created_at: daysAgo(10), deleted_at: null }]
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's5', 'undated also shows at S5, got ' + snap.state);
+        assert.ok(/Up next: Undated hang/.test(snap.title), snap.title);
+        assert.strictEqual(snap.startHidden, false);
+        assert.strictEqual(snap.week.hidden, true);
+        assert.strictEqual(snap.filled, 1);
+      });
+    });
+
+    await flow('f8-undated-never-above-s3', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [project(P1, NAME1, '5.12a', 'Overhang', { created_at: daysAgo(20), updated_at: daysAgo(20) })],
+        sessions: [
+          sessionRow({ id: 's-old', climb_id: P1, route_name: NAME1, grade_value: '5.12a', climbing_type: 'Overhang', created_at: daysAgo(20) }),
+          sessionRow({ id: 's-check', is_checkin: true, is_baseline: false, climb_id: null, route_name: '', created_at: daysAgo(10) })
+        ],
+        assignments: [{ id: 'asg-u', title: 'Undated hang', due_date: null, completed_at: null, athlete_id: USER_ID }]
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's3', 'undated must not outrank S3, got ' + snap.state);
+      });
+    });
+
+    await flow('f8-undated-never-above-s4', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [
+          { id: P1, name: NAME1, grade_value: '5.12a', climbing_type: 'Overhang', is_project: false, deleted_at: null }
+        ],
+        sessions: [sessionRow({ id: 's-a', climb_id: P1, route_name: NAME1, grade_value: '5.12a', climbing_type: 'Overhang', created_at: daysAgo(0) })],
+        assignments: [{ id: 'asg-u', title: 'Undated hang', due_date: null, completed_at: null, athlete_id: USER_ID }]
+      }), async function(page){
+        await waitHomeReady(page);
+        await page.evaluate(function(uid){
+          localStorage.setItem('see_home_v3_checklist_dismissed_' + uid, '1');
+          paintHomePrimaryCard();
+        }, USER_ID);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's4', 'undated must not outrank S4, got ' + snap.state);
+      });
+    });
+
+    await flow('f6-zero-attempts-added', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: THREE_PROJECTS.concat([project('climb-fresh', 'Fresh Set', '5.9', 'Slab', { created_at: daysAgo(4), updated_at: daysAgo(4) })]),
+        sessions: THREE_SESSIONS,
+        assignments: []
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's6-climb', snap.state);
+        var fresh = snap.chips.filter(function(c){ return c.cid === 'climb-fresh'; })[0];
+        assert.ok(fresh, 'unused project stays in Other projects');
+        assert.ok(/0 attempts · added /.test(fresh.text), 'F6 added not last: ' + fresh.text);
+        assert.ok(!/ last /.test(fresh.text.replace('added', '')), fresh.text);
       });
     });
 

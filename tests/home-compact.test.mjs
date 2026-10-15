@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index310'/.test(index));
-assert.ok(/APP_VERSION = 'index310'/.test(sw));
+assert.ok(/var app_version = 'index311'/.test(index));
+assert.ok(/APP_VERSION = 'index311'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -123,6 +123,15 @@ assert.ok(/see_home_v3_star_off_/.test(extractFn(index, 'homeStarOffKey')));
 assert.ok(/function noteHomeSessionRow/.test(index));
 assert.ok(/homeCachesOk\(\)/.test(extractFn(index, 'decideHomePrompt')));
 assert.ok(/lastAtSource/.test(extractFn(index, 'listOpenLogProjects')));
+assert.ok(/pickHomeUndatedAssignment/.test(extractFn(index, 'decideHomePrompt')));
+assert.ok(/s6-assign/.test(extractFn(index, 'decideHomePrompt')));
+assert.ok(/Other projects/.test(extractFn(index, 'paintHomeProjectsStrip')));
+assert.ok(/0 attempts · added /.test(extractFn(index, 'paintHomeProjectsStrip')));
+assert.ok(/n < 1/.test(extractFn(index, 'paintHomeWeekFromCaches')));
+assert.ok(/homeStarCtaLabel/.test(extractFn(index, 'paintHomePrompt')));
+assert.ok(/min-height:44px/.test(index));
+assert.ok(/id="home-projects-label"/.test(home));
+assert.ok(/kicker === 'TODAY'/.test(extractFn(index, 'fillHomeAssignmentStart')));
 
 const detailSrc = extractFn(index, 'openHomeAssignmentDetail');
 assert.ok(/trainCardHtml/.test(detailSrc));
@@ -137,6 +146,7 @@ const helpers = [
   extractFn(index, 'homeAssignmentTypeLabel'),
   extractFn(index, 'pickHomeTodayAssignment'),
   extractFn(index, 'pickHomeDueSoonAssignment'),
+  extractFn(index, 'pickHomeUndatedAssignment'),
   extractFn(index, 'athleteLocalMondayIndex'),
   extractFn(index, 'homeWeekDayNames'),
   extractFn(index, 'homeWeekDotsHtml'),
@@ -231,6 +241,10 @@ assert.strictEqual(helperCtx.isHomeAssignmentDueSoon({ completed_at: null, due_d
 assert.ok(!helperCtx.pickHomeDueSoonAssignment([
   { id: 'u', title: 'Undated', due_date: null, completed_at: null }
 ], now), 'undated assignment is not S2');
+const undatedPick = helperCtx.pickHomeUndatedAssignment([
+  { id: 'u', title: 'Undated hang', due_date: null, completed_at: null, created_at: '2026-08-01' }
+]);
+assert.ok(undatedPick && undatedPick.id === 'u');
 
 const dayItems = helperCtx.collectHomeDayItems('2026-09-08', [
   { created_at: '2026-09-08T10:00:00', zone: 'learning' },

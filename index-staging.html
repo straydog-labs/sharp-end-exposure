@@ -182,7 +182,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-today-kicker{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
 .home-today-title{width:100%;background:none;border:none;padding:0;text-align:left;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;line-height:1.25;cursor:pointer;}
 .home-today-meta{font-size:12px;color:var(--muted);margin:6px 0 12px;}
-.home-today-start{width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;}
+.home-today-start{width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .home-today-start[hidden]{display:none;}
 .home-today-checklist{margin:8px 0 12px;display:flex;flex-direction:column;gap:8px;}
 .home-today-checklist[hidden]{display:none;}
@@ -192,13 +192,13 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-check-mark{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
 .home-check-item.is-done .home-check-mark{background:var(--accent);border-color:var(--accent);color:#fff;}
 .home-check-item.is-locked .home-check-mark{border-style:dashed;opacity:.7;}
-.home-today-dismiss{display:block;width:100%;margin-top:8px;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:8px 0 0;cursor:pointer;text-align:left;}
+.home-today-dismiss{display:flex;align-items:center;width:100%;min-height:44px;margin-top:8px;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:0;cursor:pointer;text-align:left;}
 .home-today-dismiss[hidden]{display:none;}
 .home-welcome-hint{font-size:13px;color:var(--muted);line-height:1.45;padding:0 2px;}
 .home-welcome-hint[hidden]{display:none;}
-.home-action-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.home-action-row{display:flex;flex-wrap:wrap;gap:16px;align-items:center;}
 .home-action-row[hidden]{display:none;}
-.home-action-link{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:6px 2px;cursor:pointer;text-align:left;}
+.home-action-link{background:none;border:none;color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;padding:0 2px;min-height:44px;display:inline-flex;align-items:center;cursor:pointer;text-align:left;}
 .home-action-link[hidden]{display:none;}
 .home-action-filled{width:100%;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:12px;cursor:pointer;text-align:center;}
 .home-action-filled[hidden]{display:none;}
@@ -1703,7 +1703,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 
       <div id="home-projects-wrap" class="home-projects-wrap" hidden>
         <div class="home-due-head">
-          <div class="home-due-label">My projects</div>
+          <div class="home-due-label" id="home-projects-label">My projects</div>
           <button type="button" class="home-due-see-all" id="home-projects-see-all" onclick="showClimbTable()">See all</button>
         </div>
         <div id="home-projects-strip" class="home-projects-strip"></div>
@@ -5968,7 +5968,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index310'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index311'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -11179,6 +11179,12 @@ function pickHomeDueSoonAssignment(rows, now){
   var due = (rows || []).filter(function(a){ return isHomeAssignmentDueSoon(a, now); });
   return pickHomeTodayAssignment(due, now);
 }
+function pickHomeUndatedAssignment(rows){
+  var undated = (rows || []).filter(function(a){
+    return a && !a.completed_at && (a.due_date == null || a.due_date === '');
+  });
+  return pickHomeTodayAssignment(undated);
+}
 function homeUid(){
   return (window._authUser && window._authUser.id) || '';
 }
@@ -11338,9 +11344,12 @@ function decideHomePrompt(now){
     }
   }
   var weekN = countHomeWeekSessions(_homeLoadedClimbs, _homeLoadedTrains, _homeLoadedPsyche, _homeLoadedDrills, now);
+  var undated = pickHomeUndatedAssignment(_trainAssignmentsCache);
   if(weekN === 0){
+    if(undated) return { state: 's5', assignment: undated, cta: 'start' };
     return { state: 's5', project: projects[0] || null, cta: projects[0] ? 'log-attempt' : 'log-climb' };
   }
+  if(undated) return { state: 's6-assign', assignment: undated, cta: 'start' };
   var climbs14 = homeCountSince(climbSess, 14 * 24 * 60 * 60 * 1000, now, function(s){ return s && s.created_at; });
   var trains14 = homeCountSince(trainSess, 14 * 24 * 60 * 60 * 1000, now, function(t){ return t && (t.created_at || t.started_at); });
   if(trains14 > climbs14){
@@ -11450,6 +11459,42 @@ function hideHomePromptButtons(){
     startEl.dataset.id = '';
     startEl.onclick = function(){ startTrainSessionFromAssignment(startEl.dataset.id); };
   }
+  var starEl = document.getElementById('home-today-star');
+  if(starEl) starEl.textContent = 'Star';
+}
+function homeStarCtaLabel(name){
+  return 'Star ' + climbDisplayName(name);
+}
+function homePromptExcludeProjectId(prompt){
+  if(!prompt || !prompt.project || !prompt.project.id) return '';
+  if(prompt.state === 's3' || prompt.state === 's5' || prompt.state === 's6-climb') return prompt.project.id;
+  return '';
+}
+function fillHomeAssignmentStart(a, now){
+  var titleEl = document.getElementById('home-today-title');
+  var metaEl = document.getElementById('home-today-meta');
+  var startEl = document.getElementById('home-today-start');
+  var kickerEl = document.getElementById('home-today-kicker');
+  a = a || {};
+  now = now || new Date();
+  if(titleEl){
+    titleEl.textContent = 'Up next: ' + (a.title || 'Training');
+    titleEl.dataset.id = a.id || '';
+  }
+  var kind = homeAssignmentDueKind(a, now);
+  var kicker = homeTodayKickerLabel(a, now);
+  if(kickerEl) kickerEl.textContent = kicker;
+  if(metaEl){
+    var type = homeAssignmentTypeLabel(a);
+    if(kicker === 'TODAY' || !a.due_date) metaEl.textContent = type;
+    else metaEl.textContent = type + ' · ' + homeAssignmentDueLabel(kind);
+  }
+  if(startEl){
+    startEl.hidden = false;
+    startEl.textContent = 'Start';
+    startEl.dataset.id = a.id || '';
+    startEl.onclick = function(){ startTrainSessionFromAssignment(startEl.dataset.id); };
+  }
 }
 function fillHomeLogAttempt(p){
   var logEl = document.getElementById('home-today-log-attempt');
@@ -11540,11 +11585,16 @@ function paintHomePrompt(prompt, now){
   card.hidden = false;
   if(prompt.state === 's1'){
     var done = prompt.done || 0;
-    if(kickerEl) kickerEl.textContent = 'GET STARTED';
+    if(kickerEl) kickerEl.textContent = 'CHECKLIST';
     titleEl.textContent = 'Get started';
     metaEl.textContent = done + ' of 3';
     paintHomeChecklist(prompt.progress);
-    if(prompt.cta === 'star'){ if(starEl) starEl.hidden = false; }
+    if(prompt.cta === 'star'){
+      if(starEl){
+        starEl.hidden = false;
+        starEl.textContent = homeStarCtaLabel((prompt.progress && prompt.progress.climb && prompt.progress.climb.name) || (prompt.progress && prompt.progress.last && prompt.progress.last.route_name) || '');
+      }
+    }
     else if(prompt.cta === 'psyche'){ if(psycheEl) psycheEl.hidden = false; }
     else if(logClimbEl) logClimbEl.hidden = false;
     if(dismissEl){
@@ -11552,40 +11602,42 @@ function paintHomePrompt(prompt, now){
       dismissEl.onclick = dismissHomeChecklist;
     }
   } else if(prompt.state === 's2'){
-    var a = prompt.assignment || {};
-    titleEl.textContent = 'Up next: ' + (a.title || 'Training');
-    titleEl.dataset.id = a.id || '';
-    metaEl.textContent = homeAssignmentTypeLabel(a) + ' · ' + homeAssignmentDueLabel(homeAssignmentDueKind(a, now));
-    if(kickerEl) kickerEl.textContent = homeTodayKickerLabel(a, now);
-    if(startEl){
-      startEl.hidden = false;
-      startEl.textContent = 'Start';
-      startEl.dataset.id = a.id || '';
-      startEl.onclick = function(){ startTrainSessionFromAssignment(startEl.dataset.id); };
-    }
+    fillHomeAssignmentStart(prompt.assignment, now);
   } else if(prompt.state === 's3'){
     var p3 = prompt.project || {};
-    if(kickerEl) kickerEl.textContent = 'REVISIT';
+    if(kickerEl) kickerEl.textContent = 'PROJECT';
     titleEl.textContent = 'Revisit ' + climbDisplayName(p3.name);
     metaEl.textContent = (p3.attempts === 1 ? '1 attempt' : ((p3.attempts || 0) + ' attempts')) + (p3.lastAt ? ', last ' + homeProjectLastLabel(p3.lastAt) : '');
     fillHomeLogAttempt(p3);
   } else if(prompt.state === 's4'){
     if(kickerEl) kickerEl.textContent = 'PROJECT';
-    titleEl.textContent = 'Star ' + climbDisplayName(prompt.name) + ' as a project?';
+    titleEl.textContent = climbDisplayName(prompt.name);
     metaEl.textContent = '';
-    if(starEl) starEl.hidden = false;
+    if(starEl){
+      starEl.hidden = false;
+      starEl.textContent = homeStarCtaLabel(prompt.name);
+    }
     if(dismissEl){
       dismissEl.hidden = false;
       dismissEl.onclick = dismissHomeStarPrompt;
     }
+  } else if(prompt.state === 's5' && prompt.assignment){
+    fillHomeAssignmentStart(prompt.assignment, now);
   } else if(prompt.state === 's5'){
-    if(kickerEl) kickerEl.textContent = 'THIS WEEK';
+    if(kickerEl) kickerEl.textContent = 'LOG';
     titleEl.textContent = 'Nothing logged this week';
-    metaEl.textContent = '';
-    if(prompt.project) fillHomeLogAttempt(prompt.project);
-    else if(logClimbEl) logClimbEl.hidden = false;
+    if(prompt.project){
+      var grade5 = String(prompt.project.grade || '').trim();
+      metaEl.textContent = 'Next: ' + climbDisplayName(prompt.project.name) + (grade5 ? ' · ' + grade5 : '');
+      fillHomeLogAttempt(prompt.project);
+    } else {
+      metaEl.textContent = '';
+      if(logClimbEl) logClimbEl.hidden = false;
+    }
+  } else if(prompt.state === 's6-assign'){
+    fillHomeAssignmentStart(prompt.assignment, now);
   } else if(prompt.state === 's6-train'){
-    if(kickerEl) kickerEl.textContent = 'TRAINING';
+    if(kickerEl) kickerEl.textContent = 'SESSION';
     titleEl.textContent = 'Keep training';
     metaEl.textContent = '';
     if(startEl){
@@ -11596,7 +11648,7 @@ function paintHomePrompt(prompt, now){
     }
   } else {
     var p6 = prompt.project;
-    if(kickerEl) kickerEl.textContent = 'NEXT';
+    if(kickerEl) kickerEl.textContent = 'CLIMB';
     if(p6){
       titleEl.textContent = 'Next: ' + (p6.name || 'Unnamed');
       var att = (p6.attempts === 1) ? '1 attempt' : ((p6.attempts || 0) + ' attempts');
@@ -11614,6 +11666,7 @@ function paintHomePrompt(prompt, now){
 function paintHomePrimaryCard(){
   var prompt = decideHomePrompt(new Date());
   paintHomePrompt(prompt);
+  paintHomeProjectsStrip();
 }
 function dismissHomeChecklist(){
   var uid = homeUid();
@@ -11976,6 +12029,13 @@ function paintHomeWeekFromCaches(){
   }
   var now = new Date();
   var n = countHomeWeekSessions(_homeLoadedClimbs, _homeLoadedTrains, _homeLoadedPsyche, _homeLoadedDrills, now);
+  if(n < 1){
+    labelEl.textContent = '';
+    var dotsEl = document.getElementById('home-week-dots');
+    if(dotsEl) dotsEl.innerHTML = '';
+    band.hidden = true;
+    return;
+  }
   paintHomeWeekDots(now);
   labelEl.textContent = homeWeekSessionLabel(n);
   band.hidden = false;
@@ -12002,19 +12062,29 @@ function paintHomeProjectsStrip(){
     wrap.hidden = true;
     return;
   }
-  var projects = listOpenLogProjects().slice(0, 3);
+  var prompt = (typeof decideHomePrompt === 'function') ? decideHomePrompt(new Date()) : null;
+  var excludeId = homePromptExcludeProjectId(prompt);
+  var labelEl = document.getElementById('home-projects-label');
+  var projects = listOpenLogProjects().filter(function(p){
+    return p && p.id && p.id !== excludeId;
+  }).slice(0, 3);
+  if(labelEl) labelEl.textContent = excludeId ? 'Other projects' : 'My projects';
   if(!projects.length){
     wrap.hidden = true;
     strip.innerHTML = '';
     return;
   }
   strip.innerHTML = projects.map(function(p){
-    var att = p.attempts === 1 ? '1 attempt' : ((p.attempts || 0) + ' attempts');
-    var last = homeProjectLastLabel(p.lastAt);
+    var attN = p.attempts || 0;
+    var att = attN === 1 ? '1 attempt' : (attN + ' attempts');
+    var when = homeProjectLastLabel(p.lastAt);
+    var whenBit = attN === 0
+      ? (when ? '0 attempts · added ' + when : '0 attempts')
+      : (att + (when ? ' · last ' + when : ''));
+    var meta = [p.grade, whenBit].filter(Boolean).join(' · ');
     return '<button type="button" class="home-project-chip" data-cid="'+escHomeAttr(p.id)+'" data-name="'+escHomeAttr(p.name || '')+'" data-grade="'+escHomeAttr(p.grade || '')+'" data-terrain="'+escHomeAttr(p.terrain || '')+'" data-setting="'+escHomeAttr(p.setting || '')+'" onclick="launchHomeProjectLog(this.dataset.cid,this.dataset.name,this.dataset.grade,this.dataset.terrain,this.dataset.setting)">'
       + '<div class="hp-name">'+escTrainHtml(p.name || 'Unnamed')+'</div>'
-      + '<div class="hp-meta">'+escTrainHtml([p.grade, att].filter(Boolean).join(' · '))+'</div>'
-      + '<div class="hp-meta">last: '+escTrainHtml(last || '—')+'</div>'
+      + '<div class="hp-meta">'+escTrainHtml(meta)+'</div>'
       + '</button>';
   }).join('');
   wrap.hidden = false;
