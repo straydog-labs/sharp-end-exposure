@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index309'/.test(index));
-assert.ok(/APP_VERSION = 'index309'/.test(sw));
+assert.ok(/var app_version = 'index310'/.test(index));
+assert.ok(/APP_VERSION = 'index310'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -58,6 +58,8 @@ assert.ok(/id="home-welcome-hint"/.test(home));
 assert.ok(/id="home-due-see-all"/.test(home));
 assert.ok(/showScreen\('screen-train-assignments'\)/.test(home));
 assert.ok(/id="home-goals-strip"/.test(home));
+assert.ok(/\.home-week-dots\{display:flex/.test(index));
+assert.ok(!/\.home-week-dots\{display:none !important/.test(index));
 assert.ok(/\.home-streak-label\{[^}]*overflow:visible/.test(index));
 assert.ok(/\.home-streak-band\{[^}]*overflow:visible/.test(index));
 assert.ok(/\.home-streak-label\{[^}]*padding:0 4px/.test(index));
@@ -113,6 +115,13 @@ assert.ok(/loadClimbCache/.test(extractFn(index, 'loadHomeProjectsStrip')));
 assert.ok(/LOG_WHICH_LOAD_MS/.test(extractFn(index, 'loadHomeScreen')));
 assert.ok(/homeWeekSessionLabel/.test(extractFn(index, 'paintHomeWeekFromCaches')));
 assert.ok(/launchLogWithClimb\(climbId,\s*routeName/.test(extractFn(index, 'launchHomeProjectLog')));
+assert.ok(/_climbCacheHasProject\s*=\s*true/.test(extractFn(index, 'loadClimbCache')));
+assert.ok(/function sbSWasOk/.test(index));
+assert.ok(/_sbSResultOk/.test(index));
+assert.ok(/see_home_v3_star_off_/.test(extractFn(index, 'homeStarOffKey')));
+assert.ok(/function noteHomeSessionRow/.test(index));
+assert.ok(/homeCachesOk\(\)/.test(extractFn(index, 'decideHomePrompt')));
+assert.ok(/lastAtSource/.test(extractFn(index, 'listOpenLogProjects')));
 
 const detailSrc = extractFn(index, 'openHomeAssignmentDetail');
 assert.ok(/trainCardHtml/.test(detailSrc));
@@ -217,6 +226,10 @@ const doneOnly = helperCtx.pickHomeTodayAssignment([
 ], now);
 assert.ok(!doneOnly, 'completed assignment is hidden');
 assert.ok(/pickHomeDueSoonAssignment\(_trainAssignmentsCache/.test(dueSrc));
+assert.strictEqual(helperCtx.isHomeAssignmentDueSoon({ completed_at: null, due_date: null }, now), false);
+assert.ok(!helperCtx.pickHomeDueSoonAssignment([
+  { id: 'u', title: 'Undated', due_date: null, completed_at: null }
+], now), 'undated assignment is not S2');
 
 const dayItems = helperCtx.collectHomeDayItems('2026-09-08', [
   { created_at: '2026-09-08T10:00:00', zone: 'learning' },
@@ -266,6 +279,11 @@ const loadChunk = [
   'var _homeSessRows = null;',
   'var _homeSettledViaTimeout = false;',
   'var _homeLoadsFinished = false;',
+  'var _homeLoadedUid = "";',
+  'var _climbCacheLoadOk = null;',
+  'var _climbCache = null;',
+  'var _climbCacheInflight = null;',
+  'var _climbCacheHasProject = null;',
   'var LOG_WHICH_LOAD_MS = 2000;',
   extractFn(index, 'loadHomeScreen')
 ].join('\n');
@@ -276,6 +294,11 @@ const loadCtx = {
   _homeSessRows: null,
   _homeSettledViaTimeout: false,
   _homeLoadsFinished: false,
+  _homeLoadedUid: '',
+  _climbCacheLoadOk: null,
+  _climbCache: null,
+  _climbCacheInflight: null,
+  _climbCacheHasProject: null,
   LOG_WHICH_LOAD_MS: 2000,
   closeHomeAssignmentDetail: function(){ loadCtx.closes++; },
   closeHomeDaySheet: function(){},

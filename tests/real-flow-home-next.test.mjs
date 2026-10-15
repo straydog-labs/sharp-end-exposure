@@ -15,8 +15,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index309'/.test(index));
-assert.ok(/APP_VERSION = 'index309'/.test(sw));
+assert.ok(/var app_version = 'index310'/.test(index));
+assert.ok(/APP_VERSION = 'index310'/.test(sw));
 assert.ok(/id="home-today-card"[\s\S]*id="home-action-row"[\s\S]*id="home-projects-wrap"[\s\S]*id="home-streak-band"[\s\S]*id="home-recent-wrap"/.test(index));
 assert.ok(/function decideHomePrompt/.test(index));
 assert.ok(/function pickHomeDueSoonAssignment/.test(index));
@@ -62,7 +62,8 @@ const THREE_PROJECTS = [
 const THREE_SESSIONS = [
   sessionRow({ id: 's-p1', climb_id: P1, route_name: NAME1, grade_value: '5.12a', climbing_type: 'Overhang', zone: 'learning', baseline_zone: 'sent', created_at: daysAgo(0) }),
   sessionRow({ id: 's-p2', climb_id: P2, route_name: NAME2, grade_value: '5.11a', climbing_type: 'Overhang', zone: 'comfort', baseline_zone: 'take', created_at: daysAgo(1) }),
-  sessionRow({ id: 's-p3', climb_id: P3, route_name: NAME3, grade_value: '5.10a', climbing_type: 'Arête', zone: 'panic', baseline_zone: 'fall', created_at: daysAgo(2) })
+  sessionRow({ id: 's-p3', climb_id: P3, route_name: NAME3, grade_value: '5.10a', climbing_type: 'Arête', zone: 'panic', baseline_zone: 'fall', created_at: daysAgo(2) }),
+  sessionRow({ id: 's-check', climb_id: null, route_name: '', is_checkin: true, is_baseline: false, zone: 'learning', created_at: daysAgo(10) })
 ];
 const ASSIGNMENT = {
   id: 'asg-hang-1',
@@ -139,7 +140,24 @@ async function homeSnapshot(page){
       recents: Array.prototype.map.call(document.querySelectorAll('#home-recent-list .home-recent-row'), function(b){
         return { sid: b.getAttribute('data-sid'), text: (b.textContent || '').replace(/\s+/g, ' ').trim() };
       }),
-      kids: kids
+      kids: kids,
+      logClass: (document.getElementById('home-card-log') || {}).className || '',
+      trainClass: (document.getElementById('home-action-train') || {}).className || '',
+      filled: (function(){
+        var n = 0;
+        ['home-today-start','home-today-log-attempt','home-today-log-climb','home-today-star','home-today-psyche'].forEach(function(id){
+          var el = document.getElementById(id);
+          if(el && !el.hidden) n++;
+        });
+        var log = document.getElementById('home-card-log');
+        var train = document.getElementById('home-action-train');
+        if(log && !log.hidden && /home-action-filled/.test(log.className || '')) n++;
+        if(train && !train.hidden && /home-action-filled/.test(train.className || '')) n++;
+        return n;
+      })(),
+      checklist: (document.getElementById('home-today-checklist') || {}).innerHTML || '',
+      weekDots: (document.getElementById('home-week-dots') || {}).innerHTML || '',
+      hasProjectFlag: window._climbCacheHasProject === true
     };
   });
 }
@@ -251,8 +269,11 @@ async function run(){
         assert.strictEqual(snap.today.hidden, true, 'S0 hides the prompt');
         assert.strictEqual(snap.projects.hidden, true);
         assert.strictEqual(snap.welcome.hidden, true);
-        assert.strictEqual(snap.logLinkHidden, false, 'S0 keeps quiet Log a climb');
+        assert.strictEqual(snap.logLinkHidden, false, 'S0 keeps Log a climb');
         assert.strictEqual(snap.trainLinkHidden, false, 'S0 keeps quiet Start training');
+        assert.ok(/home-action-filled/.test(snap.logClass), 'S0 filled Log a climb, got ' + snap.logClass);
+        assert.ok(/home-action-link/.test(snap.trainClass) && !/home-action-filled/.test(snap.trainClass), 'S0 Start training quiet');
+        assert.strictEqual(snap.filled, 1, 'S0 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s0_failopen_390.png', 390);
       });
     });
@@ -273,6 +294,7 @@ async function run(){
         assert.strictEqual(snap.recent.hidden, true);
         assert.strictEqual(snap.welcome.hidden, true);
         assert.ok(/No sessions this week/.test(snap.week.text), snap.week.text);
+        assert.strictEqual(snap.filled, 1, 'S1 0 of 3 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s1_0of3_390.png', 390);
       });
     });
@@ -291,6 +313,7 @@ async function run(){
         assert.strictEqual(snap.state, 's1', 'first climb stays on checklist, got ' + snap.state);
         assert.ok(/1 of 3/.test(snap.today.text), snap.today.text);
         assert.strictEqual(snap.starHidden, false, 'next item is Star');
+        assert.strictEqual(snap.filled, 1, 'S1 1 of 3 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s1_1of3_390.png', 390);
       });
     });
@@ -314,6 +337,8 @@ async function run(){
         assert.strictEqual(snap.recent.hidden, false);
         assert.strictEqual(snap.recents.length, 1, 'last session is one row, got ' + snap.recents.length);
         assert.ok(/session/.test(snap.week.text), snap.week.text);
+        assert.strictEqual(snap.filled, 1, 'S2 exactly one filled, got ' + snap.filled);
+        assert.ok(/home-week-dot/.test(snap.weekDots), 'week dots painted');
         await shot(page, 'home_v3_s2_assignment_390.png', 390);
         await shot(page, 'home_v3_s2_assignment_840.png', 840);
         assert.strictEqual(tableGets(recorded, 'sessions').length, 1);
@@ -323,18 +348,30 @@ async function run(){
 
     await flow('s3-stale-project', async function(){
       await withPage(browser, port, signedIn({
-        climbs: [project(P1, NAME1, '5.12a', 'Overhang', { created_at: daysAgo(12), updated_at: daysAgo(12) })],
-        sessions: [sessionRow({
-          id: 's-old', climb_id: P1, route_name: NAME1, grade_value: '5.12a',
-          climbing_type: 'Overhang', created_at: daysAgo(12)
-        })],
+        climbs: [
+          project(P2, NAME2, '5.11a', 'Overhang', { created_at: daysAgo(8), updated_at: daysAgo(8) }),
+          project(P1, NAME1, '5.12a', 'Overhang', { created_at: daysAgo(20), updated_at: daysAgo(20) })
+        ],
+        sessions: [
+          sessionRow({
+            id: 's-old', climb_id: P1, route_name: NAME1, grade_value: '5.12a',
+            climbing_type: 'Overhang', created_at: daysAgo(20)
+          }),
+          sessionRow({
+            id: 's-mid', climb_id: P2, route_name: NAME2, grade_value: '5.11a',
+            climbing_type: 'Overhang', created_at: daysAgo(8)
+          }),
+          sessionRow({ id: 's-check', is_checkin: true, is_baseline: false, climb_id: null, route_name: '', created_at: daysAgo(10) })
+        ],
         assignments: []
       }), async function(page){
         await waitHomeReady(page);
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's3', 'stale project is S3, got ' + snap.state);
-        assert.ok(/Revisit/.test(snap.today.text), snap.today.text);
+        assert.ok(/Revisit/.test(snap.today.text) && /Power of Now/.test(snap.today.text), 'oldest stale not projects[0]: ' + snap.today.text);
         assert.strictEqual(snap.logHidden, false);
+        assert.strictEqual(snap.filled, 1, 'S3 exactly one filled, got ' + snap.filled);
+        assert.strictEqual(snap.hasProjectFlag, true);
         await shot(page, 'home_v3_s3_stale_390.png', 390);
       });
     });
@@ -352,10 +389,15 @@ async function run(){
         assignments: []
       }), async function(page){
         await waitHomeReady(page);
+        await page.evaluate(function(uid){
+          localStorage.setItem('see_home_v3_checklist_dismissed_' + uid, '1');
+          paintHomePrimaryCard();
+        }, USER_ID);
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's4', 'two non-project climbs is S4, got ' + snap.state + ' ' + snap.today.text);
         assert.ok(/Star /.test(snap.today.text) && /project/.test(snap.today.text), snap.today.text);
         assert.strictEqual(snap.starHidden, false);
+        assert.strictEqual(snap.filled, 1, 'S4 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s4_star_390.png', 390);
       });
     });
@@ -364,13 +406,15 @@ async function run(){
       await withPage(browser, port, signedIn({
         climbs: [project(P1, NAME1, '5.12a', 'Overhang', { created_at: daysAgo(3), updated_at: daysAgo(3) })],
         sessions: [],
-        assignments: []
+        assignments: [],
+        trainingSessions: [{ id: 'tr-old', created_at: daysAgo(10), deleted_at: null }]
       }), async function(page){
         await waitHomeReady(page);
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's5', 'fresh unused project + empty week is S5, got ' + snap.state);
         assert.ok(/Nothing logged this week/.test(snap.today.text), snap.today.text);
         assert.strictEqual(snap.logHidden, false);
+        assert.strictEqual(snap.filled, 1, 'S5 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s5_none_week_390.png', 390);
       });
     });
@@ -387,6 +431,7 @@ async function run(){
         assert.ok(/Next: Power of Now/.test(snap.today.text), snap.today.text);
         assert.strictEqual(snap.startHidden, true);
         assert.strictEqual(snap.logHidden, false);
+        assert.strictEqual(snap.filled, 1, 'S6 climb exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s6_climb_390.png', 390);
         await shot(page, 'home_v3_s6_climb_840.png', 840);
         await tap(page, '#home-today-log-attempt');
@@ -411,6 +456,7 @@ async function run(){
         assert.ok(/Keep training/.test(snap.today.text), snap.today.text);
         assert.strictEqual(snap.startHidden, false);
         assert.strictEqual(snap.trainLinkHidden, true);
+        assert.strictEqual(snap.filled, 1, 'S6 train exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s6_train_390.png', 390);
       });
     });
@@ -579,6 +625,232 @@ async function run(){
         });
         assert.ok(ids.indexOf(P1) !== -1 && ids.indexOf(P2) !== -1,
           'in-flight Home Log a climb must still list projects, got ' + JSON.stringify(ids));
+      });
+    });
+
+    await flow('g0-sessions-http-error-is-s0-not-empty', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [],
+        sessions: [],
+        assignments: [],
+        stub: async function(route, info){
+          if(info.method === 'GET' && info.url.indexOf('/rest/v1/sessions') !== -1){
+            await route.fulfill({ status: 500, contentType: 'application/json', body: '[]' });
+            return true;
+          }
+          return false;
+        }
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's0', 'sbS error is fail-open S0, not loaded-empty S1, got ' + snap.state);
+        assert.strictEqual(snap.today.hidden, true);
+        assert.ok(/home-action-filled/.test(snap.logClass));
+        assert.strictEqual(snap.filled, 1);
+      });
+    });
+
+    await flow('s1-baseline-only-not-checklist', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [],
+        sessions: [sessionRow({
+          id: 's-base', is_baseline: true, is_checkin: true, climb_id: null, route_name: '',
+          created_at: daysAgo(1)
+        })],
+        assignments: []
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.notStrictEqual(snap.state, 's1', 'baseline-only must not get S1, got ' + snap.state);
+      });
+    });
+
+    await flow('s1-b-locked-unnamed', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [{ id: P1, name: 'Climb 7', grade_value: '5.12a', climbing_type: 'Overhang', is_project: false, deleted_at: null }],
+        sessions: [sessionRow({
+          id: 's-unnamed', climb_id: P1, route_name: 'Climb 7', grade_value: '5.12a',
+          climbing_type: 'Overhang', created_at: daysAgo(0)
+        })],
+        assignments: []
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's1', snap.state);
+        assert.ok(/1 of 3/.test(snap.today.text), snap.today.text);
+        assert.strictEqual(snap.starHidden, true, 'B locked: Star CTA hidden');
+        assert.ok(/is-locked/.test(snap.checklist), 'Star checklist item locked');
+        assert.strictEqual(snap.filled, 1);
+      });
+    });
+
+    await flow('s1-c-flips-after-checkin-no-reload', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [],
+        sessions: [],
+        assignments: []
+      }), async function(page, recorded){
+        await waitHomeReady(page);
+        var before = tableGets(recorded, 'sessions').length;
+        await page.evaluate(function(){
+          noteHomeSessionRow({
+            id: 's-live-check', is_checkin: true, is_baseline: false, deleted_at: null,
+            created_at: new Date().toISOString(), zone: 'learning'
+          });
+        });
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's1', snap.state);
+        assert.ok(/1 of 3/.test(snap.today.text), 'C flips without reload: ' + snap.today.text);
+        assert.ok(/is-done/.test(snap.checklist) && /First Psyche/.test(snap.checklist), snap.checklist);
+        assert.strictEqual(tableGets(recorded, 'sessions').length, before, 'no extra sessions GET');
+      });
+    });
+
+    await flow('s1-dismiss-key-scoped-by-uid', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [],
+        sessions: [],
+        assignments: []
+      }), async function(page){
+        await waitHomeReady(page);
+        await page.evaluate(function(){
+          localStorage.setItem('see_home_v3_checklist_dismissed_other-user', '1');
+          paintHomePrimaryCard();
+        });
+        var still = await homeSnapshot(page);
+        assert.strictEqual(still.state, 's1', 'other uid dismiss must not hide S1');
+        await page.evaluate(function(uid){
+          localStorage.setItem('see_home_v3_checklist_dismissed_' + uid, '1');
+          paintHomePrimaryCard();
+        }, USER_ID);
+        var gone = await homeSnapshot(page);
+        assert.notStrictEqual(gone.state, 's1', 'own uid dismiss hides S1, got ' + gone.state);
+      });
+    });
+
+    await flow('s2-undated-not-s2', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: THREE_PROJECTS,
+        sessions: THREE_SESSIONS,
+        assignments: [{ id: 'asg-u', title: 'Undated hang', due_date: null, completed_at: null, athlete_id: USER_ID }]
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.notStrictEqual(snap.state, 's2', 'undated assignment is not S2, got ' + snap.state);
+      });
+    });
+
+    await flow('s2-far-future-not-s2', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: THREE_PROJECTS,
+        sessions: THREE_SESSIONS,
+        assignments: [{ id: 'asg-far', title: 'Far EMOM', due_date: '2099-01-01', completed_at: null, athlete_id: USER_ID }]
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.notStrictEqual(snap.state, 's2', 'far-future is not S2, got ' + snap.state);
+      });
+    });
+
+    await flow('s3-skip-when-lastAt-not-session-and-window-full', async function(){
+      var padded = [];
+      var i;
+      for(i = 0; i < 80; i++){
+        padded.push(sessionRow({
+          id: 's-pad-' + i, climb_id: P2, route_name: NAME2, created_at: daysAgo(1)
+        }));
+      }
+      await withPage(browser, port, signedIn({
+        climbs: [project(P1, NAME1, '5.12a', 'Overhang', { created_at: daysAgo(20), updated_at: daysAgo(20) })],
+        sessions: padded.concat([
+          sessionRow({ id: 's-check', is_checkin: true, is_baseline: false, climb_id: null, route_name: '', created_at: daysAgo(10) })
+        ]),
+        assignments: []
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.notStrictEqual(snap.state, 's3', 'saturated window without session lastAt must skip S3, got ' + snap.state);
+      });
+    });
+
+    await flow('s4-one-dismiss-ends-all-star-never-posts-climb', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [
+          { id: P1, name: NAME1, grade_value: '5.12a', climbing_type: 'Overhang', is_project: false, deleted_at: null },
+          { id: P2, name: NAME2, grade_value: '5.11a', climbing_type: 'Overhang', is_project: false, deleted_at: null }
+        ],
+        sessions: [
+          sessionRow({ id: 's-a', climb_id: P1, route_name: NAME1, grade_value: '5.12a', climbing_type: 'Overhang', created_at: daysAgo(0) }),
+          sessionRow({ id: 's-b', climb_id: P2, route_name: NAME2, grade_value: '5.11a', climbing_type: 'Overhang', created_at: daysAgo(1) })
+        ],
+        assignments: []
+      }), async function(page, recorded){
+        await waitHomeReady(page);
+        await page.evaluate(function(uid){
+          localStorage.setItem('see_home_v3_checklist_dismissed_' + uid, '1');
+          paintHomePrimaryCard();
+        }, USER_ID);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's4', snap.state);
+        var gets = restGets(recorded).length;
+        await tap(page, '#home-today-dismiss');
+        var after = await homeSnapshot(page);
+        assert.notStrictEqual(after.state, 's4', 'global star off ends S4, got ' + after.state);
+        var localStorageHasStarOff = await page.evaluate(function(uid){
+          return localStorage.getItem('see_home_v3_star_off_' + uid) === '1';
+        }, USER_ID);
+        assert.ok(localStorageHasStarOff, 'see_home_v3_star_off_<uid> set');
+        assert.strictEqual(restGets(recorded).length, gets, 'dismiss repaints with zero GETs');
+        assert.strictEqual(postsTo(recorded, 'climbs', 'POST').length, 0, 'star path never POSTs climbs');
+      });
+    });
+
+    await flow('repaint-from-caches-after-star-and-refocus', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: [
+          { id: P1, name: NAME1, grade_value: '5.12a', climbing_type: 'Overhang', is_project: false, deleted_at: null }
+        ],
+        sessions: [sessionRow({
+          id: 's-first', climb_id: P1, route_name: NAME1, grade_value: '5.12a',
+          climbing_type: 'Overhang', created_at: daysAgo(0)
+        })],
+        assignments: []
+      }), async function(page, recorded){
+        await waitHomeReady(page);
+        await page.evaluate(function(uid){
+          localStorage.setItem('see_home_v3_checklist_dismissed_' + uid, '1');
+          paintHomePrimaryCard();
+        }, USER_ID);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's4', snap.state);
+        var gets = restGets(recorded).length;
+        await tap(page, '#home-today-star');
+        await page.waitForTimeout(200);
+        assert.strictEqual(postsTo(recorded, 'climbs', 'POST').length, 0, 'star never creates a climb row');
+        assert.ok(postsTo(recorded, 'climbs', 'PATCH').length >= 1, 'star PATCHes existing climb');
+        assert.strictEqual(tableGets(recorded, 'sessions').length, 1);
+        await page.evaluate(function(){ showScreen('screen-train-start'); });
+        await page.evaluate(function(){ showScreen('screen-home'); });
+        await page.waitForTimeout(80);
+        assert.strictEqual(restGets(recorded).length, gets, 'same-user Home refocus is zero extra GETs, before=' + gets + ' after=' + restGets(recorded).length);
+      });
+    });
+
+    await flow('tap-known-climb-is-1-new-climb-picker-is-2', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: THREE_PROJECTS,
+        sessions: THREE_SESSIONS,
+        assignments: []
+      }), async function(page){
+        await waitHomeReady(page);
+        await tap(page, '#home-today-log-attempt');
+        await waitForScreen(page, 'screen-log-act');
+        await page.evaluate(function(){ showScreen('screen-home'); });
+        await waitHomeReady(page);
+        await tap(page, '#home-card-log');
+        await waitPicker(page);
+        await tap(page, '#log-my-projects [data-cid="' + P2 + '"]');
+        await waitForScreen(page, 'screen-log-act');
       });
     });
   }finally{

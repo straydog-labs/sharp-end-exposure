@@ -151,8 +151,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-ser
 #screen-home .screen-title .sub{display:none;}
 .home-streak-band{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;overflow:visible;box-sizing:border-box;}
 .home-streak-band[hidden]{display:none;}
-.home-streak-label{font-size:13px;font-weight:700;margin:0;padding:0 4px;line-height:1.35;overflow:visible;text-indent:0;}
-.home-week-dots{display:none !important;}
+.home-streak-label{font-size:13px;font-weight:700;margin:0 0 8px;padding:0 4px;line-height:1.35;overflow:visible;text-indent:0;}
+.home-week-dots{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 2px;overflow:visible;}
 .home-week-dot{flex:1;min-width:0;height:28px;border-radius:99px;background:transparent;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:default;}
 button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-week-dot.is-on{background:rgba(232,118,58,.18);border:1px solid rgba(232,118,58,.45);color:var(--accent);}
@@ -188,8 +188,10 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .home-today-checklist[hidden]{display:none;}
 .home-check-item{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--text);}
 .home-check-item.is-done{color:var(--muted);font-weight:500;}
+.home-check-item.is-locked{color:var(--muted);font-weight:500;}
 .home-check-mark{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
 .home-check-item.is-done .home-check-mark{background:var(--accent);border-color:var(--accent);color:#fff;}
+.home-check-item.is-locked .home-check-mark{border-style:dashed;opacity:.7;}
 .home-today-dismiss{display:block;width:100%;margin-top:8px;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:8px 0 0;cursor:pointer;text-align:left;}
 .home-today-dismiss[hidden]{display:none;}
 .home-welcome-hint{font-size:13px;color:var(--muted);line-height:1.45;padding:0 2px;}
@@ -5966,7 +5968,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index309'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index310'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -6190,8 +6192,12 @@ async function sbI(table,payload,minimal){
   }
 }
 var _sbSInflight = Object.create(null);
+var _sbSResultOk = Object.create(null);
 function sbSInflightKey(table, params){
   return String(table || '') + '?' + String(params || '');
+}
+function sbSWasOk(table, params){
+  return _sbSResultOk[sbSInflightKey(table, params)] === true;
 }
 function sbS(table,params=''){
   var key = sbSInflightKey(table, params);
@@ -6199,10 +6205,16 @@ function sbS(table,params=''){
   _sbSInflight[key] = (async function(){
     try{
       const r=await fetch(SB_URL+'/rest/v1/'+table+'?'+params,{headers:getSBHeaders()});
-      if(!r.ok){console.error('sbS HTTP error:',r.status,table);return [];}
+      if(!r.ok){
+        console.error('sbS HTTP error:',r.status,table);
+        _sbSResultOk[key] = false;
+        return [];
+      }
+      _sbSResultOk[key] = true;
       return await r.json();
     }catch(e){
       console.error('sbS network error:',e.message,table);
+      _sbSResultOk[key] = false;
       return [];
     }finally{
       delete _sbSInflight[key];
@@ -6278,7 +6290,12 @@ async function sbInsertSession(payload){
     delete p.fall_count;
     raw = await sbI('sessions', p);
   }
-  if(!sbFailed(raw) && raw) Object.assign(payload, p);
+  if(!sbFailed(raw) && raw){
+    Object.assign(payload, p);
+    if(typeof noteHomeSessionRow === 'function'){
+      noteHomeSessionRow(Object.assign({}, payload, raw));
+    }
+  }
   return raw;
 }
 
@@ -9612,7 +9629,8 @@ var _editingBetaNoteId=null;
 var _addingBetaNote=false;
 var _rhBetaNotes=[];
 
-var _homeClimbSelectHasIsProject = null;
+var _climbCacheHasProject = null;
+var _climbCacheLoadOk = null;
 function loadClimbCache(){
   if(_climbCache) return Promise.resolve(_climbCache);
   if(_climbCacheInflight) return _climbCacheInflight;
@@ -9622,14 +9640,22 @@ function loadClimbCache(){
       var extra='&deleted_at=is.null&order=created_at.desc&limit=200';
       var climbs=await fetchOwnedClimbsSelect('id,name,grade_value,climbing_type,is_project,beta_notes', owner, extra);
       if(Array.isArray(climbs)){
-        _homeClimbSelectHasIsProject = true;
+        _climbCacheHasProject = true;
+        _climbCacheLoadOk = true;
       } else {
         climbs=await fetchOwnedClimbsSelect('id,name,grade_value,climbing_type,beta_notes', owner, extra);
-        _homeClimbSelectHasIsProject = false;
+        _climbCacheHasProject = false;
+        if(Array.isArray(climbs)){
+          _climbCacheLoadOk = true;
+        } else {
+          var climbParams='select=id,name,grade_value,climbing_type&'+owner+extra;
+          climbs=await sbS('climbs', climbParams);
+          _climbCacheHasProject = false;
+          _climbCacheLoadOk = sbSWasOk('climbs', climbParams);
+        }
       }
-      if(!Array.isArray(climbs)){
-        climbs=await sbS('climbs','select=id,name,grade_value,climbing_type&'+owner+extra);
-        _homeClimbSelectHasIsProject = false;
+      if(_climbCacheLoadOk !== true){
+        return _climbCache;
       }
       _climbCache=Array.isArray(climbs)?climbs:[];
       return _climbCache;
@@ -9968,6 +9994,18 @@ function listOpenLogProjects(){
     atts.forEach(function(s){
       if(!latest || new Date(s.created_at) > new Date(latest.created_at)) latest = s;
     });
+    var lastAt = '';
+    var lastAtSource = '';
+    if(latest && latest.created_at){
+      lastAt = latest.created_at;
+      lastAtSource = 'session';
+    } else if(c.updated_at){
+      lastAt = c.updated_at;
+      lastAtSource = 'updated_at';
+    } else if(c.created_at){
+      lastAt = c.created_at;
+      lastAtSource = 'created_at';
+    }
     out.push({
       id: c.id,
       name: c.name || 'Unnamed',
@@ -9975,7 +10013,8 @@ function listOpenLogProjects(){
       terrain: c.climbing_type || '',
       setting: (latest && latest.setting) || c.setting || null,
       attempts: atts.length,
-      lastAt: (latest && latest.created_at) || c.updated_at || c.created_at || ''
+      lastAt: lastAt,
+      lastAtSource: lastAtSource
     });
   });
   out.sort(function(a, b){
@@ -11073,7 +11112,7 @@ function paintTrainHubBadges(){
 
 function isHomeAssignmentDueSoon(a, now){
   if(!a || a.completed_at) return false;
-  if(!a.due_date) return true;
+  if(!a.due_date) return false;
   now = now || new Date();
   var dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(a.due_date);
   var dt = dateOnly ? new Date(a.due_date+'T00:00:00') : new Date(a.due_date);
@@ -11152,8 +11191,8 @@ function homeLsSet(key, val){
 function homeChecklistDismissKey(uid){
   return 'see_home_v3_checklist_dismissed_' + (uid || homeUid());
 }
-function homeStarDismissKey(uid, climbId){
-  return 'see_home_v3_star_dismissed_' + (uid || homeUid()) + '_' + climbId;
+function homeStarOffKey(uid){
+  return 'see_home_v3_star_off_' + (uid || homeUid());
 }
 function homeClimbSessions(){
   return (Array.isArray(_homeSessRows) ? _homeSessRows : []).filter(isAthleteStreakClimb);
@@ -11167,11 +11206,45 @@ function homePsycheCheckins(){
 function homePsycheDrills(){
   return (_homeLoadedDrills || []).filter(isAthleteStreakPsycheDrill);
 }
+function homeSessSelectParams(){
+  var uid = homeUid();
+  return uid ? ('select=*&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=80') : '';
+}
+function homeTrainSelectParams(){
+  var uid = homeUid();
+  return uid ? ('select=id,created_at,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=40') : '';
+}
+function homeDrillSelectParams(){
+  var uid = homeUid();
+  return uid ? ('select=id,created_at,drill_key,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=80') : '';
+}
+function homeCachesOk(){
+  if(!homeUid()) return true;
+  return _climbCacheLoadOk === true
+    && sbSWasOk('sessions', homeSessSelectParams())
+    && sbSWasOk('training_sessions', homeTrainSelectParams())
+    && sbSWasOk('psyche_drills', homeDrillSelectParams());
+}
+function homeRealActivityCount(){
+  return homeClimbSessions().length + homePsycheCheckins().length + homePsycheDrills().length;
+}
+function homeHasBaselineSession(){
+  return (Array.isArray(_homeSessRows) ? _homeSessRows : []).some(function(s){
+    return s && s.is_baseline && !s.deleted_at;
+  });
+}
+function homeCountSince(rows, ms, now, dateFn){
+  now = now || new Date();
+  var cut = now.getTime() - ms;
+  var n = 0;
+  (rows || []).forEach(function(r){
+    var t = Date.parse(dateFn(r));
+    if(!isNaN(t) && t >= cut) n++;
+  });
+  return n;
+}
 function homeIsProjectColumnKnown(){
-  if(_homeClimbSelectHasIsProject === false) return false;
-  if(!Array.isArray(_climbCache)) return false;
-  if(!_climbCache.length) return _homeClimbSelectHasIsProject === true;
-  return _climbCache.some(function(c){ return c && Object.prototype.hasOwnProperty.call(c, 'is_project'); });
+  return _climbCacheHasProject === true;
 }
 function lastClimbSessionForHome(){
   var rows = homeClimbSessions();
@@ -11179,9 +11252,12 @@ function lastClimbSessionForHome(){
 }
 function staleOpenProjects(now){
   now = now || new Date();
+  if(_climbCacheHasProject !== true) return [];
   var cutoff = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  var sessN = Array.isArray(_homeSessRows) ? _homeSessRows.length : 0;
   return listOpenLogProjects().filter(function(p){
     if(!p || !p.lastAt) return false;
+    if(sessN >= 80 && p.lastAtSource !== 'session') return false;
     var t = Date.parse(p.lastAt);
     return !isNaN(t) && t <= cutoff;
   }).sort(function(a, b){
@@ -11191,11 +11267,21 @@ function staleOpenProjects(now){
 function homeChecklistProgress(){
   var last = lastClimbSessionForHome();
   var climb = last && last.climb_id ? climbById(last.climb_id) : null;
+  var name = (climb && climb.name) || (last && last.route_name) || '';
+  var amb = false;
+  if(last && last.climb_id && climb && !isUnnamedClimbName(name) && Array.isArray(_climbCache)){
+    var matched = matchClimbForProject(_climbCache, name, last.grade_value || climb.grade_value, last.climbing_type || climb.climbing_type);
+    amb = !!(matched && matched.ambiguous);
+  }
+  var starable = !!(last && last.climb_id && climb && !isUnnamedClimbName(name) && !amb);
+  var logDone = homeClimbSessions().length > 0;
+  var starDone = listOpenLogProjects().length > 0;
   return {
-    logDone: homeClimbSessions().length > 0,
-    starDone: listOpenLogProjects().length > 0,
+    logDone: logDone,
+    starDone: starDone,
     psycheDone: (homePsycheCheckins().length + homePsycheDrills().length) > 0,
-    starable: !!(last && last.climb_id && climb),
+    starable: starable,
+    starLocked: logDone && !starDone && !starable,
     last: last,
     climb: climb
   };
@@ -11203,13 +11289,14 @@ function homeChecklistProgress(){
 function decideHomePrompt(now){
   now = now || new Date();
   var dueSoon = pickHomeDueSoonAssignment(_trainAssignmentsCache, now);
-  var failOpen = !!_homeSettledViaTimeout && !_homeLoadsFinished;
-  var cachesKnown = Array.isArray(_climbCache) && Array.isArray(_homeSessRows);
+  var failOpen = (!!_homeSettledViaTimeout && !_homeLoadsFinished)
+    || (_homeDataReady && _homeLoadsFinished && !homeCachesOk());
   if(!_homeDataReady){
     if(dueSoon) return { state: 's2', assignment: dueSoon, cta: 'start' };
     return { state: 's0', cta: '' };
   }
-  if((failOpen || !cachesKnown) && !dueSoon){
+  if(failOpen){
+    if(dueSoon) return { state: 's2', assignment: dueSoon, cta: 'start' };
     return { state: 's0', cta: '' };
   }
   if(dueSoon) return { state: 's2', assignment: dueSoon, cta: 'start' };
@@ -11220,28 +11307,30 @@ function decideHomePrompt(now){
   var dismissed = homeLsGet(homeChecklistDismissKey(uid)) === '1';
   var prog = homeChecklistProgress();
   var allDone = prog.logDone && prog.starDone && prog.psycheDone;
-  var newish = trainSess.length === 0 && climbSess.length <= 1 && projects.length === 0;
-  if(!dismissed && !allDone && newish && Array.isArray(_climbCache)){
-    var done = (prog.logDone ? 1 : 0) + (prog.starDone ? 1 : 0) + (prog.psycheDone ? 1 : 0);
+  var done = (prog.logDone ? 1 : 0) + (prog.starDone ? 1 : 0) + (prog.psycheDone ? 1 : 0);
+  if(homeCachesOk() && !dismissed && !allDone && homeRealActivityCount() < 5
+    && trainSess.length === 0 && !(homeHasBaselineSession() && climbSess.length === 0)){
     var cta = 'log-climb';
     if(prog.logDone && !prog.starDone && prog.starable) cta = 'star';
-    else if(prog.logDone && (prog.starDone || !prog.starable) && !prog.psycheDone) cta = 'psyche';
+    else if(prog.logDone && !prog.psycheDone) cta = 'psyche';
+    else if(prog.logDone && prog.starLocked) cta = 'log-climb';
     return { state: 's1', done: done, progress: prog, cta: cta };
   }
-  if(homeIsProjectColumnKnown()){
+  if(_climbCacheHasProject === true){
     var stale = staleOpenProjects(now);
     if(stale.length) return { state: 's3', project: stale[0], cta: 'log-attempt' };
   }
   var last = lastClimbSessionForHome();
-  if(last && last.climb_id && homeIsProjectColumnKnown()){
+  if(last && last.climb_id && _climbCacheHasProject === true
+    && homeLsGet(homeStarOffKey(uid)) !== '1'){
     var rec = climbById(last.climb_id);
     var name = (rec && rec.name) || last.route_name || '';
-    var starDismissed = homeLsGet(homeStarDismissKey(uid, last.climb_id)) === '1';
-    if(rec && Object.prototype.hasOwnProperty.call(rec, 'is_project')
-      && rec.is_project !== true
+    var lastT = last.created_at ? Date.parse(last.created_at) : NaN;
+    var within48h = !isNaN(lastT) && (now.getTime() - lastT) <= 48 * 60 * 60 * 1000;
+    if(rec && rec.is_project === false
       && projects.length === 0
       && !isUnnamedClimbName(name)
-      && !starDismissed){
+      && within48h){
       var amb = matchClimbForProject(_climbCache, name, last.grade_value || rec.grade_value, last.climbing_type || rec.climbing_type);
       if(!amb.ambiguous){
         return { state: 's4', last: last, climb: rec, name: name, cta: 'star' };
@@ -11252,7 +11341,9 @@ function decideHomePrompt(now){
   if(weekN === 0){
     return { state: 's5', project: projects[0] || null, cta: projects[0] ? 'log-attempt' : 'log-climb' };
   }
-  if(projects.length === 0 && climbSess.length === 0 && trainSess.length > 0){
+  var climbs14 = homeCountSince(climbSess, 14 * 24 * 60 * 60 * 1000, now, function(s){ return s && s.created_at; });
+  var trains14 = homeCountSince(trainSess, 14 * 24 * 60 * 60 * 1000, now, function(t){ return t && (t.created_at || t.started_at); });
+  if(trains14 > climbs14){
     return { state: 's6-train', cta: 'start-train' };
   }
   return { state: 's6-climb', project: projects[0] || null, cta: projects[0] ? 'log-attempt' : 'log-climb' };
@@ -11374,12 +11465,14 @@ function paintHomeChecklist(prog){
   var el = document.getElementById('home-today-checklist');
   if(!el) return;
   var items = [
-    { done: !!(prog && prog.logDone), label: 'Log your first climb' },
-    { done: !!(prog && prog.starDone), label: 'Star a project' },
-    { done: !!(prog && prog.psycheDone), label: 'First Psyche check-in' }
+    { done: !!(prog && prog.logDone), locked: false, label: 'Log your first climb' },
+    { done: !!(prog && prog.starDone), locked: !!(prog && prog.starLocked), label: 'Star a project' },
+    { done: !!(prog && prog.psycheDone), locked: false, label: 'First Psyche check-in' }
   ];
   el.innerHTML = items.map(function(it){
-    return '<div class="home-check-item'+(it.done?' is-done':'')+'"><span class="home-check-mark">'+(it.done?'✓':'')+'</span><span>'+escTrainHtml(it.label)+'</span></div>';
+    var cls = 'home-check-item' + (it.done ? ' is-done' : '') + (it.locked && !it.done ? ' is-locked' : '');
+    var mark = it.done ? '✓' : (it.locked ? '–' : '');
+    return '<div class="'+cls+'"><span class="home-check-mark">'+mark+'</span><span>'+escTrainHtml(it.label)+'</span></div>';
   }).join('');
   el.hidden = false;
 }
@@ -11389,21 +11482,17 @@ function paintHomeActionRow(prompt){
   var row = document.getElementById('home-action-row');
   if(!logBtn || !trainBtn || !row) return;
   var cta = (prompt && prompt.cta) || '';
-  var startCta = cta === 'start' || cta === 'start-train';
-  var logCta = cta === 'log-climb' || cta === 'log-attempt';
+  var state = (prompt && prompt.state) || '';
   logBtn.className = 'home-action-link';
   trainBtn.className = 'home-action-link';
-  logBtn.hidden = !!logCta;
-  trainBtn.hidden = !!startCta;
-  if(!startCta && prompt && prompt.state !== 's2'){
-    trainBtn.hidden = false;
-    trainBtn.className = 'home-action-filled';
-  }
-  if(prompt && prompt.state === 's0'){
-    logBtn.hidden = false;
-    trainBtn.hidden = false;
-    logBtn.className = 'home-action-link';
+  logBtn.hidden = false;
+  trainBtn.hidden = false;
+  if(state === 's0'){
+    logBtn.className = 'home-action-filled';
     trainBtn.className = 'home-action-link';
+  } else {
+    if(cta === 'start' || cta === 'start-train') trainBtn.hidden = true;
+    if(cta === 'log-climb' || cta === 'log-attempt') logBtn.hidden = true;
   }
   row.hidden = !!(logBtn.hidden && trainBtn.hidden);
 }
@@ -11533,9 +11622,8 @@ function dismissHomeChecklist(){
   paintHomeWelcomeHint();
 }
 function dismissHomeStarPrompt(){
-  var last = lastClimbSessionForHome();
   var uid = homeUid();
-  if(uid && last && last.climb_id) homeLsSet(homeStarDismissKey(uid, last.climb_id), '1');
+  if(uid) homeLsSet(homeStarOffKey(uid), '1');
   paintHomePrimaryCard();
 }
 function dismissHomePrompt(){
@@ -11852,11 +11940,11 @@ function loadHomeSessionCaches(){
         if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs = [];
         return _homeSessRows;
       }
-      var uid = window._authUser.id;
-      var sessRows = await sbS(
-        'sessions',
-        'select=*&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=80'
-      );
+      var params = homeSessSelectParams();
+      var sessRows = await sbS('sessions', params);
+      if(!sbSWasOk('sessions', params)){
+        return _homeSessRows;
+      }
       sessRows = Array.isArray(sessRows) ? sessRows : [];
       _homeSessRows = sessRows;
       if(!Array.isArray(window._cachedClimbs)){
@@ -11866,8 +11954,6 @@ function loadHomeSessionCaches(){
       }
       return _homeSessRows;
     }catch(e){
-      if(!Array.isArray(_homeSessRows)) _homeSessRows = [];
-      if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs = [];
       return _homeSessRows;
     }finally{
       _homeSessInflight = null;
@@ -11969,6 +12055,30 @@ function failOpenHomeCaches(){
   if(!Array.isArray(window._cachedClimbs)) window._cachedClimbs = [];
   if(!Array.isArray(_homeSessRows)) _homeSessRows = [];
 }
+function noteHomeSessionRow(row){
+  if(!row || typeof row !== 'object') return;
+  function prepend(list, item){
+    list = Array.isArray(list) ? list.slice() : [];
+    return [item].concat(list.filter(function(s){ return !s || s.id !== item.id; }));
+  }
+  if(!row.created_at) row.created_at = new Date().toISOString();
+  if(Array.isArray(_homeSessRows)) _homeSessRows = prepend(_homeSessRows, row);
+  else _homeSessRows = [row];
+  if(isAthleteStreakClimb(row)){
+    _homeLoadedClimbs = prepend(_homeLoadedClimbs, row);
+    if(Array.isArray(window._cachedClimbs)) window._cachedClimbs = prepend(window._cachedClimbs, row);
+    else window._cachedClimbs = [row];
+    window._homeRecentSessions = prepend(window._homeRecentSessions, row);
+  }
+  if(isAthleteStreakPsyche(row)){
+    _homeLoadedPsyche = prepend(_homeLoadedPsyche, row);
+  }
+  if(_homeDataReady){
+    paintHomePrimaryCard();
+    paintHomeWeekFromCaches();
+    paintHomeRecentFromCaches();
+  }
+}
 
 async function loadHomeStreakBand(){
   var labelEl = document.getElementById('home-streak-label');
@@ -11985,16 +12095,11 @@ async function loadHomeStreakBand(){
     if(_homeDataReady) paintHomeWeekFromCaches();
     return;
   }
-  var uid = window._authUser.id;
   var sessRows = await loadHomeSessionCaches();
-  var trainRows = await sbS(
-    'training_sessions',
-    'select=id,created_at,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=40'
-  );
-  var drillRows = await sbS(
-    'psyche_drills',
-    'select=id,created_at,drill_key,deleted_at&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=80'
-  );
+  var trainParams = homeTrainSelectParams();
+  var drillParams = homeDrillSelectParams();
+  var trainRows = await sbS('training_sessions', trainParams);
+  var drillRows = await sbS('psyche_drills', drillParams);
   sessRows = Array.isArray(sessRows) ? sessRows : [];
   trainRows = Array.isArray(trainRows) ? trainRows : [];
   drillRows = Array.isArray(drillRows) ? drillRows : [];
@@ -12046,6 +12151,7 @@ var _homeDataReady = false;
 var _homeHasDueAssignment = false;
 var _homeSettledViaTimeout = false;
 var _homeLoadsFinished = false;
+var _homeLoadedUid = '';
 function homeGreetingText(firstName){
   return String(firstName == null ? '' : firstName).trim() || 'Home';
 }
@@ -12079,6 +12185,15 @@ function settleHomeData(){
 }
 async function loadHomeScreen(){
   if(_homeScreenLoadPromise) return _homeScreenLoadPromise;
+  var uid = '';
+  try{ uid = (window._authUser && window._authUser.id) || ''; }catch(e){}
+  if(_homeDataReady && _homeLoadsFinished && !_homeSettledViaTimeout && _homeLoadedUid === uid
+    && (typeof homeCachesOk !== 'function' || homeCachesOk())){
+    closeHomeAssignmentDetail();
+    closeHomeDaySheet();
+    paintHomeAfterLoad();
+    return Promise.resolve();
+  }
   closeHomeAssignmentDetail();
   closeHomeDaySheet();
   _homeDataReady = false;
@@ -12086,6 +12201,12 @@ async function loadHomeScreen(){
   _homeSettledViaTimeout = false;
   _homeLoadsFinished = false;
   _homeSessRows = null;
+  if(_climbCacheLoadOk !== true){
+    _climbCache = null;
+    _climbCacheInflight = null;
+    _climbCacheHasProject = null;
+    _climbCacheLoadOk = null;
+  }
   hideHomeDataSections();
   var settled = false;
   function settle(fromTimeout){
@@ -12105,15 +12226,18 @@ async function loadHomeScreen(){
   ]).then(function(){
     clearTimeout(timer);
     _homeLoadsFinished = true;
-    _homeSettledViaTimeout = false;
-    if(!settled) settle(false);
+    _homeLoadedUid = uid;
+    var cachesBad = typeof homeCachesOk === 'function' && !homeCachesOk();
+    _homeSettledViaTimeout = cachesBad;
+    if(!settled) settle(cachesBad);
     else paintHomeAfterLoad();
     _homeScreenLoadPromise = null;
   }, function(){
     clearTimeout(timer);
     _homeLoadsFinished = true;
-    _homeSettledViaTimeout = false;
-    if(!settled) settle(false);
+    _homeLoadedUid = uid;
+    _homeSettledViaTimeout = true;
+    if(!settled) settle(true);
     else paintHomeAfterLoad();
     _homeScreenLoadPromise = null;
   });
@@ -24089,7 +24213,7 @@ async function runSEETests(){
     var donePick = pickHomeTodayAssignment([
       { id: 'd', title: 'Done', due_date: '2026-08-18', completed_at: '2026-08-18T00:00:00Z' }
     ], now);
-    var filterOk = dueSoon && overdue && !far && !done && noDate
+    var filterOk = dueSoon && overdue && !far && !done && !noDate
       && homeAssignmentDueKind({ due_date: '2026-08-10' }, now) === 'overdue'
       && homeAssignmentDueKind({ due_date: '2026-08-18' }, now) === 'today'
       && homeAssignmentDueKind({ due_date: '2026-08-20' }, now) === 'week'
