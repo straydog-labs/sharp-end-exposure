@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index311'/.test(index));
-assert.ok(/APP_VERSION = 'index311'/.test(sw));
+assert.ok(/var app_version = 'index312'/.test(index));
+assert.ok(/APP_VERSION = 'index312'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -125,12 +125,22 @@ assert.ok(/homeCachesOk\(\)/.test(extractFn(index, 'decideHomePrompt')));
 assert.ok(/lastAtSource/.test(extractFn(index, 'listOpenLogProjects')));
 assert.ok(/pickHomeUndatedAssignment/.test(extractFn(index, 'decideHomePrompt')));
 assert.ok(/s6-assign/.test(extractFn(index, 'decideHomePrompt')));
-assert.ok(/Other projects/.test(extractFn(index, 'paintHomeProjectsStrip')));
+assert.ok(!/Other projects/.test(index), 'G1 never titles the strip Other projects');
+assert.ok(/My projects/.test(extractFn(index, 'paintHomeProjectsStrip')));
+assert.ok(/pickHomeProjectsForStrip/.test(extractFn(index, 'paintHomeProjectsStrip')));
 assert.ok(/0 attempts · added /.test(extractFn(index, 'paintHomeProjectsStrip')));
 assert.ok(/n < 1/.test(extractFn(index, 'paintHomeWeekFromCaches')));
 assert.ok(/homeStarCtaLabel/.test(extractFn(index, 'paintHomePrompt')));
+assert.ok(/kickerEl\) kickerEl\.textContent = 'PROJECT'/.test(extractFn(index, 'paintHomePrompt')));
+assert.ok(/state === 's5'/.test(extractFn(index, 'paintHomePrompt')));
 assert.ok(/min-height:44px/.test(index));
+assert.ok(/min-height:52px/.test(index));
+assert.ok(/-webkit-line-clamp:2/.test(index));
+assert.ok(/aria-current/.test(extractFn(index, 'paintHomeProjectsStrip')));
 assert.ok(/id="home-projects-label"/.test(home));
+assert.ok(/id="home-recent-label"/.test(home));
+assert.ok(/Last session/.test(home));
+assert.ok(!/overflow-x:\s*auto/.test(extractFn(index, 'paintHomeProjectsStrip')) && !/\.home-projects-strip\{[^}]*overflow-x:auto/.test(index));
 assert.ok(/kicker === 'TODAY'/.test(extractFn(index, 'fillHomeAssignmentStart')));
 
 const detailSrc = extractFn(index, 'openHomeAssignmentDetail');
@@ -147,6 +157,8 @@ const helpers = [
   extractFn(index, 'pickHomeTodayAssignment'),
   extractFn(index, 'pickHomeDueSoonAssignment'),
   extractFn(index, 'pickHomeUndatedAssignment'),
+  extractFn(index, 'pickHomeProjectsForStrip'),
+  extractFn(index, 'homePromptTargetProjectId'),
   extractFn(index, 'athleteLocalMondayIndex'),
   extractFn(index, 'homeWeekDayNames'),
   extractFn(index, 'homeWeekDotsHtml'),
@@ -245,6 +257,21 @@ const undatedPick = helperCtx.pickHomeUndatedAssignment([
   { id: 'u', title: 'Undated hang', due_date: null, completed_at: null, created_at: '2026-08-01' }
 ]);
 assert.ok(undatedPick && undatedPick.id === 'u');
+assert.strictEqual(helperCtx.homePromptTargetProjectId({ state: 's3', project: { id: 'p' } }), 'p');
+assert.strictEqual(helperCtx.homePromptTargetProjectId({ state: 's6-climb', project: { id: 'p' } }), 'p');
+assert.strictEqual(helperCtx.homePromptTargetProjectId({ state: 's2', project: { id: 'p' } }), '');
+function idsOf(list){
+  return Array.prototype.map.call(list, function(p){ return p.id; }).join(',');
+}
+assert.strictEqual(idsOf(helperCtx.pickHomeProjectsForStrip([
+  { id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }
+], 'd')), 'a,b,d');
+assert.strictEqual(idsOf(helperCtx.pickHomeProjectsForStrip([
+  { id: 'a' }, { id: 'b' }, { id: 'c' }
+], 'a')), 'a,b,c');
+assert.strictEqual(idsOf(helperCtx.pickHomeProjectsForStrip([
+  { id: 'a' }
+], 'a')), 'a');
 
 const dayItems = helperCtx.collectHomeDayItems('2026-09-08', [
   { created_at: '2026-09-08T10:00:00', zone: 'learning' },

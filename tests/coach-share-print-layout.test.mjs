@@ -7,8 +7,8 @@ import vm from 'vm';
 
 const index = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../index.html'), 'utf8');
 const sw = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../sw.js'), 'utf8');
-assert.ok(/var app_version = 'index311'/.test(index));
-assert.ok(/APP_VERSION = 'index311'/.test(sw));
+assert.ok(/var app_version = 'index312'/.test(index));
+assert.ok(/APP_VERSION = 'index312'/.test(sw));
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
