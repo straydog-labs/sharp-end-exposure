@@ -14,8 +14,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index307'/.test(index));
-assert.ok(/APP_VERSION = 'index307'/.test(sw));
+assert.ok(/var app_version = 'index311'/.test(index));
+assert.ok(/APP_VERSION = 'index311'/.test(sw));
 
 var startChunk = index.slice(index.indexOf('function startLogFlow'), index.indexOf('function _resetLogFlowContinueButtons'));
 assert.ok(/hasLogWhichClimbItems/.test(index), 'startLogFlow still decides skip via hasLogWhichClimbItems');
@@ -93,6 +93,14 @@ async function waitHome(page){
   await page.waitForFunction(function(){
     var home = document.getElementById('screen-home');
     var log = document.getElementById('home-card-log');
+    return !!(home && home.classList.contains('active') && log && typeof startLogFlow === 'function' && window._homeDataReady === true);
+  }, null, { timeout: 30000 });
+}
+
+async function waitHomeVisible(page){
+  await page.waitForFunction(function(){
+    var home = document.getElementById('screen-home');
+    var log = document.getElementById('home-card-log');
     return !!(home && home.classList.contains('active') && log && typeof startLogFlow === 'function');
   }, null, { timeout: 30000 });
 }
@@ -120,6 +128,8 @@ async function wipeCaches(page){
     window._climbCacheInflight = null;
     window._cachedClimbs = undefined;
     window._cachedSessions = undefined;
+    window._homeSessRows = null;
+    window._homeSessInflight = null;
   });
 }
 
@@ -278,6 +288,33 @@ async function run(){
         await waitFailOpenDial(page, 3500);
         var elapsed = Date.now() - t0;
         assert.ok(elapsed < 3500, 'hang must fail open before 3.5s, took ' + elapsed);
+      });
+    });
+
+    await flow('g-tap-log-while-home-inflight-shows-picker', async function(){
+      var delayMs = 1200;
+      await withPage(browser, port, liveStubOpts({
+        stub: async function(route, info){
+          if(info.method === 'GET' && (info.url.indexOf('/rest/v1/climbs') !== -1 || info.url.indexOf('/rest/v1/sessions') !== -1)){
+            await new Promise(function(resolve){ setTimeout(resolve, delayMs); });
+          }
+          return false;
+        }
+      }), async function(page){
+        await waitHomeVisible(page);
+        var mid = await page.evaluate(function(){
+          return {
+            ready: window._homeDataReady === true,
+            climbCache: window._climbCache
+          };
+        });
+        assert.ok(mid.ready !== true, 'must tap before Home settles, ready=' + mid.ready);
+        assert.ok(!Array.isArray(mid.climbCache), 'climb cache still in flight at tap');
+        await tap(page, '#home-card-log');
+        var immediate = await activeId(page);
+        assert.notStrictEqual(immediate, 'screen-log-act',
+          'must not skip to the dial while Home caches are still loading, got ' + immediate);
+        await waitPicker(page);
       });
     });
   }finally{

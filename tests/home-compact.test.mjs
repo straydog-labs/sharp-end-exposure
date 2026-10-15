@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index307'/.test(index));
-assert.ok(/APP_VERSION = 'index307'/.test(sw));
+assert.ok(/var app_version = 'index311'/.test(index));
+assert.ok(/APP_VERSION = 'index311'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -46,16 +46,35 @@ assert.ok(/id="home-card-log"/.test(home));
 assert.ok(/onclick="startLogFlow\(\)"/.test(home));
 assert.ok(/id="home-action-train"/.test(home));
 assert.ok(/showScreen\('screen-train-start'\)/.test(home));
+assert.ok(home.indexOf('id="home-today-card"') < home.indexOf('id="home-action-row"'));
+assert.ok(home.indexOf('id="home-action-row"') < home.indexOf('id="home-welcome-hint"'));
+assert.ok(home.indexOf('id="home-welcome-hint"') < home.indexOf('id="home-projects-wrap"'));
+assert.ok(home.indexOf('id="home-projects-wrap"') < home.indexOf('id="home-streak-band"'));
+assert.ok(home.indexOf('id="home-streak-band"') < home.indexOf('id="home-recent-wrap"'));
+assert.ok(/id="home-today-log-attempt"/.test(home));
+assert.ok(/launchHomeProjectLog/.test(home));
+assert.ok(/onclick="showClimbTable\(\)"/.test(home));
+assert.ok(/id="home-welcome-hint"/.test(home));
 assert.ok(/id="home-due-see-all"/.test(home));
 assert.ok(/showScreen\('screen-train-assignments'\)/.test(home));
 assert.ok(/id="home-goals-strip"/.test(home));
+assert.ok(/\.home-week-dots\{display:flex/.test(index));
+assert.ok(!/\.home-week-dots\{display:none !important/.test(index));
+assert.ok(/\.home-streak-label\{[^}]*overflow:visible/.test(index));
+assert.ok(/\.home-streak-band\{[^}]*overflow:visible/.test(index));
+assert.ok(/\.home-streak-label\{[^}]*padding:0 4px/.test(index));
+assert.ok(/\.home-zone-bar\[hidden\]/.test(index));
 assert.ok(/showScreen\('screen-train-goals'\)/.test(home));
 assert.ok(/Set a goal to guide your training/.test(home));
 assert.ok(/id="home-goals-title"/.test(home));
 assert.ok(/id="home-day-sheet"/.test(home));
 assert.ok(/id="home-today-kicker"/.test(home));
-assert.ok(/id="home-card-log"[\s\S]*?te-icon[\s\S]*?Log a climb/.test(home));
-assert.ok(/id="home-action-train"[\s\S]*?te-icon[\s\S]*?Start training/.test(home));
+assert.ok(/id="home-card-log"[\s\S]*Log a climb/.test(home));
+assert.ok(/id="home-action-train"[\s\S]*Start training/.test(home));
+assert.ok(/id="home-today-log-climb"/.test(home));
+assert.ok(/id="home-today-star"/.test(home));
+assert.ok(/id="home-today-checklist"/.test(home));
+assert.ok(/class="home-action-link"/.test(home));
 assert.ok(/id="home-goals-strip"[\s\S]*?te-icon[\s\S]*?Set a goal to guide your training/.test(home));
 assert.ok(/id="home-assign-detail"/.test(home));
 assert.ok(!/What to do today/.test(home));
@@ -87,6 +106,32 @@ assert.ok(/slice\(0,\s*3\)/.test(dueSrc));
 assert.ok(/homeDueRowHtml/.test(dueSrc));
 assert.ok(!/trainCardHtml/.test(dueSrc));
 assert.ok(/openHomeAssignmentDetail/.test(extractFn(index, 'homeDueRowHtml')));
+assert.ok(/wrap\.hidden = true/.test(dueSrc), 'due-this-week list stays hidden on redesigned Home');
+assert.ok(!/athlete_goals/.test(extractFn(index, 'loadHomeGoalsStrip')));
+assert.ok(/loadHomeSessionCaches/.test(extractFn(index, 'loadHomeStreakBand')));
+assert.ok(/loadHomeSessionCaches/.test(extractFn(index, 'loadHomeRecentActivity')));
+assert.ok(/sbS\(\s*'sessions'/.test(extractFn(index, 'loadHomeSessionCaches')));
+assert.ok(/loadClimbCache/.test(extractFn(index, 'loadHomeProjectsStrip')));
+assert.ok(/LOG_WHICH_LOAD_MS/.test(extractFn(index, 'loadHomeScreen')));
+assert.ok(/homeWeekSessionLabel/.test(extractFn(index, 'paintHomeWeekFromCaches')));
+assert.ok(/launchLogWithClimb\(climbId,\s*routeName/.test(extractFn(index, 'launchHomeProjectLog')));
+assert.ok(/showAddAttempt:\s*true/.test(extractFn(index, 'homeDayClimbRowHtml')));
+assert.ok(/_climbCacheHasProject\s*=\s*true/.test(extractFn(index, 'loadClimbCache')));
+assert.ok(/function sbSWasOk/.test(index));
+assert.ok(/_sbSResultOk/.test(index));
+assert.ok(/see_home_v3_star_off_/.test(extractFn(index, 'homeStarOffKey')));
+assert.ok(/function noteHomeSessionRow/.test(index));
+assert.ok(/homeCachesOk\(\)/.test(extractFn(index, 'decideHomePrompt')));
+assert.ok(/lastAtSource/.test(extractFn(index, 'listOpenLogProjects')));
+assert.ok(/pickHomeUndatedAssignment/.test(extractFn(index, 'decideHomePrompt')));
+assert.ok(/s6-assign/.test(extractFn(index, 'decideHomePrompt')));
+assert.ok(/Other projects/.test(extractFn(index, 'paintHomeProjectsStrip')));
+assert.ok(/0 attempts · added /.test(extractFn(index, 'paintHomeProjectsStrip')));
+assert.ok(/n < 1/.test(extractFn(index, 'paintHomeWeekFromCaches')));
+assert.ok(/homeStarCtaLabel/.test(extractFn(index, 'paintHomePrompt')));
+assert.ok(/min-height:44px/.test(index));
+assert.ok(/id="home-projects-label"/.test(home));
+assert.ok(/kicker === 'TODAY'/.test(extractFn(index, 'fillHomeAssignmentStart')));
 
 const detailSrc = extractFn(index, 'openHomeAssignmentDetail');
 assert.ok(/trainCardHtml/.test(detailSrc));
@@ -100,10 +145,14 @@ const helpers = [
   extractFn(index, 'homeTodayKickerLabel'),
   extractFn(index, 'homeAssignmentTypeLabel'),
   extractFn(index, 'pickHomeTodayAssignment'),
+  extractFn(index, 'pickHomeDueSoonAssignment'),
+  extractFn(index, 'pickHomeUndatedAssignment'),
   extractFn(index, 'athleteLocalMondayIndex'),
   extractFn(index, 'homeWeekDayNames'),
   extractFn(index, 'homeWeekDotsHtml'),
   extractFn(index, 'homeWeekStatusLabel'),
+  extractFn(index, 'homeWeekSessionLabel'),
+  extractFn(index, 'countHomeWeekSessions'),
   extractFn(index, 'homeGreetingText'),
   extractFn(index, 'athleteWeekBounds'),
   extractFn(index, 'athleteLocalDayKeyFromDate'),
@@ -111,6 +160,8 @@ const helpers = [
   extractFn(index, 'homeAssignmentDueDay'),
   extractFn(index, 'isAthleteStreakClimb'),
   extractFn(index, 'isAthleteStreakTraining'),
+  extractFn(index, 'isAthleteStreakPsyche'),
+  extractFn(index, 'isAthleteStreakPsycheDrill'),
   extractFn(index, 'collectHomeDayCounts'),
   extractFn(index, 'collectHomeDayItems'),
   extractFn(index, 'homeDayClimbRowHtml'),
@@ -141,7 +192,13 @@ const weekFrom = new Date(2026, 8, 8);
 const days = { '2026-09-07': true, '2026-09-08': true };
 assert.strictEqual(helperCtx.homeWeekStatusLabel(0, {}, weekFrom), 'No sessions yet this week');
 assert.ok(/streak/.test(helperCtx.homeWeekStatusLabel(3, days, weekFrom)));
+assert.strictEqual(helperCtx.homeWeekSessionLabel(0), 'No sessions this week');
+assert.strictEqual(helperCtx.homeWeekSessionLabel(1), '1 session this week');
+assert.strictEqual(helperCtx.homeWeekSessionLabel(3), '3 sessions this week');
 assert.ok((helperCtx.homeWeekDotsHtml(days, weekFrom).match(/home-week-dot/g) || []).length === 7);
+assert.strictEqual(helperCtx.countHomeWeekSessions([
+  { created_at: '2026-09-08T12:00:00' }
+], [], [], [], weekFrom), 1);
 
 const tueLocal = new Date(2026, 9, 6, 15, 30, 0);
 assert.strictEqual(tueLocal.getDay(), 2, 'fixture is a local Tuesday');
@@ -170,12 +227,24 @@ assert.strictEqual(helperCtx.homeTodayKickerLabel({ due_date: '2026-08-10' }, no
 const farOnly = helperCtx.pickHomeTodayAssignment([
   { id: 'far', title: 'EMOM', due_date: '2026-09-01', completed_at: null }
 ], now);
-assert.ok(farOnly && farOnly.id === 'far', 'incomplete far-future assignment still shows on Home');
+assert.ok(farOnly && farOnly.id === 'far', 'incomplete far-future assignment still ranks in any-incomplete picker');
+const farDue = helperCtx.pickHomeDueSoonAssignment([
+  { id: 'far', title: 'EMOM', due_date: '2026-09-01', completed_at: null }
+], now);
+assert.ok(!farDue, 'Home prompt excludes far-future assignments');
 const doneOnly = helperCtx.pickHomeTodayAssignment([
   { id: 'done', title: 'Done', due_date: '2026-08-18', completed_at: '2026-08-18T00:00:00Z' }
 ], now);
 assert.ok(!doneOnly, 'completed assignment is hidden');
-assert.ok(/pickHomeTodayAssignment\(_trainAssignmentsCache/.test(dueSrc));
+assert.ok(/pickHomeDueSoonAssignment\(_trainAssignmentsCache/.test(dueSrc));
+assert.strictEqual(helperCtx.isHomeAssignmentDueSoon({ completed_at: null, due_date: null }, now), false);
+assert.ok(!helperCtx.pickHomeDueSoonAssignment([
+  { id: 'u', title: 'Undated', due_date: null, completed_at: null }
+], now), 'undated assignment is not S2');
+const undatedPick = helperCtx.pickHomeUndatedAssignment([
+  { id: 'u', title: 'Undated hang', due_date: null, completed_at: null, created_at: '2026-08-01' }
+]);
+assert.ok(undatedPick && undatedPick.id === 'u');
 
 const dayItems = helperCtx.collectHomeDayItems('2026-09-08', [
   { created_at: '2026-09-08T10:00:00', zone: 'learning' },
@@ -199,6 +268,8 @@ assert.strictEqual(emptyItems.climbs.length + emptyItems.trains.length + emptyIt
 const boot = {
   _active: '',
   loads: 0,
+  paints: 0,
+  _homeDataReady: false,
   document: {
     querySelector: function(){ return boot._active ? { id: boot._active } : null; }
   },
@@ -206,7 +277,8 @@ const boot = {
     boot._active = id;
     if(id === 'screen-home') boot.loadHomeScreen();
   },
-  loadHomeScreen: function(){ boot.loads++; }
+  loadHomeScreen: function(){ boot.loads++; boot._homeDataReady = true; },
+  paintHomePrimaryCard: function(){ boot.paints++; }
 };
 vm.createContext(boot);
 vm.runInContext(extractFn(index, 'routeSignedInHome'), boot);
@@ -215,17 +287,52 @@ boot.routeSignedInHome();
 assert.strictEqual(boot.loads, 1, 'normal dual boot path must load Home once');
 assert.strictEqual(boot._active, 'screen-home');
 
-const loadChunk = 'var _homeScreenLoadPromise = null;\n' + extractFn(index, 'loadHomeScreen');
+const loadChunk = [
+  'var _homeScreenLoadPromise = null;',
+  'var _homeDataReady = false;',
+  'var _homeHasDueAssignment = false;',
+  'var _homeSessRows = null;',
+  'var _homeSettledViaTimeout = false;',
+  'var _homeLoadsFinished = false;',
+  'var _homeLoadedUid = "";',
+  'var _climbCacheLoadOk = null;',
+  'var _climbCache = null;',
+  'var _climbCacheInflight = null;',
+  'var _climbCacheHasProject = null;',
+  'var LOG_WHICH_LOAD_MS = 2000;',
+  extractFn(index, 'loadHomeScreen')
+].join('\n');
 const loadCtx = {
   _homeScreenLoadPromise: null,
+  _homeDataReady: false,
+  _homeHasDueAssignment: false,
+  _homeSessRows: null,
+  _homeSettledViaTimeout: false,
+  _homeLoadsFinished: false,
+  _homeLoadedUid: '',
+  _climbCacheLoadOk: null,
+  _climbCache: null,
+  _climbCacheInflight: null,
+  _climbCacheHasProject: null,
+  LOG_WHICH_LOAD_MS: 2000,
   closeHomeAssignmentDetail: function(){ loadCtx.closes++; },
   closeHomeDaySheet: function(){},
+  hideHomeDataSections: function(){ loadCtx.hides++; },
+  settleHomeData: function(){ loadCtx.settled++; },
+  paintHomeAfterLoad: function(){ loadCtx.painted++; },
   applyHomeGreeting: async function(){ loadCtx.parts.push('g'); },
   loadHomeDueList: async function(){ loadCtx.parts.push('d'); },
   loadHomeGoalsStrip: async function(){ loadCtx.parts.push('o'); },
   loadHomeStreakBand: async function(){ loadCtx.parts.push('s'); },
   loadHomeRecentActivity: async function(){ loadCtx.parts.push('r'); },
+  loadHomeProjectsStrip: async function(){ loadCtx.parts.push('p'); },
+  setTimeout: function(fn){ loadCtx.timerFn = fn; return 1; },
+  clearTimeout: function(){ loadCtx.cleared++; },
   closes: 0,
+  hides: 0,
+  settled: 0,
+  painted: 0,
+  cleared: 0,
   parts: []
 };
 vm.createContext(loadCtx);

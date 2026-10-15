@@ -1,35 +1,36 @@
 import assert from 'assert';
 import {
   startStaticServer, launchChromium, withPage, tap, readyDial, waitForScreen,
-  postsTo, firstBody, sessionRow, USER_ID, ROUTE, CLIMB_ID, GRADE, TERRAIN
+  postsTo, firstBody, sessionRow, climbRow, USER_ID, ROUTE, CLIMB_ID, GRADE, TERRAIN
 } from './harness.mjs';
 
 async function run(){
   const { server, port } = await startStaticServer();
   const browser = await launchChromium();
   try{
-    await withPage(browser, port, {}, async function(page, recorded){
+    await withPage(browser, port, {
+      session: { user: { id: USER_ID }, access_token: 'test-token' },
+      climbs: [climbRow()],
+      sessions: [sessionRow({ created_at: new Date().toISOString() })]
+    }, async function(page, recorded){
       await page.waitForFunction(function(){
-        return typeof window.openHomeDaySheet === 'function'
-          && typeof window.addAttemptFromLog === 'function'
-          && typeof window.athleteLocalDayKeyFromIso === 'function';
+        var home = document.getElementById('screen-home');
+        var dots = document.getElementById('home-week-dots');
+        return !!(home && home.classList.contains('active')
+          && window._homeDataReady === true && window._homeLoadsFinished === true
+          && dots && dots.querySelector('button.home-week-dot'));
       }, null, { timeout: 30000 });
 
-      var todayKey = await page.evaluate(function(args){
-        window._authUser = { id: args.userId };
-        window._authToken = 'test-token';
-        window.loadClimbLog = function(){ return Promise.resolve(); };
-        window.loadHomeScreen = function(){ return Promise.resolve(); };
-        var nowIso = new Date().toISOString();
-        var today = athleteLocalDayKeyFromIso(nowIso);
-        var row = Object.assign({}, args.session, { created_at: nowIso });
-        window._homeLoadedClimbs = [row];
-        window._homeRecentSessions = [row];
-        window._homeLoadedTrains = [];
-        window._trainAssignmentsCache = [];
-        openHomeDaySheet(today);
-        return today;
-      }, { userId: USER_ID, session: sessionRow() });
+      var display = await page.evaluate(function(){
+        var dots = document.getElementById('home-week-dots');
+        var cs = dots ? getComputedStyle(dots) : null;
+        return cs ? cs.display : '';
+      });
+      assert.notStrictEqual(display, 'none', 'week dots must be visible to tap, display=' + display);
+
+      var btnCount = await page.locator('#home-week-dots button.home-week-dot').count();
+      assert.ok(btnCount >= 1, 'filled week-dot button missing');
+      await tap(page, '#home-week-dots button.home-week-dot');
 
       await page.waitForFunction(function(){
         var sheet = document.getElementById('home-day-sheet');
@@ -39,16 +40,11 @@ async function run(){
         var body = document.getElementById('home-day-sheet-body');
         return body ? body.textContent : '';
       });
-      assert.ok(sheetText.indexOf(ROUTE) !== -1, 'home-day sheet should list ' + ROUTE + ' for ' + todayKey);
+      assert.ok(sheetText.indexOf(ROUTE) !== -1, 'home-day sheet should list ' + ROUTE + ' after tapping a week dot');
 
       var hasBtn = await page.locator('#home-day-sheet-body button:has-text("+ Attempt")').count();
-      if(hasBtn){
-        await tap(page, '#home-day-sheet-body button:has-text("+ Attempt")');
-      } else {
-        await page.evaluate(function(args){
-          addAttemptFromLog(args.route, args.grade, args.terrain, args.climbId, 'home-day', 'indoor');
-        }, { route: ROUTE, grade: GRADE, terrain: TERRAIN, climbId: CLIMB_ID });
-      }
+      assert.ok(hasBtn, '+ Attempt missing from day sheet after week-dot tap');
+      await tap(page, '#home-day-sheet-body button:has-text("+ Attempt")');
 
       await waitForScreen(page, 'screen-log-act');
       await page.waitForTimeout(80);
@@ -65,7 +61,7 @@ async function run(){
       assert.strictEqual(body.route_name, ROUTE);
       assert.strictEqual(body.climb_id, CLIMB_ID);
       assert.strictEqual(body.baseline_zone, 'sent');
-      console.log('ok - home-day-attempt POST route_name+climb_id via origin home-day');
+      console.log('ok - home-day-attempt TAP week-dot then +Attempt POST route_name+climb_id');
     });
   }finally{
     await browser.close();
