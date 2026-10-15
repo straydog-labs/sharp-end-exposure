@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, copyFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync } from 'fs';
@@ -343,9 +343,25 @@ async function finishLockedAttempt(page, recorded){
 async function shot(page, name, width){
   if(!existsSync(SHOT_DIR)) mkdirSync(SHOT_DIR, { recursive: true });
   var dest = join(SHOT_DIR, name);
+  var tmpDir = '/tmp/home-shots';
+  if(!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
+  var tmp = join(tmpDir, name);
   await page.setViewportSize({ width: width, height: 900 });
   await page.waitForTimeout(80);
-  await page.screenshot({ path: dest, fullPage: true });
+  var lastErr = null;
+  var i;
+  for(i = 0; i < 3; i++){
+    try{
+      await page.screenshot({ path: tmp, fullPage: true });
+      copyFileSync(tmp, dest);
+      lastErr = null;
+      break;
+    }catch(e){
+      lastErr = e;
+      await page.waitForTimeout(120);
+    }
+  }
+  if(lastErr) throw lastErr;
 }
 
 function restGets(recorded){
