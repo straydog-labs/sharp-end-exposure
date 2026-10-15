@@ -115,6 +115,7 @@ assert.ok(/loadClimbCache/.test(extractFn(index, 'loadHomeProjectsStrip')));
 assert.ok(/LOG_WHICH_LOAD_MS/.test(extractFn(index, 'loadHomeScreen')));
 assert.ok(/homeWeekSessionLabel/.test(extractFn(index, 'paintHomeWeekFromCaches')));
 assert.ok(/launchLogWithClimb\(climbId,\s*routeName/.test(extractFn(index, 'launchHomeProjectLog')));
+assert.ok(/showAddAttempt:\s*true/.test(extractFn(index, 'homeDayClimbRowHtml')));
 assert.ok(/_climbCacheHasProject\s*=\s*true/.test(extractFn(index, 'loadClimbCache')));
 assert.ok(/function sbSWasOk/.test(index));
 assert.ok(/_sbSResultOk/.test(index));

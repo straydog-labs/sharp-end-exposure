@@ -823,16 +823,20 @@ async function run(){
         }, USER_ID);
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's4', snap.state);
-        var gets = restGets(recorded).length;
         await tap(page, '#home-today-star');
         await page.waitForTimeout(200);
         assert.strictEqual(postsTo(recorded, 'climbs', 'POST').length, 0, 'star never creates a climb row');
         assert.ok(postsTo(recorded, 'climbs', 'PATCH').length >= 1, 'star PATCHes existing climb');
         assert.strictEqual(tableGets(recorded, 'sessions').length, 1);
-        await page.evaluate(function(){ showScreen('screen-train-start'); });
+        var gets = restGets(recorded).length;
         await page.evaluate(function(){ showScreen('screen-home'); });
         await page.waitForTimeout(80);
         assert.strictEqual(restGets(recorded).length, gets, 'same-user Home refocus is zero extra GETs, before=' + gets + ' after=' + restGets(recorded).length);
+        await page.evaluate(function(){ showScreen('screen-train-start'); });
+        await page.evaluate(function(){ showScreen('screen-home'); });
+        await page.waitForTimeout(80);
+        assert.strictEqual(tableGets(recorded, 'sessions').length, 1, 'Home refocus after Train does not GET sessions again');
+        assert.strictEqual(tableGets(recorded, 'climbs').length, 1, 'Home refocus after Train does not GET climbs again');
       });
     });
 
