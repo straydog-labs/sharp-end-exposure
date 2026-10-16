@@ -104,7 +104,7 @@ function fulfillJson(route, status, body, extraHeaders){
 export async function withPage(browser, port, opts, fn){
   opts = opts || {};
   const recorded = [];
-  const context = await browser.newContext();
+  const context = await browser.newContext(opts.viewport ? { viewport: opts.viewport } : {});
   const page = await context.newPage();
   await page.route('**/*', async function(route){
     var req = route.request();
