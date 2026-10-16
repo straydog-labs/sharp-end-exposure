@@ -2531,6 +2531,15 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
           <span>Fall practice</span>
         </button>
       </div>
+      <div id="log-tick-type-group" style="display:none;margin-top:14px;">
+        <div class="field-label">Tick type <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="log-tick-type-chips">
+          <button type="button" class="chip" id="btn-tick-onsight" onclick="selectLogTickType('onsight')">Onsight</button>
+          <button type="button" class="chip" id="btn-tick-flash" onclick="selectLogTickType('flash')">Flash</button>
+          <button type="button" class="chip" id="btn-tick-redpoint" onclick="selectLogTickType('redpoint')">Redpoint</button>
+        </div>
+        <div id="log-tick-type-defs" style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45;">Onsight = first try, no beta. Flash = first try, with beta. Redpoint = send after previous attempts.</div>
+      </div>
     </div>
     </div>
 
@@ -5286,6 +5295,15 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
       <button id="edit-btn-took" onclick="editSelResult('took')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◇ Took</button>
       <button id="edit-btn-fall_practice" onclick="editSelResult('fall_practice')" style="grid-column:1 / -1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;padding:14px;cursor:pointer;">◎ Fall practice</button>
     </div>
+    <div id="edit-tick-type-group" style="display:none;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Tick type <span style="font-weight:400;color:var(--muted);font-size:12px;text-transform:none;letter-spacing:0;">optional</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="edit-tick-type-chips">
+        <button type="button" class="chip" id="edit-btn-tick-onsight" onclick="selectEditTickType('onsight')">Onsight</button>
+        <button type="button" class="chip" id="edit-btn-tick-flash" onclick="selectEditTickType('flash')">Flash</button>
+        <button type="button" class="chip" id="edit-btn-tick-redpoint" onclick="selectEditTickType('redpoint')">Redpoint</button>
+      </div>
+      <div id="edit-tick-type-defs" style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45;">Onsight = first try, no beta. Flash = first try, with beta. Redpoint = send after previous attempts.</div>
+    </div>
     <div id="edit-fall-practice-group" style="display:none;margin-bottom:16px;">
       <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">How many falls?</div>
       <div class="stepper" style="margin:8px 0 14px;">
@@ -6001,7 +6019,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index313'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index314'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -6323,6 +6341,10 @@ async function sbInsertSession(payload){
     delete p.fall_count;
     raw = await sbI('sessions', p);
   }
+  if(isSbHttpFail(raw) && Object.prototype.hasOwnProperty.call(p, 'tick_type')){
+    delete p.tick_type;
+    raw = await sbI('sessions', p);
+  }
   if(!sbFailed(raw) && raw){
     Object.assign(payload, p);
     if(typeof noteHomeSessionRow === 'function'){
@@ -6487,6 +6509,106 @@ function sessionResultLabel(s, marked){
     return marked ? ('◎ ' + base) : base;
   }
   return resultLabel(code, marked);
+}
+
+var TICK_TYPES = ['onsight','flash','redpoint'];
+var TICK_TYPE_LABELS = {onsight:'Onsight', flash:'Flash', redpoint:'Redpoint'};
+function normalizeTickType(v){
+  v = String(v == null ? '' : v).trim().toLowerCase();
+  if(v === 'onsight' || v === 'flash' || v === 'redpoint') return v;
+  return null;
+}
+function tickHistoryLoaded(){
+  return Array.isArray(window._cachedClimbs);
+}
+function sessionAttemptMs(s){
+  if(!s) return NaN;
+  return Date.parse(s.created_at || '');
+}
+function climbHasPriorAttempt(climbId, excludeSessId, beforeMs){
+  if(!climbId) return false;
+  if(!tickHistoryLoaded()) return false;
+  var lists = [window._cachedClimbs, window._cachedSessions, window._rhSessions];
+  var seen = {};
+  var i, j, s, arr, ms;
+  var cutoff = (beforeMs != null && isFinite(beforeMs)) ? beforeMs : null;
+  for(i = 0; i < lists.length; i++){
+    arr = lists[i];
+    if(!Array.isArray(arr)) continue;
+    for(j = 0; j < arr.length; j++){
+      s = arr[j];
+      if(!s || s.climb_id !== climbId) continue;
+      if(s.deleted_at) continue;
+      if(s.is_baseline || s.is_checkin) continue;
+      if(excludeSessId && s.id === excludeSessId) continue;
+      if(cutoff != null){
+        ms = sessionAttemptMs(s);
+        if(!isFinite(ms) || ms >= cutoff) continue;
+      }
+      if(s.id){
+        if(seen[s.id]) continue;
+        seen[s.id] = true;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+function sessionAllowsTickType(){
+  if(typeof logState !== 'object' || !logState) return false;
+  if(logState.is_baseline || logState.is_checkin) return false;
+  return logState.result === 'sent';
+}
+function visibleTickTypes(climbId, excludeSessId, beforeMs){
+  if(climbHasPriorAttempt(climbId, excludeSessId, beforeMs)) return ['redpoint'];
+  return TICK_TYPES.slice();
+}
+function refreshTickTypeChips(isEdit){
+  var group = document.getElementById(isEdit ? 'edit-tick-type-group' : 'log-tick-type-group');
+  if(!group) return;
+  if(!sessionAllowsTickType()){
+    group.style.display = 'none';
+    return;
+  }
+  group.style.display = 'block';
+  var climbId = isEdit
+    ? (logState && logState._editClimbId)
+    : (typeof _selectedClimbId !== 'undefined' ? _selectedClimbId : null);
+  var exclude = isEdit ? (logState && logState.sessId) : null;
+  var beforeMs = isEdit ? sessionAttemptMs({ created_at: logState && logState._editCreatedAt }) : null;
+  var visible = visibleTickTypes(climbId, exclude, beforeMs);
+  var selected = logState && logState.tickType;
+  TICK_TYPES.forEach(function(t){
+    var el = document.getElementById((isEdit ? 'edit-btn-tick-' : 'btn-tick-') + t);
+    if(!el) return;
+    el.style.display = visible.indexOf(t) >= 0 ? '' : 'none';
+    el.classList.toggle('selected', selected === t);
+  });
+}
+function selectLogTickType(t){
+  t = normalizeTickType(t);
+  if(!t || typeof logState !== 'object' || !logState) return;
+  logState.tickType = logState.tickType === t ? null : t;
+  refreshTickTypeChips(false);
+}
+function selectEditTickType(t){
+  t = normalizeTickType(t);
+  if(!t || typeof logState !== 'object' || !logState) return;
+  logState.tickType = logState.tickType === t ? null : t;
+  refreshTickTypeChips(true);
+}
+function resetTickTypeSection(){
+  if(typeof logState === 'object' && logState) logState.tickType = null;
+  TICK_TYPES.forEach(function(t){
+    ['btn-tick-'+t, 'edit-btn-tick-'+t].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){ el.classList.remove('selected'); el.style.display = ''; }
+    });
+  });
+  var g = document.getElementById('log-tick-type-group');
+  if(g) g.style.display = 'none';
+  var eg = document.getElementById('edit-tick-type-group');
+  if(eg) eg.style.display = 'none';
 }
 
 // ── ZONE HELPERS ─────────────────────────────────────
@@ -7201,7 +7323,7 @@ function selectGrade(btn,sys){
 // ═══════════════════════════════════════════════════════
 // LOG FLOW
 // ═══════════════════════════════════════════════════════
-var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null,fallCount:1};
+var logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null,fallCount:1,tickType:null};
 
 
 var _climbTableSort = {col:'date', dir:'desc'};
@@ -8274,6 +8396,8 @@ function selectResult(r){
     if(r==='sent'){ sendGroup.style.display='block'; }
     else { sendGroup.style.display='none'; resetSendSection(); }
   }
+  if(r!=='sent' && typeof logState === 'object' && logState) logState.tickType = null;
+  refreshTickTypeChips(false);
   checkLogReady();
 }
 
@@ -8900,7 +9024,8 @@ async function logFlowSaveSession(how){
     gym_name: detailsPayload.gym_name,
     gym_climb_id: logState.gymClimbId || null,
     take_high_point: logState.result === 'took' ? readTakeHighPoint(false) : null,
-    fall_count: logState.result === 'fall_practice' ? readFallCount(false) : null
+    fall_count: logState.result === 'fall_practice' ? readFallCount(false) : null,
+    tick_type: logState.result === 'sent' ? (logState.tickType || null) : null
   };
   if(logState.result === 'fall_practice'){
     var practiceNotes = readFallPracticeNotes(false);
@@ -9038,7 +9163,8 @@ function populateLogDoneScreen(resetReflection){
   if(metaEl){
     var terrain = logState.terrain || '—';
     var result = resultLabel(logState.result);
-    metaEl.textContent = terrain + ' · ' + result;
+    var tick = (logState.result === 'sent' && logState.tickType) ? (TICK_TYPE_LABELS[logState.tickType] || '') : '';
+    metaEl.textContent = terrain + ' · ' + result + (tick ? ' · ' + tick : '');
   }
   if(resetReflection){
     if(panel) panel.style.display = 'none';
@@ -9275,6 +9401,7 @@ async function logClimb(){
     gym_climb_id: logState.gymClimbId || null,
     take_high_point: logState.result === 'took' ? readTakeHighPoint(false) : null,
     fall_count: logState.result === 'fall_practice' ? readFallCount(false) : null,
+    tick_type: logState.result === 'sent' ? (logState.tickType || null) : null,
     // Silent capture: default focus
     session_focus: 'unset',
     // Reflection (optional — only if filled in)
@@ -18074,8 +18201,9 @@ function resetLogScreen(){
     var b=document.getElementById(id);
     if(b){b.classList.remove('selected','selected-send','selected-attempt','selected-dna','selected-took','selected-practice');b.style.borderColor='';b.style.background='';}
   });
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null,fallCount:1,wantProject:false,_projectCompleteAsked:false};
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null,fallCount:1,tickType:null,wantProject:false,_projectCompleteAsked:false};
   resetFallPracticeSection();
+  resetTickTypeSection();
   // Reset reflection section (panel wrapper + inner body — resetLogScreen hides body so toggle must reopen both)
   var reflPanel=document.getElementById('log-reflection-panel');
   var noteBtn=document.getElementById('log-done-add-note');
@@ -18116,7 +18244,7 @@ function resetLogScreen(){
 }
 
 function logAnother(){
-  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null};
+  logState={result:null,grade:null,gradeSys:'YDS',terrain:null,setting:null,routeName:null,sessId:null,zone:null,zoneConf:null,userActivationEstimate:null,gymClimbId:null,tickType:null};
   startLogFlow();
 }
 
@@ -18274,6 +18402,7 @@ function openEditSheet(){
   delete _gaugePendingScore['edit'];
   var editSaveBtn=document.getElementById('edit-save-override-btn');
   if(editSaveBtn){ editSaveBtn.disabled=true; editSaveBtn.style.opacity='.5'; editSaveBtn.style.cursor='not-allowed'; editSaveBtn.style.background='var(--surface2)'; editSaveBtn.style.color='var(--muted)'; }
+  refreshTickTypeChips(true);
 }
 function editSelResult(r){
   logState.result=r;
@@ -18302,6 +18431,8 @@ function editSelResult(r){
     if(r==='took'){ editTakeGroup.style.display='block'; }
     else { editTakeGroup.style.display='none'; resetEditTakeSection(); }
   }
+  if(r!=='sent' && typeof logState === 'object' && logState) logState.tickType = null;
+  refreshTickTypeChips(true);
 }
 function editSelTerrain(btn,t){
   document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){b.classList.remove('selected');});
@@ -18407,7 +18538,8 @@ async function saveEditedClimb(){
     route_name:logState.routeName||null,zone:logState.zone,zone_confidence:logState.zoneConf,
     went_well:wentWell,still_learning:stillLearning,surprised_by:surprisedBy,
     take_high_point:takeHp,
-    fall_count:editFallCount
+    fall_count:editFallCount,
+    tick_type:logState.result==='sent'?(logState.tickType||null):null
   };
   if(logState.result==='fall_practice'){
     var editPracticeNotes=readFallPracticeNotes(true);
@@ -18422,6 +18554,10 @@ async function saveEditedClimb(){
     delete editPayload.fall_count;
     savedClimb = await sbU('sessions','id=eq.'+logState.sessId, editPayload);
   }
+  if(sbFailed(savedClimb) && Object.prototype.hasOwnProperty.call(editPayload,'tick_type')){
+    delete editPayload.tick_type;
+    savedClimb = await sbU('sessions','id=eq.'+logState.sessId, editPayload);
+  }
   if(sbFailed(savedClimb)){
     showToast('Could not update - try again', true);
     return;
@@ -18434,6 +18570,7 @@ async function saveEditedClimb(){
       s.climbing_type = logState.terrain;
       s.route_name = logState.routeName || null;
       s.baseline_zone = logState.result;
+      s.tick_type = logState.result==='sent'?(logState.tickType||null):null;
     });
   }
   patchCachedSessionFields(window._cachedClimbs);
@@ -21592,6 +21729,10 @@ function editClimbFromLog(sessId, origin){
   logState._editTakeHighPoint = sess.take_high_point || '';
   logState._editFallCount = sess.fall_count || 1;
   logState.fallCount = sess.fall_count || 1;
+  logState.tickType = normalizeTickType(sess.tick_type);
+  logState._editCreatedAt = sess.created_at || null;
+  logState.is_baseline = !!sess.is_baseline;
+  logState.is_checkin = !!sess.is_checkin;
   var editPracticeNotesEl = document.getElementById('edit-fall-practice-notes');
   if(editPracticeNotesEl) editPracticeNotesEl.value = sess.session_notes || '';
   // Reset zone/zoneConf to THIS session's actual stored values — prevents a manual
@@ -21618,7 +21759,7 @@ function addAttemptFromLog(routeName, grade, terrain, climbId, origin, setting){
   // matches editClimbFromLog()'s origin-aware pattern
   setClimbLogReturnFrom(origin);
   window._rhAttemptOrigin = (origin === 'route-history') ? window._rhClimbId : null;
-  logState = {result:null, grade:grade||null, gradeSys:'YDS', terrain:terrain||null, routeName:routeName||null, sessId:null, zone:null, zoneConf:null};
+  logState = {result:null, grade:grade||null, gradeSys:'YDS', terrain:terrain||null, routeName:routeName||null, sessId:null, zone:null, zoneConf:null, tickType:null};
   if(climbId){
     launchLogWithClimb(climbId, routeName, grade, terrain, setting);
   } else {

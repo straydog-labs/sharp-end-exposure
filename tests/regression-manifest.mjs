@@ -7,6 +7,7 @@ export const FLOWS = [
   { id: 'attempt-route-history', group: 'athlete', file: 'log-attempt-named-route.test.mjs', covered: true, asserts: 'POST sessions route_name+climb_id' },
   { id: 'attempt-complete-drill', group: 'athlete', file: 'log-attempt-named-route.test.mjs', covered: true, asserts: 'POST sessions route_name+climb_id' },
   { id: 'fall-practice', group: 'athlete', file: 'fall-practice.test.mjs', covered: true, asserts: 'POST fall_practice+fall_count, no falls insert' },
+  { id: 'tick-type', group: 'athlete', file: 'real-flow-tick-type.test.mjs', covered: true, asserts: 'sent chips onsight/flash/redpoint; prior hides OS/FL; save with/without column; edit; null; step count; real-flow tap' },
   { id: 'edit-sheet', group: 'athlete', file: 'real-flow-edit-sheet.test.mjs', covered: true, asserts: 'PATCH sessions baseline_zone' },
   { id: 'coach-log-athlete', group: 'coach', file: 'real-flow-coach-log.test.mjs', covered: true, asserts: 'dial-only POST coach_activation_score+derived zone, logged_by_coach+user_id' },
   { id: 'coach-terrain-radar', group: 'coach', file: 'real-flow-coach-terrain-radar.test.mjs', covered: true, asserts: 'tap roster athlete detail renders terrain radar; 0-count at r=0' },
