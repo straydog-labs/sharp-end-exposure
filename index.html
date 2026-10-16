@@ -1247,8 +1247,8 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .train-desc-md input[type=checkbox]{margin-right:6px;cursor:pointer;vertical-align:middle;}
 .train-desc-md li:has(>input[type=checkbox]:first-child){list-style:none;}
 .insight-label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
-.terrain-volume-radar{width:100%;max-width:390px;height:auto;display:block;overflow:visible;margin:2px auto 10px;}
-.terrain-volume-radar .radar-axis-label{font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:600;fill:var(--text);}
+.terrain-volume-radar{width:100%;max-width:none;height:auto;display:block;overflow:visible;margin:2px auto 10px;}
+.terrain-volume-radar .radar-axis-label{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;fill:var(--text);}
 .terrain-volume-radar .radar-ring-label{font-family:'Space Grotesk',sans-serif;font-size:9px;fill:var(--muted);}
 .terrain-volume-untagged{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4;}
 #attempts-terrain-empty{font-size:13px;color:var(--muted);line-height:1.45;padding:4px 0 8px;}
@@ -23162,16 +23162,56 @@ function sizeAttemptsRadarMarkers(root){
   });
 }
 
-if(typeof ResizeObserver === 'function' && !window.__attemptsRadarRo){
-  window.__attemptsRadarRo = new ResizeObserver(function(){
-    sizeAttemptsRadarMarkers(document.getElementById('attempts-terrain-wrap'));
+function attemptsRadarLayout(wrap){
+  var w = 0;
+  if(wrap) w = Math.round(wrap.clientWidth || wrap.getBoundingClientRect().width || 0);
+  if(w < 240) w = 240;
+  var pad = Math.max(82, Math.round(w * 0.26));
+  var height = Math.max(Math.round(w * 1.02), pad * 2 + 56);
+  return { width: w, height: height, pad: pad };
+}
+
+function fitAttemptsRadarLabels(svg){
+  if(!svg || typeof svg.getBBox !== 'function') return;
+  var vb = svg.viewBox && svg.viewBox.baseVal;
+  var width = vb && vb.width ? vb.width : 0;
+  var height = vb && vb.height ? vb.height : 0;
+  if(!width || !height) return;
+  Array.prototype.forEach.call(svg.querySelectorAll('.radar-axis-label'), function(t){
+    var bb;
+    try{ bb = t.getBBox(); }catch(e){ return; }
+    var x = parseFloat(t.getAttribute('x')) || 0;
+    var y = parseFloat(t.getAttribute('y')) || 0;
+    var dx = 0;
+    var dy = 0;
+    if(bb.x < 2) dx = 2 - bb.x;
+    if(bb.x + bb.width > width - 2) dx = (width - 2) - (bb.x + bb.width);
+    if(bb.y < 2) dy = 2 - bb.y;
+    if(bb.y + bb.height > height - 2) dy = (height - 2) - (bb.y + bb.height);
+    if(dx) t.setAttribute('x', String(x + dx));
+    if(dy) t.setAttribute('y', String(y + dy));
   });
 }
 
-function renderAttemptsTerrainRadarHtml(vol){
+if(typeof ResizeObserver === 'function' && !window.__attemptsRadarRo){
+  window.__attemptsRadarRo = new ResizeObserver(function(){
+    var wrap = document.getElementById('attempts-terrain-wrap');
+    if(!wrap) return;
+    var w = wrap.clientWidth;
+    if(wrap.__radarW && Math.abs(wrap.__radarW - w) < 1){
+      sizeAttemptsRadarMarkers(wrap);
+      return;
+    }
+    if(window._attemptsRadarRows) buildAttemptsByTerrain(window._attemptsRadarRows);
+    else sizeAttemptsRadarMarkers(wrap);
+  });
+}
+
+function renderAttemptsTerrainRadarHtml(vol, wrap){
   var CI = window.CoachInsights;
   if(!CI || typeof CI.computeTerrainRadar !== 'function') return '';
-  var radar = CI.computeTerrainRadar(vol.counts, { width: 390, height: 360, pad: 70 });
+  var layout = attemptsRadarLayout(wrap);
+  var radar = CI.computeTerrainRadar(vol.counts, layout);
   var rings = (radar.rings || []).map(function(ring){
     var pts = (ring.points || []).map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
     var labelY = (radar.cy - ring.r + 3).toFixed(1);
@@ -23207,6 +23247,7 @@ function buildAttemptsByTerrain(sessions){
   var wrap = document.getElementById('attempts-terrain-wrap');
   var card = document.getElementById('attempts-terrain-card');
   if(!wrap) return null;
+  window._attemptsRadarRows = sessions;
   var CI = window.CoachInsights;
   if(!CI || typeof CI.computeTerrainVolume !== 'function'){
     wrap.innerHTML = '';
@@ -23222,11 +23263,19 @@ function buildAttemptsByTerrain(sessions){
     : '';
   if(vol.mode === 'empty'){
     wrap.setAttribute('data-terrain-volume', 'empty');
-    wrap.innerHTML = '<div id="attempts-terrain-empty">No terrain-tagged attempts to plot.</div>' + untaggedHtml;
+    wrap.__radarW = wrap.clientWidth;
+    if(vol.untagged > 0){
+      wrap.innerHTML = untaggedHtml;
+    } else {
+      wrap.innerHTML = '<div id="attempts-terrain-empty">No logged attempts.</div>';
+    }
     return vol;
   }
   wrap.setAttribute('data-terrain-volume', 'radar');
-  wrap.innerHTML = renderAttemptsTerrainRadarHtml(vol) + untaggedHtml;
+  wrap.innerHTML = renderAttemptsTerrainRadarHtml(vol, wrap) + untaggedHtml;
+  wrap.__radarW = wrap.clientWidth;
+  var svg = wrap.querySelector('svg.attempts-terrain-radar');
+  if(svg) fitAttemptsRadarLabels(svg);
   sizeAttemptsRadarMarkers(wrap);
   if(window.__attemptsRadarRo && wrap && !wrap.__radarObserved){
     window.__attemptsRadarRo.observe(wrap);
