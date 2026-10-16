@@ -108,9 +108,17 @@ async function run(){
       await tap(page, '.roster-row');
       await page.waitForSelector('#athlete-terrain-scoreboard[data-scoreboard="table"]', { timeout: 15000 });
 
+      async function revealScoreboard(){
+        await page.evaluate(function(){
+          var table = document.getElementById('athlete-terrain-scoreboard');
+          if(table && table.scrollIntoView) table.scrollIntoView({ block: 'start', inline: 'nearest' });
+        });
+        await page.waitForTimeout(80);
+      }
+
       async function checkWidth(width){
         await page.setViewportSize({ width: width, height: 1100 });
-        await page.waitForTimeout(80);
+        await revealScoreboard();
         const info = await page.evaluate(collectScoreboard, width);
         assert.ok(!info.missing, 'scoreboard present at ' + width);
         assert.strictEqual(info.overflows.length, 0,
@@ -139,18 +147,29 @@ async function run(){
         return info;
       }
 
+      async function shot(name){
+        await page.evaluate(function(){
+          var bar = document.querySelector('.detail-stack-bar');
+          if(bar) bar.setAttribute('data-shot-hide', bar.style.visibility || '');
+          if(bar) bar.style.visibility = 'hidden';
+        });
+        await page.locator('#athlete-terrain-scoreboard').screenshot({
+          path: join(SHOT_DIR, name)
+        });
+        await page.evaluate(function(){
+          var bar = document.querySelector('.detail-stack-bar');
+          if(!bar) return;
+          bar.style.visibility = bar.getAttribute('data-shot-hide') || '';
+          bar.removeAttribute('data-shot-hide');
+        });
+      }
+
       await checkWidth(1280);
-      await page.locator('#athlete-terrain-scoreboard').screenshot({
-        path: join(SHOT_DIR, 'scoreboard-overflow-1280.png')
-      });
+      await shot('scoreboard-overflow-1280.png');
       await checkWidth(1024);
-      await page.locator('#athlete-terrain-scoreboard').screenshot({
-        path: join(SHOT_DIR, 'scoreboard-overflow-1024.png')
-      });
+      await shot('scoreboard-overflow-1024.png');
       await checkWidth(390);
-      await page.locator('#athlete-terrain-scoreboard').screenshot({
-        path: join(SHOT_DIR, 'scoreboard-overflow-390.png')
-      });
+      await shot('scoreboard-overflow-390.png');
     });
     console.log('real-flow-coach-scoreboard-overflow: ok');
   }finally{
