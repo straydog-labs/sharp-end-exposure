@@ -711,8 +711,11 @@ assert.strictEqual(volJess.counts.Slab, 0);
 assert.strictEqual(volJess.counts.Crack, 0);
 assert.strictEqual(volJess.total, 45);
 
-const stretchEnd = new Date('2026-10-16T12:00:00Z');
-const stretchRows = [
+assert.strictEqual(CI.computeStretchShare, undefined, 'stretch-share math is removed');
+assert.strictEqual(CI.stretchShareFromZonePoints, undefined, 'stretch-share helper is removed');
+
+const zoneEnd = new Date('2026-10-16T12:00:00Z');
+const zoneRows = [
   { created_at: weekAt('2026-10-12', 1), zone: 'comfort', is_checkin: false },
   { created_at: weekAt('2026-10-12', 1), zone: 'comfort', is_checkin: false },
   { created_at: weekAt('2026-10-12', 1), zone: 'comfort', is_checkin: false },
@@ -728,33 +731,73 @@ const stretchRows = [
   { created_at: weekAt('2026-10-12', 2), zone: 'learning', is_checkin: true },
   { created_at: weekAt('2026-10-12', 2), zone: 'panic', is_baseline: true, is_checkin: false }
 ];
-const stretch = CI.computeStretchShare(stretchRows, { weekCount: 4, endDate: stretchEnd });
-const oct12 = stretch.points.find((p) => p.key === '2026-10-12');
-const oct5 = stretch.points.find((p) => p.key === '2026-10-05');
-const sep28 = stretch.points.find((p) => p.key === '2026-09-28');
-const sep21 = stretch.points.find((p) => p.key === '2026-09-21');
+const zoneWeeks = CI.computeZoneWeekCounts(zoneRows, { weekCount: 4, endDate: zoneEnd });
+const oct12 = zoneWeeks.points.find((p) => p.key === '2026-10-12');
+const oct5 = zoneWeeks.points.find((p) => p.key === '2026-10-05');
+const sep28 = zoneWeeks.points.find((p) => p.key === '2026-09-28');
+const sep21 = zoneWeeks.points.find((p) => p.key === '2026-09-21');
 assert.ok(oct12 && oct5 && sep28 && sep21);
-assert.strictEqual(oct12.n, 6);
-assert.strictEqual(oct12.stretchN, 2);
-assert.ok(Math.abs(oct12.stretch - (2 / 6) * 100) < 1e-9, 'share = (L+P)/n');
-assert.strictEqual(oct12.lowN, false);
-assert.ok(/Week of Oct 12: 2 of 6 sessions in Learning or Panic \(33%\)/.test(oct12.tooltip));
-assert.strictEqual(oct5.n, 2);
-assert.strictEqual(oct5.stretchN, 2);
-assert.ok(Math.abs(oct5.stretch - 100) < 1e-9, 'Panic case is in the numerator');
-assert.strictEqual(oct5.lowN, true, 'n<3 is flagged low-n');
-assert.ok(/low n/.test(oct5.tooltip));
-assert.strictEqual(sep28.n, 0);
-assert.strictEqual(sep28.stretch, null, 'n=0 week is a gap');
-assert.strictEqual(sep21.n, 3);
-assert.ok(Math.abs(sep21.stretch - (2 / 3) * 100) < 1e-9);
-assert.strictEqual(stretch.noZone, 1, 'no-zone note N');
-assert.strictEqual(CI.computeStretchShare(stretchRows.filter((r) => r.zone), { weekCount: 4, endDate: stretchEnd }).noZone, 0);
+assert.deepStrictEqual({ c: oct12.comfort, l: oct12.learning, p: oct12.panic, t: oct12.total }, { c: 4, l: 2, p: 0, t: 6 });
+assert.ok(/Week of Oct 12: Comfort 4, Learning 2, Panic 0/.test(oct12.tooltip));
+assert.deepStrictEqual({ c: oct5.comfort, l: oct5.learning, p: oct5.panic, t: oct5.total }, { c: 0, l: 1, p: 1, t: 2 });
+assert.ok(/Week of Oct 5: Comfort 0, Learning 1, Panic 1/.test(oct5.tooltip));
+assert.deepStrictEqual({ c: sep28.comfort, l: sep28.learning, p: sep28.panic, t: sep28.total }, { c: 0, l: 0, p: 0, t: 0 }, 'zero week plots 0');
+assert.ok(/Week of Sep 28: Comfort 0, Learning 0, Panic 0/.test(sep28.tooltip));
+assert.deepStrictEqual({ c: sep21.comfort, l: sep21.learning, p: sep21.panic, t: sep21.total }, { c: 1, l: 1, p: 1, t: 3 });
+assert.strictEqual(zoneWeeks.noZone, 1, 'no-zone note N');
+assert.strictEqual(zoneWeeks.panicLogged, true);
+assert.deepStrictEqual(zoneWeeks.last4, { comfort: 5, learning: 4, panic: 2 });
+assert.strictEqual(zoneWeeks.last4Sentence, 'Last 4 weeks: 5 Comfort, 4 Learning, 2 Panic sessions.');
+assert.strictEqual(CI.computeZoneWeekCounts(zoneRows.filter((r) => r.zone), { weekCount: 4, endDate: zoneEnd }).noZone, 0);
 
-const progStretch = CI.computeProgressSeries(stretchRows, { weekCount: 4, endDate: stretchEnd });
-stretch.points.forEach(function (p, i) {
-  assert.strictEqual(p.n, progStretch.zonePoints[i].total, 'line n equals strip weekly count');
+const progZones = CI.computeProgressSeries(zoneRows, { weekCount: 4, endDate: zoneEnd });
+zoneWeeks.points.forEach(function (p, i) {
+  assert.strictEqual(p.total, progZones.zonePoints[i].total, 'C+L+P equals strip weekly total');
+  assert.strictEqual(p.comfort, progZones.zonePoints[i].zones.comfort);
+  assert.strictEqual(p.learning, progZones.zonePoints[i].zones.learning);
+  assert.strictEqual(p.panic, progZones.zonePoints[i].zones.panic);
 });
+
+const noPanicRows = zoneRows.filter((r) => r.zone !== 'panic' || r.is_baseline);
+const noPanicWeeks = CI.computeZoneWeekCounts(noPanicRows, { weekCount: 4, endDate: zoneEnd });
+assert.strictEqual(noPanicWeeks.panicLogged, false, 'Panic line omitted when every week is 0');
+
+const jessZoneRows = [];
+function pushZone(monday, n, zone) {
+  for (let i = 0; i < n; i++) {
+    jessZoneRows.push({ created_at: weekAt(monday, 1), zone: zone, is_checkin: false, climbing_type: 'Vertical' });
+  }
+}
+pushZone('2026-07-27', 3, 'comfort');
+pushZone('2026-08-03', 2, 'comfort');
+pushZone('2026-08-10', 4, 'comfort');
+pushZone('2026-08-10', 1, 'learning');
+pushZone('2026-08-17', 0, 'comfort');
+pushZone('2026-08-24', 5, 'comfort');
+pushZone('2026-08-24', 2, 'learning');
+pushZone('2026-08-31', 3, 'comfort');
+pushZone('2026-09-07', 6, 'comfort');
+pushZone('2026-09-07', 1, 'learning');
+pushZone('2026-09-14', 2, 'comfort');
+pushZone('2026-09-21', 4, 'comfort');
+pushZone('2026-09-21', 3, 'learning');
+pushZone('2026-09-28', 5, 'comfort');
+pushZone('2026-10-05', 6, 'comfort');
+pushZone('2026-10-05', 2, 'learning');
+pushZone('2026-10-12', 8, 'comfort');
+pushZone('2026-10-12', 4, 'learning');
+const jessZone = CI.computeZoneWeekCounts(jessZoneRows, { weekCount: 12, endDate: zoneEnd });
+const jessProg = CI.computeProgressSeries(jessZoneRows, { weekCount: 12, endDate: zoneEnd });
+assert.strictEqual(jessZone.points.length, 12);
+assert.strictEqual(jessZone.panicLogged, false);
+jessZone.points.forEach(function (p, i) {
+  assert.strictEqual(p.comfort + p.learning + p.panic, jessProg.zonePoints[i].total,
+    'Jess week ' + p.key + ' C+L+P equals strip');
+});
+assert.strictEqual(jessZone.last4Sentence, 'Last 4 weeks: 23 Comfort, 9 Learning, 0 Panic sessions.');
+console.log('jess-shaped weekly zone counts: ' + jessZone.points.map(function (p) {
+  return p.key + ' C' + p.comfort + ' L' + p.learning + ' P' + p.panic + ' T' + p.total;
+}).join(' | '));
 
 assert.ok(/scoreboard-falls-caption/.test(dash));
 assert.ok(!/falls-per-10-caption/.test(dash), 'falls caption is not repeated in coach read');
@@ -770,7 +813,10 @@ assert.ok(!/delta \+ ' attempts vs prior 4 wks'/.test(dash)
   && !/attempts vs prior 4 wks<\/span>/.test(dash),
   'trend cells do not repeat the unit');
 assert.ok(/scoreboard-zone-part/.test(dash), 'zone-mix parts are non-breaking spans');
-assert.ok(/stretch-share-unit/.test(dash));
-assert.ok(/stretch-share-svg/.test(dash));
+assert.ok(/zone-week-unit/.test(dash));
+assert.ok(/zone-week-svg/.test(dash));
+assert.ok(/Sessions per week, by zone/.test(dash));
+assert.ok(!/stretch-share/.test(dash));
+assert.ok(!/Stretch share/.test(dash));
 
 console.log('coach-athlete-insights tests: ok');
