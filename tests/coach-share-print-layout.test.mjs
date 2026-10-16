@@ -47,6 +47,8 @@ assert.ok(/\.insight-chart-empty/.test(printCss[0]));
 assert.ok(/\.gap-headline[\s\S]*#111/.test(printCss[0]));
 assert.ok(/max-height:\s*110px/.test(printCss[0]));
 assert.ok(/terrain-volume-radar/.test(printCss[0]), 'print CSS includes the terrain radar');
+assert.ok(/stretch-share/.test(printCss[0]), 'print CSS includes the stretch-share chart');
+assert.ok(/stretch-share/.test(printCss[0]), 'print CSS includes the stretch-share chart');
 assert.ok(/insight-panel-head/.test(dash), 'each panel title+note wraps in insight-panel-head');
 assert.ok(/\.insight-panel-head\s*\{[\s\S]*break-after:\s*avoid/.test(printCss[0]),
   'panel head stays with the next unit');
@@ -71,6 +73,7 @@ function assertNoOrphanedPanelHeads(pages, label){
     'LOGGED TRAINING',
     'NO LOGGED',
     'ZONE SHARE',
+    'STRETCH SHARE',
     'SESSIONS PER WEEK',
     'PSYCHE PRACTICES PER WEEK',
     'MOST COMFORTABLE',
@@ -135,8 +138,9 @@ assert.ok(/renderSharedAxisSvg\(seriesList\.map/.test(gradeFn), 'grade chart sti
 
 const zoneFn = extractFn(dash, 'renderProgressPanelHtml', 'renderTrainingVolumePanelHtml');
 assert.ok(/insight-chart-unit/.test(zoneFn));
-assert.ok(/p\.zones\[z\.key\] > 0/.test(zoneFn), 'zone-share logged check unchanged');
-assert.ok(!/insight-chart-empty/.test(zoneFn), 'Zone share is never marked empty-hide');
+assert.ok(/p\.zones && p\.zones\.panic > 0/.test(zoneFn), 'panic legend still uses raw zone counts');
+assert.ok(/stretch-share-unit/.test(zoneFn));
+assert.ok(!/insight-chart-empty/.test(zoneFn), 'Stretch share is never marked empty-hide');
 
 assert.ok(/class="gap-terrain-row"/.test(extractFn(dash, 'renderGapPanelHtml', 'openGymClimbsCatalog')));
 
@@ -226,10 +230,10 @@ const psy30 = vm.runInContext('renderPsycheVolumePanelHtml(' + JSON.stringify(
 
 assert.ok(/30 logged sessions/.test(html30));
 assert.ok(/insight-chart-unit/.test(html30));
-assert.ok(/Zone share/.test(html30));
-assert.ok(!/insight-chart-empty/.test(html30.match(/insight-chart-unit[\s\S]*?Zone share[\s\S]*?<\/div>\s*<div class="insight-legend">[\s\S]*?<\/div>\s*<\/div>/) || ['']),
-  'Zone share unit is not empty-hidden');
-assert.ok(/<div class="insight-chart-unit">[\s\S]*Zone share/.test(html30));
+assert.ok(/Stretch share/.test(html30));
+assert.ok(!/insight-chart-empty/.test(html30.match(/insight-chart-unit[\s\S]*?Stretch share[\s\S]*?<\/div>\s*<div class="insight-legend">[\s\S]*?<\/div>\s*<\/div>/) || ['']),
+  'Stretch share unit is not empty-hidden');
+assert.ok(/stretch-share-unit[\s\S]*Stretch share/.test(html30));
 assert.ok(/Hardest send by terrain/.test(html30));
 assert.ok((html30.match(/insight-chart-unit/g) || []).length >= 3);
 assert.ok(!/insight-chart-empty/.test(html30), 'typical 30-session athlete has boulder + roped data');
@@ -237,11 +241,12 @@ assert.ok(!/insight-chart-empty/.test(html30), 'typical 30-session athlete has b
 assert.ok(/1 logged session/.test(html1));
 assert.ok(/insight-chart-unit/.test(html1));
 assert.ok(/insight-chart-empty/.test(html1), 'the unused family is marked empty for print hide');
-assert.ok(/Zone share/.test(html1));
-assert.ok(!/insight-chart-empty[\s\S]{0,80}Zone share/.test(html1));
+assert.ok(/Stretch share/.test(html1));
+assert.ok(!/insight-chart-empty[\s\S]{0,80}Stretch share/.test(html1));
 
 assert.ok(/No logged climb sessions in the last 12 weeks/.test(html0));
 assert.ok(!/insight-chart-empty/.test(html0), 'panel-level empty is not an insight-chart-empty hide');
+assert.ok(!/Stretch share/.test(html0));
 assert.ok(!/Zone share/.test(html0));
 
 assert.ok(/gap-terrain-row/.test(gap30));

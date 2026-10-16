@@ -6,7 +6,7 @@ import assert from 'assert';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
-const ZONE_HELP = "The percent of that week's sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete's own in-the-moment activation rating, not from grade or send/fall outcome.";
+const ZONE_HELP = "Percent of that week's zone-rated sessions that were Learning or Panic. n under each point is the week's zone-rated session count. Hollow markers and a lighter segment mean n is under 3. Empty weeks are a gap; a dashed line joins across up to 4 empty weeks. Sessions with no zone are left out of the percent. Descriptive only — not a cause-and-effect read.";
 const BOULDER_HELP = "Hardest send each week on that terrain, on the V-scale. A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.";
 const ROPED_HELP = "Hardest send each week on that terrain, on this athlete's usual roped grade scale, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.";
 const BOULDER_TITLE = 'Hardest send by terrain — V-scale';
@@ -45,7 +45,7 @@ function assertCollapsedDetails(html, title, help){
   assert.strictEqual(body[1], escapeHtml(help), title + ' explainer is the escaped verbatim string');
 }
 
-assertCollapsedDetails(insightChartTitleWithHelp('Zone share (%)', ZONE_HELP), 'Zone share (%)', ZONE_HELP);
+assertCollapsedDetails(insightChartTitleWithHelp('Stretch share (%)', ZONE_HELP), 'Stretch share (%)', ZONE_HELP);
 assertCollapsedDetails(insightChartTitleWithHelp(BOULDER_TITLE, BOULDER_HELP), BOULDER_TITLE, BOULDER_HELP);
 assertCollapsedDetails(insightChartTitleWithHelp('Hardest send by terrain — YDS', ROPED_HELP), 'Hardest send by terrain — YDS', ROPED_HELP);
 
@@ -53,8 +53,8 @@ assert.ok(dash.includes(toJsLiteral(ZONE_HELP)), 'zone help is in source verbati
 assert.ok(dash.includes(toJsLiteral(BOULDER_HELP)), 'boulder help is in source verbatim');
 assert.ok(dash.includes(toJsLiteral(ROPED_HELP)), 'roped help is in source verbatim');
 
-const zoneCall = dash.match(/insightChartTitleWithHelp\(\s*'Zone share \(%\)',\s*'((?:\\'|[^'])*)'/);
-assert.ok(zoneCall, 'Zone share uses the helper');
+const zoneCall = dash.match(/insightChartTitleWithHelp\(\s*'Stretch share \(%\)',\s*'((?:\\'|[^'])*)'/);
+assert.ok(zoneCall, 'Stretch share uses the helper');
 assert.strictEqual(zoneCall[1].replace(/\\'/g, "'"), ZONE_HELP);
 
 const boulderCall = dash.match(/renderGradeFamilyChartHtml\(\s*'Hardest send by terrain — V-scale',[\s\S]*?((?:\\'|[^'])*)'\s*\)/);

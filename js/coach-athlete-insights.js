@@ -464,6 +464,78 @@
     };
   }
 
+  function stretchShareFromZonePoints(zonePoints) {
+    return (zonePoints || []).map(function (p) {
+      var zones = p.zones || emptyZoneCounts();
+      var n = (zones.comfort || 0) + (zones.learning || 0) + (zones.panic || 0);
+      var stretchN = (zones.learning || 0) + (zones.panic || 0);
+      var stretch = n ? (stretchN / n) * 100 : null;
+      var lowN = n > 0 && n < 3;
+      var pct = n ? Math.round(stretch) : null;
+      var tip = '';
+      if (n) {
+        tip = 'Week of ' + (p.label || '') + ': ' + stretchN + ' of ' + n +
+          ' sessions in Learning or Panic (' + pct + '%)';
+        if (lowN) tip += ' · low n';
+      }
+      return {
+        key: p.key || '',
+        label: p.label || '',
+        n: n,
+        stretchN: stretchN,
+        stretch: stretch,
+        stretchPct: pct,
+        lowN: lowN,
+        comfort: zones.comfort || 0,
+        learning: zones.learning || 0,
+        panic: zones.panic || 0,
+        tooltip: tip
+      };
+    });
+  }
+
+  function computeStretchShare(sessions, options) {
+    options = options || {};
+    var weekCount = options.weekCount || 12;
+    var endDate = options.endDate || new Date();
+    var weeks = lastNWeekKeys(weekCount, endDate);
+    var byWeek = {};
+    weeks.forEach(function (k) {
+      byWeek[k] = { key: k, label: formatWeekLabel(k), zones: emptyZoneCounts() };
+    });
+    var noZone = 0;
+    (sessions || []).forEach(function (row) {
+      if (!isClimbSession(row) || !row.created_at) return;
+      var created = new Date(row.created_at);
+      if (isNaN(created.getTime())) return;
+      var key = weekKey(created);
+      if (!byWeek[key]) return;
+      var z = normalizeZone(row.zone);
+      if (!z) {
+        noZone += 1;
+        return;
+      }
+      addZone(byWeek[key].zones, z);
+    });
+    var zonePoints = weeks.map(function (k) {
+      return {
+        key: k,
+        label: byWeek[k].label,
+        zones: byWeek[k].zones,
+        total: (byWeek[k].zones.comfort || 0) + (byWeek[k].zones.learning || 0) + (byWeek[k].zones.panic || 0)
+      };
+    });
+    var points = stretchShareFromZonePoints(zonePoints);
+    return {
+      weeks: weeks,
+      labels: weeks.map(formatWeekLabel),
+      points: points,
+      noZone: noZone,
+      hasStretch: points.some(function (p) { return p.n > 0; }),
+      panicLogged: points.some(function (p) { return p.panic > 0; })
+    };
+  }
+
   function computeTrainingVolumeSeries(trainingSessions, options) {
     var weekCount = (options && options.weekCount) || 12;
     var endDate = (options && options.endDate) || new Date();
@@ -1311,6 +1383,8 @@
     gradeConnectors: gradeConnectors,
     normalizeTerrainType: normalizeTerrainType,
     computeProgressSeries: computeProgressSeries,
+    computeStretchShare: computeStretchShare,
+    stretchShareFromZonePoints: stretchShareFromZonePoints,
     computeTrainingVolumeSeries: computeTrainingVolumeSeries,
     computePsycheVolumeSeries: computePsycheVolumeSeries,
     computeGapDiagnostic: computeGapDiagnostic,

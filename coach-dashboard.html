@@ -427,6 +427,12 @@
   .insight-legend{
     display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11.5px;color:var(--text-secondary);margin-top:8px;
   }
+  .stretch-no-zone,.scoreboard-falls-caption,.falls-per-10-caption{
+    font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4;
+  }
+  .stretch-share-tip{
+    font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.4;min-height:0;
+  }
   .roped-filter,.terrain-volume-range{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 10px;}
   .roped-filter button,.terrain-volume-range button{
     background:var(--surface);border:1px solid var(--border);border-radius:999px;
@@ -1355,6 +1361,14 @@
       width: auto;
       max-width: 100%;
     }
+    svg.stretch-share-svg {
+      max-height: 140px;
+      width: 100%;
+    }
+    .stretch-share-unit { break-inside: avoid; }
+    .stretch-n-label { fill: #555 !important; }
+    .stretch-no-zone, .scoreboard-falls-caption, .falls-per-10-caption { color: #555 !important; }
+    .stretch-share-tip { display: none !important; }
     svg.terrain-volume-radar {
       max-height: 240px !important;
       width: 100% !important;
@@ -4105,6 +4119,7 @@
       if(progressEl) progressEl.innerHTML = renderProgressPanelHtml(rows);
       wireRopedDisciplineChips();
       wireTerrainVolumeChips();
+      if(typeof wireStretchShareTips === 'function') wireStretchShareTips(progressEl);
       if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(progressEl);
       if(volumeEl) volumeEl.innerHTML = renderTrainingVolumePanelHtml(trainingRows);
       if(psycheEl) psycheEl.innerHTML = renderPsycheVolumePanelHtml(checkins, drills);
@@ -4130,22 +4145,24 @@
     });
   }
 
-  function insightSvgPolyline(points, color, dashed){
+  function insightSvgPolyline(points, color, dashed, extra){
     if(!points || points.length < 2) return '';
     return '<polyline fill="none" stroke="' + color + '" stroke-width="' + (dashed ? '1.2' : '2.2') +
       '" stroke-linejoin="round" stroke-linecap="round"' +
       (dashed ? ' stroke-dasharray="4 4"' : '') +
+      (extra || '') +
       ' points="' + points.map(function(p){ return p.x + ',' + p.y; }).join(' ') + '"/>';
   }
 
-  function insightSvgDots(points, color, filledFlags){
+  function insightSvgDots(points, color, filledFlags, titles){
     return (points || []).map(function(p, i){
       var filled = !filledFlags || filledFlags[i] !== false;
+      var tip = (titles && titles[i]) ? '<title>' + escapeHtml(titles[i]) + '</title>' : '';
       if(filled){
-        return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + color + '"></circle>';
+        return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + color + '">' + tip + '</circle>';
       }
       return '<circle class="insight-dot-hollow" cx="' + p.x + '" cy="' + p.y +
-        '" r="3" fill="none" stroke="' + color + '" stroke-width="1.6"></circle>';
+        '" r="3" fill="none" stroke="' + color + '" stroke-width="1.6">' + tip + '</circle>';
     }).join('');
   }
 
@@ -4153,7 +4170,8 @@
     var padL = 36;
     var padR = 32;
     var padT = 8;
-    var padB = 22;
+    var hasN = seriesList.some(function(s){ return s && s.nLabels; });
+    var padB = hasN ? 50 : 22;
     var innerW = width - padL - padR;
     var innerH = height - padT - padB;
     var n = (seriesList[0] && seriesList[0].xs) ? seriesList[0].xs.length : 0;
@@ -4179,6 +4197,15 @@
         '" text-anchor="' + anchor + '" fill="#a8a8a8" font-size="9">' +
         escapeHtml(label) + '</text>';
     }).join('');
+    var nLabels = '';
+    if(hasN && seriesList[0].nLabels){
+      nLabels = seriesList[0].nLabels.map(function(txt, i){
+        if(!txt) return '';
+        return '<text class="stretch-n-label" data-n-index="' + i + '" x="' + xAt(i).toFixed(1) +
+          '" y="' + (height - 28) + '" text-anchor="middle" fill="#a8a8a8" font-size="8">' +
+          escapeHtml(txt) + '</text>';
+      }).join('');
+    }
     var lines = seriesList.map(function(s){
       if(s.dashedGaps){
         var plotted = [];
@@ -4188,18 +4215,25 @@
             i: i,
             x: xAt(i).toFixed(1),
             y: yAt(v).toFixed(1),
-            filled: !s.fills || s.fills[i] !== false
+            filled: !s.fills || s.fills[i] !== false,
+            title: (s.titles && s.titles[i]) || ''
           });
         });
         var segs = '';
         var pi;
         for(pi = 0; pi < plotted.length - 1; pi++){
           var gap = plotted[pi + 1].i - plotted[pi].i - 1;
-          if(gap === 0) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, false);
-          else if(gap <= 4) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, true);
+          var light = s.lights && (s.lights[plotted[pi].i] || s.lights[plotted[pi + 1].i]);
+          var extra = light ? ' stroke-opacity="0.4" class="stretch-seg-lown"' : '';
+          if(gap === 0) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, false, extra);
+          else if(gap <= 4) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, true, extra);
         }
         return segs + plotted.map(function(p){
-          return insightSvgDots([p], s.color, [p.filled]);
+          var hit = p.title
+            ? '<circle class="stretch-hit" data-stretch-tip="' + escapeHtml(p.title) +
+              '" cx="' + p.x + '" cy="' + p.y + '" r="10" fill="transparent"></circle>'
+            : '';
+          return insightSvgDots([p], s.color, [p.filled], [p.title]) + hit;
         }).join('');
       }
       var pts = [];
@@ -4218,8 +4252,10 @@
         return insightSvgDots(ch.pts, s.color, ch.fills) + insightSvgPolyline(ch.pts, s.color);
       }).join('');
     }).join('');
-    return '<svg class="insight-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img">' +
-      grid + lines + labels + '</svg>';
+    var svgOpen = hasN
+      ? '<svg class="insight-svg stretch-share-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img">'
+      : '<svg class="insight-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img">';
+    return svgOpen + grid + lines + nLabels + labels + '</svg>';
   }
 
   function insightChartTitleWithHelp(title, helpText){
@@ -4288,8 +4324,26 @@
         host.innerHTML = renderProgressPanelHtml(rows);
         wireRopedDisciplineChips();
         wireTerrainVolumeChips();
+        if(typeof wireStretchShareTips === 'function') wireStretchShareTips(host);
         if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(host);
       });
+    });
+  }
+
+  function wireStretchShareTips(root){
+    var scope = root || document;
+    Array.prototype.forEach.call(scope.querySelectorAll('.stretch-share-unit'), function(unit){
+      var tip = unit.querySelector('.stretch-share-tip');
+      var svg = unit.querySelector('svg.stretch-share-svg');
+      if(!svg) return;
+      function show(ev){
+        var hit = ev.target && ev.target.closest && ev.target.closest('[data-stretch-tip]');
+        if(!hit || !tip) return;
+        tip.hidden = false;
+        tip.textContent = hit.getAttribute('data-stretch-tip') || '';
+      }
+      svg.addEventListener('pointerdown', show);
+      svg.addEventListener('mouseover', show);
     });
   }
 
@@ -4305,6 +4359,7 @@
         host.innerHTML = renderProgressPanelHtml(rows);
         wireRopedDisciplineChips();
         wireTerrainVolumeChips();
+        if(typeof wireStretchShareTips === 'function') wireStretchShareTips(host);
         if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(host);
         if(typeof paintAthleteSnapshotStamp === 'function') paintAthleteSnapshotStamp();
       });
@@ -4315,11 +4370,15 @@
 
   function renderCoachReadHtml(read){
     var lines = (read && read.lines && read.lines.length) ? read.lines : ['Not enough data yet'];
+    var fallsCaption = lines.some(function(line){ return /falls per 10/i.test(line); })
+      ? '<p class="falls-per-10-caption">Per 10 attempts; excludes backed-off and fall-practice rows; shown at 5+ attempts.</p>'
+      : '';
     return '<div class="coach-read" id="athlete-coach-read">' +
       '<div class="team-zone-label">Coach read</div>' +
       lines.map(function(line){
         return '<p>' + escapeHtml(line) + '</p>';
       }).join('') +
+      fallsCaption +
     '</div>';
   }
 
@@ -4485,7 +4544,8 @@
     function dash(){ return '<span class="scoreboard-na">—</span>'; }
     var head = '<div class="terrain-scoreboard-head" aria-hidden="true">' +
       '<div>Terrain</div><div>Attempts</div><div>Hardest send</div>' +
-      '<div>Falls per 10</div><div>Zone mix</div><div>vs last 4 weeks</div>' +
+      '<div title="Per 10 attempts; excludes backed-off and fall-practice rows; shown at 5+ attempts;">Falls per 10</div>' +
+      '<div>Zone mix</div><div>vs last 4 weeks</div>' +
     '</div>';
     var rows = board.rows.map(function(row){
       var fall = row.fallsPerTen == null
@@ -4526,7 +4586,9 @@
         '">Not logged yet: ' + escapeHtml(board.notLogged.join(', ')) + '</div>'
       : '';
     return '<div class="terrain-scoreboard" id="athlete-terrain-scoreboard" data-scoreboard="table">' +
-      head + rows + notLogged + '</div>';
+      head + rows + notLogged +
+      '<div class="scoreboard-falls-caption">Per 10 attempts; excludes backed-off and fall-practice rows; shown at 5+ attempts.</div>' +
+    '</div>';
   }
 
   function renderProgressPanelHtml(sessions){
@@ -4560,36 +4622,46 @@
 
     var zoneSvg = '';
     if(series.hasZoneTrend){
-      var zoneDefs = [
-        { key: 'comfort', color: '#7ec87a', label: 'Comfort' },
-        { key: 'learning', color: '#f5a623', label: 'Learning' },
-        { key: 'panic', color: '#e84444', label: 'Panic' }
-      ];
-      var zoneSeries = [];
-      var zoneLegend = zoneDefs.map(function(z){
-        var logged = series.zonePoints.some(function(p){ return p.zones[z.key] > 0; });
-        if(logged){
-          zoneSeries.push({
-            color: z.color,
-            xs: series.labels,
-            values: series.zonePoints.map(function(p){ return p.total ? p[z.key] : null; })
-          });
-          return '<span><span class="insight-swatch" style="background:' + z.color + '"></span>' + z.label + '</span>';
-        }
-        return '<span style="opacity:.45"><span class="insight-swatch" style="background:' + z.color + '"></span>' +
-          z.label + ' — none logged</span>';
-      });
-      zoneSvg = '<div class="insight-chart-unit">' +
+      var stretchPts = (CI.stretchShareFromZonePoints)
+        ? CI.stretchShareFromZonePoints(series.zonePoints)
+        : [];
+      var stretchMeta = (CI.computeStretchShare)
+        ? CI.computeStretchShare(sessions, { weekCount: (series.zonePoints || []).length || 12 })
+        : { noZone: 0, panicLogged: false };
+      var panicLogged = (series.zonePoints || []).some(function(p){ return p.zones && p.zones.panic > 0; });
+      var stretchSeries = [{
+        color: '#e89252',
+        xs: series.labels,
+        values: stretchPts.map(function(p){ return p.n ? p.stretch : null; }),
+        fills: stretchPts.map(function(p){ return !p.lowN; }),
+        lights: stretchPts.map(function(p){ return p.lowN; }),
+        nLabels: stretchPts.map(function(p){ return p.n ? ('n=' + p.n) : ''; }),
+        titles: stretchPts.map(function(p){ return p.tooltip || ''; }),
+        dashedGaps: true
+      }];
+      var stretchLegend = '<span><span class="insight-swatch" style="background:#e89252"></span>Stretch share</span>';
+      if(!panicLogged){
+        stretchLegend += '<span style="opacity:.45"><span class="insight-swatch" style="background:#e84444"></span>' +
+          'Panic — none logged</span>';
+      }
+      var noZoneN = stretchMeta.noZone || 0;
+      var noZoneHtml = noZoneN > 0
+        ? '<div class="stretch-no-zone" data-no-zone="' + noZoneN + '">' +
+          noZoneN + ' sessions in window have no zone</div>'
+        : '';
+      zoneSvg = '<div class="insight-chart-unit stretch-share-unit" data-stretch-share="1">' +
         insightChartTitleWithHelp(
-          'Zone share (%)',
-          'The percent of that week\'s sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete\'s own in-the-moment activation rating, not from grade or send/fall outcome.'
+          'Stretch share (%)',
+          'Percent of that week\'s zone-rated sessions that were Learning or Panic. n under each point is the week\'s zone-rated session count. Hollow markers and a lighter segment mean n is under 3. Empty weeks are a gap; a dashed line joins across up to 4 empty weeks. Sessions with no zone are left out of the percent. Descriptive only — not a cause-and-effect read.'
         ) +
-        renderSharedAxisSvg(zoneSeries, 0, 100, [
+        renderSharedAxisSvg(stretchSeries, 0, 100, [
           { value: 0, label: '0' },
           { value: 50, label: '50' },
           { value: 100, label: '100' }
-        ], 720, 168) +
-        '<div class="insight-legend">' + zoneLegend.join('') + '</div>' +
+        ], 720, 200) +
+        '<div class="stretch-share-tip" hidden></div>' +
+        '<div class="insight-legend">' + stretchLegend + '</div>' +
+        noZoneHtml +
       '</div>';
     }
 
@@ -8194,6 +8266,7 @@
       }
       el.innerHTML = renderProgressPanelHtml(_terrainVolumeTestRows);
       wireTerrainVolumeChips();
+      if(typeof wireStretchShareTips === 'function') wireStretchShareTips(el);
       if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(el);
       return el.id;
     },

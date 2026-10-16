@@ -21,11 +21,11 @@ function extractFn(src, name, nextName){
 }
 
 const panelSrc = extractFn(dash, 'renderProgressPanelHtml', 'renderTrainingVolumePanelHtml');
-assert.ok(/p\.zones\[z\.key\] > 0/.test(panelSrc) || /p\.zones\[zone\] > 0/.test(panelSrc),
-  'logged check uses raw p.zones counts');
+assert.ok(/p\.zones && p\.zones\.panic > 0/.test(panelSrc),
+  'panic legend uses raw p.zones counts');
 assert.ok(/none logged/.test(panelSrc));
-assert.ok(/A zone with no line means no sessions were logged in it during these 12 weeks\./.test(panelSrc));
-assert.ok(!/A 0% or missing zone just means no sessions were logged in it that week/.test(panelSrc));
+assert.ok(/Stretch share/.test(panelSrc));
+assert.ok(/Descriptive only — not a cause-and-effect read/.test(panelSrc));
 assert.ok(/p\.total \? zoneBarSegsHtml\(p\.zones/.test(panelSrc), 'week bars still use raw zone counts');
 assert.ok(/series\.sessionCount/.test(panelSrc));
 assert.ok(/No logged climb sessions in the last 12 weeks\./.test(panelSrc));
@@ -87,11 +87,15 @@ function harness(){
   return { ctx: ctx, captured: captured };
 }
 
-function renderWith(series){
+function renderWith(series, stretchMeta){
   const h = harness();
   h.ctx.window = {
     CoachInsights: {
-      computeProgressSeries: function(){ return series; }
+      computeProgressSeries: function(){ return series; },
+      stretchShareFromZonePoints: CI.stretchShareFromZonePoints,
+      computeStretchShare: function(){
+        return stretchMeta || { noZone: 0, panicLogged: false, points: [] };
+      }
     }
   };
   const html = vm.runInContext('renderProgressPanelHtml([])', h.ctx);
@@ -118,7 +122,7 @@ assert.ok(emptyHtml.html.indexOf(EMPTY) !== -1);
 assert.ok(!/insight-legend/.test(emptyHtml.html));
 assert.strictEqual(emptyHtml.series, null);
 
-const noPanic = renderWith({
+const noPanicSeries = {
   hasZoneTrend: true,
   hasBoulderGradeTrend: false,
   hasRopedGradeTrend: false,
@@ -135,20 +139,20 @@ const noPanic = renderWith({
   ropedAxis: { ticks: [] },
   ropedDiscipline: 'all',
   excludedOffSystem: 0
-});
+};
+const noPanic = renderWith(noPanicSeries);
 assert.ok(/3 logged sessions in this window/.test(noPanic.html));
 assert.strictEqual(noPanic.weekZones.length, 2);
 assert.deepStrictEqual(noPanic.weekZones[0], { comfort: 1, learning: 1, panic: 0 });
 assert.deepStrictEqual(noPanic.weekZones[1], { comfort: 1, learning: 0, panic: 0 });
+assert.strictEqual(noPanic.series.length, 1, 'one stretch-share line');
+assert.strictEqual(noPanic.series[0].color, '#e89252');
 assert.ok(noPanic.series.every(function(s){ return s.color !== '#e84444'; }), 'no panic series');
 assert.ok(!/#e84444/.test(noPanic.html.match(/<svg[\s\S]*<\/svg>/)[0]), 'no red line or dots');
 assert.ok(/Panic — none logged/.test(noPanic.html));
 assert.ok(/opacity:\s*\.45/.test(noPanic.html));
-assert.ok(/Comfort</.test(noPanic.html) && /Learning</.test(noPanic.html));
-assert.ok(!/Comfort — none logged/.test(noPanic.html));
-const learning = noPanic.series.find(function(s){ return s.color === '#f5a623'; });
-assert.ok(learning, 'learning still plots');
-assert.deepStrictEqual(learning.values, [50, 0], 'logged zone still plots real 0% weeks');
+assert.ok(/Stretch share/.test(noPanic.html));
+assert.deepStrictEqual(noPanic.series[0].values.map(function(v){ return v == null ? null : Math.round(v); }), [50, 0]);
 
 const somePanic = renderWith({
   hasZoneTrend: true,
@@ -169,12 +173,11 @@ const somePanic = renderWith({
   ropedDiscipline: 'all',
   excludedOffSystem: 0
 });
-const panic = somePanic.series.find(function(s){ return s.color === '#e84444'; });
-assert.ok(panic, 'panic series included when any week has a nonzero count');
-assert.deepStrictEqual(panic.values, [50, 0, null]);
-assert.ok(/#e84444/.test(somePanic.html.match(/<svg[\s\S]*<\/svg>/)[0]));
+assert.strictEqual(somePanic.series.length, 1);
+assert.strictEqual(somePanic.series[0].color, '#e89252');
+assert.deepStrictEqual(somePanic.series[0].values.map(function(v){ return v == null ? null : Math.round(v); }), [50, 0, null]);
+assert.ok(!/#e84444/.test(somePanic.html.match(/<svg[\s\S]*<\/svg>/)[0]), 'stretch line is never panic red');
 assert.ok(!/Panic — none logged/.test(somePanic.html));
-assert.ok(/Learning — none logged/.test(somePanic.html), 'unlogged learning stays in the legend');
 assert.strictEqual(somePanic.weekZones.length, 2, 'empty weeks still skip zoneBarSegsHtml');
 assert.deepStrictEqual(somePanic.weekZones[0], { comfort: 1, learning: 0, panic: 1 });
 assert.deepStrictEqual(somePanic.weekZones[1], { comfort: 1, learning: 0, panic: 0 });
@@ -199,7 +202,42 @@ const roundedZero = renderWith({
   ropedDiscipline: 'all',
   excludedOffSystem: 0
 });
-assert.ok(roundedZero.series.some(function(s){ return s.color === '#e84444'; }),
-  'raw count > 0 includes the zone even when rounded percent is 0');
+assert.ok(!/Panic — none logged/.test(roundedZero.html),
+  'raw panic count > 0 keeps the none-logged legend off');
+assert.ok(roundedZero.series[0].values[0] > 0, '1 panic of 401 still raises stretch share');
+
+const shownNoZone = renderWith(noPanicSeries, { noZone: 2, panicLogged: false, points: [] });
+assert.ok(/2 sessions in window have no zone/.test(shownNoZone.html));
+assert.ok(/data-no-zone="2"/.test(shownNoZone.html));
+const hiddenNoZone = renderWith(noPanicSeries, { noZone: 0, panicLogged: false, points: [] });
+assert.ok(!/sessions in window have no zone/.test(hiddenNoZone.html));
+assert.ok(!/stretch-no-zone/.test(hiddenNoZone.html));
+
+assert.ok(/insight-dot-hollow/.test(somePanic.html), 'n<3 weeks use a hollow marker');
+assert.ok(/stretch-seg-lown|stroke-opacity="0.4"/.test(somePanic.html), 'n<3 weeks lighten the segment');
+assert.ok(/stroke-dasharray="4 4"/.test(somePanic.html) === false,
+  'consecutive plotted weeks are not a dashed gap');
+
+const gapped = renderWith({
+  hasZoneTrend: true,
+  hasBoulderGradeTrend: false,
+  hasRopedGradeTrend: false,
+  hasGradeTrend: false,
+  sessionCount: 6,
+  labels: ['W1', 'W2', 'W3'],
+  zonePoints: [
+    { label: 'W1', total: 3, comfort: 33, learning: 67, panic: 0, zones: { comfort: 1, learning: 2, panic: 0 } },
+    { label: 'W2', total: 0, comfort: 0, learning: 0, panic: 0, zones: { comfort: 0, learning: 0, panic: 0 } },
+    { label: 'W3', total: 3, comfort: 67, learning: 33, panic: 0, zones: { comfort: 2, learning: 1, panic: 0 } }
+  ],
+  boulderGradeSeries: [],
+  ropedGradeSeries: [],
+  boulderAxis: { ticks: [] },
+  ropedAxis: { ticks: [] },
+  ropedDiscipline: 'all',
+  excludedOffSystem: 0
+});
+assert.deepStrictEqual(gapped.series[0].values.map(function(v){ return v == null ? null : Math.round(v); }), [67, null, 33]);
+assert.ok(/stroke-dasharray="4 4"/.test(gapped.html), 'n=0 week is a dashed gap of 1');
 
 console.log('coach-zone-share-omit-empty tests: ok');
