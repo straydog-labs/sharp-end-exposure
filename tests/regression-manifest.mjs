@@ -16,6 +16,7 @@ export const FLOWS = [
   { id: 'climb-attempts-radar-flow', group: 'athlete', file: 'real-flow-climb-terrain-radar.test.mjs', covered: true, asserts: 'Climb → SEE YOUR PATTERNS renders Attempts by terrain radar' },
   { id: 'coach-zone-weeks', group: 'coach', file: 'real-flow-coach-zone-weeks.test.mjs', covered: true, asserts: 'tap roster athlete detail renders zone-week line chart; overflow; tooltip' },
   { id: 'coach-scoreboard-overflow', group: 'coach', file: 'real-flow-coach-scoreboard-overflow.test.mjs', covered: true, asserts: 'scoreboard cells stay inside table at 1280/1024/390; header unit; Panic 0% nowrap' },
+  { id: 'coach-snapshot-window', group: 'coach', file: 'real-flow-coach-snapshot-window.test.mjs', covered: true, asserts: 'snapshot SESSIONS and zone mix match 90-day strip rows; gap subtitle Panic 0 vs >0' },
   { id: 'voice-log', group: 'athlete', file: 'real-flow-voice-log.test.mjs', covered: true, asserts: 'parse spoken sentence then POST baseline_zone+grade+terrain' },
   { id: 'prepare-checkin', group: 'athlete', file: 'real-flow-prepare-checkin.test.mjs', covered: true, asserts: 'POST sessions is_checkin+baseline_zone checkin' },
   { id: 'home-day-attempt', group: 'athlete', file: 'real-flow-home-day-attempt.test.mjs', covered: true, asserts: 'TAP visible week-dot opens day sheet; +Attempt POST route_name+climb_id' },

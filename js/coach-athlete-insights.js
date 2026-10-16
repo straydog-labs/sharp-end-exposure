@@ -1363,6 +1363,26 @@
     return { rows: board, notLogged: vol.notLogged, total: vol.total };
   }
 
+  function computeSnapshotTiles(sessions, opts) {
+    opts = opts || {};
+    var days = opts.days;
+    var endDate = opts.endDate || new Date();
+    var zones = emptyZoneCounts();
+    (sessions || []).forEach(function (row) {
+      if (!isClimbSession(row)) return;
+      if (!rowInTerrainWindow(row, days, endDate)) return;
+      addZone(zones, row.zone);
+    });
+    var percents = zonePercents(zones);
+    return {
+      sessions: percents.total || 0,
+      zones: zones,
+      percents: percents,
+      days: days,
+      windowLabel: days == null ? 'All time' : ('Last ' + days + ' days')
+    };
+  }
+
   function computeHighlights(sessions, opts) {
     opts = opts || {};
     var endDate = opts.endDate || new Date();
@@ -1436,6 +1456,7 @@
     largestRemainderShares: largestRemainderShares,
     computeCoachRead: computeCoachRead,
     computeTerrainScoreboard: computeTerrainScoreboard,
+    computeSnapshotTiles: computeSnapshotTiles,
     computeHighlights: computeHighlights,
     gapHeadlineModel: gapHeadlineModel,
     parseGymClimbsCsv: parseGymClimbsCsv,

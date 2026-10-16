@@ -3019,26 +3019,42 @@
   function paintAthleteLandingStats(){
     if(!_detailCtx) return;
     var insight = _rosterInsightsByAthlete[_detailCtx.athleteId] || { zones: emptyZoneCounts(), panicWeek: 0 };
-    var zones = insight.zones || emptyZoneCounts();
-    var total = (zones.comfort || 0) + (zones.learning || 0) + (zones.panic || 0);
-    var mix = total ? zoneMixPercents(zones) : null;
-    var learningPct = mix ? mix.learning : null;
+    var CI = window.CoachInsights;
+    var rows = _athleteInsightCache[_detailCtx.athleteId] || [];
+    var hasCache = Object.prototype.hasOwnProperty.call(_athleteInsightCache, _detailCtx.athleteId);
+    var days = (typeof _terrainVolumeDays !== 'undefined') ? _terrainVolumeDays : 90;
+    var snap = (CI && CI.computeSnapshotTiles)
+      ? CI.computeSnapshotTiles(rows, { days: days })
+      : { sessions: 0, zones: emptyZoneCounts(), percents: { learning: 0 }, windowLabel: '' };
     var learnEl = document.getElementById('athlete-stat-learning');
     var panicEl = document.getElementById('athlete-stat-panic');
     var sessEl = document.getElementById('athlete-stat-sessions');
     var barEl = document.getElementById('athlete-zone-bar');
-    if(learnEl) learnEl.textContent = learningPct === null ? '—' : (learningPct + '%');
+    if(learnEl) learnEl.textContent = (!hasCache || !snap.sessions) ? '—' : (snap.percents.learning + '%');
     if(panicEl){
       panicEl.textContent = String(insight.panicWeek || 0);
       panicEl.classList.toggle('flagged', (insight.panicWeek || 0) >= PANIC_WEEK_THRESHOLD);
     }
-    if(sessEl){
-      var sameAthlete = _journalCtx && _journalCtx.athleteId === _detailCtx.athleteId;
-      sessEl.textContent = sameAthlete ? String((_lastSessionRows || []).length) : '—';
-    }
+    if(sessEl) sessEl.textContent = hasCache ? String(snap.sessions) : '—';
     if(barEl){
-      barEl.innerHTML = zoneBarSegsHtml(zones) + (total ? zoneBarLegendHtml(zones) : '');
+      barEl.innerHTML = zoneBarSegsHtml(snap.zones) + (snap.sessions ? zoneBarLegendHtml(snap.zones) : '');
     }
+  }
+
+  function paintGapSubtitle(sessions){
+    var note = document.getElementById('athlete-gap-note');
+    if(!note) return;
+    var CI = window.CoachInsights;
+    var panicN = 0;
+    if(CI && CI.computeGapDiagnostic){
+      var gap = CI.computeGapDiagnostic(sessions || []);
+      (gap.terrains || []).forEach(function(row){
+        panicN += (row.summary && row.summary.zones && row.summary.zones.panic) || 0;
+      });
+    }
+    note.textContent = panicN > 0
+      ? 'Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.'
+      : 'Zone mix by terrain, from this athlete\'s logged sessions. Descriptive only.';
   }
 
   function athleteShareExportStamp(){
@@ -3235,7 +3251,7 @@
           '<div class="insight-panel" id="athlete-gap-panel">' +
             '<div class="insight-panel-head">' +
               '<div class="team-zone-label">Where\'s the gap?</div>' +
-              '<div class="team-zone-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
+              '<div class="team-zone-note" id="athlete-gap-note">Comfort vs panic by terrain, from this athlete\'s logged sessions. Descriptive only.</div>' +
             '</div>' +
             '<div id="athlete-gap-body"><div class="zone-bar-empty">Loading···</div></div>' +
           '</div>' +
@@ -4125,6 +4141,9 @@
       if(volumeEl) volumeEl.innerHTML = renderTrainingVolumePanelHtml(trainingRows);
       if(psycheEl) psycheEl.innerHTML = renderPsycheVolumePanelHtml(checkins, drills);
       if(gapEl) gapEl.innerHTML = renderGapPanelHtml(rows);
+      paintGapSubtitle(rows);
+      paintAthleteLandingStats();
+      paintAthleteSnapshotStamp();
       paintAthleteProjects(climbs, rows);
     }).catch(function(err){
       var msg = '<div class="empty-state" style="color:var(--danger);">Could not load logged sessions. ' +
@@ -4360,6 +4379,7 @@
         if(typeof wireZoneWeekTips === 'function') wireZoneWeekTips(host);
         if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(host);
         if(typeof paintAthleteSnapshotStamp === 'function') paintAthleteSnapshotStamp();
+        if(typeof paintAthleteLandingStats === 'function') paintAthleteLandingStats();
       });
     });
   }

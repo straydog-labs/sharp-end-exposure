@@ -243,6 +243,11 @@ assert.ok(/athlete-gap-panel/.test(dash));
 assert.ok(/open-gym-climbs/.test(dash));
 assert.ok(/js\/coach-athlete-insights\.js/.test(dash));
 assert.ok(/Comfort vs panic by terrain/.test(dash));
+assert.ok(/Zone mix by terrain, from this athlete\\?'s logged sessions. Descriptive only./.test(dash));
+assert.ok(/function paintGapSubtitle/.test(dash));
+assert.ok(/function computeSnapshotTiles/.test(js));
+assert.ok(/computeSnapshotTiles/.test(dash));
+assert.ok(/Panic this week/.test(dash));
 assert.ok(/gapHeadlineModel/.test(dash));
 assert.ok(!/Boulder vs lead/.test(dash));
 assert.ok(!/classifyBoulderVsLead/.test(dash));
@@ -818,5 +823,46 @@ assert.ok(/zone-week-svg/.test(dash));
 assert.ok(/Sessions per week, by zone/.test(dash));
 assert.ok(!/stretch-share/.test(dash));
 assert.ok(!/Stretch share/.test(dash));
+
+const snapEnd = new Date('2026-10-16T12:00:00Z');
+const snapRows = [];
+function pushSnap(iso, zone, extra){
+  snapRows.push(Object.assign({
+    created_at: iso,
+    zone: zone,
+    is_checkin: false,
+    is_baseline: false,
+    climbing_type: 'Vertical'
+  }, extra || {}));
+}
+for (let i = 0; i < 34; i++) pushSnap('2026-10-10T12:00:00Z', 'comfort');
+for (let i = 0; i < 11; i++) pushSnap('2026-10-08T12:00:00Z', 'learning');
+pushSnap('2026-10-12T12:00:00Z', '', {});
+pushSnap('2026-10-12T12:00:00Z', 'learning', { is_checkin: true });
+pushSnap('2026-10-12T12:00:00Z', 'panic', { is_baseline: true });
+pushSnap('2026-06-01T12:00:00Z', 'comfort');
+const snap = CI.computeSnapshotTiles(snapRows, { days: 90, endDate: snapEnd });
+assert.strictEqual(snap.sessions, 45, 'snapshot SESSIONS is 90-day zone-rated climb rows');
+assert.strictEqual(snap.windowLabel, 'Last 90 days');
+assert.strictEqual(snap.percents.comfort, 76);
+assert.strictEqual(snap.percents.learning, 24);
+assert.strictEqual(snap.percents.panic, 0);
+const snapProg = CI.computeProgressSeries(snapRows, { weekCount: 12, endDate: snapEnd });
+assert.strictEqual(snap.sessions, snapProg.sessionCount, 'snapshot SESSIONS equals chart total');
+const stripZones = { comfort: 0, learning: 0, panic: 0 };
+snapProg.zonePoints.forEach(function (p) {
+  stripZones.comfort += p.zones.comfort;
+  stripZones.learning += p.zones.learning;
+  stripZones.panic += p.zones.panic;
+});
+const stripPct = CI.zonePercents(stripZones);
+assert.strictEqual(snap.percents.learning, stripPct.learning, 'snapshot Learning % matches strip');
+assert.strictEqual(snap.percents.comfort, stripPct.comfort);
+assert.strictEqual(snap.percents.panic, stripPct.panic);
+const snapAll = CI.computeSnapshotTiles(snapRows, { days: null, endDate: snapEnd });
+assert.strictEqual(snapAll.windowLabel, 'All time');
+assert.ok(snapAll.sessions > snap.sessions, 'All time includes the June row');
+const snap30 = CI.computeSnapshotTiles(snapRows, { days: 30, endDate: snapEnd });
+assert.strictEqual(snap30.windowLabel, 'Last 30 days');
 
 console.log('coach-athlete-insights tests: ok');
