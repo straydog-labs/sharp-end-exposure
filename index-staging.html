@@ -44,7 +44,10 @@
   --drill-a-dim:rgba(91,163,217,.25);--drill-b-dim:rgba(61,184,201,.25);--drill-c-dim:rgba(107,140,174,.25);
   --drill-a-bg:#0a1520;--drill-b-bg:#081a1b;--drill-c-bg:#0e141c;
   --footer-h:0px;
-  --safe-bottom:0px;
+  --safe-bottom:env(safe-area-inset-bottom, 0px);
+  --log-flow-footer-h:0px;
+  --log-flow-screen-h:calc(100dvh - 52px - env(safe-area-inset-top, 0px));
+  --edit-sheet-footer-h:0px;
   /* legacy vars remapped */
   --rope:#e8763a;--rope-light:#f08c52;
   --ink:#f2ede6;--ink2:#a09890;--ink3:#7a7268;
@@ -656,25 +659,34 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 /* ── LOG FLOW WIZARD (activation-first, build 186+) ── */
 .log-flow-screen{
   padding:16px;
-  min-height:calc(100vh - 52px - env(safe-area-inset-top, 0px));
   flex-direction:column;
   box-sizing:border-box;
-  padding-bottom:120px;
+  min-height:0;
 }
 .screen.active.log-flow-screen{
   display:flex;
-  /* fade uses opacity only — do not add transform here; .log-flow-footer is position:fixed */
+  height:var(--log-flow-screen-h);
+  max-height:var(--log-flow-screen-h);
+  min-height:0;
+  overflow:hidden;
 }
-.log-flow-screen .page-header{margin:-16px -16px 0;padding:0 16px;}
-.log-flow-body{flex:1;max-width:480px;width:100%;margin:0 auto;}
+.log-flow-screen .page-header{margin:-16px -16px 0;padding:0 16px;flex:0 0 auto;}
+.log-flow-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  max-width:480px;
+  width:100%;
+  margin:0 auto;
+}
 .log-flow-footer{
-  position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:0;
+  position:relative;
+  flex:0 0 auto;
   width:100%;
   max-width:640px;
-  padding:0 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  margin:0 auto;
+  padding:8px 0 calc(12px + env(safe-area-inset-bottom, 0px));
   box-sizing:border-box;
   z-index:20;
   background:linear-gradient(to top, var(--bg) 70%, transparent);
@@ -1177,7 +1189,9 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .result-btn.selected-took{background:rgba(232,118,58,.15);border-color:var(--accent);color:var(--accent);}
 .result-btn.selected-practice{background:rgba(94,200,200,.16);border-color:#5ec8c8;color:#5ec8c8;}
 #edit-gauge,#edit-gauge .gauge-dial-target,#edit-gauge .gauge-drag-handle{touch-action:none;}
-#edit-sheet{overscroll-behavior:contain;}
+#edit-sheet{overscroll-behavior:contain;display:none;flex-direction:column;overflow:hidden;padding-bottom:0;min-height:0;box-sizing:border-box;}
+#edit-sheet-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#edit-sheet-footer{flex:0 0 auto;background:var(--surface);padding:12px 0 calc(12px + env(safe-area-inset-bottom, 0px));border-top:1px solid var(--border);}
 
 
 /* ── LOG BTN ── */
@@ -5269,7 +5283,8 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 
 
   <!-- Edit sheet -->
-  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;overflow-y:auto;">
+  <div id="edit-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px;z-index:200;max-width:640px;margin:0 auto;max-height:85vh;">
+    <div id="edit-sheet-body">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-size:16px;font-weight:700;">Edit this climb</div>
       <button onclick="document.getElementById('edit-sheet').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;padding:6px 12px;cursor:pointer;">Close</button>
@@ -5457,10 +5472,13 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
       <button type="button" id="edit-rename-apply" onclick="confirmEditRouteRename(true)" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;padding:14px;cursor:pointer;margin-bottom:8px;">Rename all</button>
       <button type="button" id="edit-rename-keep" onclick="confirmEditRouteRename(false)" style="width:100%;background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:8px;cursor:pointer;">Keep current name</button>
     </div>
+    </div>
+    <div id="edit-sheet-footer">
     <button id="edit-save-changes-btn" onclick="saveEditedClimb()" style="width:100%;background:var(--accent);border:none;border-radius:12px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;padding:16px;cursor:pointer;">Save changes</button>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
       <button onclick="deleteAttempt(this)" style="width:100%;background:none;border:1px solid rgba(232,68,68,.3);border-radius:12px;color:#e84444;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;padding:12px;cursor:pointer;">Delete this attempt</button>
+    </div>
     </div>
   </div>
 
@@ -6019,7 +6037,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index314'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index315'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -7006,6 +7024,45 @@ function routeSignedInHome(){
   }
   showScreen('screen-home');
 }
+function syncLogFlowChrome(){
+  var nav = document.querySelector('.footer-nav');
+  var navH = 0;
+  if(nav && nav.style.display !== 'none'){
+    navH = nav.getBoundingClientRect().height;
+  }
+  var vv = window.visualViewport;
+  var avail = Math.round((vv ? vv.height : window.innerHeight) - navH);
+  if(avail < 160) avail = 160;
+  document.documentElement.style.setProperty('--log-flow-screen-h', avail + 'px');
+  var screen = document.querySelector('.screen.active.log-flow-screen');
+  var footer = screen && screen.querySelector('.log-flow-footer');
+  document.documentElement.style.setProperty('--log-flow-footer-h', footer ? Math.ceil(footer.getBoundingClientRect().height) + 'px' : '0px');
+  var editFooter = document.getElementById('edit-sheet-footer');
+  document.documentElement.style.setProperty('--edit-sheet-footer-h', editFooter ? Math.ceil(editFooter.getBoundingClientRect().height) + 'px' : '0px');
+  var ae = document.activeElement;
+  if(ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT')){
+    var host = null;
+    var cta = null;
+    if(screen && screen.contains(ae)){
+      host = screen.querySelector('.log-flow-body') || screen;
+      cta = footer ? footer.getBoundingClientRect() : null;
+    }
+    var sheet = document.getElementById('edit-sheet');
+    if(sheet && sheet.style.display !== 'none' && sheet.contains(ae)){
+      host = document.getElementById('edit-sheet-body') || sheet;
+      cta = editFooter ? editFooter.getBoundingClientRect() : null;
+    }
+    if(host){
+      var field = ae.getBoundingClientRect();
+      var box = host.getBoundingClientRect();
+      var limit = cta ? cta.top : box.bottom;
+      if(field.bottom > limit - 8 || field.top < box.top + 8){
+        ae.scrollIntoView({ block: 'center' });
+      }
+    }
+  }
+}
+
 function showScreen(id){
   var prev=document.querySelector('.screen.active');
   if(prev){_prevScreen=prev.id;prev.classList.remove('active');}
@@ -7072,6 +7129,7 @@ function showScreen(id){
     if(helpAuthed) helpAuthed.style.display=window._authUser?'block':'none';
     if(helpAnon) helpAnon.style.display=window._authUser?'none':'block';
   }
+  syncLogFlowChrome();
 }
 
 // ── HELPER TIPS (build 195) ───────────────────────────
@@ -8399,6 +8457,7 @@ function selectResult(r){
   if(r!=='sent' && typeof logState === 'object' && logState) logState.tickType = null;
   refreshTickTypeChips(false);
   checkLogReady();
+  syncLogFlowChrome();
 }
 
 function selectTerrain(btn,terrain){
@@ -18292,8 +18351,9 @@ function openEditSheet(){
   var sheet=document.getElementById('edit-sheet');
   if(!sheet)return;
   resetEditRenameConfirm();
-  sheet.style.display='block';
+  sheet.style.display='flex';
   paintEditProjectUi();
+  syncLogFlowChrome();
   // Build grade chips for edit
   var gc=document.getElementById('edit-grade-chips');
   if(gc){
@@ -18433,6 +18493,7 @@ function editSelResult(r){
   }
   if(r!=='sent' && typeof logState === 'object' && logState) logState.tickType = null;
   refreshTickTypeChips(true);
+  syncLogFlowChrome();
 }
 function editSelTerrain(btn,t){
   document.querySelectorAll('#edit-sheet .chip[onclick*="editSelTerrain"]').forEach(function(b){b.classList.remove('selected');});
@@ -29224,6 +29285,12 @@ if(document.readyState === 'complete') registerSEEServiceWorker();
 else window.addEventListener('load', registerSEEServiceWorker);
 
 routeOnLoad();
+syncLogFlowChrome();
+window.addEventListener('resize', syncLogFlowChrome);
+if(window.visualViewport){
+  visualViewport.addEventListener('resize', syncLogFlowChrome);
+  visualViewport.addEventListener('scroll', syncLogFlowChrome);
+}
 
 (function(){
   var PTR_THRESHOLD = 70;   // px of pull required to trigger a refresh
