@@ -228,7 +228,7 @@ assert.ok(/Zone share/.test(html30));
 assert.ok(!/insight-chart-empty/.test(html30.match(/insight-chart-unit[\s\S]*?Zone share[\s\S]*?<\/div>\s*<div class="insight-legend">[\s\S]*?<\/div>\s*<\/div>/) || ['']),
   'Zone share unit is not empty-hidden');
 assert.ok(/<div class="insight-chart-unit">[\s\S]*Zone share/.test(html30));
-assert.ok(/Bouldering/.test(html30) && /Roped climbing/.test(html30));
+assert.ok(/Hardest send by terrain/.test(html30));
 assert.ok((html30.match(/insight-chart-unit/g) || []).length >= 3);
 assert.ok(!/insight-chart-empty/.test(html30), 'typical 30-session athlete has boulder + roped data');
 

@@ -8,7 +8,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.ok(/id="athlete-share-btn"/.test(dash));
-assert.ok(/>Share with athlete</.test(dash));
+assert.ok(/>Print \/ Share</.test(dash));
+assert.ok(/Athlete snapshot/.test(dash));
 assert.ok(/id="athlete-share-block"/.test(dash));
 assert.ok(/athlete-share-print-head/.test(dash));
 assert.ok(/athlete-share-print-name/.test(dash));
@@ -77,7 +78,8 @@ assert.ok(/\.insight-panel\s*\{[\s\S]*?margin:\s*6px 0 0[\s\S]*?padding:\s*8px/.
 
 const shareFn = dash.match(/function shareAthleteLandingPrint\(\)\{[\s\S]*?\n  function showAthleteLanding/);
 assert.ok(shareFn);
-assert.ok(/athleteShareExportStamp/.test(shareFn[0]));
+assert.ok(/paintAthleteSnapshotStamp/.test(shareFn[0]));
+assert.ok(/athleteShareExportStamp/.test(dash));
 assert.ok(/document\.title/.test(shareFn[0]));
 assert.ok(/afterprint/.test(shareFn[0]));
 assert.ok(/shareAthleteLandingPrint/.test(render[0]));
@@ -113,18 +115,20 @@ const ctx = {
 };
 ctx.document.body = { classList: { add: function(){ ctx.added = true; }, remove: function(){ ctx.removed = true; } } };
 
+ctx._terrainVolumeDays = 90;
 vm.createContext(ctx);
 vm.runInContext(
   'function athleteShareExportStamp(){ return "Sep 30, 2026"; }\n' +
-  extractFn(dash, 'shareAthleteLandingPrint', 'showAthleteLanding').replace(
-    /function athleteShareExportStamp[\s\S]*?\n  \}\n\n  function shareAthleteLandingPrint/,
-    'function shareAthleteLandingPrint'
+  extractFn(dash, 'athleteShareRangeLabel', 'showAthleteLanding').replace(
+    /function athleteShareExportStamp[\s\S]*?\n  \}\n\n  function athleteShareRangeLabel/,
+    'function athleteShareRangeLabel'
   ),
   ctx
 );
 vm.runInContext('shareAthleteLandingPrint()', ctx);
 assert.strictEqual(ctx._nameEl.textContent, 'Anna');
-assert.strictEqual(ctx._dateEl.textContent, 'Sep 30, 2026');
+assert.ok(/Sep 30, 2026/.test(ctx._dateEl.textContent));
+assert.ok(/Exported/.test(ctx._dateEl.textContent));
 assert.ok(ctx.window.printed, 'calls window.print');
 assert.ok(ctx.added, 'marks body while printing');
 assert.ok(/Anna — Sep 30, 2026/.test(ctx.document.title));

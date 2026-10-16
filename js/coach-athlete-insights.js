@@ -196,25 +196,52 @@
     };
   }
 
-  function averageGradePoint(list, key, label) {
-    if (!list || !list.length) return { key: key, label: label, rank: null, grade: '' };
-    var sum = 0;
+  function hardestGradePoint(list, key, label) {
+    if (!list || !list.length) return { key: key, label: label, rank: null, grade: '', sent: false };
+    var sends = [];
     var i;
-    for (i = 0; i < list.length; i++) sum += list[i].rank;
-    var avg = sum / list.length;
-    var nearest = list.slice().sort(function (a, b) {
-      return Math.abs(a.rank - avg) - Math.abs(b.rank - avg);
-    })[0];
-    return { key: key, label: label, rank: avg, grade: nearest.grade };
+    for (i = 0; i < list.length; i++) {
+      if (list[i].sent) sends.push(list[i]);
+    }
+    var pool = sends.length ? sends : list;
+    var best = pool[0];
+    for (i = 1; i < pool.length; i++) {
+      if (pool[i].rank > best.rank) best = pool[i];
+    }
+    return {
+      key: key,
+      label: label,
+      rank: best.rank,
+      grade: best.grade,
+      sent: sends.length > 0
+    };
+  }
+
+  function gradeConnectors(points) {
+    var plotted = [];
+    (points || []).forEach(function (p, i) {
+      if (p && p.rank != null) plotted.push(i);
+    });
+    var out = [];
+    for (var i = 0; i < plotted.length - 1; i++) {
+      var a = plotted[i];
+      var b = plotted[i + 1];
+      var gap = b - a - 1;
+      if (gap === 0) out.push({ from: a, to: b, style: 'solid' });
+      else if (gap <= 4) out.push({ from: a, to: b, style: 'dashed' });
+    }
+    return out;
   }
 
   function seriesFromTerrainBuckets(weeks, byWeek, field) {
     return TERRAIN_TYPES.map(function (terrain) {
       var points = weeks.map(function (k) {
         var list = (byWeek[k][field] && byWeek[k][field][terrain]) || [];
-        return averageGradePoint(list, k, byWeek[k].label);
+        return hardestGradePoint(list, k, byWeek[k].label);
       });
-      return { terrain: terrain, points: points };
+      var plotted = 0;
+      points.forEach(function (p) { if (p.rank != null) plotted += 1; });
+      return { terrain: terrain, points: points, plotted: plotted };
     }).filter(function (series) {
       return series.points.some(function (p) { return p.rank != null; });
     });
@@ -351,7 +378,11 @@
         var br = boulderGradeRank(row.grade_value);
         if (br == null) return;
         if (!bucket.boulderByTerrain[terrain]) bucket.boulderByTerrain[terrain] = [];
-        bucket.boulderByTerrain[terrain].push({ grade: String(row.grade_value).trim(), rank: br });
+        bucket.boulderByTerrain[terrain].push({
+          grade: String(row.grade_value).trim(),
+          rank: br,
+          sent: sentFlag(row) === true
+        });
         return;
       }
       if (family !== 'roped') return;
@@ -360,7 +391,11 @@
       var rr = ropedGradeRank(row.grade_value, dominantSystem);
       if (rr == null) return;
       if (!bucket.ropedByTerrain[terrain]) bucket.ropedByTerrain[terrain] = [];
-      bucket.ropedByTerrain[terrain].push({ grade: String(row.grade_value).trim(), rank: rr });
+      bucket.ropedByTerrain[terrain].push({
+        grade: String(row.grade_value).trim(),
+        rank: rr,
+        sent: sentFlag(row) === true
+      });
     });
 
     var zonePoints = weeks.map(function (k) {
@@ -911,15 +946,209 @@
 
     (sessions || []).forEach(addRow);
     var used = TERRAIN_TYPES.filter(function (t) { return counts[t] > 0; });
+    var notLogged = TERRAIN_TYPES.filter(function (t) { return counts[t] === 0; });
     var total = 0;
     used.forEach(function (t) { total += counts[t]; });
+    var sorted = used.slice().sort(function (a, b) {
+      if (counts[b] !== counts[a]) return counts[b] - counts[a];
+      return a.localeCompare(b);
+    }).map(function (t) {
+      var n = counts[t];
+      return {
+        terrain: t,
+        count: n,
+        share: total ? Math.round((n / total) * 100) : 0
+      };
+    });
     return {
       counts: counts,
       used: used,
       usedCount: used.length,
+      notLogged: notLogged,
+      sorted: sorted,
       total: total,
       days: days,
-      mode: used.length === 0 ? 'empty' : (used.length < 3 ? 'bars' : 'radar')
+      unit: 'Climbs logged',
+      mode: used.length === 0 ? 'empty' : 'bars'
+    };
+  }
+
+  function includedClimbRows(sessions) {
+    return (sessions || []).filter(function (row) {
+      return isClimbSession(row) && !isFallPracticeRow(row);
+    });
+  }
+
+  function hardestSendAmong(rows) {
+    var best = null;
+    (rows || []).forEach(function (row) {
+      if (sentFlag(row) !== true) return;
+      var r = gradeRank(row.grade_value);
+      if (r == null) return;
+      if (!best || r > best.rank) {
+        best = {
+          grade: String(row.grade_value).trim(),
+          rank: r,
+          terrain: normalizeTerrainType(row.climbing_type) || '',
+          created_at: row.created_at || ''
+        };
+      }
+    });
+    return best;
+  }
+
+  function fallsPerTen(rows) {
+    var attempts = 0;
+    var falls = 0;
+    (rows || []).forEach(function (row) {
+      if (!isClimbSession(row) || isFallPracticeRow(row)) return;
+      attempts += 1;
+      if (String(row.baseline_zone || '').trim().toLowerCase() === 'fell') falls += 1;
+    });
+    return {
+      attempts: attempts,
+      falls: falls,
+      rate: attempts ? (falls / attempts) * 10 : null
+    };
+  }
+
+  function rowsInLastDays(rows, days, endDate) {
+    var end = endDate ? new Date(endDate) : new Date();
+    var start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
+    return (rows || []).filter(function (row) {
+      var t = new Date(row.created_at || '');
+      return !isNaN(t.getTime()) && t >= start && t <= end;
+    });
+  }
+
+  function computeCoachRead(sessions, opts) {
+    opts = opts || {};
+    var endDate = opts.endDate || new Date();
+    var vol = computeTerrainVolume(sessions, { days: opts.days, endDate: endDate });
+    var rows = includedClimbRows(sessions).filter(function (row) {
+      return rowInTerrainWindow(row, opts.days, endDate);
+    });
+    if (rows.length < 3) {
+      return { lines: ['Not enough data yet'], enough: false };
+    }
+    var lines = [];
+    if (vol.sorted.length) {
+      var mix = vol.sorted.map(function (row, i) {
+        if (i === 0) return row.share + '% of logged climbs are ' + row.terrain;
+        return row.terrain + ' ' + row.share + '%';
+      }).join('; ');
+      if (vol.notLogged.length) mix += '; not logged yet: ' + vol.notLogged.join(', ');
+      lines.push(mix);
+    }
+    var allRows = includedClimbRows(sessions);
+    var recent = rowsInLastDays(allRows, 28, endDate);
+    var prior = rowsInLastDays(allRows, 56, endDate).filter(function (row) {
+      var t = new Date(row.created_at || '');
+      return t < new Date(endDate.getTime() - 28 * 24 * 60 * 60 * 1000);
+    });
+    var recentBest = hardestSendAmong(recent);
+    var priorBest = hardestSendAmong(prior);
+    if (recentBest) {
+      var sendLine = 'Hardest send in the last 4 weeks: ' + recentBest.grade;
+      if (recentBest.terrain) sendLine += ' on ' + recentBest.terrain;
+      if (priorBest) {
+        if (recentBest.rank > priorBest.rank) sendLine += ', up from ' + priorBest.grade;
+        else if (recentBest.rank < priorBest.rank) sendLine += ', down from ' + priorBest.grade;
+        else sendLine += ', same as the prior 4 weeks';
+      }
+      lines.push(sendLine);
+    }
+    var fallBest = null;
+    TERRAIN_TYPES.forEach(function (terrain) {
+      var onT = rows.filter(function (row) {
+        return normalizeTerrainType(row.climbing_type) === terrain;
+      });
+      var stats = fallsPerTen(onT);
+      if (stats.attempts < 5 || stats.rate == null) return;
+      if (!fallBest || stats.rate > fallBest.rate) {
+        fallBest = { terrain: terrain, rate: stats.rate, attempts: stats.attempts };
+      }
+    });
+    if (fallBest) {
+      var shown = fallBest.rate % 1 === 0 ? String(fallBest.rate) : fallBest.rate.toFixed(1);
+      lines.push(fallBest.terrain + ' has the highest falls per 10 attempts (' + shown + ')');
+    }
+    if (!lines.length) return { lines: ['Not enough data yet'], enough: false };
+    return { lines: lines.slice(0, 3), enough: true };
+  }
+
+  function computeTerrainScoreboard(sessions, opts) {
+    opts = opts || {};
+    var endDate = opts.endDate || new Date();
+    var vol = computeTerrainVolume(sessions, { days: opts.days, endDate: endDate });
+    var rows = includedClimbRows(sessions).filter(function (row) {
+      return rowInTerrainWindow(row, opts.days, endDate);
+    });
+    var recentCut = new Date(endDate.getTime() - 28 * 24 * 60 * 60 * 1000);
+    var board = vol.sorted.map(function (item) {
+      var onT = rows.filter(function (row) {
+        return normalizeTerrainType(row.climbing_type) === item.terrain;
+      });
+      var fall = fallsPerTen(onT);
+      var zones = emptyZoneCounts();
+      onT.forEach(function (row) { addZone(zones, row.zone); });
+      var pct = zonePercents(zones);
+      var send = hardestSendAmong(onT);
+      var recentN = 0;
+      var priorN = 0;
+      onT.forEach(function (row) {
+        var t = new Date(row.created_at || '');
+        if (isNaN(t.getTime())) return;
+        if (t >= recentCut) recentN += 1;
+        else if (t >= new Date(endDate.getTime() - 56 * 24 * 60 * 60 * 1000)) priorN += 1;
+      });
+      var delta = recentN - priorN;
+      var trend = delta > 0 ? 'up' : (delta < 0 ? 'down' : 'flat');
+      var enough = onT.length >= 5;
+      return {
+        terrain: item.terrain,
+        climbs: item.count,
+        share: item.share,
+        hardestSend: send ? send.grade : '',
+        fallsPerTen: enough ? fall.rate : null,
+        zones: enough ? pct : null,
+        trend: enough ? trend : null,
+        trendDelta: enough ? delta : null
+      };
+    });
+    return { rows: board, notLogged: vol.notLogged, total: vol.total };
+  }
+
+  function computeHighlights(sessions, opts) {
+    opts = opts || {};
+    var endDate = opts.endDate || new Date();
+    var rows = includedClimbRows(sessions);
+    var send = hardestSendAmong(rows);
+    var vol = computeTerrainVolume(sessions, { days: opts.days, endDate: endDate });
+    var mostTerrain = vol.sorted[0] || null;
+    var weeks = {};
+    rows.forEach(function (row) {
+      var t = new Date(row.created_at || '');
+      if (isNaN(t.getTime())) return;
+      var key = weekKey(t);
+      weeks[key] = (weeks[key] || 0) + 1;
+    });
+    var activeKey = '';
+    var activeN = 0;
+    Object.keys(weeks).forEach(function (k) {
+      if (weeks[k] > activeN) {
+        activeN = weeks[k];
+        activeKey = k;
+      }
+    });
+    return {
+      hardestSend: send ? {
+        grade: send.grade,
+        terrain: send.terrain,
+        date: send.created_at ? formatWeekLabel(weekKey(new Date(send.created_at))) : ''
+      } : null,
+      mostClimbed: mostTerrain ? { terrain: mostTerrain.terrain, share: mostTerrain.share } : null,
+      mostActiveWeek: activeKey ? { sessions: activeN, week: formatWeekLabel(activeKey) } : null
     };
   }
 
@@ -944,12 +1173,17 @@
     ropedDisciplineMatches: ropedDisciplineMatches,
     dominantRopedSystem: dominantRopedSystem,
     gradeAxisFromSeries: gradeAxisFromSeries,
+    hardestGradePoint: hardestGradePoint,
+    gradeConnectors: gradeConnectors,
     normalizeTerrainType: normalizeTerrainType,
     computeProgressSeries: computeProgressSeries,
     computeTrainingVolumeSeries: computeTrainingVolumeSeries,
     computePsycheVolumeSeries: computePsycheVolumeSeries,
     computeGapDiagnostic: computeGapDiagnostic,
     computeTerrainVolume: computeTerrainVolume,
+    computeCoachRead: computeCoachRead,
+    computeTerrainScoreboard: computeTerrainScoreboard,
+    computeHighlights: computeHighlights,
     gapHeadlineModel: gapHeadlineModel,
     parseGymClimbsCsv: parseGymClimbsCsv,
     validateGymClimbRow: validateGymClimbRow,

@@ -202,7 +202,17 @@
     font-size:12px;font-weight:700;cursor:pointer;line-height:1.2;flex-shrink:0;
   }
   .athlete-share-btn:hover{border-color:var(--accent);background:rgba(232,146,82,.08);}
-  .athlete-share-print-head{display:none;}
+  .athlete-share-print-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    margin:0 0 12px;padding:0 0 10px;border-bottom:1px solid var(--border);
+  }
+  .athlete-snapshot-kicker{
+    font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:4px;
+  }
+  .coach-read{margin:0 0 12px;}
+  .coach-read p{font-size:13px;line-height:1.45;margin:6px 0 0;color:var(--text);}
+  .insight-legend-note{font-size:11.5px;color:var(--text-secondary);margin-top:6px;line-height:1.4;}
   .detail-section{margin-bottom:20px;}
   .detail-section:last-child{margin-bottom:0;}
   .detail-back{
@@ -424,11 +434,18 @@
     font-size:12.5px;font-weight:600;cursor:pointer;
   }
   .roped-filter button.selected,.terrain-volume-range button.selected{border-color:var(--accent);color:var(--accent);}
-  .terrain-volume-bar{display:flex;align-items:center;gap:8px;margin:6px 0;}
-  .terrain-volume-bar-label{width:84px;font-size:12px;font-weight:700;}
-  .terrain-volume-bar-track{flex:1;height:10px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;}
+  .terrain-volume-bar{display:flex;align-items:center;gap:8px;margin:3px 0;min-width:0;}
+  .terrain-volume-bar-label{width:72px;flex-shrink:0;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .terrain-volume-bar-track{flex:1;min-width:0;height:8px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;}
   .terrain-volume-bar-fill{height:100%;background:var(--accent);border-radius:999px;}
-  .terrain-volume-bar-n{width:28px;font-size:12px;font-weight:700;text-align:right;}
+  .terrain-volume-bar-n{flex-shrink:0;width:auto;min-width:64px;font-size:12px;font-weight:700;text-align:right;white-space:nowrap;color:var(--text);}
+  .terrain-volume-unit-label{font-size:12px;color:var(--text-secondary);margin:0 0 4px;}
+  .terrain-volume-not-logged{font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4;}
+  .terrain-volume-unit .insight-chart-help{margin:6px 0 4px;}
+  .terrain-volume-unit .terrain-volume-range{margin:4px 0 6px;}
+  @media (min-width:1100px){
+    .terrain-volume-unit{max-height:240px;}
+  }
   .project-row{
     display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;min-width:0;
     padding:10px 0;border-bottom:1px solid var(--border);
@@ -1223,6 +1240,10 @@
     }
     .athlete-share-print-name { font-size: 20px; font-weight: 700; color: #111; letter-spacing: -.02em; }
     .athlete-share-print-date { font-size: 12px; color: #555; margin-top: 2px; }
+    .athlete-snapshot-kicker { color: #555 !important; }
+    .coach-read, .coach-read p { color: #111 !important; }
+    .insight-legend-note, .terrain-volume-unit-label, .terrain-volume-not-logged { color: #555 !important; }
+    .terrain-volume-bar-n { color: #111 !important; }
     .team-zone-note, .team-zone-label, .roster-stat-label, .insight-chart-title, .insight-legend, .progress-week-lbl {
       color: #555 !important;
     }
@@ -2939,15 +2960,27 @@
     });
   }
 
-  function shareAthleteLandingPrint(){
-    var block = document.getElementById('athlete-share-block');
-    if(!block) return;
+  function athleteShareRangeLabel(){
+    if(_terrainVolumeDays == null) return 'All time';
+    return 'Last ' + _terrainVolumeDays + ' days';
+  }
+
+  function paintAthleteSnapshotStamp(){
     var nameEl = document.getElementById('athlete-share-print-name');
     var dateEl = document.getElementById('athlete-share-print-date');
     var name = (_detailCtx && _detailCtx.athleteLabel) || 'Athlete';
     var stamp = athleteShareExportStamp();
     if(nameEl) nameEl.textContent = name;
-    if(dateEl) dateEl.textContent = stamp;
+    if(dateEl) dateEl.textContent = 'Exported ' + stamp + ' · ' + athleteShareRangeLabel() + ' · 12-week charts';
+    return { name: name, stamp: stamp };
+  }
+
+  function shareAthleteLandingPrint(){
+    var block = document.getElementById('athlete-share-block');
+    if(!block) return;
+    var painted = paintAthleteSnapshotStamp();
+    var name = painted.name;
+    var stamp = painted.stamp;
     var prevTitle = document.title;
     document.title = name + ' — ' + stamp;
     document.body.classList.add('coach-printing');
@@ -3056,7 +3089,7 @@
             '<div class="detail-title">' + escapeHtml(title) + '</div>' +
             sub +
           '</div>' +
-          '<button type="button" class="athlete-share-btn" id="athlete-share-btn">Share with athlete</button>' +
+          '<button type="button" class="athlete-share-btn" id="athlete-share-btn">Print / Share</button>' +
         '</div>' +
         '<div class="see-card-grid" id="athlete-hub-cards">' +
           athleteHubCardHtml('assignments', 'Plan', 'Assignments', 'hub-assign-sub', 'Open plans') +
@@ -3071,10 +3104,13 @@
           '<span><span>Log a climb</span><span class="assign-launch-sub">Drag the dial, then save</span></span>' +
           '<span class="assign-launch-arrow">→</span>' +
         '</button>' +
-        '<div id="athlete-share-block">' +
+        '<div id="athlete-share-block" class="athlete-snapshot">' +
           '<div class="athlete-share-print-head">' +
-            '<div class="athlete-share-print-name" id="athlete-share-print-name">' + escapeHtml(title) + '</div>' +
-            '<div class="athlete-share-print-date" id="athlete-share-print-date"></div>' +
+            '<div>' +
+              '<div class="athlete-snapshot-kicker">Athlete snapshot</div>' +
+              '<div class="athlete-share-print-name" id="athlete-share-print-name">' + escapeHtml(title) + '</div>' +
+              '<div class="athlete-share-print-date" id="athlete-share-print-date"></div>' +
+            '</div>' +
           '</div>' +
           '<div class="roster-stats">' +
             '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-sessions">—</div><div class="roster-stat-label">Sessions</div></div>' +
@@ -3132,6 +3168,7 @@
 
     paintAthleteLandingStats();
     paintAthleteHubBadges();
+    paintAthleteSnapshotStamp();
 
     document.getElementById('athlete-subview-back').addEventListener('click', showAthleteLanding);
     var logLaunch = document.getElementById('coach-log-launch');
@@ -4020,21 +4057,28 @@
     });
   }
 
-  function insightSvgPolyline(points, color){
+  function insightSvgPolyline(points, color, dashed){
     if(!points || points.length < 2) return '';
-    return '<polyline fill="none" stroke="' + color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" points="' +
-      points.map(function(p){ return p.x + ',' + p.y; }).join(' ') + '"/>';
+    return '<polyline fill="none" stroke="' + color + '" stroke-width="' + (dashed ? '1.2' : '2.2') +
+      '" stroke-linejoin="round" stroke-linecap="round"' +
+      (dashed ? ' stroke-dasharray="4 4"' : '') +
+      ' points="' + points.map(function(p){ return p.x + ',' + p.y; }).join(' ') + '"/>';
   }
 
-  function insightSvgDots(points, color){
-    return (points || []).map(function(p){
-      return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + color + '"></circle>';
+  function insightSvgDots(points, color, filledFlags){
+    return (points || []).map(function(p, i){
+      var filled = !filledFlags || filledFlags[i] !== false;
+      if(filled){
+        return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + color + '"></circle>';
+      }
+      return '<circle class="insight-dot-hollow" cx="' + p.x + '" cy="' + p.y +
+        '" r="3" fill="none" stroke="' + color + '" stroke-width="1.6"></circle>';
     }).join('');
   }
 
   function renderSharedAxisSvg(seriesList, yMin, yMax, yTicks, width, height){
     var padL = 36;
-    var padR = 10;
+    var padR = 32;
     var padT = 8;
     var padB = 22;
     var innerW = width - padL - padR;
@@ -4057,22 +4101,48 @@
     }).join('');
     var labels = seriesList[0].xs.map(function(label, i){
       if(i !== 0 && i !== n - 1 && i % 2 !== 0) return '';
-      return '<text x="' + xAt(i) + '" y="' + (height - 6) + '" text-anchor="middle" fill="#a8a8a8" font-size="9">' +
+      var anchor = i === 0 ? 'start' : (i === n - 1 ? 'end' : 'middle');
+      return '<text class="insight-x-tick" data-x-index="' + i + '" x="' + xAt(i) + '" y="' + (height - 6) +
+        '" text-anchor="' + anchor + '" fill="#a8a8a8" font-size="9">' +
         escapeHtml(label) + '</text>';
     }).join('');
     var lines = seriesList.map(function(s){
+      if(s.dashedGaps){
+        var plotted = [];
+        s.values.forEach(function(v, i){
+          if(v == null) return;
+          plotted.push({
+            i: i,
+            x: xAt(i).toFixed(1),
+            y: yAt(v).toFixed(1),
+            filled: !s.fills || s.fills[i] !== false
+          });
+        });
+        var segs = '';
+        var pi;
+        for(pi = 0; pi < plotted.length - 1; pi++){
+          var gap = plotted[pi + 1].i - plotted[pi].i - 1;
+          if(gap === 0) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, false);
+          else if(gap <= 4) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, true);
+        }
+        return segs + plotted.map(function(p){
+          return insightSvgDots([p], s.color, [p.filled]);
+        }).join('');
+      }
       var pts = [];
       var chunks = [];
+      var chunkFills = [];
       s.values.forEach(function(v, i){
         if(v == null){
-          if(pts.length){ chunks.push(pts); pts = []; }
+          if(pts.length){ chunks.push({ pts: pts, fills: chunkFills }); pts = []; chunkFills = []; }
           return;
         }
         pts.push({ x: xAt(i).toFixed(1), y: yAt(v).toFixed(1) });
+        chunkFills.push(!s.fills || s.fills[i] !== false);
       });
-      if(pts.length) chunks.push(pts);
+      if(pts.length) chunks.push({ pts: pts, fills: chunkFills });
       return chunks.map(function(ch){
-        return insightSvgDots(ch, s.color) + insightSvgPolyline(ch, s.color);
+        return insightSvgDots(ch.pts, s.color, ch.fills) + insightSvgPolyline(ch.pts, s.color);
       }).join('');
     }).join('');
     return '<svg class="insight-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img">' +
@@ -4103,7 +4173,9 @@
         return {
           color: TERRAIN_LINE_COLOR[s.terrain] || 'var(--accent)',
           xs: labels,
-          values: s.points.map(function(p){ return p.rank; })
+          values: s.points.map(function(p){ return p.rank; }),
+          fills: s.points.map(function(p){ return !!p.sent; }),
+          dashedGaps: true
         };
       }), axis.lo, axis.hi, axis.ticks, 720, 176) +
       '<div class="insight-legend">' + seriesList.map(function(s){
@@ -4111,6 +4183,7 @@
           (TERRAIN_LINE_COLOR[s.terrain] || 'var(--accent)') + '"></span>' +
           escapeHtml(s.terrain) + '</span>';
       }).join('') + '</div>' +
+      '<div class="insight-legend-note">Filled = send · hollow = attempt only · dashed = weeks without a log</div>' +
       (extraNote || '') +
     '</div>';
   }
@@ -4158,11 +4231,22 @@
         host.innerHTML = renderProgressPanelHtml(rows);
         wireRopedDisciplineChips();
         wireTerrainVolumeChips();
+        if(typeof paintAthleteSnapshotStamp === 'function') paintAthleteSnapshotStamp();
       });
     });
   }
 
   var _terrainVolumeTestRows = null;
+
+  function renderCoachReadHtml(read){
+    var lines = (read && read.lines && read.lines.length) ? read.lines : ['Not enough data yet'];
+    return '<div class="coach-read" id="athlete-coach-read">' +
+      '<div class="team-zone-label">Coach read</div>' +
+      lines.map(function(line){
+        return '<p>' + escapeHtml(line) + '</p>';
+      }).join('') +
+    '</div>';
+  }
 
   function renderTerrainVolumeHtml(sessions){
     var CI = window.CoachInsights;
@@ -4184,74 +4268,33 @@
       'Terrain volume',
       'Count of logged climbs per terrain in the selected window. Fall practice rows are excluded. Descriptive only.'
     );
+    var unitHtml = '<div class="terrain-volume-unit-label" data-terrain-unit="' +
+      escapeHtml(vol.unit || 'Climbs logged') + '">' + escapeHtml(vol.unit || 'Climbs logged') + '</div>';
+    var notLoggedHtml = (vol.notLogged && vol.notLogged.length)
+      ? '<div class="terrain-volume-not-logged" data-not-logged="' + escapeHtml(vol.notLogged.join(', ')) +
+        '">Not logged yet: ' + escapeHtml(vol.notLogged.join(', ')) + '</div>'
+      : '';
     if(vol.mode === 'empty'){
       return '<div class="insight-chart-unit terrain-volume-unit insight-chart-empty" data-terrain-volume="empty">' +
-        title + chipHtml +
+        title + chipHtml + unitHtml +
         '<div class="empty-state">No terrain-tagged climbs in this window.</div>' +
+        notLoggedHtml +
       '</div>';
     }
-    if(vol.mode === 'bars'){
-      var max = 1;
-      vol.used.forEach(function(t){ if(vol.counts[t] > max) max = vol.counts[t]; });
-      var bars = vol.used.map(function(t){
-        var n = vol.counts[t];
-        var pct = Math.round((n / max) * 100);
-        return '<div class="terrain-volume-bar" data-terrain="' + escapeHtml(t) + '" data-count="' + n + '" title="' +
-          escapeHtml(t) + ' ' + n + '">' +
-          '<div class="terrain-volume-bar-label">' + escapeHtml(t) + '</div>' +
-          '<div class="terrain-volume-bar-track"><div class="terrain-volume-bar-fill" style="width:' + pct + '%"></div></div>' +
-          '<div class="terrain-volume-bar-n">' + n + '</div>' +
-        '</div>';
-      }).join('');
-      return '<div class="insight-chart-unit terrain-volume-unit" data-terrain-volume="bars">' +
-        title + chipHtml + bars + '</div>';
-    }
-    var axes = CI.TERRAIN_TYPES.map(function(t){ return { key: t, label: t, n: vol.counts[t] || 0 }; });
-    var scale = 1;
-    axes.forEach(function(a){ if(a.n > scale) scale = a.n; });
-    var cx = 170, cy = 158, maxR = 70;
-    var n = axes.length;
-    var angleStep = (2 * Math.PI) / n;
-    var startAngle = -Math.PI / 2;
-    function axisPoint(i, r){
-      var angle = startAngle + i * angleStep;
-      return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-    }
-    var rings = [0.25, 0.5, 0.75, 1.0];
-    var ringHtml = rings.map(function(r){
-      var pts = axes.map(function(_, i){ var p = axisPoint(i, maxR * r); return p.x + ',' + p.y; }).join(' ');
-      return '<polygon points="' + pts + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/>';
+    var max = 1;
+    (vol.sorted || []).forEach(function(row){ if(row.count > max) max = row.count; });
+    var bars = (vol.sorted || []).map(function(row){
+      var pct = Math.round((row.count / max) * 100);
+      return '<div class="terrain-volume-bar" data-terrain="' + escapeHtml(row.terrain) +
+        '" data-count="' + row.count + '" data-share="' + row.share + '" title="' +
+        escapeHtml(row.terrain) + ' ' + row.count + ' · ' + row.share + '%">' +
+        '<div class="terrain-volume-bar-label">' + escapeHtml(row.terrain) + '</div>' +
+        '<div class="terrain-volume-bar-track"><div class="terrain-volume-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="terrain-volume-bar-n">' + row.count + ' · ' + row.share + '%</div>' +
+      '</div>';
     }).join('');
-    var axisHtml = axes.map(function(_, i){
-      var p = axisPoint(i, maxR);
-      return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p.x + '" y2="' + p.y + '" stroke="rgba(255,255,255,.08)" stroke-width="1"/>';
-    }).join('');
-    var dataPoints = axes.map(function(a, i){
-      return axisPoint(i, maxR * Math.max(0.06, a.n / scale));
-    });
-    var polyPts = dataPoints.map(function(p){ return p.x + ',' + p.y; }).join(' ');
-    var polyHtml = '<polygon points="' + polyPts + '" fill="var(--accent)" fill-opacity=".15" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>';
-    var dotHtml = dataPoints.map(function(p, i){
-      return '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="5" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5" title="' +
-        escapeHtml(axes[i].label) + ' ' + axes[i].n + '"></circle>';
-    }).join('');
-    var labelHtml = axes.map(function(a, i){
-      var p = axisPoint(i, maxR + 30);
-      var anchor = 'middle';
-      var x = p.x;
-      var y = p.y;
-      if(p.x < cx - 20){ anchor = 'end'; x = Math.max(8, p.x); }
-      else if(p.x > cx + 20){ anchor = 'start'; x = Math.min(332, p.x); }
-      else { y = p.y < cy ? p.y + 2 : p.y + 4; }
-      return '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anchor +
-        '" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)" data-terrain="' +
-        escapeHtml(a.label) + '" data-count="' + a.n + '">' + escapeHtml(a.label) + ' ' + a.n + '</text>';
-    }).join('');
-    return '<div class="insight-chart-unit terrain-volume-unit" data-terrain-volume="radar">' +
-      title + chipHtml +
-      '<svg class="insight-svg terrain-volume-radar" width="100%" viewBox="0 0 340 320" role="img">' +
-        ringHtml + axisHtml + polyHtml + dotHtml + labelHtml +
-      '</svg></div>';
+    return '<div class="insight-chart-unit terrain-volume-unit" data-terrain-volume="bars">' +
+      title + chipHtml + unitHtml + bars + notLoggedHtml + '</div>';
   }
 
   function renderProgressPanelHtml(sessions){
@@ -4260,10 +4303,14 @@
       weekCount: 12,
       ropedDiscipline: _ropedDisciplineFilter || 'all'
     });
+    var volumeDays = (typeof _terrainVolumeDays !== 'undefined') ? _terrainVolumeDays : null;
+    var coachReadHtml = (CI.computeCoachRead && typeof renderCoachReadHtml === 'function')
+      ? renderCoachReadHtml(CI.computeCoachRead(sessions, { days: volumeDays }))
+      : '';
     if(!series.hasZoneTrend && !series.hasBoulderGradeTrend && !series.hasRopedGradeTrend && !series.hasGradeTrend){
       var terrainOnly = (typeof renderTerrainVolumeHtml === 'function') ? renderTerrainVolumeHtml(sessions) : '';
-      if(terrainOnly) return terrainOnly;
-      return '<div class="empty-state">No logged climb sessions in the last 12 weeks.</div>';
+      if(terrainOnly) return coachReadHtml + terrainOnly;
+      return coachReadHtml + '<div class="empty-state">No logged climb sessions in the last 12 weeks.</div>';
     }
     var weekBars = '<div class="progress-week-bars" aria-hidden="true">' +
       series.zonePoints.map(function(p){
@@ -4324,27 +4371,27 @@
     }
 
     var boulderSvg = renderGradeFamilyChartHtml(
-      'Bouldering',
+      'Hardest send by terrain — V-scale',
       series.boulderGradeSeries,
       series.boulderAxis,
       series.labels,
       boulderEmpty,
       '',
       '',
-      'The athlete\'s logged bouldering grade over time, plotted by terrain type. A gap in a line means nothing was logged on that terrain that week — not a drop in ability.'
+      'Hardest send each week on that terrain, on the V-scale. A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.'
     );
     var ropedSvg = renderGradeFamilyChartHtml(
-      'Roped climbing',
+      'Hardest send by terrain — ' + (series.ropedSystemLabel || 'roped grades'),
       series.ropedGradeSeries,
       series.ropedAxis,
       series.labels,
       ropedEmpty,
       ropedFilterChipsHtml(series.ropedDiscipline),
       offNote,
-      'The athlete\'s logged roped-climbing grade over time, plotted by terrain type, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A gap in a line means nothing was logged on that terrain (or in that discipline) that week — not a drop in ability.'
+      'Hardest send each week on that terrain, on this athlete\'s usual roped grade scale, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.'
     );
 
-    return '<div class="form-note">' + series.sessionCount +
+    return coachReadHtml + '<div class="form-note">' + series.sessionCount +
       (series.sessionCount === 1 ? ' logged session' : ' logged sessions') +
       ' in this window.</div>' +
       weekBars + zoneSvg + boulderSvg + ropedSvg +
@@ -7922,10 +7969,40 @@
     },
     counts: function(){
       var out = {};
-      Array.prototype.forEach.call(document.querySelectorAll('#terrain-volume-test-host [data-terrain][data-count]'), function(n){
+      Array.prototype.forEach.call(document.querySelectorAll('#terrain-volume-test-host .terrain-volume-bar[data-terrain][data-count]'), function(n){
         out[n.getAttribute('data-terrain')] = parseInt(n.getAttribute('data-count'), 10);
       });
       return out;
+    },
+    barOrder: function(){
+      return Array.prototype.map.call(document.querySelectorAll('#terrain-volume-test-host .terrain-volume-bar[data-terrain]'), function(n){
+        return n.getAttribute('data-terrain');
+      });
+    },
+    unit: function(){
+      var el = document.querySelector('#terrain-volume-test-host [data-terrain-unit]');
+      return el ? el.getAttribute('data-terrain-unit') : '';
+    },
+    notLogged: function(){
+      var el = document.querySelector('#terrain-volume-test-host [data-not-logged]');
+      return el ? el.getAttribute('data-not-logged') : '';
+    },
+    coachRead: function(){
+      var el = document.querySelector('#terrain-volume-test-host #athlete-coach-read');
+      return el ? el.innerText : '';
+    },
+    lastXTick: function(){
+      var ticks = document.querySelectorAll('#terrain-volume-test-host svg.insight-svg text.insight-x-tick');
+      if(!ticks.length) return null;
+      var last = ticks[ticks.length - 1];
+      var svg = last.closest('svg');
+      var vb = (svg.getAttribute('viewBox') || '0 0 720 176').split(/\s+/).map(Number);
+      return {
+        text: last.textContent,
+        x: parseFloat(last.getAttribute('x')),
+        anchor: last.getAttribute('text-anchor'),
+        viewW: vb[2]
+      };
     }
   };
 
