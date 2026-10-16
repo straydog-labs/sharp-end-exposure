@@ -6521,12 +6521,17 @@ function normalizeTickType(v){
 function tickHistoryLoaded(){
   return Array.isArray(window._cachedClimbs);
 }
-function climbHasPriorAttempt(climbId, excludeSessId){
+function sessionAttemptMs(s){
+  if(!s) return NaN;
+  return Date.parse(s.created_at || '');
+}
+function climbHasPriorAttempt(climbId, excludeSessId, beforeMs){
   if(!climbId) return false;
   if(!tickHistoryLoaded()) return false;
   var lists = [window._cachedClimbs, window._cachedSessions, window._rhSessions];
   var seen = {};
-  var i, j, s, arr;
+  var i, j, s, arr, ms;
+  var cutoff = (beforeMs != null && isFinite(beforeMs)) ? beforeMs : null;
   for(i = 0; i < lists.length; i++){
     arr = lists[i];
     if(!Array.isArray(arr)) continue;
@@ -6536,6 +6541,10 @@ function climbHasPriorAttempt(climbId, excludeSessId){
       if(s.deleted_at) continue;
       if(s.is_baseline || s.is_checkin) continue;
       if(excludeSessId && s.id === excludeSessId) continue;
+      if(cutoff != null){
+        ms = sessionAttemptMs(s);
+        if(!isFinite(ms) || ms >= cutoff) continue;
+      }
       if(s.id){
         if(seen[s.id]) continue;
         seen[s.id] = true;
@@ -6550,8 +6559,8 @@ function sessionAllowsTickType(){
   if(logState.is_baseline || logState.is_checkin) return false;
   return logState.result === 'sent';
 }
-function visibleTickTypes(climbId, excludeSessId){
-  if(climbHasPriorAttempt(climbId, excludeSessId)) return ['redpoint'];
+function visibleTickTypes(climbId, excludeSessId, beforeMs){
+  if(climbHasPriorAttempt(climbId, excludeSessId, beforeMs)) return ['redpoint'];
   return TICK_TYPES.slice();
 }
 function refreshTickTypeChips(isEdit){
@@ -6566,7 +6575,8 @@ function refreshTickTypeChips(isEdit){
     ? (logState && logState._editClimbId)
     : (typeof _selectedClimbId !== 'undefined' ? _selectedClimbId : null);
   var exclude = isEdit ? (logState && logState.sessId) : null;
-  var visible = visibleTickTypes(climbId, exclude);
+  var beforeMs = isEdit ? sessionAttemptMs({ created_at: logState && logState._editCreatedAt }) : null;
+  var visible = visibleTickTypes(climbId, exclude, beforeMs);
   var selected = logState && logState.tickType;
   TICK_TYPES.forEach(function(t){
     var el = document.getElementById((isEdit ? 'edit-btn-tick-' : 'btn-tick-') + t);
@@ -21720,6 +21730,7 @@ function editClimbFromLog(sessId, origin){
   logState._editFallCount = sess.fall_count || 1;
   logState.fallCount = sess.fall_count || 1;
   logState.tickType = normalizeTickType(sess.tick_type);
+  logState._editCreatedAt = sess.created_at || null;
   logState.is_baseline = !!sess.is_baseline;
   logState.is_checkin = !!sess.is_checkin;
   var editPracticeNotesEl = document.getElementById('edit-fall-practice-notes');

@@ -381,6 +381,46 @@ async function run(){
     console.log('ok - edit updates tick_type');
 
     await withPage(browser, port, {}, async function(page){
+      var earlier = sessionRow({
+        id: 'sess-earlier',
+        climb_id: CLIMB_ID,
+        baseline_zone: 'sent',
+        tick_type: null,
+        created_at: '2026-10-01T12:00:00.000Z'
+      });
+      var laterFell = sessionRow({
+        id: 'sess-later-fell',
+        climb_id: CLIMB_ID,
+        baseline_zone: 'fell',
+        created_at: '2026-10-10T12:00:00.000Z'
+      });
+      var laterSent = sessionRow({
+        id: 'sess-later-sent',
+        climb_id: CLIMB_ID,
+        baseline_zone: 'sent',
+        tick_type: null,
+        created_at: '2026-10-10T12:00:00.000Z'
+      });
+      await authPage(page);
+      await page.evaluate(function(args){
+        window._cachedClimbs = args.sessions;
+        editClimbFromLog(args.editId, 'climb-table');
+      }, { sessions: [earlier, laterFell], editId: earlier.id });
+      await page.waitForTimeout(80);
+      assertAllThree(await tickUi(page, true), 'edit earlier send with later attempt');
+      results['edit-later-not-prior'] = 'PASS';
+
+      await page.evaluate(function(args){
+        window._cachedClimbs = args.sessions;
+        editClimbFromLog(args.editId, 'climb-table');
+      }, { sessions: [earlier, laterSent], editId: laterSent.id });
+      await page.waitForTimeout(80);
+      assertRedpointOnly(await tickUi(page, true), 'edit later send with earlier attempt');
+      results['edit-earlier-is-prior'] = 'PASS';
+    });
+    console.log('ok - edit prior-attempt uses created_at before the edited session');
+
+    await withPage(browser, port, {}, async function(page){
       await authPage(page);
       await page.evaluate(function(){
         logState.result = 'sent';
