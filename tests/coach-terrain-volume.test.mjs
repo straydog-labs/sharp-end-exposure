@@ -223,6 +223,25 @@ try{
   });
   assert.strictEqual(radarUi.rings.length, 4);
   assert.ok(radarUi.rings.every(function(t){ return /^\d+$/.test(t); }), 'ring labels are integers: ' + radarUi.rings.join(','));
+  assert.ok(radarUi.view.h <= 336, 'radar viewBox is cropped toward the plot');
+
+  const radarGap = await page.evaluate(function(rows){
+    window.__coachTerrainVolumeTest.render(rows, 90);
+    var svg = document.querySelector('#terrain-volume-test-host svg.terrain-volume-radar');
+    var bar = document.querySelector('#terrain-volume-test-host .terrain-volume-bar');
+    if(!svg || !bar) return { missing: true };
+    var s = svg.getBoundingClientRect();
+    var b = bar.getBoundingClientRect();
+    return {
+      gap: b.top - s.bottom,
+      captions: document.querySelectorAll('#terrain-volume-test-host .scoreboard-falls-caption, #terrain-volume-test-host .falls-per-10-caption').length,
+      inRead: /Per 10 attempts/.test((document.querySelector('#terrain-volume-test-host #athlete-coach-read') || {}).textContent || '')
+    };
+  }, five);
+  assert.ok(!radarGap.missing);
+  assert.ok(radarGap.gap < 16, 'radar-to-bar gap is tight: ' + radarGap.gap);
+  assert.strictEqual(radarGap.captions, 1, 'falls caption appears exactly once');
+  assert.ok(!radarGap.inRead, 'falls caption is not inside coach read');
 
   const unknownUi = await page.evaluate(function(){
     var rows = [

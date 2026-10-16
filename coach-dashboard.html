@@ -427,7 +427,7 @@
   .insight-legend{
     display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11.5px;color:var(--text-secondary);margin-top:8px;
   }
-  .stretch-no-zone,.scoreboard-falls-caption,.falls-per-10-caption{
+  .stretch-no-zone,.scoreboard-falls-caption{
     font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4;
   }
   .stretch-share-tip{
@@ -449,7 +449,7 @@
   .terrain-volume-not-logged,.terrain-volume-untagged{font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4;}
   .terrain-volume-unit .insight-chart-help{margin:6px 0 4px;}
   .terrain-volume-unit .terrain-volume-range{margin:4px 0 6px;}
-  .terrain-volume-radar{width:100%;max-width:440px;height:auto;display:block;overflow:visible;margin:2px auto 10px;}
+  .terrain-volume-radar{width:100%;max-width:440px;height:auto;display:block;overflow:visible;margin:2px auto 2px;}
   .terrain-volume-radar .radar-axis-label{font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:600;fill:var(--text);}
   .terrain-volume-radar .radar-ring-label{font-family:'Space Grotesk',sans-serif;font-size:9px;fill:var(--text-secondary);}
   .athlete-highlights{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
@@ -1367,7 +1367,7 @@
     }
     .stretch-share-unit { break-inside: avoid; }
     .stretch-n-label { fill: #555 !important; }
-    .stretch-no-zone, .scoreboard-falls-caption, .falls-per-10-caption { color: #555 !important; }
+    .stretch-no-zone, .scoreboard-falls-caption { color: #555 !important; }
     .stretch-share-tip { display: none !important; }
     svg.terrain-volume-radar {
       max-height: 240px !important;
@@ -4370,15 +4370,11 @@
 
   function renderCoachReadHtml(read){
     var lines = (read && read.lines && read.lines.length) ? read.lines : ['Not enough data yet'];
-    var fallsCaption = lines.some(function(line){ return /falls per 10/i.test(line); })
-      ? '<p class="falls-per-10-caption">Per 10 attempts; excludes backed-off and fall-practice rows; shown at 5+ attempts.</p>'
-      : '';
     return '<div class="coach-read" id="athlete-coach-read">' +
       '<div class="team-zone-label">Coach read</div>' +
       lines.map(function(line){
         return '<p>' + escapeHtml(line) + '</p>';
       }).join('') +
-      fallsCaption +
     '</div>';
   }
 
@@ -4438,7 +4434,7 @@
   function renderTerrainRadarHtml(vol){
     var CI = window.CoachInsights;
     if(!CI || typeof CI.computeTerrainRadar !== 'function') return '';
-    var radar = CI.computeTerrainRadar(vol.counts, { width: 440, height: 380, pad: 80 });
+    var radar = CI.computeTerrainRadar(vol.counts, { width: 440, height: 336, pad: 80, cy: 190 });
     var rings = (radar.rings || []).map(function(ring){
       var pts = (ring.points || []).map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
       var labelY = (radar.cy - ring.r + 3).toFixed(1);
@@ -4566,7 +4562,8 @@
       if(row.trend){
         var arrow = row.trend === 'up' ? '↑' : (row.trend === 'down' ? '↓' : '→');
         var delta = row.trendDelta > 0 ? ('+' + row.trendDelta) : String(row.trendDelta);
-        trend = '<span class="scoreboard-trend" data-trend="' + row.trend + '">' + arrow + ' ' + delta + '</span>';
+        trend = '<span class="scoreboard-trend" data-trend="' + row.trend + '">' + arrow + ' ' +
+          delta + ' attempts vs prior 4 wks</span>';
       }
       return '<div class="terrain-scoreboard-row" data-terrain="' + escapeHtml(row.terrain) +
         '" data-attempts="' + (row.attempts || 0) + '">' +
@@ -8268,6 +8265,16 @@
       wireTerrainVolumeChips();
       if(typeof wireStretchShareTips === 'function') wireStretchShareTips(el);
       if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(el);
+      return el.id;
+    },
+    renderGap: function(rows){
+      var el = document.getElementById('gap-shot-host');
+      if(!el){
+        el = document.createElement('div');
+        el.id = 'gap-shot-host';
+        document.body.appendChild(el);
+      }
+      el.innerHTML = renderGapPanelHtml(rows || []);
       return el.id;
     },
     clickDays: function(days){

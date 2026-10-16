@@ -164,6 +164,35 @@ assert.strictEqual(emptyGap.sessionCount, 0);
 assert.strictEqual(emptyGap.highestComfortShare, null);
 assert.deepStrictEqual(CI.gapHeadlineModel(emptyGap).lines, []);
 
+function zoneRow(terrain, zone, n) {
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    rows.push({ zone: zone, climbing_type: terrain, is_checkin: false, baseline_zone: 'sent' });
+  }
+  return rows;
+}
+const panicZeroGap = CI.computeGapDiagnostic([].concat(
+  zoneRow('Vertical', 'comfort', 9),
+  zoneRow('Vertical', 'learning', 1),
+  zoneRow('Roof', 'learning', 4),
+  zoneRow('Roof', 'comfort', 1),
+  zoneRow('Slab', 'comfort', 2)
+));
+assert.ok(panicZeroGap.terrains.every((t) => t.summary.percents.panic === 0));
+const panicZeroHead = CI.gapHeadlineModel(panicZeroGap);
+assert.ok(/Most comfort: Vertical \(90%\)/.test(panicZeroHead.lines[0].text));
+assert.ok(/Most learning: Roof \(80%\)/.test(panicZeroHead.lines[0].text));
+assert.ok(/Descriptive only/.test(panicZeroHead.lines[0].text));
+assert.ok(!/no comfort-zone vs panic-zone split/.test(panicZeroHead.lines[0].text));
+assert.ok(!/\b(because|caused|due to|suggests|indicates)\b/i.test(panicZeroHead.lines[0].text));
+
+const panicZeroThin = CI.gapHeadlineModel(CI.computeGapDiagnostic([].concat(
+  zoneRow('Vertical', 'comfort', 2),
+  zoneRow('Roof', 'learning', 2)
+)));
+assert.ok(/No terrain has 5\+ sessions/.test(panicZeroThin.lines[0].text));
+assert.ok(/Descriptive only/.test(panicZeroThin.lines[0].text));
+
 // --- CSV authoring (any coach, no gym seed) ---
 const parsed = CI.parseGymClimbsCsv(
   '\uFEFFname,wall,angle,steepness,terrain\n' +
@@ -391,6 +420,37 @@ const fewAttempts = CI.computeCoachRead([
 ], { days: 90, endDate: volEnd });
 assert.ok(!fewAttempts.lines.some((line) => /falls per 10/i.test(line)), 'omit falls under 5 attempts');
 
+const oneFallRows = [];
+for (let i = 0; i < 6; i++) {
+  oneFallRows.push({
+    created_at: new Date(volEnd.getTime() - i * 86400000).toISOString(),
+    climbing_type: 'Vertical',
+    grade_value: 'V3',
+    baseline_zone: i === 0 ? 'fell' : 'sent',
+    zone: i === 0 ? 'learning' : 'comfort',
+    is_checkin: false
+  });
+}
+const oneFallRead = CI.computeCoachRead(oneFallRows, { days: 90, endDate: volEnd });
+assert.ok(!oneFallRead.lines.some((line) => /falls per 10/i.test(line)), 'omit falls line at 1 fall');
+const oneFallBoard = CI.computeTerrainScoreboard(oneFallRows, { days: 90, endDate: volEnd });
+assert.ok(oneFallBoard.rows.find((r) => r.terrain === 'Vertical').fallsPerTen != null, 'table keeps the falls number');
+
+const threeFallRows = [];
+for (let i = 0; i < 6; i++) {
+  threeFallRows.push({
+    created_at: new Date(volEnd.getTime() - i * 86400000).toISOString(),
+    climbing_type: 'Vertical',
+    grade_value: 'V3',
+    baseline_zone: i < 3 ? 'fell' : 'sent',
+    zone: i < 3 ? 'learning' : 'comfort',
+    is_checkin: false
+  });
+}
+const threeFallRead = CI.computeCoachRead(threeFallRows, { days: 90, endDate: volEnd });
+assert.ok(threeFallRead.lines.some((line) => /Vertical has the highest falls per 10 attempts/i.test(line)),
+  'show falls line at 3+ falls');
+
 assert.ok(/Athlete snapshot/.test(dash));
 assert.ok(/Print \/ Share/.test(dash));
 assert.ok(/@media print/.test(dash));
@@ -440,6 +500,14 @@ const hiFull = CI.computeHighlights(readRows, { days: 90, endDate: volEnd });
 assert.ok(hiFull.hardestSend && hiFull.hardestSend.grade);
 assert.ok(hiFull.mostClimbed && hiFull.mostClimbed.terrain);
 assert.ok(hiFull.mostActiveWeek && hiFull.mostActiveWeek.sessions >= 1);
+
+const roofSendAt = '2026-10-11T16:00:00Z';
+const hiRoof = CI.computeHighlights([
+  { created_at: roofSendAt, climbing_type: 'Roof', grade_value: 'V6', baseline_zone: 'sent', is_checkin: false }
+], { days: 90, endDate: volEnd });
+assert.strictEqual(hiRoof.hardestSend.date, 'Oct 11', 'hardest-send card uses the real send date');
+assert.strictEqual(CI.formatWeekLabel(CI.weekKey(new Date(roofSendAt))), 'Oct 5');
+assert.notStrictEqual(hiRoof.hardestSend.date, 'Oct 5');
 
 assert.ok(/athlete-terrain-scoreboard/.test(dash));
 assert.ok(/athlete-highlights/.test(dash));
@@ -689,8 +757,14 @@ stretch.points.forEach(function (p, i) {
 });
 
 assert.ok(/scoreboard-falls-caption/.test(dash));
-assert.ok(/falls-per-10-caption/.test(dash));
+assert.ok(!/falls-per-10-caption/.test(dash), 'falls caption is not repeated in coach read');
+assert.strictEqual(
+  (dash.match(/class="scoreboard-falls-caption"/g) || []).length,
+  1,
+  'falls caption appears exactly once'
+);
 assert.ok(/Per 10 attempts; excludes backed-off and fall-practice rows; shown at 5\+ attempts\./.test(dash));
+assert.ok(/attempts vs prior 4 wks/.test(dash), 'vs-last-4-weeks cells carry a unit');
 assert.ok(/stretch-share-unit/.test(dash));
 assert.ok(/stretch-share-svg/.test(dash));
 
