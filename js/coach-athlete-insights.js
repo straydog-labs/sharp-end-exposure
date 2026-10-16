@@ -316,6 +316,12 @@
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  function formatDayLabel(date) {
+    var d = date instanceof Date ? date : new Date(date);
+    if (!d || isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
   function isDnaRow(row) {
     return String((row && row.baseline_zone) || '').trim().toLowerCase() === 'dna';
   }
@@ -635,12 +641,16 @@
 
     var highestComfort = null;
     var highestPanic = null;
+    var highestLearning = null;
     terrainRows.forEach(function (row) {
       if (!highestComfort || row.summary.percents.comfort > highestComfort.summary.percents.comfort) {
         highestComfort = row;
       }
       if (!highestPanic || row.summary.percents.panic > highestPanic.summary.percents.panic) {
         highestPanic = row;
+      }
+      if (!highestLearning || row.summary.percents.learning > highestLearning.summary.percents.learning) {
+        highestLearning = row;
       }
     });
 
@@ -653,6 +663,9 @@
         : null,
       highestPanicShare: highestPanic
         ? { terrain: highestPanic.terrain, percent: highestPanic.summary.percents.panic, count: highestPanic.summary.count }
+        : null,
+      highestLearningShare: highestLearning
+        ? { terrain: highestLearning.terrain, percent: highestLearning.summary.percents.learning, count: highestLearning.summary.count }
         : null
     };
   }
@@ -718,6 +731,12 @@
     }
 
     var names = terrains.map(function (row) { return row.terrain; }).join(', ');
+    if (!hasPanic) {
+      return {
+        contrast: false,
+        lines: [{ kind: 'single', text: comfortLearningHeadline(terrains) }]
+      };
+    }
     if (comfort && panic && comfort.terrain === panic.terrain) {
       return {
         contrast: false,
@@ -739,6 +758,37 @@
           ' — no comfort-zone vs panic-zone split across terrains yet.'
       }]
     };
+  }
+
+  function comfortLearningHeadline(terrains) {
+    var eligible = (terrains || []).filter(function (row) {
+      return row && row.summary && row.summary.count >= 5;
+    });
+    if (!eligible.length) {
+      return 'No terrain has 5+ sessions to name a comfort vs learning split yet. Descriptive only.';
+    }
+    var bestComfort = null;
+    var bestLearning = null;
+    eligible.forEach(function (row) {
+      var pct = row.summary.percents || {};
+      if (!bestComfort || (pct.comfort || 0) > (bestComfort.summary.percents.comfort || 0)) {
+        bestComfort = row;
+      }
+      if (!bestLearning || (pct.learning || 0) > (bestLearning.summary.percents.learning || 0)) {
+        bestLearning = row;
+      }
+    });
+    var parts = [];
+    if (bestComfort && (bestComfort.summary.percents.comfort || 0) > 0) {
+      parts.push('Most comfort: ' + bestComfort.terrain + ' (' + bestComfort.summary.percents.comfort + '%)');
+    }
+    if (bestLearning && (bestLearning.summary.percents.learning || 0) > 0) {
+      parts.push('Most learning: ' + bestLearning.terrain + ' (' + bestLearning.summary.percents.learning + '%)');
+    }
+    if (!parts.length) {
+      return 'No terrain has 5+ sessions to name a comfort vs learning split yet. Descriptive only.';
+    }
+    return parts.join('. ') + '. Descriptive only.';
   }
 
   function splitCsvLine(line) {
@@ -1106,7 +1156,7 @@
   function computeTerrainRadar(counts, opts) {
     opts = opts || {};
     var width = opts.width != null ? opts.width : 440;
-    var height = opts.height != null ? opts.height : 380;
+    var height = opts.height != null ? opts.height : 336;
     var pad = opts.pad != null ? opts.pad : 80;
     var cx = opts.cx != null ? opts.cx : width / 2;
     var cy = opts.cy != null ? opts.cy : height / 2;
@@ -1267,9 +1317,9 @@
         return normalizeTerrainType(row.climbing_type) === terrain;
       });
       var stats = fallsPerTen(onT);
-      if (stats.attempts < 5 || stats.rate == null) return;
+      if (stats.attempts < 5 || stats.falls < 3 || stats.rate == null) return;
       if (!fallBest || stats.rate > fallBest.rate) {
-        fallBest = { terrain: terrain, rate: stats.rate, attempts: stats.attempts };
+        fallBest = { terrain: terrain, rate: stats.rate, attempts: stats.attempts, falls: stats.falls };
       }
     });
     if (fallBest) {
@@ -1351,7 +1401,7 @@
       hardestSend: send ? {
         grade: send.grade,
         terrain: send.terrain,
-        date: send.created_at ? formatWeekLabel(weekKey(new Date(send.created_at))) : ''
+        date: send.created_at ? formatDayLabel(new Date(send.created_at)) : ''
       } : null,
       mostClimbed: mostTerrain ? { terrain: mostTerrain.terrain, share: mostTerrain.share } : null,
       mostActiveWeek: activeKey ? { sessions: activeN, week: formatWeekLabel(activeKey) } : null
@@ -1406,6 +1456,7 @@
     weekKey: weekKey,
     lastNWeekKeys: lastNWeekKeys,
     formatWeekLabel: formatWeekLabel,
+    formatDayLabel: formatDayLabel,
     isStarredProject: isStarredProject,
     countAttemptsForClimb: countAttemptsForClimb,
     buildAthleteProjectList: buildAthleteProjectList,
