@@ -11,13 +11,13 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index312'/.test(index));
-assert.ok(/APP_VERSION = 'index312'/.test(sw));
+assert.ok(/var app_version = 'index313'/.test(index));
+assert.ok(/APP_VERSION = 'index313'/.test(sw));
 assert.ok(!/hub-primary-card/.test(dash), 'coach-dashboard untouched');
 
 assert.ok(/\.hub-primary-card/.test(index));
 assert.ok(/#home-card-log\.home-log-primary/.test(index), 'Home id rule kept as alias');
-assert.ok(/class="hub-compact-row" id="home-card-log"/.test(index));
+assert.ok(/id="home-card-log"/.test(index));
 assert.ok(/\.hub-compact-row/.test(index));
 assert.ok(/see-screen-fade-in/.test(index));
 assert.ok(/prefers-reduced-motion: no-preference/.test(index));

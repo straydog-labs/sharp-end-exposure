@@ -15,9 +15,11 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index312'/.test(index));
-assert.ok(/APP_VERSION = 'index312'/.test(sw));
-assert.ok(/id="home-today-card"[\s\S]*id="home-action-row"[\s\S]*id="home-projects-wrap"[\s\S]*id="home-streak-band"[\s\S]*id="home-recent-wrap"/.test(index));
+assert.ok(/var app_version = 'index313'/.test(index));
+assert.ok(/APP_VERSION = 'index313'/.test(sw));
+assert.ok(/id="home-today-card"[\s\S]*id="home-action-row"[\s\S]*id="home-projects-wrap"[\s\S]*id="home-recent-wrap"[\s\S]*id="home-streak-band"/.test(index));
+assert.ok(/id="home-action-psyche"/.test(index));
+assert.ok(/class="home-action-outline"/.test(index));
 assert.ok(/function decideHomePrompt/.test(index));
 assert.ok(/function pickHomeDueSoonAssignment/.test(index));
 assert.ok(/function launchHomeProjectLog/.test(index));
@@ -128,6 +130,7 @@ async function homeSnapshot(page){
       action: vis('home-action-row'),
       logLinkHidden: !!(document.getElementById('home-card-log') || {}).hidden,
       trainLinkHidden: !!(document.getElementById('home-action-train') || {}).hidden,
+      psycheLinkHidden: !!(document.getElementById('home-action-psyche') || {}).hidden,
       welcome: vis('home-welcome-hint'),
       projects: vis('home-projects-wrap'),
       week: vis('home-streak-band'),
@@ -165,16 +168,17 @@ async function homeSnapshot(page){
       kids: kids,
       logClass: (document.getElementById('home-card-log') || {}).className || '',
       trainClass: (document.getElementById('home-action-train') || {}).className || '',
+      psycheClass: (document.getElementById('home-action-psyche') || {}).className || '',
       filled: (function(){
         var n = 0;
         ['home-today-start','home-today-log-attempt','home-today-log-climb','home-today-star','home-today-psyche'].forEach(function(id){
           var el = document.getElementById(id);
           if(el && !el.hidden) n++;
         });
-        var log = document.getElementById('home-card-log');
-        var train = document.getElementById('home-action-train');
-        if(log && !log.hidden && /home-action-filled/.test(log.className || '')) n++;
-        if(train && !train.hidden && /home-action-filled/.test(train.className || '')) n++;
+        ['home-card-log','home-action-train','home-action-psyche'].forEach(function(id){
+          var el = document.getElementById(id);
+          if(el && !el.hidden && /home-action-filled/.test(el.className || '')) n++;
+        });
         return n;
       })(),
       checklist: (document.getElementById('home-today-checklist') || {}).innerHTML || '',
@@ -186,22 +190,45 @@ async function homeSnapshot(page){
       starText: ((document.getElementById('home-today-star') || {}).textContent || '').trim(),
       stripLabel: vis('home-projects-label').text,
       hit: (function(){
-        function h(id){
+        function box(id){
           var el = document.getElementById(id);
           if(!el || el.hidden) return null;
-          return el.getBoundingClientRect().height;
+          var r = el.getBoundingClientRect();
+          var cs = getComputedStyle(el);
+          return {
+            h: r.height,
+            w: r.width,
+            sw: el.scrollWidth,
+            cw: el.clientWidth,
+            text: (el.textContent || '').replace(/\s+/g, ' ').trim(),
+            bg: cs.backgroundColor,
+            border: cs.borderTopWidth + ' ' + cs.borderTopStyle + ' ' + cs.borderTopColor,
+            color: cs.color,
+            cls: el.className || ''
+          };
         }
-        var log = document.getElementById('home-card-log');
-        var train = document.getElementById('home-action-train');
+        var ids = ['home-card-log','home-action-train','home-action-psyche'].filter(function(id){
+          var el = document.getElementById(id);
+          return el && !el.hidden;
+        });
         var gap = null;
-        if(log && train && !log.hidden && !train.hidden
-          && /home-action-link/.test(log.className || '') && !/home-action-filled/.test(log.className || '')
-          && /home-action-link/.test(train.className || '') && !/home-action-filled/.test(train.className || '')){
-          var a = log.getBoundingClientRect();
-          var b = train.getBoundingClientRect();
+        if(ids.length >= 2){
+          var a = document.getElementById(ids[0]).getBoundingClientRect();
+          var b = document.getElementById(ids[1]).getBoundingClientRect();
           gap = Math.round(b.left - a.right);
         }
-        return { log: h('home-card-log'), train: h('home-action-train'), dismiss: h('home-today-dismiss'), gap: gap };
+        return {
+          log: box('home-card-log'),
+          train: box('home-action-train'),
+          psyche: box('home-action-psyche'),
+          dismiss: (function(){
+            var el = document.getElementById('home-today-dismiss');
+            if(!el || el.hidden) return null;
+            return el.getBoundingClientRect().height;
+          })(),
+          gap: gap,
+          visible: ids
+        };
       })()
     };
   });
@@ -280,18 +307,60 @@ function assertLastSession(snap, present){
     assert.ok(!snap.recentLabel || snap.recentLabel.hidden || snap.recent.hidden, 'LAST SESSION hidden with the row');
   }
 }
-function assertQuietHit(snap){
-  if(snap.hit.train != null && !/home-action-filled/.test(snap.trainClass)){
-    assert.ok(snap.hit.train >= 44, 'Start training hit ' + snap.hit.train);
+function expectedActionRow(cta, state){
+  return {
+    log: !(cta === 'log-climb' || state === 's0'),
+    train: cta !== 'start-train',
+    psyche: cta !== 'psyche'
+  };
+}
+function rgbOf(s){
+  var m = String(s || '').match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if(!m) return null;
+  return [Number(m[1]), Number(m[2]), Number(m[3])];
+}
+function isAccentOrange(color){
+  var rgb = rgbOf(color);
+  if(!rgb) return false;
+  return rgb[0] > 180 && rgb[1] > 80 && rgb[1] < 160 && rgb[2] < 90;
+}
+function isFilledAccent(bg){
+  var rgb = rgbOf(bg);
+  if(!rgb) return false;
+  return rgb[0] > 180 && rgb[1] > 80 && rgb[1] < 160 && rgb[2] < 90 && rgb[0] - rgb[2] > 80;
+}
+function assertActionRow(snap, cta, state){
+  var exp = expectedActionRow(cta, state);
+  assert.strictEqual(snap.logLinkHidden, !exp.log, 'Log outline hidden=' + snap.logLinkHidden + ' expected ' + (!exp.log) + ' cta=' + cta + ' state=' + state);
+  assert.strictEqual(snap.trainLinkHidden, !exp.train, 'Train outline hidden=' + snap.trainLinkHidden + ' expected ' + (!exp.train));
+  assert.strictEqual(snap.psycheLinkHidden, !exp.psyche, 'Psyche outline hidden=' + snap.psycheLinkHidden + ' expected ' + (!exp.psyche));
+  var vis = [];
+  [['log', snap.hit.log, 'Log a climb', snap.logClass],
+   ['train', snap.hit.train, 'Train', snap.trainClass],
+   ['psyche', snap.hit.psyche, 'Psyche', snap.psycheClass]].forEach(function(pair){
+    var box = pair[1];
+    if(!box) return;
+    vis.push(box);
+    assert.ok(/home-action-outline/.test(pair[3] || box.cls), pair[0] + ' outline class, got ' + pair[3]);
+    assert.ok(!/home-action-filled/.test(pair[3] || box.cls), pair[0] + ' must not be filled');
+    assert.ok(box.h >= 44, pair[0] + ' hit ' + box.h);
+    assert.ok(box.sw <= box.cw + 1, pair[0] + ' truncated sw=' + box.sw + ' cw=' + box.cw + ' text=' + box.text);
+    assert.strictEqual(box.text, pair[2], pair[0] + ' label ' + box.text);
+    assert.ok(!isFilledAccent(box.bg), pair[0] + ' must not be filled orange bg=' + box.bg);
+    assert.ok(isAccentOrange(box.border) || /rgb\(232,\s*118,\s*58\)/.test(box.border), pair[0] + ' orange border ' + box.border);
+  });
+  assert.ok(vis.length >= 1, 'action row has at least one outline button');
+  if(vis.length >= 2){
+    var w0 = vis[0].w;
+    vis.forEach(function(b){
+      assert.ok(Math.abs(b.w - w0) <= 2, 'equal-width outline buttons ' + b.w + ' vs ' + w0);
+    });
   }
-  if(snap.hit.log != null && /home-action-link/.test(snap.logClass) && !/home-action-filled/.test(snap.logClass)){
-    assert.ok(snap.hit.log >= 44, 'Log a climb quiet hit ' + snap.hit.log);
+  if(snap.hit.gap != null){
+    assert.ok(snap.hit.gap >= 6 && snap.hit.gap <= 12, 'outline gap ~8px, got ' + snap.hit.gap);
   }
   if(snap.hit.dismiss != null){
     assert.ok(snap.hit.dismiss >= 44, 'Not now hit ' + snap.hit.dismiss);
-  }
-  if(snap.hit.gap != null){
-    assert.ok(snap.hit.gap >= 12, 'quiet link gap ' + snap.hit.gap);
   }
 }
 
@@ -415,16 +484,14 @@ async function run(){
         }, null, { timeout: 8000 });
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's0', 'fail-open must be S0, got ' + snap.state);
-        assert.strictEqual(snap.today.hidden, true, 'S0 hides the prompt');
+        assert.strictEqual(snap.today.hidden, false, 'H5 S0 shows the prompt card');
+        assert.strictEqual(snap.logClimbHidden, false, 'H5 S0 filled Log a climb is the prompt');
         assert.strictEqual(snap.projects.hidden, true);
         assert.strictEqual(snap.welcome.hidden, true);
-        assert.strictEqual(snap.logLinkHidden, false, 'S0 keeps Log a climb');
-        assert.strictEqual(snap.trainLinkHidden, false, 'S0 keeps quiet Start training');
-        assert.ok(/home-action-filled/.test(snap.logClass), 'S0 filled Log a climb, got ' + snap.logClass);
-        assert.ok(/home-action-link/.test(snap.trainClass) && !/home-action-filled/.test(snap.trainClass), 'S0 Start training quiet');
         assert.strictEqual(snap.filled, 1, 'S0 exactly one filled, got ' + snap.filled);
-        assertQuietHit(snap);
+        assertActionRow(snap, snap.cta, snap.state);
         await shot(page, 'home_v3_s0_failopen_390.png', 390);
+        await shot(page, 'home_v3_s0_failopen_360.png', 360);
       });
     });
 
@@ -447,7 +514,7 @@ async function run(){
         assertMyProjects(snap, { hidden: true });
         assertLastSession(snap, false);
         assertNoRepeatWords(snap);
-        assertQuietHit(snap);
+        assertActionRow(snap, snap.cta, snap.state);
         assert.strictEqual(snap.filled, 1, 'S1 0 of 3 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s1_0of3_390.png', 390);
       });
@@ -469,7 +536,7 @@ async function run(){
         assert.strictEqual(snap.starHidden, false, 'next item is Star');
         assert.ok(/^Star Power of Now/.test(snap.starText), 'F4 Star names target, got ' + snap.starText);
         assertNoRepeatWords(snap);
-        assertQuietHit(snap);
+        assertActionRow(snap, snap.cta, snap.state);
         assert.strictEqual(snap.filled, 1, 'S1 1 of 3 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s1_1of3_390.png', 390);
       });
@@ -487,15 +554,15 @@ async function run(){
         assert.ok(/Up next: Hangboard density/.test(snap.today.text), snap.today.text);
         assert.strictEqual(snap.startHidden, false);
         assert.strictEqual(snap.logHidden, true);
-        assert.strictEqual(snap.trainLinkHidden, true, 'Start training hides when prompt is Start');
-        assert.strictEqual(snap.logLinkHidden, false, 'quiet Log a climb stays');
+        assert.strictEqual(snap.trainLinkHidden, false, 'H2 keep Train when prompt is assignment Start');
+        assert.strictEqual(snap.logLinkHidden, false, 'Log a climb outline stays');
         assert.strictEqual(snap.projects.hidden, false);
         assert.strictEqual(snap.chips.length, 3);
         assertMyProjects(snap, { include: [P1, P2, P3], current: null, max: 3 });
         assert.strictEqual(snap.kicker, 'TODAY');
         assert.ok(/Hangboard/.test(snap.meta) && !/Due today/.test(snap.meta), 'F5 TODAY meta type only: ' + snap.meta);
         assertNoRepeatWords(snap, ['today'], true);
-        assertQuietHit(snap);
+        assertActionRow(snap, snap.cta, snap.state);
         assertProjectsFit(snap);
         assertLastSession(snap, true);
         assert.strictEqual(snap.recents.length, 1, 'last session is one row, got ' + snap.recents.length);
@@ -539,6 +606,7 @@ async function run(){
         assert.strictEqual(snap.logHidden, false);
         assertNoRepeatWords(snap);
         assertProjectsFit(snap);
+        assertActionRow(snap, snap.cta, snap.state);
         assert.strictEqual(snap.filled, 1, 'S3 exactly one filled, got ' + snap.filled);
         assert.strictEqual(snap.hasProjectFlag, true);
         await shot(page, 'home_v3_s3_stale_390.png', 390);
@@ -569,7 +637,7 @@ async function run(){
         assert.ok(/^Star Power of Now/.test(snap.starText), 'F4 S4 CTA names target: ' + snap.starText);
         assert.strictEqual(snap.starHidden, false);
         assertNoRepeatWords(snap);
-        assertQuietHit(snap);
+        assertActionRow(snap, snap.cta, snap.state);
         assert.strictEqual(snap.kicker, 'PROJECT');
         assertMyProjects(snap, { hidden: true });
         assertLastSession(snap, true);
@@ -598,6 +666,7 @@ async function run(){
         assertLastSession(snap, false);
         assertNoRepeatWords(snap);
         assertProjectsFit(snap);
+        assertActionRow(snap, snap.cta, snap.state);
         assert.strictEqual(snap.filled, 1, 'S5 exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s5_none_week_390.png', 390);
         await shot(page, 'home_v3_s5_none_week_840.png', 840);
@@ -621,8 +690,10 @@ async function run(){
         assertNoRepeatWords(snap);
         assertProjectsFit(snap);
         assertLastSession(snap, true);
+        assertActionRow(snap, snap.cta, snap.state);
         assert.strictEqual(snap.filled, 1, 'S6 climb exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s6_climb_390.png', 390);
+        await shot(page, 'home_v3_s6_climb_360.png', 360);
         await shot(page, 'home_v3_s6_climb_840.png', 840);
         await tap(page, '#home-today-log-attempt');
         var posts = await finishLockedAttempt(page, recorded);
@@ -646,8 +717,9 @@ async function run(){
         assert.ok(/Keep training/.test(snap.today.text), snap.today.text);
         assert.strictEqual(snap.kicker, 'SESSION');
         assert.strictEqual(snap.startHidden, false);
-        assert.strictEqual(snap.trainLinkHidden, true);
+        assert.strictEqual(snap.trainLinkHidden, true, 'H2 omit Train when prompt Start training dest matches');
         assertNoRepeatWords(snap);
+        assertActionRow(snap, snap.cta, snap.state);
         assert.strictEqual(snap.filled, 1, 'S6 train exactly one filled, got ' + snap.filled);
         await shot(page, 'home_v3_s6_train_390.png', 390);
       });
@@ -724,6 +796,7 @@ async function run(){
               welcomeOn: !!(welcome && !welcome.hidden),
               projectsOn: !!(projects && !projects.hidden),
               todayOn: !!(today && !today.hidden),
+              todayText: today ? String(today.textContent || '') : '',
               state: today ? (today.dataset.state || '') : '',
               climbCache: window._climbCache,
               sessCache: window._cachedClimbs
@@ -733,7 +806,7 @@ async function run(){
             sawEmpty = true;
             break;
           }
-          if(!mid.ready && (mid.state === 's1' || (mid.todayOn && /Get started/.test((document.getElementById('home-today-card') || {}).textContent || '')))){
+          if(!mid.ready && (mid.state === 's1' || /Get started/.test(mid.todayText || ''))){
             sawEmpty = true;
             break;
           }
@@ -800,7 +873,7 @@ async function run(){
         });
         assert.ok(mid.ready !== true, 'must tap before Home settles, ready=' + mid.ready);
         assert.ok(!Array.isArray(mid.climbCache), 'climb cache still in flight at tap, got ' + JSON.stringify(mid.climbCache));
-        await tap(page, '#home-card-log');
+        await tap(page, '#home-today-log-climb');
         var immediate = await page.evaluate(function(){
           var el = document.querySelector('.screen.active');
           return el ? el.id : null;
@@ -836,9 +909,11 @@ async function run(){
         await waitHomeReady(page);
         var snap = await homeSnapshot(page);
         assert.strictEqual(snap.state, 's0', 'sbS error is fail-open S0, not loaded-empty S1, got ' + snap.state);
-        assert.strictEqual(snap.today.hidden, true);
-        assert.ok(/home-action-filled/.test(snap.logClass));
+        assert.strictEqual(snap.today.hidden, false, 'H5 S0 card visible');
+        assert.strictEqual(snap.logClimbHidden, false);
+        assert.ok(!/home-action-filled/.test(snap.logClass));
         assert.strictEqual(snap.filled, 1);
+        assertActionRow(snap, snap.cta, snap.state);
       });
     });
 
@@ -934,6 +1009,8 @@ async function run(){
         assert.strictEqual(snap.kicker, 'UP NEXT');
         assert.strictEqual(snap.startHidden, false);
         assert.strictEqual(snap.filled, 1);
+        assert.strictEqual(snap.trainLinkHidden, false, 'H2 undated Start keeps Train');
+        assertActionRow(snap, snap.cta, snap.state);
         assertMyProjects(snap, { include: [P1], current: null, max: 3 });
         await shot(page, 'home_v3_s6_undated_390.png', 390);
         await shot(page, 'home_v3_s6_undated_840.png', 840);
@@ -954,6 +1031,7 @@ async function run(){
         assert.strictEqual(snap.startHidden, false);
         assert.strictEqual(snap.week.hidden, true);
         assert.strictEqual(snap.filled, 1);
+        assertActionRow(snap, snap.cta, snap.state);
         assertMyProjects(snap, { include: [P1], current: null, max: 3 });
       });
     });
@@ -1226,6 +1304,34 @@ async function run(){
         await waitPicker(page);
         await tap(page, '#log-my-projects [data-cid="' + P2 + '"]');
         await waitForScreen(page, 'screen-log-act');
+      });
+    });
+
+    await flow('h-action-row-destinations-and-order', async function(){
+      await withPage(browser, port, signedIn({
+        climbs: THREE_PROJECTS,
+        sessions: THREE_SESSIONS,
+        assignments: []
+      }), async function(page){
+        await waitHomeReady(page);
+        var snap = await homeSnapshot(page);
+        assert.strictEqual(snap.state, 's6-climb', snap.state);
+        assertActionRow(snap, snap.cta, snap.state);
+        var ids = snap.kids.map(function(k){ return k.id; });
+        assert.ok(ids.indexOf('home-today-card') < ids.indexOf('home-action-row'), ids.join(','));
+        assert.ok(ids.indexOf('home-action-row') < ids.indexOf('home-projects-wrap'), ids.join(','));
+        assert.ok(ids.indexOf('home-projects-wrap') < ids.indexOf('home-recent-wrap'), 'H3 projects before last session: ' + ids.join(','));
+        assert.ok(ids.indexOf('home-recent-wrap') < ids.indexOf('home-streak-band'), 'H3 last session before week: ' + ids.join(','));
+        await tap(page, '#home-action-train');
+        await waitForScreen(page, 'screen-train-start');
+        await page.evaluate(function(){ showScreen('screen-home'); });
+        await waitHomeReady(page);
+        await tap(page, '#home-action-psyche');
+        await waitForScreen(page, 'screen-drill');
+        await page.evaluate(function(){ showScreen('screen-home'); });
+        await waitHomeReady(page);
+        await tap(page, '#home-card-log');
+        await waitPicker(page);
       });
     });
   }finally{

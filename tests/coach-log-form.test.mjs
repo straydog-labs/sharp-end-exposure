@@ -12,8 +12,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 const logJs = readFileSync(join(root, 'js/coach-log-session.js'), 'utf8');
 
-assert.ok(/var app_version = 'index312'/.test(index));
-assert.ok(/APP_VERSION = 'index312'/.test(sw));
+assert.ok(/var app_version = 'index313'/.test(index));
+assert.ok(/APP_VERSION = 'index313'/.test(sw));
 
 const overlayStart = dash.indexOf('id="coach-log-overlay"');
 const overlayEnd = dash.indexOf('id="assign-wizard-overlay"');
