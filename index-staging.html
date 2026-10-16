@@ -26,6 +26,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script src="js/sessions-insert-required.js"></script>
+<script src="js/coach-athlete-insights.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1246,6 +1247,11 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .train-desc-md input[type=checkbox]{margin-right:6px;cursor:pointer;vertical-align:middle;}
 .train-desc-md li:has(>input[type=checkbox]:first-child){list-style:none;}
 .insight-label{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+.terrain-volume-radar{width:100%;max-width:390px;height:auto;display:block;overflow:visible;margin:2px auto 10px;}
+.terrain-volume-radar .radar-axis-label{font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:600;fill:var(--text);}
+.terrain-volume-radar .radar-ring-label{font-family:'Space Grotesk',sans-serif;font-size:9px;fill:var(--muted);}
+.terrain-volume-untagged{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4;}
+#attempts-terrain-empty{font-size:13px;color:var(--muted);line-height:1.45;padding:4px 0 8px;}
 .psyche-range-chip{background:var(--surface2);border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .psyche-range-chip.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
 .psyche-cue-chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:500;padding:10px 16px;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent;}
@@ -1973,6 +1979,11 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
           <span id="patterns-toggle-arrow" style="font-size:16px;color:var(--muted);">↓</span>
         </button>
         <div id="patterns-body" style="display:none;background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-xl) var(--r-xl);padding:16px 18px;">
+
+          <div class="insight-card" id="attempts-terrain-card" style="margin-bottom:16px;display:none;">
+            <div class="insight-label" style="margin-bottom:10px;">Attempts by terrain</div>
+            <div id="attempts-terrain-wrap"></div>
+          </div>
 
           <div class="insight-card" id="spider-chart-card" style="margin-bottom:16px;display:none;">
             <div class="insight-label" style="margin-bottom:10px;">Zone by terrain</div>
@@ -6037,7 +6048,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index315'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index316'; // keep in sync with APP_VERSION in sw.js
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -19057,9 +19068,12 @@ async function loadClimbLog(){
   if(patternsSection) patternsSection.style.display = total >= 5 ? 'block' : 'none';
 
   if(total >= 5){
+    buildAttemptsByTerrain(sessions);
     buildSpiderChart(climbs);
     buildSomaticRadar(climbs);
     buildFallsByTerrain(climbs);
+    var attemptsCard = document.getElementById('attempts-terrain-card');
+    if(attemptsCard) attemptsCard.style.display = 'block';
     var spiderCard = document.getElementById('spider-chart-card');
     if(spiderCard) spiderCard.style.display = climbs && climbs.length >= 1 ? 'block' : 'none';
     var fallsTerrainCard = document.getElementById('falls-terrain-card');
@@ -23123,6 +23137,102 @@ function buildSomaticRadar(sessions){
     body: 'Body state tends to activate most across your confirmed climbs'
   };
   summaryEl.textContent = normalized[highestAxis] > 0.1 ? phraseMap[highestAxis] : '';
+}
+
+function escapeAttemptsRadarText(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function sizeAttemptsRadarMarkers(root){
+  var scope = root && root.querySelectorAll ? root : document;
+  Array.prototype.forEach.call(scope.querySelectorAll('svg.attempts-terrain-radar'), function(svg){
+    var vb = svg.viewBox && svg.viewBox.baseVal;
+    var vbW = vb && vb.width ? vb.width : 390;
+    var w = svg.getBoundingClientRect().width || svg.clientWidth;
+    if(!w) return;
+    var r = 5 * (vbW / w);
+    Array.prototype.forEach.call(svg.querySelectorAll('.radar-vertex'), function(c){
+      c.setAttribute('r', String(r));
+      c.setAttribute('data-css-r', '5');
+    });
+  });
+}
+
+if(typeof ResizeObserver === 'function' && !window.__attemptsRadarRo){
+  window.__attemptsRadarRo = new ResizeObserver(function(){
+    sizeAttemptsRadarMarkers(document.getElementById('attempts-terrain-wrap'));
+  });
+}
+
+function renderAttemptsTerrainRadarHtml(vol){
+  var CI = window.CoachInsights;
+  if(!CI || typeof CI.computeTerrainRadar !== 'function') return '';
+  var radar = CI.computeTerrainRadar(vol.counts, { width: 390, height: 360, pad: 70 });
+  var rings = (radar.rings || []).map(function(ring){
+    var pts = (ring.points || []).map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+    var labelY = (radar.cy - ring.r + 3).toFixed(1);
+    return '<polygon class="radar-ring" points="' + pts + '" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1"/>' +
+      '<text class="radar-ring-label" x="' + (radar.cx + 6).toFixed(1) + '" y="' + labelY +
+      '" text-anchor="start">' + escapeAttemptsRadarText(ring.valueLabel) + '</text>';
+  }).join('');
+  var spokes = (radar.axes || []).map(function(a){
+    return '<line class="radar-spoke" x1="' + radar.cx.toFixed(1) + '" y1="' + radar.cy.toFixed(1) +
+      '" x2="' + a.outerX.toFixed(1) + '" y2="' + a.outerY.toFixed(1) +
+      '" stroke="rgba(255,255,255,.12)" stroke-width="1"/>';
+  }).join('');
+  var poly = (radar.axes || []).map(function(a){ return a.x.toFixed(1) + ',' + a.y.toFixed(1); }).join(' ');
+  var dots = (radar.axes || []).filter(function(a){ return a.count > 0; }).map(function(a){
+    return '<circle class="radar-vertex" data-terrain="' + escapeAttemptsRadarText(a.terrain) +
+      '" data-count="' + a.count + '" data-r="' + a.r +
+      '" cx="' + a.x.toFixed(1) + '" cy="' + a.y.toFixed(1) +
+      '" r="5" fill="var(--accent)"/>';
+  }).join('');
+  var labels = (radar.axes || []).map(function(a){
+    return '<text class="radar-axis-label" data-terrain="' + escapeAttemptsRadarText(a.terrain) +
+      '" x="' + a.labelX.toFixed(1) + '" y="' + a.labelY.toFixed(1) +
+      '" text-anchor="' + a.anchor + '">' + escapeAttemptsRadarText(a.terrain) + ' ' + a.count + '</text>';
+  }).join('');
+  return '<svg class="insight-svg terrain-volume-radar attempts-terrain-radar" viewBox="0 0 ' + radar.width + ' ' + radar.height +
+    '" role="img" aria-label="Attempts by terrain">' + rings + spokes +
+    '<polygon class="radar-fill" points="' + poly +
+    '" fill="var(--accent)" fill-opacity="0.25" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>' +
+    dots + labels + '</svg>';
+}
+
+function buildAttemptsByTerrain(sessions){
+  var wrap = document.getElementById('attempts-terrain-wrap');
+  var card = document.getElementById('attempts-terrain-card');
+  if(!wrap) return null;
+  var CI = window.CoachInsights;
+  if(!CI || typeof CI.computeTerrainVolume !== 'function'){
+    wrap.innerHTML = '';
+    wrap.removeAttribute('data-terrain-volume');
+    if(card) card.style.display = 'none';
+    return null;
+  }
+  var vol = CI.computeTerrainVolume(sessions, { days: null });
+  if(card) card.style.display = 'block';
+  var untaggedHtml = (vol.untagged > 0)
+    ? '<div class="terrain-volume-untagged" data-untagged="' + vol.untagged + '">' +
+      vol.untagged + ' logged rows have no terrain</div>'
+    : '';
+  if(vol.mode === 'empty'){
+    wrap.setAttribute('data-terrain-volume', 'empty');
+    wrap.innerHTML = '<div id="attempts-terrain-empty">No terrain-tagged attempts to plot.</div>' + untaggedHtml;
+    return vol;
+  }
+  wrap.setAttribute('data-terrain-volume', 'radar');
+  wrap.innerHTML = renderAttemptsTerrainRadarHtml(vol) + untaggedHtml;
+  sizeAttemptsRadarMarkers(wrap);
+  if(window.__attemptsRadarRo && wrap && !wrap.__radarObserved){
+    window.__attemptsRadarRo.observe(wrap);
+    wrap.__radarObserved = true;
+  }
+  return vol;
 }
 
 function buildSpiderChart(sessions, targetEl){
