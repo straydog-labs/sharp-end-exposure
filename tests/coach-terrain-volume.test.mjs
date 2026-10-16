@@ -19,7 +19,8 @@ assert.ok(/APP_VERSION = 'index313'/.test(sw));
 assert.ok(/function computeTerrainVolume/.test(insightsSrc));
 assert.ok(/data-terrain-volume/.test(dash));
 assert.ok(/terrain-volume-unit/.test(dash));
-assert.ok(/Climbs logged/.test(dash));
+assert.ok(/Attempts logged/.test(dash));
+assert.ok(!/Climbs logged/.test(dash));
 assert.ok(/Not logged yet:/.test(dash));
 assert.ok(!/data-terrain-volume="radar"/.test(dash));
 assert.ok(/Athlete snapshot/.test(dash));
@@ -53,7 +54,7 @@ const five = [
 ];
 const vol90 = CI.computeTerrainVolume(five, { days: 90, endDate: now });
 assert.strictEqual(vol90.mode, 'bars');
-assert.strictEqual(vol90.unit, 'Climbs logged');
+assert.strictEqual(vol90.unit, 'Attempts logged');
 assert.strictEqual(vol90.counts.Slab, 2);
 assert.strictEqual(vol90.counts.Vertical, 1);
 assert.strictEqual(vol90.counts.Overhang, 1);
@@ -163,10 +164,10 @@ try{
   assert.strictEqual(fiveUi.counts['Arête'], 1);
   assert.ok(!fiveUi.counts.Crack && !fiveUi.counts.Dihedral, 'zero terrains are not bars');
   assert.strictEqual(fiveUi.order[0], 'Slab');
-  assert.strictEqual(fiveUi.unit, 'Climbs logged');
+  assert.strictEqual(fiveUi.unit, 'Attempts logged');
   assert.ok(/Crack/.test(fiveUi.notLogged) && /Dihedral/.test(fiveUi.notLogged));
   assert.ok(/coach read/i.test(fiveUi.read));
-  assert.ok(/logged climbs are/i.test(fiveUi.read));
+  assert.ok(/logged attempts are/i.test(fiveUi.read));
   assert.ok(!/\b(because|caused|due to)\b/i.test(fiveUi.read));
 
   const twoUi = await page.evaluate(function(rows){
@@ -264,6 +265,29 @@ try{
   await assertNoOverflow(390);
   await assertNoOverflow(840);
   await assertNoOverflow(1280);
+
+  const boardUi = await page.evaluate(function(rows){
+    window.__coachTerrainVolumeTest.render(rows, 90);
+    return window.__coachTerrainVolumeTest.scoreboard();
+  }, two);
+  assert.ok(boardUi.every(function(row){ return row.falls === '—'; }), 'scoreboard uses — under 5 attempts');
+
+  const emptyHi = await page.evaluate(function(){
+    window.__coachTerrainVolumeTest.render([], 90);
+    return window.__coachTerrainVolumeTest.highlights();
+  });
+  assert.deepStrictEqual(emptyHi, [], 'highlights hide with no data');
+
+  const fullHi = await page.evaluate(function(rows){
+    window.__coachTerrainVolumeTest.render(rows, 90);
+    return window.__coachTerrainVolumeTest.highlights();
+  }, gradeRows);
+  assert.ok(fullHi.indexOf('hardest-send') !== -1);
+  assert.ok(fullHi.indexOf('most-climbed') !== -1);
+  assert.ok(fullHi.indexOf('most-active-week') !== -1);
+
+  await page.evaluate(function(rows){ window.__coachTerrainVolumeTest.render(rows, 90); }, five);
+  await assertNoOverflow(390);
 
   console.log('coach-terrain-volume tests: ok');
 }finally{

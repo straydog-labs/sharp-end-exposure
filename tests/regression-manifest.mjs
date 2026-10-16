@@ -27,7 +27,7 @@ export const FLOWS = [
   { id: 'coach-terrain-catalog-parity', group: 'coach', file: 'coach-terrain-catalog-parity.test.mjs', covered: true, asserts: 'Log a climb form shows 7 terrain chips including Arête and Dihedral' },
   { id: 'coach-share-print-layout', group: 'coach', file: 'coach-share-print-layout.test.mjs', covered: true, asserts: 'share print CSS no insight-panel break-inside:avoid' },
   { id: 'coach-share-athlete-print', group: 'coach', file: 'coach-share-athlete-print.test.mjs', covered: true, asserts: 'Print / Share snapshot window.print with name/date stamp' },
-  { id: 'coach-athlete-insights', group: 'coach', file: 'coach-athlete-insights.test.mjs', covered: true, asserts: 'hardest-send series, coach-read sentences, volume bars, no causal wording' },
+  { id: 'coach-athlete-insights', group: 'coach', file: 'coach-athlete-insights.test.mjs', covered: true, asserts: 'hardest-send series, coach-read, scoreboard minimums, highlights hide empty' },
   { id: 'coach-zone-share-omit-empty', group: 'coach', file: 'coach-zone-share-omit-empty.test.mjs', covered: true, asserts: 'zone share omits empty series, muted none-logged legend' },
   { id: 'attempt-inventory', group: 'meta', file: 'attempt-inventory.test.mjs', covered: true, asserts: 'every addAttemptFromLog/launchLogWithClimb site maps to a flow' },
   { id: 'schema-drift', group: 'meta', file: 'schema-drift.test.mjs', covered: true, asserts: 'every insert column exists in sql/' },

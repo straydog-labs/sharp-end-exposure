@@ -446,6 +446,47 @@
   @media (min-width:1100px){
     .terrain-volume-unit{max-height:240px;}
   }
+  .athlete-highlights{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
+  .athlete-highlight-card{
+    flex:1 1 140px;min-width:0;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:10px 12px;
+  }
+  .athlete-highlight-kicker{
+    font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);
+  }
+  .athlete-highlight-val{font-size:14px;font-weight:700;margin-top:4px;line-height:1.3;}
+  .athlete-highlight-sub{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+  .terrain-scoreboard{margin:0 0 14px;min-width:0;}
+  .terrain-scoreboard-head,.terrain-scoreboard-row{
+    display:grid;
+    grid-template-columns:minmax(68px,.9fr) minmax(88px,1.2fr) minmax(56px,.7fr) minmax(68px,.8fr) minmax(88px,1.2fr) minmax(56px,.7fr);
+    gap:8px 10px;align-items:center;min-width:0;
+  }
+  .terrain-scoreboard-head{
+    font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--text-secondary);padding:0 0 6px;border-bottom:1px solid var(--border);
+  }
+  .terrain-scoreboard-row{padding:8px 0;border-bottom:1px solid var(--border);}
+  .scoreboard-cell{min-width:0;}
+  .scoreboard-climbs-n{font-size:12px;font-weight:700;color:var(--text);}
+  .scoreboard-share-track{height:6px;margin-top:4px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;}
+  .scoreboard-share-fill{height:100%;background:var(--accent);border-radius:999px;}
+  .scoreboard-falls{color:var(--text);font-variant-numeric:tabular-nums;}
+  .scoreboard-zone-txt{font-size:11px;color:var(--text-secondary);margin-top:3px;line-height:1.3;}
+  .scoreboard-trend{color:var(--text);white-space:nowrap;}
+  .terrain-scoreboard .terrain-volume-not-logged{margin-top:8px;}
+  @media (max-width:700px){
+    .terrain-scoreboard-head{display:none;}
+    .terrain-scoreboard-row{
+      display:flex;flex-direction:column;align-items:stretch;gap:8px;
+      background:var(--surface);border:1px solid var(--border);border-radius:12px;
+      padding:10px 12px;margin:8px 0;border-bottom:none;
+    }
+    .scoreboard-cell[data-label]::before{
+      content:attr(data-label);display:block;font-size:10px;font-weight:700;
+      letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:2px;
+    }
+  }
   .project-row{
     display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;min-width:0;
     padding:10px 0;border-bottom:1px solid var(--border);
@@ -1244,6 +1285,14 @@
     .coach-read, .coach-read p { color: #111 !important; }
     .insight-legend-note, .terrain-volume-unit-label, .terrain-volume-not-logged { color: #555 !important; }
     .terrain-volume-bar-n { color: #111 !important; }
+    .athlete-highlight-card, .terrain-scoreboard-row {
+      background: #fff !important;
+      border-color: #ccc !important;
+      color: #111 !important;
+      break-inside: avoid;
+    }
+    .scoreboard-falls, .scoreboard-trend, .scoreboard-climbs-n { color: #111 !important; }
+    .athlete-highlight-kicker, .scoreboard-zone-txt, .terrain-scoreboard-head { color: #555 !important; }
     .team-zone-note, .team-zone-label, .roster-stat-label, .insight-chart-title, .insight-legend, .progress-week-lbl {
       color: #555 !important;
     }
@@ -4266,10 +4315,10 @@
     '</div>';
     var title = insightChartTitleWithHelp(
       'Terrain volume',
-      'Count of logged climbs per terrain in the selected window. Fall practice rows are excluded. Descriptive only.'
+      'Count of logged attempts per terrain in the selected window. Each attempt counts 1. DNA, baseline, check-ins, and fall practice are excluded. Descriptive only.'
     );
     var unitHtml = '<div class="terrain-volume-unit-label" data-terrain-unit="' +
-      escapeHtml(vol.unit || 'Climbs logged') + '">' + escapeHtml(vol.unit || 'Climbs logged') + '</div>';
+      escapeHtml(vol.unit || 'Attempts logged') + '">' + escapeHtml(vol.unit || 'Attempts logged') + '</div>';
     var notLoggedHtml = (vol.notLogged && vol.notLogged.length)
       ? '<div class="terrain-volume-not-logged" data-not-logged="' + escapeHtml(vol.notLogged.join(', ')) +
         '">Not logged yet: ' + escapeHtml(vol.notLogged.join(', ')) + '</div>'
@@ -4297,6 +4346,103 @@
       title + chipHtml + unitHtml + bars + notLoggedHtml + '</div>';
   }
 
+  function renderHighlightsHtml(sessions, days){
+    var CI = window.CoachInsights;
+    if(!CI || !CI.computeHighlights) return '';
+    var h = CI.computeHighlights(sessions, { days: days });
+    var cards = [];
+    if(h.hardestSend){
+      cards.push(
+        '<div class="athlete-highlight-card" data-highlight="hardest-send">' +
+          '<div class="athlete-highlight-kicker">Hardest send</div>' +
+          '<div class="athlete-highlight-val">' + escapeHtml(h.hardestSend.grade) + '</div>' +
+          '<div class="athlete-highlight-sub">' +
+            escapeHtml([h.hardestSend.terrain, h.hardestSend.date].filter(Boolean).join(' · ')) +
+          '</div>' +
+        '</div>'
+      );
+    }
+    if(h.mostClimbed){
+      cards.push(
+        '<div class="athlete-highlight-card" data-highlight="most-climbed">' +
+          '<div class="athlete-highlight-kicker">Most-attempted terrain</div>' +
+          '<div class="athlete-highlight-val">' + escapeHtml(h.mostClimbed.terrain) + '</div>' +
+          '<div class="athlete-highlight-sub">' + h.mostClimbed.share + '%</div>' +
+        '</div>'
+      );
+    }
+    if(h.mostActiveWeek){
+      cards.push(
+        '<div class="athlete-highlight-card" data-highlight="most-active-week">' +
+          '<div class="athlete-highlight-kicker">Most active week</div>' +
+          '<div class="athlete-highlight-val">' + h.mostActiveWeek.sessions +
+            (h.mostActiveWeek.sessions === 1 ? ' session' : ' sessions') + '</div>' +
+          '<div class="athlete-highlight-sub">week of ' + escapeHtml(h.mostActiveWeek.week) + '</div>' +
+        '</div>'
+      );
+    }
+    if(!cards.length) return '';
+    return '<div class="athlete-highlights" id="athlete-highlights">' + cards.join('') + '</div>';
+  }
+
+  function renderTerrainScoreboardHtml(sessions, days){
+    var CI = window.CoachInsights;
+    if(!CI || !CI.computeTerrainScoreboard) return '';
+    var board = CI.computeTerrainScoreboard(sessions, { days: days });
+    if(!board.rows.length){
+      var emptyLogged = (board.notLogged && board.notLogged.length)
+        ? '<div class="terrain-volume-not-logged" data-not-logged="' + escapeHtml(board.notLogged.join(', ')) +
+          '">Not logged yet: ' + escapeHtml(board.notLogged.join(', ')) + '</div>'
+        : '';
+      return '<div class="terrain-scoreboard" id="athlete-terrain-scoreboard" data-scoreboard="empty">' + emptyLogged + '</div>';
+    }
+    function dash(){ return '<span class="scoreboard-na">—</span>'; }
+    var head = '<div class="terrain-scoreboard-head" aria-hidden="true">' +
+      '<div>Terrain</div><div>Attempts</div><div>Hardest send</div>' +
+      '<div>Falls per 10</div><div>Zone mix</div><div>vs last 4 weeks</div>' +
+    '</div>';
+    var rows = board.rows.map(function(row){
+      var fall = row.fallsPerTen == null
+        ? dash()
+        : (row.fallsPerTen % 1 === 0 ? String(row.fallsPerTen) : row.fallsPerTen.toFixed(1));
+      var zone = '—';
+      if(row.zones){
+        var counts = row.zoneCounts || {
+          comfort: row.zones.comfort, learning: row.zones.learning, panic: row.zones.panic
+        };
+        zone = zoneBarSegsHtml(counts, { compact: true }) +
+          '<div class="scoreboard-zone-txt">Comfort ' + row.zones.comfort +
+          '% · Learning ' + row.zones.learning + '% · Panic ' + row.zones.panic + '%</div>';
+      } else {
+        zone = dash();
+      }
+      var trend = dash();
+      if(row.trend){
+        var arrow = row.trend === 'up' ? '↑' : (row.trend === 'down' ? '↓' : '→');
+        var delta = row.trendDelta > 0 ? ('+' + row.trendDelta) : String(row.trendDelta);
+        trend = '<span class="scoreboard-trend" data-trend="' + row.trend + '">' + arrow + ' ' + delta + '</span>';
+      }
+      return '<div class="terrain-scoreboard-row" data-terrain="' + escapeHtml(row.terrain) +
+        '" data-attempts="' + (row.attempts || 0) + '">' +
+        '<div class="scoreboard-cell" data-label="Terrain"><strong>' + escapeHtml(row.terrain) + '</strong></div>' +
+        '<div class="scoreboard-cell" data-label="Attempts">' +
+          '<div class="scoreboard-climbs-n">' + row.climbs + ' · ' + row.share + '%</div>' +
+          '<div class="scoreboard-share-track"><div class="scoreboard-share-fill" style="width:' + row.share + '%"></div></div>' +
+        '</div>' +
+        '<div class="scoreboard-cell" data-label="Hardest send">' + (row.hardestSend ? escapeHtml(row.hardestSend) : '—') + '</div>' +
+        '<div class="scoreboard-cell scoreboard-falls" data-label="Falls per 10">' + fall + '</div>' +
+        '<div class="scoreboard-cell" data-label="Zone mix">' + zone + '</div>' +
+        '<div class="scoreboard-cell" data-label="vs last 4 weeks">' + trend + '</div>' +
+      '</div>';
+    }).join('');
+    var notLogged = (board.notLogged && board.notLogged.length)
+      ? '<div class="terrain-volume-not-logged" data-not-logged="' + escapeHtml(board.notLogged.join(', ')) +
+        '">Not logged yet: ' + escapeHtml(board.notLogged.join(', ')) + '</div>'
+      : '';
+    return '<div class="terrain-scoreboard" id="athlete-terrain-scoreboard" data-scoreboard="table">' +
+      head + rows + notLogged + '</div>';
+  }
+
   function renderProgressPanelHtml(sessions){
     var CI = window.CoachInsights;
     var series = CI.computeProgressSeries(sessions, {
@@ -4307,10 +4453,16 @@
     var coachReadHtml = (CI.computeCoachRead && typeof renderCoachReadHtml === 'function')
       ? renderCoachReadHtml(CI.computeCoachRead(sessions, { days: volumeDays }))
       : '';
+    var highlightsHtml = (typeof renderHighlightsHtml === 'function')
+      ? renderHighlightsHtml(sessions, volumeDays)
+      : '';
+    var scoreboardHtml = (typeof renderTerrainScoreboardHtml === 'function')
+      ? renderTerrainScoreboardHtml(sessions, volumeDays)
+      : '';
     if(!series.hasZoneTrend && !series.hasBoulderGradeTrend && !series.hasRopedGradeTrend && !series.hasGradeTrend){
       var terrainOnly = (typeof renderTerrainVolumeHtml === 'function') ? renderTerrainVolumeHtml(sessions) : '';
-      if(terrainOnly) return coachReadHtml + terrainOnly;
-      return coachReadHtml + '<div class="empty-state">No logged climb sessions in the last 12 weeks.</div>';
+      if(terrainOnly) return highlightsHtml + coachReadHtml + scoreboardHtml + terrainOnly;
+      return highlightsHtml + coachReadHtml + scoreboardHtml + '<div class="empty-state">No logged climb sessions in the last 12 weeks.</div>';
     }
     var weekBars = '<div class="progress-week-bars" aria-hidden="true">' +
       series.zonePoints.map(function(p){
@@ -4391,7 +4543,7 @@
       'Hardest send each week on that terrain, on this athlete\'s usual roped grade scale, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.'
     );
 
-    return coachReadHtml + '<div class="form-note">' + series.sessionCount +
+    return highlightsHtml + coachReadHtml + scoreboardHtml + '<div class="form-note">' + series.sessionCount +
       (series.sessionCount === 1 ? ' logged session' : ' logged sessions') +
       ' in this window.</div>' +
       weekBars + zoneSvg + boulderSvg + ropedSvg +
@@ -7990,6 +8142,22 @@
     coachRead: function(){
       var el = document.querySelector('#terrain-volume-test-host #athlete-coach-read');
       return el ? el.innerText : '';
+    },
+    highlights: function(){
+      return Array.prototype.map.call(document.querySelectorAll('#terrain-volume-test-host [data-highlight]'), function(n){
+        return n.getAttribute('data-highlight');
+      });
+    },
+    scoreboard: function(){
+      var rows = Array.prototype.map.call(document.querySelectorAll('#terrain-volume-test-host .terrain-scoreboard-row'), function(n){
+        var falls = n.querySelector('.scoreboard-falls');
+        return {
+          terrain: n.getAttribute('data-terrain'),
+          attempts: parseInt(n.getAttribute('data-attempts'), 10) || 0,
+          falls: falls ? falls.textContent.trim() : ''
+        };
+      });
+      return rows;
     },
     lastXTick: function(){
       var ticks = document.querySelectorAll('#terrain-volume-test-host svg.insight-svg text.insight-x-tick');
