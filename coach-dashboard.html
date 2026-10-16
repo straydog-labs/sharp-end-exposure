@@ -440,7 +440,7 @@
   .terrain-volume-bar-fill{height:100%;background:var(--accent);border-radius:999px;}
   .terrain-volume-bar-n{flex-shrink:0;width:auto;min-width:64px;font-size:12px;font-weight:700;text-align:right;white-space:nowrap;color:var(--text);}
   .terrain-volume-unit-label{font-size:12px;color:var(--text-secondary);margin:0 0 4px;}
-  .terrain-volume-not-logged{font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4;}
+  .terrain-volume-not-logged,.terrain-volume-untagged{font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4;}
   .terrain-volume-unit .insight-chart-help{margin:6px 0 4px;}
   .terrain-volume-unit .terrain-volume-range{margin:4px 0 6px;}
   .terrain-volume-radar{width:100%;max-width:440px;height:auto;display:block;overflow:visible;margin:2px auto 10px;}
@@ -1283,7 +1283,7 @@
     .athlete-share-print-date { font-size: 12px; color: #555; margin-top: 2px; }
     .athlete-snapshot-kicker { color: #555 !important; }
     .coach-read, .coach-read p { color: #111 !important; }
-    .insight-legend-note, .terrain-volume-unit-label, .terrain-volume-not-logged { color: #555 !important; }
+    .insight-legend-note, .terrain-volume-unit-label, .terrain-volume-not-logged, .terrain-volume-untagged { color: #555 !important; }
     .terrain-volume-bar-n { color: #111 !important; }
     .athlete-highlight-card, .terrain-scoreboard-row {
       background: #fff !important;
@@ -4105,6 +4105,7 @@
       if(progressEl) progressEl.innerHTML = renderProgressPanelHtml(rows);
       wireRopedDisciplineChips();
       wireTerrainVolumeChips();
+      if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(progressEl);
       if(volumeEl) volumeEl.innerHTML = renderTrainingVolumePanelHtml(trainingRows);
       if(psycheEl) psycheEl.innerHTML = renderPsycheVolumePanelHtml(checkins, drills);
       if(gapEl) gapEl.innerHTML = renderGapPanelHtml(rows);
@@ -4287,6 +4288,7 @@
         host.innerHTML = renderProgressPanelHtml(rows);
         wireRopedDisciplineChips();
         wireTerrainVolumeChips();
+        if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(host);
       });
     });
   }
@@ -4303,6 +4305,7 @@
         host.innerHTML = renderProgressPanelHtml(rows);
         wireRopedDisciplineChips();
         wireTerrainVolumeChips();
+        if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(host);
         if(typeof paintAthleteSnapshotStamp === 'function') paintAthleteSnapshotStamp();
       });
     });
@@ -4338,7 +4341,7 @@
     '</div>';
     var title = insightChartTitleWithHelp(
       'Terrain volume',
-      'Count of logged attempts per terrain in the selected window. Each attempt counts 1. DNA, baseline, check-ins, and fall practice are excluded. Descriptive only.'
+      'Count of logged attempts per terrain in the selected window. Each logged climb row counts 1, including sent, fell, took, DNA, and fall practice. Baseline, check-ins, and deleted rows are excluded. Rows with no terrain are listed below and are not plotted. Descriptive only.'
     );
     var unitHtml = '<div class="terrain-volume-unit-label" data-terrain-unit="' +
       escapeHtml(vol.unit || 'Attempts logged') + '">' + escapeHtml(vol.unit || 'Attempts logged') + '</div>';
@@ -4346,11 +4349,15 @@
       ? '<div class="terrain-volume-not-logged" data-not-logged="' + escapeHtml(vol.notLogged.join(', ')) +
         '">Not logged yet: ' + escapeHtml(vol.notLogged.join(', ')) + '</div>'
       : '';
+    var untaggedHtml = (vol.untagged > 0)
+      ? '<div class="terrain-volume-untagged" data-untagged="' + vol.untagged + '">' +
+        vol.untagged + ' logged rows have no terrain</div>'
+      : '';
     if(vol.mode === 'empty'){
       return '<div class="insight-chart-unit terrain-volume-unit insight-chart-empty" data-terrain-volume="empty">' +
         title + chipHtml + unitHtml +
         '<div class="empty-state">No terrain-tagged climbs in this window.</div>' +
-        notLoggedHtml +
+        notLoggedHtml + untaggedHtml +
       '</div>';
     }
     var max = 1;
@@ -4366,7 +4373,7 @@
       '</div>';
     }).join('');
     return '<div class="insight-chart-unit terrain-volume-unit" data-terrain-volume="radar">' +
-      title + chipHtml + unitHtml + renderTerrainRadarHtml(vol) + bars + notLoggedHtml + '</div>';
+      title + chipHtml + unitHtml + renderTerrainRadarHtml(vol) + bars + notLoggedHtml + untaggedHtml + '</div>';
   }
 
   function renderTerrainRadarHtml(vol){
@@ -4386,11 +4393,11 @@
         '" stroke="rgba(255,255,255,.12)" stroke-width="1"/>';
     }).join('');
     var poly = (radar.axes || []).map(function(a){ return a.x.toFixed(1) + ',' + a.y.toFixed(1); }).join(' ');
-    var dots = (radar.axes || []).map(function(a){
+    var dots = (radar.axes || []).filter(function(a){ return a.count > 0; }).map(function(a){
       return '<circle class="radar-vertex" data-terrain="' + escapeHtml(a.terrain) +
         '" data-count="' + a.count + '" data-r="' + a.r +
         '" cx="' + a.x.toFixed(1) + '" cy="' + a.y.toFixed(1) +
-        '" r="8" fill="var(--accent)"/>';
+        '" r="5" fill="var(--accent)"/>';
     }).join('');
     var labels = (radar.axes || []).map(function(a){
       return '<text class="radar-axis-label" data-terrain="' + escapeHtml(a.terrain) +
@@ -4402,6 +4409,27 @@
       '<polygon class="radar-fill" points="' + poly +
       '" fill="var(--accent)" fill-opacity="0.25" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>' +
       dots + labels + '</svg>';
+  }
+
+  function sizeRadarMarkers(root){
+    var scope = root && root.querySelectorAll ? root : document;
+    Array.prototype.forEach.call(scope.querySelectorAll('svg.terrain-volume-radar'), function(svg){
+      var vb = svg.viewBox && svg.viewBox.baseVal;
+      var vbW = vb && vb.width ? vb.width : 440;
+      var w = svg.getBoundingClientRect().width || svg.clientWidth;
+      if(!w) return;
+      var r = 5 * (vbW / w);
+      Array.prototype.forEach.call(svg.querySelectorAll('.radar-vertex'), function(c){
+        c.setAttribute('r', String(r));
+        c.setAttribute('data-css-r', '5');
+      });
+    });
+  }
+
+  if(typeof ResizeObserver === 'function' && !window.__radarMarkerRo){
+    window.__radarMarkerRo = new ResizeObserver(function(entries){
+      entries.forEach(function(entry){ sizeRadarMarkers(entry.target.parentNode || document); });
+    });
   }
 
   function renderHighlightsHtml(sessions, days){
@@ -8166,6 +8194,7 @@
       }
       el.innerHTML = renderProgressPanelHtml(_terrainVolumeTestRows);
       wireTerrainVolumeChips();
+      if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(el);
       return el.id;
     },
     clickDays: function(days){
