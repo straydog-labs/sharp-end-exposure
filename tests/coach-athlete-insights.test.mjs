@@ -245,7 +245,7 @@ const dominantVol = [
 ];
 const volDom = CI.computeTerrainVolume(dominantVol, { days: 90, endDate: volEnd });
 assert.strictEqual(volDom.mode, 'bars');
-assert.strictEqual(volDom.unit, 'Climbs logged');
+assert.strictEqual(volDom.unit, 'Attempts logged');
 assert.strictEqual(volDom.total, 4);
 assert.strictEqual(volDom.sorted[0].terrain, 'Vertical');
 assert.strictEqual(volDom.sorted[0].count, 3);
@@ -376,7 +376,7 @@ for (let i = 0; i < 8; i++) {
 const readFull = CI.computeCoachRead(readRows, { days: 90, endDate: volEnd });
 assert.ok(readFull.enough);
 assert.ok(readFull.lines.length >= 1 && readFull.lines.length <= 3);
-assert.ok(/% of logged climbs are Vertical/.test(readFull.lines[0]));
+assert.ok(/% of logged attempts are Vertical/.test(readFull.lines[0]));
 assert.ok(/not logged yet:/i.test(readFull.lines[0]));
 readFull.lines.forEach(function (line) {
   assert.ok(!CAUSAL.test(line), 'causal wording: ' + line);
@@ -441,5 +441,108 @@ assert.ok(/athlete-terrain-scoreboard/.test(dash));
 assert.ok(/athlete-highlights/.test(dash));
 assert.ok(/scoreboard-falls/.test(dash));
 assert.ok(!VOLUME_BAD_COLOR.test((dash.match(/\.scoreboard-falls\{[^}]+\}/) || [''])[0]));
+
+// --- X1 unit: nested attempts count 1; labels say Attempts logged ---
+const nested = [{
+  created_at: '2026-10-10T12:00:00Z',
+  climbing_type: 'Vertical',
+  baseline_zone: 'sent',
+  is_checkin: false,
+  attempts: [
+    { created_at: '2026-10-10T12:01:00Z', climbing_type: 'Vertical', baseline_zone: 'fell', is_checkin: false },
+    { created_at: '2026-10-10T12:02:00Z', climbing_type: 'Overhang', baseline_zone: 'sent', is_checkin: false }
+  ]
+}];
+const volNested = CI.computeTerrainVolume(nested, { days: 90, endDate: volEnd });
+assert.strictEqual(volNested.total, 3, 'parent row + nested attempts each count 1');
+assert.strictEqual(volNested.counts.Vertical, 2);
+assert.strictEqual(volNested.counts.Overhang, 1);
+assert.strictEqual(volNested.unit, 'Attempts logged');
+assert.ok(/Attempts logged/.test(dash));
+assert.ok(/Most-attempted terrain/.test(dash));
+assert.ok(/data-label="Attempts"/.test(dash));
+assert.ok(!/Climbs logged/.test(dash));
+assert.ok(!/% of logged climbs are/.test(js));
+
+// --- X2 DNA excluded from volume, hollow y, falls denominator ---
+const dnaMix = [
+  { created_at: weekAt('2026-10-12', 1), climbing_type: 'Vertical', grade_value: 'V4', baseline_zone: 'fell', zone: 'learning', is_checkin: false },
+  { created_at: weekAt('2026-10-12', 1), climbing_type: 'Vertical', grade_value: 'V9', baseline_zone: 'dna', zone: 'panic', is_checkin: false },
+  { created_at: weekAt('2026-10-05', 1), climbing_type: 'Vertical', grade_value: 'V3', baseline_zone: 'sent', zone: 'comfort', is_checkin: false }
+];
+const volDna = CI.computeTerrainVolume(dnaMix, { days: 90, endDate: volEnd });
+assert.strictEqual(volDna.counts.Vertical, 2, 'DNA was counted in volume before; must not be');
+const dnaProg = CI.computeProgressSeries(dnaMix, { weekCount: 4, endDate: gradeEnd });
+const dnaVert = dnaProg.boulderGradeSeries.find((s) => s.terrain === 'Vertical');
+const dnaWeek = dnaVert.points[dnaVert.points.length - 1];
+assert.notStrictEqual(dnaWeek.grade, 'V9', 'DNA must not be the hollow hardest attempt');
+assert.strictEqual(dnaWeek.grade, 'V4');
+assert.strictEqual(dnaWeek.sent, false);
+const dnaOnly = CI.computeProgressSeries([
+  { created_at: weekAt('2026-10-12', 1), climbing_type: 'Slab', grade_value: 'V8', baseline_zone: 'dna', zone: 'panic', is_checkin: false }
+], { weekCount: 4, endDate: gradeEnd });
+assert.ok(!dnaOnly.boulderGradeSeries.some((s) => s.terrain === 'Slab'), 'DNA-only week plots no hollow dot');
+const dnaFalls = [];
+for (let i = 0; i < 5; i++) {
+  dnaFalls.push({
+    created_at: new Date(volEnd.getTime() - i * 86400000).toISOString(),
+    climbing_type: 'Roof',
+    grade_value: 'V2',
+    baseline_zone: i === 0 ? 'fell' : 'sent',
+    zone: 'learning',
+    is_checkin: false
+  });
+}
+dnaFalls.push({
+  created_at: '2026-10-10T12:00:00Z', climbing_type: 'Roof', grade_value: 'V2',
+  baseline_zone: 'dna', zone: 'panic', is_checkin: false
+});
+const dnaBoard = CI.computeTerrainScoreboard(dnaFalls, { days: 90, endDate: volEnd });
+const roofBoard = dnaBoard.rows.find((r) => r.terrain === 'Roof');
+assert.strictEqual(roofBoard.attempts, 5, 'DNA is not in the falls-per-10 denominator');
+
+// --- X3 baseline rows can carry terrain/grade; exclude like the athlete app ---
+const baselineRow = {
+  created_at: '2026-10-10T12:00:00Z',
+  climbing_type: 'Vertical',
+  grade_value: 'V7',
+  baseline_zone: 'sent',
+  zone: 'comfort',
+  is_checkin: false,
+  is_baseline: true
+};
+const liveRow = {
+  created_at: '2026-10-09T12:00:00Z',
+  climbing_type: 'Slab',
+  grade_value: 'V2',
+  baseline_zone: 'sent',
+  zone: 'learning',
+  is_checkin: false,
+  is_baseline: false
+};
+const volBase = CI.computeTerrainVolume([baselineRow, liveRow], { days: 90, endDate: volEnd });
+assert.strictEqual(volBase.counts.Vertical, 0, 'baseline with terrain must not enter volume');
+assert.strictEqual(volBase.counts.Slab, 1);
+const progBase = CI.computeProgressSeries([baselineRow, liveRow], { weekCount: 4, endDate: volEnd });
+assert.ok(!progBase.boulderGradeSeries.some((s) => s.terrain === 'Vertical'));
+assert.ok(progBase.boulderGradeSeries.some((s) => s.terrain === 'Slab'));
+const boardBase = CI.computeTerrainScoreboard([baselineRow, liveRow], { days: 90, endDate: volEnd });
+assert.ok(!boardBase.rows.some((r) => r.terrain === 'Vertical'));
+const hiBase = CI.computeHighlights([baselineRow], { days: 90, endDate: volEnd });
+assert.strictEqual(hiBase.hardestSend, null);
+assert.strictEqual(hiBase.mostClimbed, null);
+
+// --- X4 largest-remainder shares always sum to 100 ---
+const split3 = [
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Slab', is_checkin: false, baseline_zone: 'sent' },
+  { created_at: '2026-10-09T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'sent' },
+  { created_at: '2026-10-08T12:00:00Z', climbing_type: 'Overhang', is_checkin: false, baseline_zone: 'sent' }
+];
+const vol3 = CI.computeTerrainVolume(split3, { days: 90, endDate: volEnd });
+const shareSum = vol3.sorted.reduce((n, row) => n + row.share, 0);
+assert.strictEqual(shareSum, 100, 'largest-remainder shares must sum to 100');
+assert.deepStrictEqual(vol3.sorted.map((row) => row.share).sort((a, b) => b - a), [34, 33, 33]);
+const lr = CI.largestRemainderShares([{ key: 'a', count: 1 }, { key: 'b', count: 1 }, { key: 'c', count: 1 }]);
+assert.strictEqual(lr.a + lr.b + lr.c, 100);
 
 console.log('coach-athlete-insights tests: ok');

@@ -311,10 +311,16 @@
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  function isDnaRow(row) {
+    return String((row && row.baseline_zone) || '').trim().toLowerCase() === 'dna';
+  }
+
   function isClimbSession(row) {
     if (!row) return false;
     if (row.deleted_at) return false;
     if (row.is_checkin === true) return false;
+    if (row.is_baseline === true) return false;
+    if (isDnaRow(row)) return false;
     return true;
   }
 
@@ -925,6 +931,33 @@
     return t >= start && t <= end;
   }
 
+  function largestRemainderShares(items) {
+    var total = 0;
+    (items || []).forEach(function (it) { total += it.count || 0; });
+    var out = {};
+    if (!items || !items.length) return out;
+    if (!total) {
+      items.forEach(function (it) { out[it.key] = 0; });
+      return out;
+    }
+    var parts = items.map(function (it) {
+      var exact = ((it.count || 0) / total) * 100;
+      var floor = Math.floor(exact);
+      return { key: it.key, floor: floor, frac: exact - floor };
+    });
+    var sum = 0;
+    parts.forEach(function (p) { sum += p.floor; });
+    var remain = 100 - sum;
+    parts.sort(function (a, b) {
+      if (b.frac !== a.frac) return b.frac - a.frac;
+      return String(a.key).localeCompare(String(b.key));
+    });
+    var i;
+    for (i = 0; i < remain; i++) parts[i].floor += 1;
+    parts.forEach(function (p) { out[p.key] = p.floor; });
+    return out;
+  }
+
   function computeTerrainVolume(sessions, opts) {
     opts = opts || {};
     var days = opts.days;
@@ -934,7 +967,7 @@
     TERRAIN_TYPES.forEach(function (t) { counts[t] = 0; });
 
     function addRow(row) {
-      if (!row || row.deleted_at || row.is_checkin) return;
+      if (!isClimbSession(row)) return;
       if (isFallPracticeRow(row)) return;
       if (!rowInTerrainWindow(row, days, endDate)) return;
       var terrain = normalizeTerrainType(row.terrain || row.climbing_type);
@@ -949,15 +982,17 @@
     var notLogged = TERRAIN_TYPES.filter(function (t) { return counts[t] === 0; });
     var total = 0;
     used.forEach(function (t) { total += counts[t]; });
+    var shares = largestRemainderShares(used.map(function (t) {
+      return { key: t, count: counts[t] };
+    }));
     var sorted = used.slice().sort(function (a, b) {
       if (counts[b] !== counts[a]) return counts[b] - counts[a];
       return a.localeCompare(b);
     }).map(function (t) {
-      var n = counts[t];
       return {
         terrain: t,
-        count: n,
-        share: total ? Math.round((n / total) * 100) : 0
+        count: counts[t],
+        share: shares[t] || 0
       };
     });
     return {
@@ -968,7 +1003,7 @@
       sorted: sorted,
       total: total,
       days: days,
-      unit: 'Climbs logged',
+      unit: 'Attempts logged',
       mode: used.length === 0 ? 'empty' : 'bars'
     };
   }
@@ -1034,7 +1069,7 @@
     var lines = [];
     if (vol.sorted.length) {
       var mix = vol.sorted.map(function (row, i) {
-        if (i === 0) return row.share + '% of logged climbs are ' + row.terrain;
+        if (i === 0) return row.share + '% of logged attempts are ' + row.terrain;
         return row.terrain + ' ' + row.share + '%';
       }).join('; ');
       if (vol.notLogged.length) mix += '; not logged yet: ' + vol.notLogged.join(', ');
@@ -1183,6 +1218,7 @@
     computePsycheVolumeSeries: computePsycheVolumeSeries,
     computeGapDiagnostic: computeGapDiagnostic,
     computeTerrainVolume: computeTerrainVolume,
+    largestRemainderShares: largestRemainderShares,
     computeCoachRead: computeCoachRead,
     computeTerrainScoreboard: computeTerrainScoreboard,
     computeHighlights: computeHighlights,
