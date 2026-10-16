@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import assert from 'assert';
+import vm from 'vm';
 
 const require = createRequire(import.meta.url);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -220,5 +221,184 @@ assert.ok(!/unclassifiedCount/.test(dash));
 assert.ok(!/gapGroupHtml/.test(dash));
 assert.ok(!/classifyBoulderVsLead/.test(js));
 assert.ok(!/index\.html/.test(js));
+
+const CAUSAL = /\b(because|caused|due to)\b/i;
+const VOLUME_BAD_COLOR = /#e84444|#f5a623|#7ec87a|var\(--panic\)|var\(--learning\)|var\(--comfort\)/;
+
+function extractFn(src, name, nextName){
+  const start = src.indexOf('function ' + name + '(');
+  const end = nextName ? src.indexOf('function ' + nextName + '(', start + 1) : src.length;
+  assert.ok(start >= 0 && end > start, 'extract ' + name);
+  return src.slice(start, end);
+}
+
+// --- terrain volume bars: included rows, sorted, zeros not logged ---
+const volEnd = new Date('2026-10-16T12:00:00Z');
+const dominantVol = [
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'sent' },
+  { created_at: '2026-10-09T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'sent' },
+  { created_at: '2026-10-08T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'fell' },
+  { created_at: '2026-10-07T12:00:00Z', climbing_type: 'Overhang', is_checkin: false, baseline_zone: 'sent' },
+  { created_at: '2026-10-06T12:00:00Z', climbing_type: 'Slab', is_checkin: true, baseline_zone: 'sent' },
+  { created_at: '2026-10-05T12:00:00Z', climbing_type: 'Roof', is_checkin: false, baseline_zone: 'fall_practice' },
+  { created_at: '2026-10-04T12:00:00Z', climbing_type: 'Crack', is_checkin: false, deleted_at: '2026-10-04T13:00:00Z' }
+];
+const volDom = CI.computeTerrainVolume(dominantVol, { days: 90, endDate: volEnd });
+assert.strictEqual(volDom.mode, 'bars');
+assert.strictEqual(volDom.unit, 'Climbs logged');
+assert.strictEqual(volDom.total, 4);
+assert.strictEqual(volDom.sorted[0].terrain, 'Vertical');
+assert.strictEqual(volDom.sorted[0].count, 3);
+assert.ok(volDom.sorted.every((row, i, arr) => i === 0 || arr[i - 1].count >= row.count));
+assert.strictEqual(volDom.sorted.reduce((n, row) => n + row.count, 0), volDom.total);
+assert.ok(!volDom.sorted.some((row) => row.count === 0));
+assert.ok(volDom.notLogged.includes('Roof'));
+assert.ok(volDom.notLogged.includes('Crack'));
+assert.ok(!volDom.notLogged.includes('Vertical'));
+assert.ok(!/terrain-volume-radar/.test(js));
+
+const volEmpty = CI.computeTerrainVolume([], { days: 90, endDate: volEnd });
+assert.strictEqual(volEmpty.mode, 'empty');
+assert.deepStrictEqual(volEmpty.notLogged, CI.TERRAIN_TYPES);
+
+// --- hardest send y-metric, filled/hollow, connectors ---
+const gradeEnd = new Date('2026-10-12T12:00:00Z');
+const sendVsFall = [
+  { created_at: weekAt('2026-10-12', 1), zone: 'learning', grade_value: 'V5', climbing_type: 'Vertical', baseline_zone: 'sent', is_checkin: false },
+  { created_at: weekAt('2026-10-12', 2), zone: 'panic', grade_value: 'V7', climbing_type: 'Vertical', baseline_zone: 'fell', is_checkin: false },
+  { created_at: weekAt('2026-09-28', 1), zone: 'learning', grade_value: 'V6', climbing_type: 'Vertical', baseline_zone: 'fell', is_checkin: false }
+];
+const sendProg = CI.computeProgressSeries(sendVsFall, { weekCount: 6, endDate: gradeEnd });
+const vert = sendProg.boulderGradeSeries.find((s) => s.terrain === 'Vertical');
+assert.ok(vert);
+const lastSend = vert.points[vert.points.length - 1];
+assert.strictEqual(lastSend.grade, 'V5', 'y is hardest send, not the harder fall');
+assert.strictEqual(lastSend.sent, true);
+const fallOnly = vert.points.find((p) => p.key === '2026-09-28');
+assert.ok(fallOnly && fallOnly.grade === 'V6' && fallOnly.sent === false, 'hollow week uses hardest attempt');
+
+const onePointRows = [
+  { created_at: weekAt('2026-10-12', 1), zone: 'comfort', grade_value: 'V3', climbing_type: 'Roof', baseline_zone: 'sent', is_checkin: false }
+];
+const oneProg = CI.computeProgressSeries(onePointRows, { weekCount: 6, endDate: gradeEnd });
+const roof1 = oneProg.boulderGradeSeries.find((s) => s.terrain === 'Roof');
+assert.strictEqual(roof1.plotted, 1);
+assert.deepStrictEqual(CI.gradeConnectors(roof1.points), []);
+
+const twoPointRows = [
+  { created_at: weekAt('2026-10-05', 1), zone: 'comfort', grade_value: 'V2', climbing_type: 'Roof', baseline_zone: 'sent', is_checkin: false },
+  { created_at: weekAt('2026-10-12', 1), zone: 'comfort', grade_value: 'V3', climbing_type: 'Roof', baseline_zone: 'sent', is_checkin: false }
+];
+const twoProg = CI.computeProgressSeries(twoPointRows, { weekCount: 6, endDate: gradeEnd });
+const roof2 = twoProg.boulderGradeSeries.find((s) => s.terrain === 'Roof');
+assert.strictEqual(roof2.plotted, 2);
+const twoConn = CI.gradeConnectors(roof2.points);
+assert.strictEqual(twoConn.length, 1);
+assert.strictEqual(twoConn[0].style, 'solid');
+
+const gapRows3 = [
+  { created_at: weekAt('2026-09-14', 1), zone: 'learning', grade_value: 'V4', climbing_type: 'Dihedral', baseline_zone: 'sent', is_checkin: false },
+  { created_at: weekAt('2026-10-12', 1), zone: 'learning', grade_value: 'V5', climbing_type: 'Dihedral', baseline_zone: 'sent', is_checkin: false }
+];
+const gapProg = CI.computeProgressSeries(gapRows3, { weekCount: 8, endDate: gradeEnd });
+const dih = gapProg.boulderGradeSeries.find((s) => s.terrain === 'Dihedral');
+const gapConn = CI.gradeConnectors(dih.points);
+assert.strictEqual(gapConn.length, 1);
+assert.strictEqual(gapConn[0].style, 'dashed', '3 empty weeks use a dashed connector');
+
+const svgCtx = {
+  escapeHtml: function(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+};
+vm.createContext(svgCtx);
+vm.runInContext(
+  extractFn(dash, 'insightSvgPolyline', 'insightSvgDots') +
+  extractFn(dash, 'insightSvgDots', 'renderSharedAxisSvg') +
+  extractFn(dash, 'renderSharedAxisSvg', 'insightChartTitleWithHelp'),
+  svgCtx
+);
+const dashedSvg = vm.runInContext(
+  'renderSharedAxisSvg([' + JSON.stringify({
+    color: '#ccc',
+    xs: ['Sep 14', 'Sep 21', 'Sep 28', 'Oct 5', 'Oct 12'],
+    values: [4, null, null, null, 5],
+    fills: [true, false, false, false, false],
+    dashedGaps: true
+  }) + '], 0, 6, [{value:0,label:"0"},{value:6,label:"6"}], 720, 176)',
+  svgCtx
+);
+assert.ok(/stroke-dasharray="4 4"/.test(dashedSvg), 'dashed connector across a 3-week gap');
+assert.ok(/fill="none"/.test(dashedSvg), 'hollow attempt-only dot');
+assert.ok(/class="insight-x-tick"[^>]*data-x-index="4"[^>]*text-anchor="end"/.test(dashedSvg));
+const lastTick = dashedSvg.match(/class="insight-x-tick"[^>]*data-x-index="4"[^>]*x="([^"]+)"/);
+assert.ok(lastTick);
+assert.ok(Number(lastTick[1]) <= 720, 'last x label stays inside the viewBox');
+assert.ok(!/trend/i.test(dashedSvg));
+
+const solidSvg = vm.runInContext(
+  'renderSharedAxisSvg([' + JSON.stringify({
+    color: '#ccc',
+    xs: ['Oct 5', 'Oct 12'],
+    values: [2, 3],
+    fills: [true, true],
+    dashedGaps: true
+  }) + '], 0, 6, [{value:0,label:"0"},{value:6,label:"6"}], 720, 176)',
+  svgCtx
+);
+assert.ok(!/stroke-dasharray/.test(solidSvg), 'consecutive weeks stay solid');
+assert.ok(!/<circle[^>]*fill="none"/.test(solidSvg), 'send weeks are filled');
+assert.ok(/<circle[^>]*fill="#ccc"/.test(solidSvg));
+
+// --- coach read: minimums, no causal wording ---
+const readShort = CI.computeCoachRead([
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Vertical', grade_value: 'V3', baseline_zone: 'sent', is_checkin: false },
+  { created_at: '2026-10-09T12:00:00Z', climbing_type: 'Vertical', grade_value: 'V2', baseline_zone: 'sent', is_checkin: false }
+], { days: 90, endDate: volEnd });
+assert.deepStrictEqual(readShort.lines, ['Not enough data yet']);
+
+const readRows = [];
+for (let i = 0; i < 8; i++) {
+  readRows.push({
+    created_at: new Date(volEnd.getTime() - i * 86400000).toISOString(),
+    climbing_type: i < 6 ? 'Vertical' : 'Overhang',
+    grade_value: i === 0 ? 'V5' : 'V4',
+    baseline_zone: i % 3 === 0 ? 'fell' : 'sent',
+    zone: i % 3 === 0 ? 'panic' : 'learning',
+    is_checkin: false
+  });
+}
+const readFull = CI.computeCoachRead(readRows, { days: 90, endDate: volEnd });
+assert.ok(readFull.enough);
+assert.ok(readFull.lines.length >= 1 && readFull.lines.length <= 3);
+assert.ok(/% of logged climbs are Vertical/.test(readFull.lines[0]));
+assert.ok(/not logged yet:/i.test(readFull.lines[0]));
+readFull.lines.forEach(function (line) {
+  assert.ok(!CAUSAL.test(line), 'causal wording: ' + line);
+  assert.ok(!/trend/i.test(line));
+});
+const fewAttempts = CI.computeCoachRead([
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Slab', grade_value: 'V2', baseline_zone: 'sent', is_checkin: false },
+  { created_at: '2026-10-09T12:00:00Z', climbing_type: 'Slab', grade_value: 'V3', baseline_zone: 'sent', is_checkin: false },
+  { created_at: '2026-10-08T12:00:00Z', climbing_type: 'Vertical', grade_value: 'V4', baseline_zone: 'fell', is_checkin: false }
+], { days: 90, endDate: volEnd });
+assert.ok(!fewAttempts.lines.some((line) => /falls per 10/i.test(line)), 'omit falls under 5 attempts');
+
+assert.ok(/Athlete snapshot/.test(dash));
+assert.ok(/Print \/ Share/.test(dash));
+assert.ok(/@media print/.test(dash));
+assert.ok(/athlete-share-print-name/.test(dash));
+assert.ok(/athlete-share-print-date/.test(dash));
+assert.ok(/Descriptive — not a cause-and-effect read/.test(dash));
+assert.ok(/background:var\(--accent\)/.test(dash));
+assert.ok(!VOLUME_BAD_COLOR.test((dash.match(/\.terrain-volume-bar-fill\{[^}]+\}/) || [''])[0]));
+assert.ok(!/data-terrain-volume="radar"/.test(dash));
+assert.ok(/Not logged yet:/.test(dash));
+assert.ok(/Filled = send · hollow = attempt only · dashed = weeks without a log/.test(dash));
 
 console.log('coach-athlete-insights tests: ok');

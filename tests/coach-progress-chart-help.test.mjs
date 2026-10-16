@@ -7,8 +7,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 const ZONE_HELP = "The percent of that week's sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete's own in-the-moment activation rating, not from grade or send/fall outcome.";
-const BOULDER_HELP = "The athlete's logged bouldering grade over time, plotted by terrain type. A gap in a line means nothing was logged on that terrain that week — not a drop in ability.";
-const ROPED_HELP = "The athlete's logged roped-climbing grade over time, plotted by terrain type, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A gap in a line means nothing was logged on that terrain (or in that discipline) that week — not a drop in ability.";
+const BOULDER_HELP = "Hardest send each week on that terrain, on the V-scale. A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.";
+const ROPED_HELP = "Hardest send each week on that terrain, on this athlete's usual roped grade scale, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.";
+const BOULDER_TITLE = 'Hardest send by terrain — V-scale';
 
 function toJsLiteral(s){
   return "'" + s.replace(/'/g, "\\'") + "'";
@@ -45,8 +46,8 @@ function assertCollapsedDetails(html, title, help){
 }
 
 assertCollapsedDetails(insightChartTitleWithHelp('Zone share (%)', ZONE_HELP), 'Zone share (%)', ZONE_HELP);
-assertCollapsedDetails(insightChartTitleWithHelp('Bouldering', BOULDER_HELP), 'Bouldering', BOULDER_HELP);
-assertCollapsedDetails(insightChartTitleWithHelp('Roped climbing', ROPED_HELP), 'Roped climbing', ROPED_HELP);
+assertCollapsedDetails(insightChartTitleWithHelp(BOULDER_TITLE, BOULDER_HELP), BOULDER_TITLE, BOULDER_HELP);
+assertCollapsedDetails(insightChartTitleWithHelp('Hardest send by terrain — YDS', ROPED_HELP), 'Hardest send by terrain — YDS', ROPED_HELP);
 
 assert.ok(dash.includes(toJsLiteral(ZONE_HELP)), 'zone help is in source verbatim');
 assert.ok(dash.includes(toJsLiteral(BOULDER_HELP)), 'boulder help is in source verbatim');
@@ -56,14 +57,14 @@ const zoneCall = dash.match(/insightChartTitleWithHelp\(\s*'Zone share \(%\)',\s
 assert.ok(zoneCall, 'Zone share uses the helper');
 assert.strictEqual(zoneCall[1].replace(/\\'/g, "'"), ZONE_HELP);
 
-const boulderCall = dash.match(/renderGradeFamilyChartHtml\(\s*'Bouldering',[\s\S]*?((?:\\'|[^'])*)'\s*\)/);
-assert.ok(boulderCall, 'Bouldering chart still rendered via renderGradeFamilyChartHtml');
-assert.ok(dash.slice(dash.indexOf("renderGradeFamilyChartHtml(\n      'Bouldering'")).includes(toJsLiteral(BOULDER_HELP)));
+const boulderCall = dash.match(/renderGradeFamilyChartHtml\(\s*'Hardest send by terrain — V-scale',[\s\S]*?((?:\\'|[^'])*)'\s*\)/);
+assert.ok(boulderCall, 'Boulder chart still rendered via renderGradeFamilyChartHtml');
+assert.ok(dash.slice(dash.indexOf("renderGradeFamilyChartHtml(\n      'Hardest send by terrain — V-scale'")).includes(toJsLiteral(BOULDER_HELP)));
 
-const ropedIdx = dash.indexOf("renderGradeFamilyChartHtml(\n      'Roped climbing'");
-assert.ok(ropedIdx !== -1, 'Roped climbing chart still rendered via renderGradeFamilyChartHtml');
-assert.ok(dash.slice(ropedIdx, ropedIdx + 1200).includes(toJsLiteral(ROPED_HELP)));
-assert.ok(dash.slice(ropedIdx, ropedIdx + 1200).includes('ropedFilterChipsHtml(series.ropedDiscipline)'));
+const ropedIdx = dash.indexOf("renderGradeFamilyChartHtml(\n      'Hardest send by terrain — ' + (series.ropedSystemLabel || 'roped grades')");
+assert.ok(ropedIdx !== -1, 'Roped chart still rendered via renderGradeFamilyChartHtml');
+assert.ok(dash.slice(ropedIdx, ropedIdx + 1600).includes(toJsLiteral(ROPED_HELP)));
+assert.ok(dash.slice(ropedIdx, ropedIdx + 1600).includes('ropedFilterChipsHtml(series.ropedDiscipline)'));
 
 const BANNED = /\b(suggests|indicates|should|target|ideal)\b/i;
 [ZONE_HELP, BOULDER_HELP, ROPED_HELP].forEach(function(s, i){

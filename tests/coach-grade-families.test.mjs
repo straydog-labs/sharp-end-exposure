@@ -129,7 +129,7 @@ const discRows = [
   { created_at: weekAt('2026-08-31', 1), zone: 'learning', grade_value: '5.10d', climbing_type: 'Vertical', discipline: 'Trad', is_checkin: false },
   { created_at: weekAt('2026-08-31', 1), zone: 'comfort', grade_value: '5.9', climbing_type: 'Slab', discipline: 'Top Rope', is_checkin: false },
   { created_at: weekAt('2026-08-31', 1), zone: 'comfort', grade_value: '5.8', climbing_type: 'Slab', discipline: 'Auto Belay', is_checkin: false },
-  { created_at: weekAt('2026-08-31', 1), zone: 'learning', grade_value: '5.7', climbing_type: 'Vertical', is_checkin: false }
+  { created_at: weekAt('2026-08-31', 1), zone: 'learning', grade_value: '5.12a', climbing_type: 'Vertical', is_checkin: false }
 ];
 const allDisc = CI.computeProgressSeries(discRows, { weekCount: 4, endDate: end, ropedDiscipline: 'all' });
 const leadDisc = CI.computeProgressSeries(discRows, { weekCount: 4, endDate: end, ropedDiscipline: 'lead' });
@@ -147,7 +147,9 @@ const allVert = allDisc.ropedGradeSeries.find((s) => s.terrain === 'Vertical');
 const leadPt = leadVert.points[leadVert.points.length - 1];
 const allVertPt = allVert.points[allVert.points.length - 1];
 assert.ok(leadPt.grade === '5.11a' || leadPt.grade === '5.10d');
-assert.notStrictEqual(leadPt.rank, allVertPt.rank, 'Lead filter must drop the undisciplined 5.7 from the Vertical average');
+assert.notStrictEqual(leadPt.rank, allVertPt.rank, 'Lead filter must drop the undisciplined 5.12a from the Vertical hardest-send');
+assert.strictEqual(allVertPt.grade, '5.12a');
+assert.ok(leadPt.grade === '5.11a' || leadPt.grade === '5.10d');
 
 const mixedSystems = [
   { created_at: weekAt('2026-08-31', 1), zone: 'learning', grade_value: '5.11a', climbing_type: 'Vertical', is_checkin: false },
@@ -167,8 +169,8 @@ assert.ok(sysProg.ropedGradeSeries.some((s) =>
 ));
 
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
-assert.ok(/Bouldering/.test(dash));
-assert.ok(/Roped climbing/.test(dash));
+assert.ok(/Hardest send by terrain — V-scale/.test(dash));
+assert.ok(/Hardest send by terrain — /.test(dash));
 assert.ok(/function insightChartTitleWithHelp\(title, helpText\)/.test(dash));
 assert.ok(/class="insight-chart-help"/.test(dash));
 assert.ok(/No bouldering sessions in this window/.test(dash));
