@@ -470,37 +470,7 @@
     };
   }
 
-  function stretchShareFromZonePoints(zonePoints) {
-    return (zonePoints || []).map(function (p) {
-      var zones = p.zones || emptyZoneCounts();
-      var n = (zones.comfort || 0) + (zones.learning || 0) + (zones.panic || 0);
-      var stretchN = (zones.learning || 0) + (zones.panic || 0);
-      var stretch = n ? (stretchN / n) * 100 : null;
-      var lowN = n > 0 && n < 3;
-      var pct = n ? Math.round(stretch) : null;
-      var tip = '';
-      if (n) {
-        tip = 'Week of ' + (p.label || '') + ': ' + stretchN + ' of ' + n +
-          ' sessions in Learning or Panic (' + pct + '%)';
-        if (lowN) tip += ' · low n';
-      }
-      return {
-        key: p.key || '',
-        label: p.label || '',
-        n: n,
-        stretchN: stretchN,
-        stretch: stretch,
-        stretchPct: pct,
-        lowN: lowN,
-        comfort: zones.comfort || 0,
-        learning: zones.learning || 0,
-        panic: zones.panic || 0,
-        tooltip: tip
-      };
-    });
-  }
-
-  function computeStretchShare(sessions, options) {
+  function computeZoneWeekCounts(sessions, options) {
     options = options || {};
     var weekCount = options.weekCount || 12;
     var endDate = options.endDate || new Date();
@@ -523,22 +493,40 @@
       }
       addZone(byWeek[key].zones, z);
     });
-    var zonePoints = weeks.map(function (k) {
+    var points = weeks.map(function (k) {
+      var z = byWeek[k].zones;
+      var comfort = z.comfort || 0;
+      var learning = z.learning || 0;
+      var panic = z.panic || 0;
       return {
         key: k,
         label: byWeek[k].label,
-        zones: byWeek[k].zones,
-        total: (byWeek[k].zones.comfort || 0) + (byWeek[k].zones.learning || 0) + (byWeek[k].zones.panic || 0)
+        comfort: comfort,
+        learning: learning,
+        panic: panic,
+        total: comfort + learning + panic,
+        tooltip: 'Week of ' + byWeek[k].label + ': Comfort ' + comfort +
+          ', Learning ' + learning + ', Panic ' + panic
       };
     });
-    var points = stretchShareFromZonePoints(zonePoints);
+    var last4 = points.slice(-4);
+    var last4Comfort = 0;
+    var last4Learning = 0;
+    var last4Panic = 0;
+    last4.forEach(function (p) {
+      last4Comfort += p.comfort;
+      last4Learning += p.learning;
+      last4Panic += p.panic;
+    });
     return {
       weeks: weeks,
       labels: weeks.map(formatWeekLabel),
       points: points,
       noZone: noZone,
-      hasStretch: points.some(function (p) { return p.n > 0; }),
-      panicLogged: points.some(function (p) { return p.panic > 0; })
+      panicLogged: points.some(function (p) { return p.panic > 0; }),
+      last4: { comfort: last4Comfort, learning: last4Learning, panic: last4Panic },
+      last4Sentence: 'Last 4 weeks: ' + last4Comfort + ' Comfort, ' + last4Learning +
+        ' Learning, ' + last4Panic + ' Panic sessions.'
     };
   }
 
@@ -1433,8 +1421,7 @@
     gradeConnectors: gradeConnectors,
     normalizeTerrainType: normalizeTerrainType,
     computeProgressSeries: computeProgressSeries,
-    computeStretchShare: computeStretchShare,
-    stretchShareFromZonePoints: stretchShareFromZonePoints,
+    computeZoneWeekCounts: computeZoneWeekCounts,
     computeTrainingVolumeSeries: computeTrainingVolumeSeries,
     computePsycheVolumeSeries: computePsycheVolumeSeries,
     computeGapDiagnostic: computeGapDiagnostic,

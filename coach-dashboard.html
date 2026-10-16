@@ -427,10 +427,10 @@
   .insight-legend{
     display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11.5px;color:var(--text-secondary);margin-top:8px;
   }
-  .stretch-no-zone,.scoreboard-falls-caption{
+  .stretch-no-zone,.zone-week-no-zone,.zone-week-caption,.scoreboard-falls-caption{
     font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4;
   }
-  .stretch-share-tip{
+  .zone-week-tip{
     font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.4;min-height:0;
   }
   .roped-filter,.terrain-volume-range{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 10px;}
@@ -1363,14 +1363,13 @@
       width: auto;
       max-width: 100%;
     }
-    svg.stretch-share-svg {
+    svg.zone-week-svg {
       max-height: 140px;
       width: 100%;
     }
-    .stretch-share-unit { break-inside: avoid; }
-    .stretch-n-label { fill: #555 !important; }
-    .stretch-no-zone, .scoreboard-falls-caption { color: #555 !important; }
-    .stretch-share-tip { display: none !important; }
+    .zone-week-unit { break-inside: avoid; }
+    .zone-week-no-zone, .zone-week-caption, .scoreboard-falls-caption { color: #555 !important; }
+    .zone-week-tip { display: none !important; }
     svg.terrain-volume-radar {
       max-height: 240px !important;
       width: 100% !important;
@@ -4121,7 +4120,7 @@
       if(progressEl) progressEl.innerHTML = renderProgressPanelHtml(rows);
       wireRopedDisciplineChips();
       wireTerrainVolumeChips();
-      if(typeof wireStretchShareTips === 'function') wireStretchShareTips(progressEl);
+      if(typeof wireZoneWeekTips === 'function') wireZoneWeekTips(progressEl);
       if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(progressEl);
       if(volumeEl) volumeEl.innerHTML = renderTrainingVolumePanelHtml(trainingRows);
       if(psycheEl) psycheEl.innerHTML = renderPsycheVolumePanelHtml(checkins, drills);
@@ -4147,24 +4146,26 @@
     });
   }
 
-  function insightSvgPolyline(points, color, dashed, extra){
+  function insightSvgPolyline(points, color, dashed, extra, lineWidth){
     if(!points || points.length < 2) return '';
-    return '<polyline fill="none" stroke="' + color + '" stroke-width="' + (dashed ? '1.2' : '2.2') +
+    var sw = lineWidth != null ? lineWidth : (dashed ? '1.2' : '2.2');
+    return '<polyline fill="none" stroke="' + color + '" stroke-width="' + sw +
       '" stroke-linejoin="round" stroke-linecap="round"' +
       (dashed ? ' stroke-dasharray="4 4"' : '') +
       (extra || '') +
       ' points="' + points.map(function(p){ return p.x + ',' + p.y; }).join(' ') + '"/>';
   }
 
-  function insightSvgDots(points, color, filledFlags, titles){
+  function insightSvgDots(points, color, filledFlags, titles, radius){
+    var r = radius != null ? radius : 3;
     return (points || []).map(function(p, i){
       var filled = !filledFlags || filledFlags[i] !== false;
       var tip = (titles && titles[i]) ? '<title>' + escapeHtml(titles[i]) + '</title>' : '';
       if(filled){
-        return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="' + color + '">' + tip + '</circle>';
+        return '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" fill="' + color + '">' + tip + '</circle>';
       }
       return '<circle class="insight-dot-hollow" cx="' + p.x + '" cy="' + p.y +
-        '" r="3" fill="none" stroke="' + color + '" stroke-width="1.6">' + tip + '</circle>';
+        '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="1.6">' + tip + '</circle>';
     }).join('');
   }
 
@@ -4172,8 +4173,7 @@
     var padL = 36;
     var padR = 32;
     var padT = 8;
-    var hasN = seriesList.some(function(s){ return s && s.nLabels; });
-    var padB = hasN ? 50 : 22;
+    var padB = 22;
     var innerW = width - padL - padR;
     var innerH = height - padT - padB;
     var n = (seriesList[0] && seriesList[0].xs) ? seriesList[0].xs.length : 0;
@@ -4199,16 +4199,9 @@
         '" text-anchor="' + anchor + '" fill="#a8a8a8" font-size="9">' +
         escapeHtml(label) + '</text>';
     }).join('');
-    var nLabels = '';
-    if(hasN && seriesList[0].nLabels){
-      nLabels = seriesList[0].nLabels.map(function(txt, i){
-        if(!txt) return '';
-        return '<text class="stretch-n-label" data-n-index="' + i + '" x="' + xAt(i).toFixed(1) +
-          '" y="' + (height - 28) + '" text-anchor="middle" fill="#a8a8a8" font-size="8">' +
-          escapeHtml(txt) + '</text>';
-      }).join('');
-    }
     var lines = seriesList.map(function(s){
+      var dotR = s.dotR != null ? s.dotR : 3;
+      var lineW = s.lineWidth != null ? s.lineWidth : null;
       if(s.dashedGaps){
         var plotted = [];
         s.values.forEach(function(v, i){
@@ -4225,39 +4218,42 @@
         var pi;
         for(pi = 0; pi < plotted.length - 1; pi++){
           var gap = plotted[pi + 1].i - plotted[pi].i - 1;
-          var light = s.lights && (s.lights[plotted[pi].i] || s.lights[plotted[pi + 1].i]);
-          var extra = light ? ' stroke-opacity="0.4" class="stretch-seg-lown"' : '';
-          if(gap === 0) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, false, extra);
-          else if(gap <= 4) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, true, extra);
+          if(gap === 0) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, false, '', lineW);
+          else if(gap <= 4) segs += insightSvgPolyline([plotted[pi], plotted[pi + 1]], s.color, true, '', lineW);
         }
         return segs + plotted.map(function(p){
-          var hit = p.title
-            ? '<circle class="stretch-hit" data-stretch-tip="' + escapeHtml(p.title) +
-              '" cx="' + p.x + '" cy="' + p.y + '" r="10" fill="transparent"></circle>'
-            : '';
-          return insightSvgDots([p], s.color, [p.filled], [p.title]) + hit;
+          return insightSvgDots([p], s.color, [p.filled], [p.title], dotR);
         }).join('');
       }
       var pts = [];
       var chunks = [];
       var chunkFills = [];
+      var chunkTitles = [];
       s.values.forEach(function(v, i){
         if(v == null){
-          if(pts.length){ chunks.push({ pts: pts, fills: chunkFills }); pts = []; chunkFills = []; }
+          if(pts.length){ chunks.push({ pts: pts, fills: chunkFills, titles: chunkTitles }); pts = []; chunkFills = []; chunkTitles = []; }
           return;
         }
         pts.push({ x: xAt(i).toFixed(1), y: yAt(v).toFixed(1) });
         chunkFills.push(!s.fills || s.fills[i] !== false);
+        chunkTitles.push((s.titles && s.titles[i]) || '');
       });
-      if(pts.length) chunks.push({ pts: pts, fills: chunkFills });
+      if(pts.length) chunks.push({ pts: pts, fills: chunkFills, titles: chunkTitles });
       return chunks.map(function(ch){
-        return insightSvgDots(ch.pts, s.color, ch.fills) + insightSvgPolyline(ch.pts, s.color);
+        var hits = ch.titles.map(function(title, i){
+          if(!title) return '';
+          return '<circle class="zone-week-hit" data-zone-week-tip="' + escapeHtml(title) +
+            '" cx="' + ch.pts[i].x + '" cy="' + ch.pts[i].y + '" r="10" fill="transparent"></circle>';
+        }).join('');
+        return insightSvgDots(ch.pts, s.color, ch.fills, ch.titles, dotR) +
+          insightSvgPolyline(ch.pts, s.color, false, '', lineW) + hits;
       }).join('');
     }).join('');
-    var svgOpen = hasN
-      ? '<svg class="insight-svg stretch-share-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img">'
+    var extraClass = (seriesList[0] && seriesList[0].chartClass) ? seriesList[0].chartClass : '';
+    var svgOpen = extraClass
+      ? '<svg class="insight-svg ' + extraClass + '" viewBox="0 0 ' + width + ' ' + height + '" role="img">'
       : '<svg class="insight-svg" viewBox="0 0 ' + width + ' ' + height + '" role="img">';
-    return svgOpen + grid + lines + nLabels + labels + '</svg>';
+    return svgOpen + grid + lines + labels + '</svg>';
   }
 
   function insightChartTitleWithHelp(title, helpText){
@@ -4326,23 +4322,23 @@
         host.innerHTML = renderProgressPanelHtml(rows);
         wireRopedDisciplineChips();
         wireTerrainVolumeChips();
-        if(typeof wireStretchShareTips === 'function') wireStretchShareTips(host);
+        if(typeof wireZoneWeekTips === 'function') wireZoneWeekTips(host);
         if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(host);
       });
     });
   }
 
-  function wireStretchShareTips(root){
+  function wireZoneWeekTips(root){
     var scope = root || document;
-    Array.prototype.forEach.call(scope.querySelectorAll('.stretch-share-unit'), function(unit){
-      var tip = unit.querySelector('.stretch-share-tip');
-      var svg = unit.querySelector('svg.stretch-share-svg');
+    Array.prototype.forEach.call(scope.querySelectorAll('.zone-week-unit'), function(unit){
+      var tip = unit.querySelector('.zone-week-tip');
+      var svg = unit.querySelector('svg.zone-week-svg, svg.insight-svg');
       if(!svg) return;
       function show(ev){
-        var hit = ev.target && ev.target.closest && ev.target.closest('[data-stretch-tip]');
+        var hit = ev.target && ev.target.closest && ev.target.closest('[data-zone-week-tip]');
         if(!hit || !tip) return;
         tip.hidden = false;
-        tip.textContent = hit.getAttribute('data-stretch-tip') || '';
+        tip.textContent = hit.getAttribute('data-zone-week-tip') || '';
       }
       svg.addEventListener('pointerdown', show);
       svg.addEventListener('mouseover', show);
@@ -4361,7 +4357,7 @@
         host.innerHTML = renderProgressPanelHtml(rows);
         wireRopedDisciplineChips();
         wireTerrainVolumeChips();
-        if(typeof wireStretchShareTips === 'function') wireStretchShareTips(host);
+        if(typeof wireZoneWeekTips === 'function') wireZoneWeekTips(host);
         if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(host);
         if(typeof paintAthleteSnapshotStamp === 'function') paintAthleteSnapshotStamp();
       });
@@ -4624,45 +4620,68 @@
 
     var zoneSvg = '';
     if(series.hasZoneTrend){
-      var stretchPts = (CI.stretchShareFromZonePoints)
-        ? CI.stretchShareFromZonePoints(series.zonePoints)
-        : [];
-      var stretchMeta = (CI.computeStretchShare)
-        ? CI.computeStretchShare(sessions, { weekCount: (series.zonePoints || []).length || 12 })
-        : { noZone: 0, panicLogged: false };
-      var panicLogged = (series.zonePoints || []).some(function(p){ return p.zones && p.zones.panic > 0; });
-      var stretchSeries = [{
-        color: '#e89252',
-        xs: series.labels,
-        values: stretchPts.map(function(p){ return p.n ? p.stretch : null; }),
-        fills: stretchPts.map(function(p){ return !p.lowN; }),
-        lights: stretchPts.map(function(p){ return p.lowN; }),
-        nLabels: stretchPts.map(function(p){ return p.n ? ('n=' + p.n) : ''; }),
-        titles: stretchPts.map(function(p){ return p.tooltip || ''; }),
-        dashedGaps: true
-      }];
-      var stretchLegend = '<span><span class="insight-swatch" style="background:#e89252"></span>Stretch share</span>';
-      if(!panicLogged){
-        stretchLegend += '<span style="opacity:.45"><span class="insight-swatch" style="background:#e84444"></span>' +
-          'Panic — none logged</span>';
+      var zoneCounts = (CI.computeZoneWeekCounts)
+        ? CI.computeZoneWeekCounts(sessions, { weekCount: (series.zonePoints || []).length || 12 })
+        : { points: [], noZone: 0, panicLogged: false, last4Sentence: '' };
+      var panicLogged = zoneCounts.panicLogged ||
+        (series.zonePoints || []).some(function(p){ return p.zones && p.zones.panic > 0; });
+      var yMax = 1;
+      (zoneCounts.points || []).forEach(function(p){
+        yMax = Math.max(yMax, p.comfort || 0, p.learning || 0, p.panic || 0);
+      });
+      function zoneCountTicks(max){
+        var hi = Math.max(1, max);
+        if(hi <= 6){
+          var ticks = [];
+          var ti;
+          for(ti = 0; ti <= hi; ti++) ticks.push({ value: ti, label: String(ti) });
+          return ticks;
+        }
+        var mid = Math.round(hi / 2);
+        return [
+          { value: 0, label: '0' },
+          { value: mid, label: String(mid) },
+          { value: hi, label: String(hi) }
+        ];
       }
-      var noZoneN = stretchMeta.noZone || 0;
+      function zoneCountSeries(key, color){
+        return {
+          color: color,
+          xs: series.labels,
+          values: (zoneCounts.points || []).map(function(p){ return p[key] || 0; }),
+          titles: (zoneCounts.points || []).map(function(p){ return p.tooltip || ''; }),
+          dotR: 5,
+          lineWidth: 2,
+          chartClass: 'zone-week-svg'
+        };
+      }
+      var zoneSeries = [
+        zoneCountSeries('comfort', '#7ec87a'),
+        zoneCountSeries('learning', '#f5a623')
+      ];
+      if(panicLogged) zoneSeries.push(zoneCountSeries('panic', '#e84444'));
+      var zoneLegend = '<span><span class="insight-swatch" style="background:#7ec87a"></span>Comfort</span>' +
+        '<span><span class="insight-swatch" style="background:#f5a623"></span>Learning</span>';
+      if(panicLogged){
+        zoneLegend += '<span><span class="insight-swatch" style="background:#e84444"></span>Panic</span>';
+      } else {
+        zoneLegend += '<span style="opacity:.45"><span class="insight-swatch" style="background:#e84444"></span>' +
+          'Panic: none logged</span>';
+      }
+      var noZoneN = zoneCounts.noZone || 0;
       var noZoneHtml = noZoneN > 0
-        ? '<div class="stretch-no-zone" data-no-zone="' + noZoneN + '">' +
+        ? '<div class="zone-week-no-zone" data-no-zone="' + noZoneN + '">' +
           noZoneN + ' sessions in window have no zone</div>'
         : '';
-      zoneSvg = '<div class="insight-chart-unit stretch-share-unit" data-stretch-share="1">' +
+      zoneSvg = '<div class="insight-chart-unit zone-week-unit" data-zone-weeks="1">' +
         insightChartTitleWithHelp(
-          'Stretch share (%)',
-          'Percent of that week\'s zone-rated sessions that were Learning or Panic. n under each point is the week\'s zone-rated session count. Hollow markers and a lighter segment mean n is under 3. Empty weeks are a gap; a dashed line joins across up to 4 empty weeks. Sessions with no zone are left out of the percent. Descriptive only — not a cause-and-effect read.'
+          'Sessions per week, by zone',
+          'Count of Comfort, Learning, and Panic sessions each week on the same 12-week axis as the color strip. A week with none in a zone plots 0. Sessions with no zone are left out of the counts. Descriptive, not a cause-and-effect read.'
         ) +
-        renderSharedAxisSvg(stretchSeries, 0, 100, [
-          { value: 0, label: '0' },
-          { value: 50, label: '50' },
-          { value: 100, label: '100' }
-        ], 720, 200) +
-        '<div class="stretch-share-tip" hidden></div>' +
-        '<div class="insight-legend">' + stretchLegend + '</div>' +
+        renderSharedAxisSvg(zoneSeries, 0, yMax, zoneCountTicks(yMax), 720, 176) +
+        '<div class="zone-week-tip" hidden></div>' +
+        '<div class="insight-legend">' + zoneLegend + '</div>' +
+        '<div class="zone-week-caption">' + escapeHtml(zoneCounts.last4Sentence || '') + '</div>' +
         noZoneHtml +
       '</div>';
     }
@@ -8268,7 +8287,7 @@
       }
       el.innerHTML = renderProgressPanelHtml(_terrainVolumeTestRows);
       wireTerrainVolumeChips();
-      if(typeof wireStretchShareTips === 'function') wireStretchShareTips(el);
+      if(typeof wireZoneWeekTips === 'function') wireZoneWeekTips(el);
       if(typeof sizeRadarMarkers === 'function') sizeRadarMarkers(el);
       return el.id;
     },

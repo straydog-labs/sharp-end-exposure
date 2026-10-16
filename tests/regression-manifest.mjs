@@ -14,7 +14,7 @@ export const FLOWS = [
   { id: 'coach-terrain-radar', group: 'coach', file: 'real-flow-coach-terrain-radar.test.mjs', covered: true, asserts: 'tap roster athlete detail renders terrain radar; 0-count at r=0' },
   { id: 'climb-terrain-radar', group: 'athlete', file: 'climb-terrain-radar.test.mjs', covered: true, asserts: '0 at center; max on outer ring; linear midpoint; integer rings; count rule; untagged N; Slab8/Vert4/Over2/Roof1 parity' },
   { id: 'climb-attempts-radar-flow', group: 'athlete', file: 'real-flow-climb-terrain-radar.test.mjs', covered: true, asserts: 'Climb → SEE YOUR PATTERNS renders Attempts by terrain radar' },
-  { id: 'coach-stretch-share', group: 'coach', file: 'real-flow-coach-stretch-share.test.mjs', covered: true, asserts: 'tap roster athlete detail renders stretch-share chart' },
+  { id: 'coach-zone-weeks', group: 'coach', file: 'real-flow-coach-zone-weeks.test.mjs', covered: true, asserts: 'tap roster athlete detail renders zone-week line chart; overflow; tooltip' },
   { id: 'coach-scoreboard-overflow', group: 'coach', file: 'real-flow-coach-scoreboard-overflow.test.mjs', covered: true, asserts: 'scoreboard cells stay inside table at 1280/1024/390; header unit; Panic 0% nowrap' },
   { id: 'voice-log', group: 'athlete', file: 'real-flow-voice-log.test.mjs', covered: true, asserts: 'parse spoken sentence then POST baseline_zone+grade+terrain' },
   { id: 'prepare-checkin', group: 'athlete', file: 'real-flow-prepare-checkin.test.mjs', covered: true, asserts: 'POST sessions is_checkin+baseline_zone checkin' },
