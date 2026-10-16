@@ -764,7 +764,12 @@ assert.strictEqual(
   'falls caption appears exactly once'
 );
 assert.ok(/Per 10 attempts; excludes backed-off and fall-practice rows; shown at 5\+ attempts\./.test(dash));
-assert.ok(/attempts vs prior 4 wks/.test(dash), 'vs-last-4-weeks cells carry a unit');
+assert.ok(/Attempts vs prior 4 wks/.test(dash), 'header names attempts vs prior 4 wks');
+assert.ok(!/delta \+ ' attempts vs prior 4 wks'/.test(dash)
+  && !/\+ '\s*attempts vs prior 4 wks'/.test(dash)
+  && !/attempts vs prior 4 wks<\/span>/.test(dash),
+  'trend cells do not repeat the unit');
+assert.ok(/scoreboard-zone-part/.test(dash), 'zone-mix parts are non-breaking spans');
 assert.ok(/stretch-share-unit/.test(dash));
 assert.ok(/stretch-share-svg/.test(dash));
 
