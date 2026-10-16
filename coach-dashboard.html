@@ -198,18 +198,60 @@
   .detail-sub{font-size:13px;color:var(--text-secondary);margin-top:4px;}
   .athlete-share-btn{
     background:transparent;border:1px solid var(--border);border-radius:8px;
-    padding:7px 12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;
-    font-size:12px;font-weight:700;cursor:pointer;line-height:1.2;flex-shrink:0;
+    padding:10px 12px;color:var(--accent);font-family:'Space Grotesk',sans-serif;
+    font-size:13px;font-weight:700;cursor:pointer;line-height:1.2;flex-shrink:0;
+    min-height:44px;
   }
   .athlete-share-btn:hover{border-color:var(--accent);background:rgba(232,146,82,.08);}
   .athlete-share-print-head{
     display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
     margin:0 0 12px;padding:0 0 10px;border-bottom:1px solid var(--border);
   }
-  .athlete-snapshot-kicker{
-    font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--accent);margin-bottom:4px;
+  .athlete-snapshot-title{
+    font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.2;
+    color:var(--text);margin:0;
   }
+  .athlete-share-print-name{display:none;}
+  .athlete-share-print-date{
+    font-size:14px;line-height:1.4;color:var(--text-secondary);margin-top:4px;
+  }
+  .athlete-path-wrap{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"paths log" "subs subs";
+    gap:8px 10px;align-items:center;margin:0 0 14px;min-width:0;
+  }
+  .athlete-path-btns{grid-area:paths;display:flex;flex-wrap:wrap;gap:8px;min-width:0;}
+  .athlete-path-log{grid-area:log;}
+  .athlete-path-subs{grid-area:subs;margin:0;min-width:0;}
+  .athlete-path-btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    min-height:44px;padding:10px 14px;border-radius:10px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text);
+    font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;
+    cursor:pointer;line-height:1.2;
+  }
+  .athlete-path-btn:hover{border-color:rgba(232,146,82,.45);}
+  .athlete-path-btn.on{
+    border-color:var(--accent);background:rgba(232,146,82,.08);color:var(--accent);
+  }
+  .athlete-path-btn .te-sub{display:none;}
+  .athlete-path-subs[hidden],
+  .athlete-path-sub-row[hidden]{display:none;}
+  .athlete-path-sub-row{display:flex;flex-wrap:wrap;gap:8px;min-width:0;}
+  .athlete-path-sub{
+    display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+    gap:2px;min-height:44px;min-width:0;padding:8px 12px;border-radius:10px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text);
+    font-family:'Space Grotesk',sans-serif;cursor:pointer;text-align:left;
+  }
+  .athlete-path-sub:hover{border-color:rgba(232,146,82,.45);}
+  .athlete-path-sub .te-title{font-size:13px;font-weight:700;line-height:1.25;}
+  .athlete-path-sub .te-sub{font-size:12px;color:var(--text-secondary);line-height:1.35;}
+  .te-unread{
+    width:9px;height:9px;border-radius:50%;background:var(--accent);
+    border:1px solid var(--bg);display:none;flex-shrink:0;
+  }
+  .te-unread.on{display:inline-block;}
   .coach-read{margin:0 0 12px;}
   .coach-read p{font-size:13px;line-height:1.45;margin:6px 0 0;color:var(--text);}
   .insight-legend-note{font-size:11.5px;color:var(--text-secondary);margin-top:6px;line-height:1.4;}
@@ -869,6 +911,9 @@
     .topbar-right{gap:8px;flex:1 1 100%;justify-content:flex-start;}
     #main{padding:20px 16px calc(48px + env(safe-area-inset-bottom, 0px));}
     .see-card{min-height:96px;}
+    .athlete-path-wrap{grid-template-columns:1fr;grid-template-areas:"paths" "subs" "log";}
+    .athlete-path-btn{flex:1 1 calc(33.33% - 8px);}
+    .assign-launch.athlete-path-log{width:100%;flex:1 1 auto;justify-content:center;}
     .coach-layout:not(.detail-open) #detail-panel{display:none;}
     .coach-layout.detail-open #detail-panel{
       display:block;position:fixed;inset:0;z-index:1500;
@@ -890,6 +935,10 @@
     width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;min-width:0;
     background:var(--accent);border:none;border-radius:12px;padding:18px 20px;
     color:#0d0d0d;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;
+  }
+  .assign-launch.athlete-path-log{
+    width:auto;flex:0 0 auto;padding:10px 16px;min-height:44px;font-size:14px;margin:0;
+    justify-content:center;
   }
   .assign-launch:hover{opacity:.92;}
   .assign-launch-sub{display:block;font-size:12.5px;font-weight:600;opacity:.7;margin-top:2px;}
@@ -1260,6 +1309,7 @@
     .detail-stack-bar,
     .detail-header,
     #athlete-hub-cards,
+    #athlete-path-subs,
     #coach-log-launch,
     #athlete-subview,
     .athlete-share-btn {
@@ -1287,9 +1337,9 @@
       padding-bottom: 6px;
       border-bottom: 1px solid #ccc;
     }
-    .athlete-share-print-name { font-size: 20px; font-weight: 700; color: #111; letter-spacing: -.02em; }
+    .athlete-share-print-name { display: block !important; font-size: 20px; font-weight: 700; color: #111; letter-spacing: -.02em; }
     .athlete-share-print-date { font-size: 12px; color: #555; margin-top: 2px; }
-    .athlete-snapshot-kicker { color: #555 !important; }
+    .athlete-snapshot-title { color: #555 !important; }
     .coach-read, .coach-read p { color: #111 !important; }
     .insight-legend-note, .terrain-volume-unit-label, .terrain-volume-not-logged, .terrain-volume-untagged { color: #555 !important; }
     .terrain-volume-bar-n { color: #111 !important; }
@@ -2969,14 +3019,25 @@
   var _coachNoteCueSeq = 0;
   var _coachBaselineSet = false;
 
-  function athleteHubCardHtml(pane, label, title, subId, subText, wide){
-    return '<button type="button" class="see-card' + (wide ? ' wide' : '') + '" data-pane="' + pane + '">' +
-      '<div class="te-label">' + escapeHtml(label) +
-        (pane === 'chat' ? '<span class="te-unread" id="hub-chat-unread" aria-hidden="true"></span>' : '') +
-      '</div>' +
+  function athleteHubCardHtml(pane, label, title, subId, subText){
+    return '<button type="button" class="athlete-path-sub" data-pane="' + pane + '">' +
       '<div class="te-title">' + escapeHtml(title) + '</div>' +
       '<div class="te-sub" id="' + subId + '">' + escapeHtml(subText) + '</div>' +
     '</button>';
+  }
+
+  function setAthletePathway(path){
+    var next = (path === 'plan' || path === 'notes') ? path : '';
+    var on = document.querySelector('#athlete-hub-cards .athlete-path-btn.on');
+    if(on && on.getAttribute('data-path') === next) next = '';
+    Array.prototype.forEach.call(document.querySelectorAll('#athlete-hub-cards .athlete-path-btn'), function(b){
+      b.classList.toggle('on', !!next && b.getAttribute('data-path') === next);
+    });
+    var host = document.getElementById('athlete-path-subs');
+    if(host) host.hidden = !next;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-path-subs]'), function(row){
+      row.hidden = !next || row.getAttribute('data-path-subs') !== next;
+    });
   }
 
   function paintAthleteHubBadges(){
@@ -3111,6 +3172,7 @@
       if(sub) sub.style.display = 'none';
     }
     syncCoachStackBack();
+    setAthletePathway('');
     paintAthleteLandingStats();
     paintAthleteHubBadges();
   }
@@ -3192,28 +3254,38 @@
             '<div class="detail-title">' + escapeHtml(title) + '</div>' +
             sub +
           '</div>' +
-          '<button type="button" class="athlete-share-btn" id="athlete-share-btn">Print / Share</button>' +
         '</div>' +
-        '<div class="see-card-grid" id="athlete-hub-cards">' +
-          athleteHubCardHtml('assignments', 'Plan', 'Assignments', 'hub-assign-sub', 'Open plans') +
-          athleteHubCardHtml('goals', 'Focus', 'Training Goals', 'hub-goals-sub', 'Primary and secondary') +
-          athleteHubCardHtml('journal', 'Log', 'Session Notes', 'hub-journal-sub', 'Journal and replies') +
-          athleteHubCardHtml('notes', 'Private', "Coach's Notes", 'hub-notes-sub', 'Only you can see these') +
-          athleteHubCardHtml('baseline', 'Setup', 'Baseline', 'hub-baseline-sub', 'Terrain expectations') +
-          athleteHubCardHtml('projects', 'Track', 'Projects', 'hub-projects-sub', '0 active') +
-          athleteHubCardHtml('chat', 'Message', 'Chat', 'hub-chat-sub', 'Message this athlete', true) +
+        '<div class="athlete-path-wrap" id="athlete-hub-cards">' +
+          '<div class="athlete-path-btns">' +
+            '<button type="button" class="athlete-path-btn" data-path="plan">Plan</button>' +
+            '<button type="button" class="athlete-path-btn" data-path="notes">Notes</button>' +
+            '<button type="button" class="athlete-path-btn" data-path="chat">' +
+              'Chat<span class="te-unread" id="hub-chat-unread" aria-hidden="true"></span>' +
+              '<span class="te-sub" id="hub-chat-sub">Message this athlete</span>' +
+            '</button>' +
+          '</div>' +
+          '<button type="button" class="assign-launch athlete-path-log" id="coach-log-launch">Log a climb</button>' +
+          '<div class="athlete-path-subs" id="athlete-path-subs" hidden>' +
+          '<div class="athlete-path-sub-row" data-path-subs="plan" hidden>' +
+            athleteHubCardHtml('assignments', 'Plan', 'Assignments', 'hub-assign-sub', 'Open plans') +
+            athleteHubCardHtml('goals', 'Focus', 'Training Goals', 'hub-goals-sub', 'Primary and secondary') +
+            athleteHubCardHtml('baseline', 'Setup', 'Baseline', 'hub-baseline-sub', 'Terrain expectations') +
+            athleteHubCardHtml('projects', 'Track', 'Projects', 'hub-projects-sub', '0 active') +
+          '</div>' +
+          '<div class="athlete-path-sub-row" data-path-subs="notes" hidden>' +
+            athleteHubCardHtml('journal', 'Log', 'Session Notes', 'hub-journal-sub', 'Journal and replies') +
+            athleteHubCardHtml('notes', 'Private', "Coach's Notes", 'hub-notes-sub', 'Only you can see these') +
+          '</div>' +
         '</div>' +
-        '<button type="button" class="assign-launch" id="coach-log-launch" style="margin-bottom:14px;">' +
-          '<span><span>Log a climb</span><span class="assign-launch-sub">Drag the dial, then save</span></span>' +
-          '<span class="assign-launch-arrow">→</span>' +
-        '</button>' +
+        '</div>' +
         '<div id="athlete-share-block" class="athlete-snapshot">' +
           '<div class="athlete-share-print-head">' +
             '<div>' +
-              '<div class="athlete-snapshot-kicker">Athlete snapshot</div>' +
+              '<div class="athlete-snapshot-title">Athlete snapshot</div>' +
               '<div class="athlete-share-print-name" id="athlete-share-print-name">' + escapeHtml(title) + '</div>' +
               '<div class="athlete-share-print-date" id="athlete-share-print-date"></div>' +
             '</div>' +
+            '<button type="button" class="athlete-share-btn" id="athlete-share-btn">Print / Share</button>' +
           '</div>' +
           '<div class="roster-stats">' +
             '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-sessions">—</div><div class="roster-stat-label">Sessions</div></div>' +
@@ -3284,7 +3356,18 @@
     if(shareBtn){
       shareBtn.addEventListener('click', shareAthleteLandingPrint);
     }
-    Array.prototype.forEach.call(detailEl.querySelectorAll('#athlete-hub-cards .see-card'), function(btn){
+    Array.prototype.forEach.call(detailEl.querySelectorAll('#athlete-hub-cards .athlete-path-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        var path = btn.getAttribute('data-path');
+        if(path === 'chat'){
+          setAthletePathway('');
+          openAthletePane('chat');
+          return;
+        }
+        setAthletePathway(path);
+      });
+    });
+    Array.prototype.forEach.call(detailEl.querySelectorAll('#athlete-path-subs [data-pane]'), function(btn){
       btn.addEventListener('click', function(){
         openAthletePane(btn.getAttribute('data-pane'));
       });

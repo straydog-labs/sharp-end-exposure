@@ -34,14 +34,17 @@ const shareBtn = idx('athlete-share-btn');
 const hub = idx('athlete-hub-cards');
 const log = idx('coach-log-launch');
 const wrap = idx('athlete-share-block');
+const snapTitle = idx('athlete-snapshot-title');
 const stats = idx('roster-stats');
 const zone = idx('athlete-zone-bar');
 const progress = idx('athlete-progress-panel');
 const volume = idx('athlete-training-volume-panel');
 const psyche = idx('athlete-psyche-volume-panel');
 const gap = idx('athlete-gap-panel');
-assert.ok(header < shareBtn && shareBtn < hub, 'Share sits in the header, not in the hub');
-assert.ok(hub < log && log < wrap && wrap < stats && stats < zone && zone < progress && progress < volume && volume < psyche && psyche < gap);
+assert.ok(header < hub && hub < log && log < wrap, 'pathways and log sit above the snapshot');
+assert.ok(wrap < snapTitle && snapTitle < shareBtn && shareBtn < stats,
+  'Share sits on the Athlete snapshot heading row');
+assert.ok(stats < zone && zone < progress && progress < volume && volume < psyche && psyche < gap);
 assert.ok(html.indexOf('athlete-hub-cards') < html.indexOf('athlete-share-block'));
 assert.ok(html.indexOf('coach-log-launch') < html.indexOf('athlete-share-block'));
 assert.ok(!/#athlete-hub-cards/.test(html.slice(html.indexOf('athlete-share-block'))),
