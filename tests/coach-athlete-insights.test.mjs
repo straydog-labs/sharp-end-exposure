@@ -401,4 +401,45 @@ assert.ok(!/data-terrain-volume="radar"/.test(dash));
 assert.ok(/Not logged yet:/.test(dash));
 assert.ok(/Filled = send · hollow = attempt only · dashed = weeks without a log/.test(dash));
 
+const boardFew = CI.computeTerrainScoreboard([
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Slab', grade_value: 'V2', baseline_zone: 'sent', zone: 'comfort', is_checkin: false },
+  { created_at: '2026-10-09T12:00:00Z', climbing_type: 'Slab', grade_value: 'V3', baseline_zone: 'fell', zone: 'learning', is_checkin: false },
+  { created_at: '2026-10-08T12:00:00Z', climbing_type: 'Vertical', grade_value: 'V4', baseline_zone: 'sent', zone: 'learning', is_checkin: false }
+], { days: 90, endDate: volEnd });
+assert.strictEqual(boardFew.rows.find((r) => r.terrain === 'Slab').fallsPerTen, null);
+assert.strictEqual(boardFew.rows.find((r) => r.terrain === 'Slab').zones, null);
+assert.strictEqual(boardFew.rows.find((r) => r.terrain === 'Slab').trend, null);
+assert.ok(boardFew.notLogged.includes('Roof'));
+
+const boardEnough = [];
+for (let i = 0; i < 6; i++) {
+  boardEnough.push({
+    created_at: new Date(volEnd.getTime() - i * 86400000).toISOString(),
+    climbing_type: 'Overhang',
+    grade_value: 'V4',
+    baseline_zone: i < 2 ? 'fell' : 'sent',
+    zone: i < 2 ? 'panic' : 'learning',
+    is_checkin: false
+  });
+}
+const boardOk = CI.computeTerrainScoreboard(boardEnough, { days: 90, endDate: volEnd });
+assert.ok(boardOk.rows[0].fallsPerTen != null);
+assert.ok(boardOk.rows[0].zones);
+assert.ok(boardOk.rows[0].trend);
+
+const hiEmpty = CI.computeHighlights([], { days: 90, endDate: volEnd });
+assert.strictEqual(hiEmpty.hardestSend, null);
+assert.strictEqual(hiEmpty.mostClimbed, null);
+assert.strictEqual(hiEmpty.mostActiveWeek, null);
+
+const hiFull = CI.computeHighlights(readRows, { days: 90, endDate: volEnd });
+assert.ok(hiFull.hardestSend && hiFull.hardestSend.grade);
+assert.ok(hiFull.mostClimbed && hiFull.mostClimbed.terrain);
+assert.ok(hiFull.mostActiveWeek && hiFull.mostActiveWeek.sessions >= 1);
+
+assert.ok(/athlete-terrain-scoreboard/.test(dash));
+assert.ok(/athlete-highlights/.test(dash));
+assert.ok(/scoreboard-falls/.test(dash));
+assert.ok(!VOLUME_BAD_COLOR.test((dash.match(/\.scoreboard-falls\{[^}]+\}/) || [''])[0]));
+
 console.log('coach-athlete-insights tests: ok');

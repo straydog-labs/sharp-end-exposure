@@ -1112,6 +1112,8 @@
         hardestSend: send ? send.grade : '',
         fallsPerTen: enough ? fall.rate : null,
         zones: enough ? pct : null,
+        zoneCounts: enough ? zones : null,
+        attempts: onT.length,
         trend: enough ? trend : null,
         trendDelta: enough ? delta : null
       };

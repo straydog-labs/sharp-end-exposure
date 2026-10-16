@@ -265,6 +265,29 @@ try{
   await assertNoOverflow(840);
   await assertNoOverflow(1280);
 
+  const boardUi = await page.evaluate(function(rows){
+    window.__coachTerrainVolumeTest.render(rows, 90);
+    return window.__coachTerrainVolumeTest.scoreboard();
+  }, two);
+  assert.ok(boardUi.every(function(row){ return row.falls === '—'; }), 'scoreboard uses — under 5 attempts');
+
+  const emptyHi = await page.evaluate(function(){
+    window.__coachTerrainVolumeTest.render([], 90);
+    return window.__coachTerrainVolumeTest.highlights();
+  });
+  assert.deepStrictEqual(emptyHi, [], 'highlights hide with no data');
+
+  const fullHi = await page.evaluate(function(rows){
+    window.__coachTerrainVolumeTest.render(rows, 90);
+    return window.__coachTerrainVolumeTest.highlights();
+  }, gradeRows);
+  assert.ok(fullHi.indexOf('hardest-send') !== -1);
+  assert.ok(fullHi.indexOf('most-climbed') !== -1);
+  assert.ok(fullHi.indexOf('most-active-week') !== -1);
+
+  await page.evaluate(function(rows){ window.__coachTerrainVolumeTest.render(rows, 90); }, five);
+  await assertNoOverflow(390);
+
   console.log('coach-terrain-volume tests: ok');
 }finally{
   await context.close();
