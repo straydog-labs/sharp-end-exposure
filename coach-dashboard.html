@@ -443,9 +443,9 @@
   .terrain-volume-not-logged{font-size:12px;color:var(--text-secondary);margin-top:6px;line-height:1.4;}
   .terrain-volume-unit .insight-chart-help{margin:6px 0 4px;}
   .terrain-volume-unit .terrain-volume-range{margin:4px 0 6px;}
-  @media (min-width:1100px){
-    .terrain-volume-unit{max-height:240px;}
-  }
+  .terrain-volume-radar{width:100%;max-width:440px;height:auto;display:block;overflow:visible;margin:2px auto 10px;}
+  .terrain-volume-radar .radar-axis-label{font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:600;fill:var(--text);}
+  .terrain-volume-radar .radar-ring-label{font-family:'Space Grotesk',sans-serif;font-size:9px;fill:var(--text-secondary);}
   .athlete-highlights{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;}
   .athlete-highlight-card{
     flex:1 1 140px;min-width:0;background:var(--surface);border:1px solid var(--border);
@@ -1355,6 +1355,15 @@
       width: auto;
       max-width: 100%;
     }
+    svg.terrain-volume-radar {
+      max-height: 240px !important;
+      width: 100% !important;
+      height: auto !important;
+      display: block !important;
+    }
+    .terrain-volume-radar .radar-axis-label { fill: #111 !important; }
+    .terrain-volume-radar .radar-ring-label { fill: #555 !important; }
+    .terrain-volume-radar .radar-ring { stroke: #ccc !important; }
     .insight-chart-help { margin: 6px 0 2px; }
     .insight-legend { margin-top: 4px; }
     .progress-week-bars { margin: 4px 0 2px; }
@@ -2663,6 +2672,19 @@
     return { comfort: 0, learning: 0, panic: 0 };
   }
 
+  function zoneMixPercents(counts){
+    var CI = window.CoachInsights;
+    if(CI && typeof CI.zonePercents === 'function') return CI.zonePercents(counts);
+    var total = (counts.comfort || 0) + (counts.learning || 0) + (counts.panic || 0);
+    if(!total) return { comfort: 0, learning: 0, panic: 0, total: 0 };
+    return {
+      comfort: Math.round(((counts.comfort || 0) / total) * 100),
+      learning: Math.round(((counts.learning || 0) / total) * 100),
+      panic: Math.round(((counts.panic || 0) / total) * 100),
+      total: total
+    };
+  }
+
   function zoneBarSegsHtml(counts, opts){
     opts = opts || {};
     var total = (counts.comfort || 0) + (counts.learning || 0) + (counts.panic || 0);
@@ -2670,21 +2692,21 @@
       if(opts.compact) return '';
       return '<div class="zone-bar-empty">No zone-tagged sessions yet</div>';
     }
+    var mix = zoneMixPercents(counts);
     return '<div class="zone-bar-track">' + ZONE_KEYS.map(function(z){
-      var pct = ((counts[z] || 0) / total) * 100;
+      var pct = mix[z] || 0;
       if(pct <= 0) return '';
       return '<div class="zone-bar-seg zone-' + z + '" style="width:' + pct + '%" title="' +
-        ZONE_CAP[z] + ' ' + counts[z] + ' (' + Math.round(pct) + '%)"></div>';
+        ZONE_CAP[z] + ' ' + counts[z] + ' (' + pct + '%)"></div>';
     }).join('') + '</div>';
   }
 
   function zoneBarLegendHtml(counts){
-    var total = (counts.comfort || 0) + (counts.learning || 0) + (counts.panic || 0);
-    if(!total) return '';
+    var mix = zoneMixPercents(counts);
+    if(!mix.total) return '';
     return '<div class="zone-bar-legend">' + ZONE_KEYS.map(function(z){
-      var pct = total ? Math.round(((counts[z] || 0) / total) * 100) : 0;
       return '<span><span class="zone-dot ' + z + '"></span>' + ZONE_CAP[z] +
-        ' <span class="mono">' + pct + '%</span></span>';
+        ' <span class="mono">' + mix[z] + '%</span></span>';
     }).join('') + '</div>';
   }
 
@@ -2984,7 +3006,8 @@
     var insight = _rosterInsightsByAthlete[_detailCtx.athleteId] || { zones: emptyZoneCounts(), panicWeek: 0 };
     var zones = insight.zones || emptyZoneCounts();
     var total = (zones.comfort || 0) + (zones.learning || 0) + (zones.panic || 0);
-    var learningPct = total ? Math.round((zones.learning / total) * 100) : null;
+    var mix = total ? zoneMixPercents(zones) : null;
+    var learningPct = mix ? mix.learning : null;
     var learnEl = document.getElementById('athlete-stat-learning');
     var panicEl = document.getElementById('athlete-stat-panic');
     var sessEl = document.getElementById('athlete-stat-sessions');
@@ -4342,8 +4365,43 @@
         '<div class="terrain-volume-bar-n">' + row.count + ' · ' + row.share + '%</div>' +
       '</div>';
     }).join('');
-    return '<div class="insight-chart-unit terrain-volume-unit" data-terrain-volume="bars">' +
-      title + chipHtml + unitHtml + bars + notLoggedHtml + '</div>';
+    return '<div class="insight-chart-unit terrain-volume-unit" data-terrain-volume="radar">' +
+      title + chipHtml + unitHtml + renderTerrainRadarHtml(vol) + bars + notLoggedHtml + '</div>';
+  }
+
+  function renderTerrainRadarHtml(vol){
+    var CI = window.CoachInsights;
+    if(!CI || typeof CI.computeTerrainRadar !== 'function') return '';
+    var radar = CI.computeTerrainRadar(vol.counts, { width: 440, height: 380, pad: 80 });
+    var rings = (radar.rings || []).map(function(ring){
+      var pts = (ring.points || []).map(function(p){ return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+      var labelY = (radar.cy - ring.r + 3).toFixed(1);
+      return '<polygon class="radar-ring" points="' + pts + '" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1"/>' +
+        '<text class="radar-ring-label" x="' + (radar.cx + 6).toFixed(1) + '" y="' + labelY +
+        '" text-anchor="start">' + escapeHtml(ring.valueLabel) + '</text>';
+    }).join('');
+    var spokes = (radar.axes || []).map(function(a){
+      return '<line class="radar-spoke" x1="' + radar.cx.toFixed(1) + '" y1="' + radar.cy.toFixed(1) +
+        '" x2="' + a.outerX.toFixed(1) + '" y2="' + a.outerY.toFixed(1) +
+        '" stroke="rgba(255,255,255,.12)" stroke-width="1"/>';
+    }).join('');
+    var poly = (radar.axes || []).map(function(a){ return a.x.toFixed(1) + ',' + a.y.toFixed(1); }).join(' ');
+    var dots = (radar.axes || []).map(function(a){
+      return '<circle class="radar-vertex" data-terrain="' + escapeHtml(a.terrain) +
+        '" data-count="' + a.count + '" data-r="' + a.r +
+        '" cx="' + a.x.toFixed(1) + '" cy="' + a.y.toFixed(1) +
+        '" r="8" fill="var(--accent)"/>';
+    }).join('');
+    var labels = (radar.axes || []).map(function(a){
+      return '<text class="radar-axis-label" data-terrain="' + escapeHtml(a.terrain) +
+        '" x="' + a.labelX.toFixed(1) + '" y="' + a.labelY.toFixed(1) +
+        '" text-anchor="' + a.anchor + '">' + escapeHtml(a.terrain) + ' ' + a.count + '</text>';
+    }).join('');
+    return '<svg class="insight-svg terrain-volume-radar" viewBox="0 0 ' + radar.width + ' ' + radar.height +
+      '" role="img" aria-label="Terrain volume radar">' + rings + spokes +
+      '<polygon class="radar-fill" points="' + poly +
+      '" fill="var(--accent)" fill-opacity="0.25" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>' +
+      dots + labels + '</svg>';
   }
 
   function renderHighlightsHtml(sessions, days){
@@ -4496,7 +4554,7 @@
       zoneSvg = '<div class="insight-chart-unit">' +
         insightChartTitleWithHelp(
           'Zone share (%)',
-          'The percent of that week\'s sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete\'s own in-the-moment activation rating, not from grade or send/fall outcome.'
+          'The percent of that week\'s sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete\'s own in-the-moment activation rating, not from grade or send/fall outcome.'
         ) +
         renderSharedAxisSvg(zoneSeries, 0, 100, [
           { value: 0, label: '0' },

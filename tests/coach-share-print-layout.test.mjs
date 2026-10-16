@@ -46,6 +46,7 @@ assert.ok(/\.roped-filter/.test(printCss[0]) && /display:\s*none/.test(printCss[
 assert.ok(/\.insight-chart-empty/.test(printCss[0]));
 assert.ok(/\.gap-headline[\s\S]*#111/.test(printCss[0]));
 assert.ok(/max-height:\s*110px/.test(printCss[0]));
+assert.ok(/terrain-volume-radar/.test(printCss[0]), 'print CSS includes the terrain radar');
 assert.ok(/insight-panel-head/.test(dash), 'each panel title+note wraps in insight-panel-head');
 assert.ok(/\.insight-panel-head\s*\{[\s\S]*break-after:\s*avoid/.test(printCss[0]),
   'panel head stays with the next unit');
@@ -163,9 +164,10 @@ function harness(){
         .replace(/'/g, '&#39;');
     }
   };
-  ctx.zoneBarSegsHtml = new Function('ZONE_KEYS', 'ZONE_CAP',
+  ctx.zoneMixPercents = function(counts){ return CI.zonePercents(counts); };
+  ctx.zoneBarSegsHtml = new Function('ZONE_KEYS', 'ZONE_CAP', 'zoneMixPercents',
     'return ' + extractFn(dash, 'zoneBarSegsHtml', 'zoneBarLegendHtml')
-  )(ctx.ZONE_KEYS, ctx.ZONE_CAP);
+  )(ctx.ZONE_KEYS, ctx.ZONE_CAP, ctx.zoneMixPercents);
   vm.createContext(ctx);
   vm.runInContext(
     extractFn(dash, 'insightSvgPolyline', 'insightSvgDots') +

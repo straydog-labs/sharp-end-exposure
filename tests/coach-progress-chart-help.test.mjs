@@ -6,7 +6,7 @@ import assert from 'assert';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
-const ZONE_HELP = "The percent of that week's sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to about 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete's own in-the-moment activation rating, not from grade or send/fall outcome.";
+const ZONE_HELP = "The percent of that week's sessions rated Comfort, Learning, or Panic. Every session gets exactly one rating, so the three lines add up to 100% each week. A zone with no line means no sessions were logged in it during these 12 weeks. Comfort/Learning/Panic come from the athlete's own in-the-moment activation rating, not from grade or send/fall outcome.";
 const BOULDER_HELP = "Hardest send each week on that terrain, on the V-scale. A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.";
 const ROPED_HELP = "Hardest send each week on that terrain, on this athlete's usual roped grade scale, filtered by the discipline chips above (Lead / Top Rope / Auto Belay). A filled dot is a week with at least one send; a hollow dot is attempt only. A solid line joins consecutive weeks; a dashed line joins across up to 4 weeks without a log. A lone point stays a dot. Descriptive only — not a cause-and-effect read.";
 const BOULDER_TITLE = 'Hardest send by terrain — V-scale';
