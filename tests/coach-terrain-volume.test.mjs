@@ -22,7 +22,10 @@ assert.ok(/terrain-volume-unit/.test(dash));
 assert.ok(/Attempts logged/.test(dash));
 assert.ok(!/Climbs logged/.test(dash));
 assert.ok(/Not logged yet:/.test(dash));
-assert.ok(!/data-terrain-volume="radar"/.test(dash));
+assert.ok(/data-terrain-volume="radar"/.test(dash));
+assert.ok(/terrain-volume-radar/.test(dash));
+assert.ok(/function computeTerrainRadar/.test(insightsSrc));
+assert.ok(!/Math\.max\(0\.06/.test(insightsSrc));
 assert.ok(/Athlete snapshot/.test(dash));
 assert.ok(/@media print/.test(dash));
 assert.ok(/\.terrain-volume-unit/.test(dash) && /break-inside:\s*avoid/.test(dash));
@@ -156,7 +159,7 @@ try{
       read: window.__coachTerrainVolumeTest.coachRead()
     };
   }, five);
-  assert.strictEqual(fiveUi.mode, 'bars', 'logged terrains render bars, never radar');
+  assert.strictEqual(fiveUi.mode, 'radar', 'logged terrains render the radar with bars below');
   assert.strictEqual(fiveUi.counts.Slab, 2);
   assert.strictEqual(fiveUi.counts.Vertical, 1);
   assert.strictEqual(fiveUi.counts.Overhang, 1);
@@ -170,6 +173,59 @@ try{
   assert.ok(/logged attempts are/i.test(fiveUi.read));
   assert.ok(!/\b(because|caused|due to)\b/i.test(fiveUi.read));
 
+  const radarUi = await page.evaluate(function(rows){
+    window.__coachTerrainVolumeTest.render(rows, 90);
+    var svg = document.querySelector('#terrain-volume-test-host svg.terrain-volume-radar');
+    if(!svg) return { missing: true };
+    var vb = svg.viewBox && svg.viewBox.baseVal;
+    var verts = Array.prototype.map.call(svg.querySelectorAll('.radar-vertex'), function(c){
+      return {
+        terrain: c.getAttribute('data-terrain'),
+        count: parseInt(c.getAttribute('data-count'), 10),
+        r: parseFloat(c.getAttribute('data-r')),
+        markerR: parseFloat(c.getAttribute('r'))
+      };
+    });
+    var labels = Array.prototype.map.call(svg.querySelectorAll('.radar-axis-label'), function(t){
+      var b = t.getBBox ? t.getBBox() : { x: 0, y: 0, width: 0, height: 0 };
+      return { text: t.textContent, x: b.x, right: b.x + b.width, y: b.y, bottom: b.y + b.height };
+    });
+    var fill = svg.querySelector('.radar-fill');
+    var rings = Array.prototype.map.call(svg.querySelectorAll('.radar-ring-label'), function(t){
+      return t.textContent;
+    });
+    return {
+      axisCount: verts.length,
+      verts: verts,
+      labels: labels,
+      rings: rings,
+      fillOpacity: fill ? fill.getAttribute('fill-opacity') : '',
+      strokeWidth: fill ? fill.getAttribute('stroke-width') : '',
+      view: vb ? { x: vb.x, y: vb.y, w: vb.width, h: vb.height } : null,
+      bars: document.querySelectorAll('#terrain-volume-test-host .terrain-volume-bar').length
+    };
+  }, five);
+  assert.ok(!radarUi.missing, 'radar SVG is present');
+  assert.strictEqual(radarUi.axisCount, 7);
+  assert.strictEqual(radarUi.bars, 5, 'bars stay below the radar as the numeric readout');
+  assert.strictEqual(radarUi.fillOpacity, '0.25');
+  assert.strictEqual(radarUi.strokeWidth, '2');
+  radarUi.verts.forEach(function(v){
+    assert.ok(v.markerR >= 8, v.terrain + ' vertex marker is at least 8px');
+  });
+  var crack = radarUi.verts.find(function(v){ return v.terrain === 'Crack'; });
+  var dihedral = radarUi.verts.find(function(v){ return v.terrain === 'Dihedral'; });
+  assert.ok(crack && crack.count === 0 && crack.r === 0, 'unlogged Crack sits at radius 0');
+  assert.ok(dihedral && dihedral.count === 0 && dihedral.r === 0, 'unlogged Dihedral sits at radius 0');
+  assert.ok(radarUi.labels.some(function(l){ return l.text === 'Slab 2'; }));
+  radarUi.labels.forEach(function(l){
+    assert.ok(l.x >= radarUi.view.x - 1, 'label left clip: ' + l.text);
+    assert.ok(l.right <= radarUi.view.x + radarUi.view.w + 1, 'label right clip: ' + l.text);
+    assert.ok(l.y >= radarUi.view.y - 1, 'label top clip: ' + l.text);
+    assert.ok(l.bottom <= radarUi.view.y + radarUi.view.h + 1, 'label bottom clip: ' + l.text);
+  });
+  assert.strictEqual(radarUi.rings.length, 4);
+
   const twoUi = await page.evaluate(function(rows){
     window.__coachTerrainVolumeTest.render(rows, 90);
     return {
@@ -177,7 +233,7 @@ try{
       read: window.__coachTerrainVolumeTest.coachRead()
     };
   }, two);
-  assert.strictEqual(twoUi.mode, 'bars', '2 terrains should render bars');
+  assert.strictEqual(twoUi.mode, 'radar', '2 terrains still render the radar');
   assert.ok(/Not enough data yet/.test(twoUi.read));
 
   const emptyUi = await page.evaluate(function(){
@@ -201,7 +257,7 @@ try{
   }, five);
   assert.strictEqual(switched.beforeCrack, 0);
   assert.strictEqual(switched.afterCrack, 1, 'All time chip should add the old Crack climb');
-  assert.strictEqual(switched.afterMode, 'bars');
+  assert.strictEqual(switched.afterMode, 'radar');
 
   const colors = await page.evaluate(function(rows){
     window.__coachTerrainVolumeTest.render(rows, 90);

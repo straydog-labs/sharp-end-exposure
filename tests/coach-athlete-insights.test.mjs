@@ -255,7 +255,8 @@ assert.ok(!volDom.sorted.some((row) => row.count === 0));
 assert.ok(volDom.notLogged.includes('Roof'));
 assert.ok(volDom.notLogged.includes('Crack'));
 assert.ok(!volDom.notLogged.includes('Vertical'));
-assert.ok(!/terrain-volume-radar/.test(js));
+assert.ok(/function computeTerrainRadar/.test(js));
+assert.ok(!/Math\.max\(0\.06/.test(js));
 
 const volEmpty = CI.computeTerrainVolume([], { days: 90, endDate: volEnd });
 assert.strictEqual(volEmpty.mode, 'empty');
@@ -397,7 +398,9 @@ assert.ok(/athlete-share-print-date/.test(dash));
 assert.ok(/Descriptive — not a cause-and-effect read/.test(dash));
 assert.ok(/background:var\(--accent\)/.test(dash));
 assert.ok(!VOLUME_BAD_COLOR.test((dash.match(/\.terrain-volume-bar-fill\{[^}]+\}/) || [''])[0]));
-assert.ok(!/data-terrain-volume="radar"/.test(dash));
+assert.ok(/data-terrain-volume="radar"/.test(dash));
+assert.ok(/terrain-volume-radar/.test(dash));
+assert.ok(/svg\.terrain-volume-radar/.test(dash));
 assert.ok(/Not logged yet:/.test(dash));
 assert.ok(/Filled = send · hollow = attempt only · dashed = weeks without a log/.test(dash));
 
@@ -544,5 +547,42 @@ assert.strictEqual(shareSum, 100, 'largest-remainder shares must sum to 100');
 assert.deepStrictEqual(vol3.sorted.map((row) => row.share).sort((a, b) => b - a), [34, 33, 33]);
 const lr = CI.largestRemainderShares([{ key: 'a', count: 1 }, { key: 'b', count: 1 }, { key: 'c', count: 1 }]);
 assert.strictEqual(lr.a + lr.b + lr.c, 100);
+
+const zoneMix111 = CI.zonePercents({ comfort: 1, learning: 1, panic: 1 });
+assert.strictEqual(zoneMix111.comfort + zoneMix111.learning + zoneMix111.panic, 100, 'zone-mix 1/1/1 sums to 100');
+assert.strictEqual(zoneMix111.total, 3);
+
+const radarCounts = {
+  Slab: 0, Vertical: 8, Overhang: 4, Roof: 2, 'Arête': 0, Dihedral: 0, Crack: 1
+};
+const radar = CI.computeTerrainRadar(radarCounts, { cx: 0, cy: 0, maxR: 100 });
+assert.deepStrictEqual(radar.axes.map((a) => a.terrain), CI.TERRAIN_TYPES);
+assert.strictEqual(radar.scale, 8);
+const slabAxis = radar.axes.find((a) => a.terrain === 'Slab');
+assert.strictEqual(slabAxis.r, 0, 'radar: value 0 → radius 0');
+assert.strictEqual(slabAxis.x, 0);
+assert.strictEqual(slabAxis.y, 0);
+const vertAxis = radar.axes.find((a) => a.terrain === 'Vertical');
+assert.ok(Math.abs(vertAxis.r - 100) < 1e-9, 'radar: max value → outer ring');
+const midAxis = radar.axes.find((a) => a.terrain === 'Overhang');
+assert.ok(Math.abs(midAxis.r - 50) < 1e-9, 'radar: linear midpoint');
+assert.strictEqual(radar.rings.length, 4);
+assert.deepStrictEqual(radar.rings.map((r) => r.frac), [0.25, 0.5, 0.75, 1]);
+
+const radarExcl = [
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Slab', is_checkin: false, baseline_zone: 'sent' },
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'dna' },
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Overhang', is_checkin: false, is_baseline: true, baseline_zone: 'sent' },
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Roof', is_checkin: false, baseline_zone: 'fall_practice' }
+];
+const volRadarExcl = CI.computeTerrainVolume(radarExcl, { days: 90, endDate: volEnd });
+assert.strictEqual(volRadarExcl.counts.Slab, 1);
+assert.strictEqual(volRadarExcl.counts.Vertical, 0, 'DNA excluded from radar');
+assert.strictEqual(volRadarExcl.counts.Overhang, 0, 'baseline excluded from radar');
+assert.strictEqual(volRadarExcl.counts.Roof, 0, 'fall-practice excluded from radar');
+const radarFromVol = CI.computeTerrainRadar(volRadarExcl.counts, { maxR: 100 });
+assert.strictEqual(radarFromVol.axes.find((a) => a.terrain === 'Vertical').r, 0);
+assert.strictEqual(radarFromVol.axes.find((a) => a.terrain === 'Overhang').r, 0);
+assert.strictEqual(radarFromVol.axes.find((a) => a.terrain === 'Roof').r, 0);
 
 console.log('coach-athlete-insights tests: ok');

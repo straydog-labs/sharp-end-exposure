@@ -9,6 +9,7 @@ export const FLOWS = [
   { id: 'fall-practice', group: 'athlete', file: 'fall-practice.test.mjs', covered: true, asserts: 'POST fall_practice+fall_count, no falls insert' },
   { id: 'edit-sheet', group: 'athlete', file: 'real-flow-edit-sheet.test.mjs', covered: true, asserts: 'PATCH sessions baseline_zone' },
   { id: 'coach-log-athlete', group: 'coach', file: 'real-flow-coach-log.test.mjs', covered: true, asserts: 'dial-only POST coach_activation_score+derived zone, logged_by_coach+user_id' },
+  { id: 'coach-terrain-radar', group: 'coach', file: 'real-flow-coach-terrain-radar.test.mjs', covered: true, asserts: 'tap roster athlete detail renders terrain radar; 0-count at r=0' },
   { id: 'voice-log', group: 'athlete', file: 'real-flow-voice-log.test.mjs', covered: true, asserts: 'parse spoken sentence then POST baseline_zone+grade+terrain' },
   { id: 'prepare-checkin', group: 'athlete', file: 'real-flow-prepare-checkin.test.mjs', covered: true, asserts: 'POST sessions is_checkin+baseline_zone checkin' },
   { id: 'home-day-attempt', group: 'athlete', file: 'real-flow-home-day-attempt.test.mjs', covered: true, asserts: 'TAP visible week-dot opens day sheet; +Attempt POST route_name+climb_id' },

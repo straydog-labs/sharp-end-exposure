@@ -53,10 +53,15 @@
   function zonePercents(counts) {
     var total = (counts.comfort || 0) + (counts.learning || 0) + (counts.panic || 0);
     if (!total) return { comfort: 0, learning: 0, panic: 0, total: 0 };
+    var shares = largestRemainderShares([
+      { key: 'comfort', count: counts.comfort || 0 },
+      { key: 'learning', count: counts.learning || 0 },
+      { key: 'panic', count: counts.panic || 0 }
+    ]);
     return {
-      comfort: Math.round((counts.comfort / total) * 100),
-      learning: Math.round((counts.learning / total) * 100),
-      panic: Math.round((counts.panic / total) * 100),
+      comfort: shares.comfort || 0,
+      learning: shares.learning || 0,
+      panic: shares.panic || 0,
       total: total
     };
   }
@@ -1008,6 +1013,93 @@
     };
   }
 
+  function niceRadarScale(maxCount) {
+    var n = Number(maxCount) || 0;
+    if (n <= 0) return 1;
+    var exp = Math.pow(10, Math.floor(Math.log10(n)));
+    var f = n / exp;
+    var nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 4 ? 4 : f <= 5 ? 5 : f <= 8 ? 8 : 10;
+    return nf * exp;
+  }
+
+  function computeTerrainRadar(counts, opts) {
+    opts = opts || {};
+    var width = opts.width != null ? opts.width : 440;
+    var height = opts.height != null ? opts.height : 380;
+    var pad = opts.pad != null ? opts.pad : 80;
+    var cx = opts.cx != null ? opts.cx : width / 2;
+    var cy = opts.cy != null ? opts.cy : height / 2;
+    var maxR = opts.maxR != null ? opts.maxR : Math.max(24, Math.min(cx, cy) - pad);
+    var maxCount = 0;
+    TERRAIN_TYPES.forEach(function (t) {
+      var c = (counts && counts[t]) || 0;
+      if (c > maxCount) maxCount = c;
+    });
+    var scale = opts.scale != null ? opts.scale : niceRadarScale(maxCount);
+    if (!scale || scale <= 0) scale = 1;
+    var start = -Math.PI / 2;
+    var step = (2 * Math.PI) / TERRAIN_TYPES.length;
+    function at(i, r) {
+      var a = start + i * step;
+      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    }
+    var axes = TERRAIN_TYPES.map(function (t, i) {
+      var count = (counts && counts[t]) || 0;
+      var r = (count / scale) * maxR;
+      var p = at(i, r);
+      var outer = at(i, maxR);
+      var lp = at(i, maxR + 28);
+      var dx = Math.cos(start + i * step);
+      var anchor = dx < -0.35 ? 'end' : (dx > 0.35 ? 'start' : 'middle');
+      var est = (String(t).length + String(count).length + 1) * 6.2;
+      var labelX = lp.x;
+      var labelY = lp.y;
+      if (anchor === 'start') labelX = Math.min(labelX, width - 6 - est);
+      else if (anchor === 'end') labelX = Math.max(labelX, 6 + est);
+      else {
+        labelX = Math.min(width - est / 2 - 4, Math.max(est / 2 + 4, labelX));
+      }
+      labelX = Math.min(width - 4, Math.max(4, labelX));
+      labelY = Math.min(height - 6, Math.max(12, labelY));
+      return {
+        terrain: t,
+        count: count,
+        r: r,
+        x: p.x,
+        y: p.y,
+        outerX: outer.x,
+        outerY: outer.y,
+        labelX: labelX,
+        labelY: labelY,
+        anchor: anchor
+      };
+    });
+    var rings = [0.25, 0.5, 0.75, 1].map(function (frac) {
+      var rr = maxR * frac;
+      var value = scale * frac;
+      var valueLabel = (Math.abs(value - Math.round(value)) < 1e-9)
+        ? String(Math.round(value))
+        : String(Math.round(value * 10) / 10);
+      return {
+        frac: frac,
+        r: rr,
+        value: value,
+        valueLabel: valueLabel,
+        points: TERRAIN_TYPES.map(function (_, i) { return at(i, rr); })
+      };
+    });
+    return {
+      width: width,
+      height: height,
+      cx: cx,
+      cy: cy,
+      maxR: maxR,
+      scale: scale,
+      axes: axes,
+      rings: rings
+    };
+  }
+
   function includedClimbRows(sessions) {
     return (sessions || []).filter(function (row) {
       return isClimbSession(row) && !isFallPracticeRow(row);
@@ -1218,6 +1310,8 @@
     computePsycheVolumeSeries: computePsycheVolumeSeries,
     computeGapDiagnostic: computeGapDiagnostic,
     computeTerrainVolume: computeTerrainVolume,
+    computeTerrainRadar: computeTerrainRadar,
+    niceRadarScale: niceRadarScale,
     largestRemainderShares: largestRemainderShares,
     computeCoachRead: computeCoachRead,
     computeTerrainScoreboard: computeTerrainScoreboard,
