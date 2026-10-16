@@ -246,13 +246,14 @@ const dominantVol = [
 const volDom = CI.computeTerrainVolume(dominantVol, { days: 90, endDate: volEnd });
 assert.strictEqual(volDom.mode, 'bars');
 assert.strictEqual(volDom.unit, 'Attempts logged');
-assert.strictEqual(volDom.total, 4);
+assert.strictEqual(volDom.total, 5);
 assert.strictEqual(volDom.sorted[0].terrain, 'Vertical');
 assert.strictEqual(volDom.sorted[0].count, 3);
+assert.strictEqual(volDom.counts.Roof, 1, 'fall_practice counts in volume');
 assert.ok(volDom.sorted.every((row, i, arr) => i === 0 || arr[i - 1].count >= row.count));
 assert.strictEqual(volDom.sorted.reduce((n, row) => n + row.count, 0), volDom.total);
 assert.ok(!volDom.sorted.some((row) => row.count === 0));
-assert.ok(volDom.notLogged.includes('Roof'));
+assert.ok(!volDom.notLogged.includes('Roof'), 'fall_practice Roof is logged');
 assert.ok(volDom.notLogged.includes('Crack'));
 assert.ok(!volDom.notLogged.includes('Vertical'));
 assert.ok(/function computeTerrainRadar/.test(js));
@@ -467,18 +468,18 @@ assert.ok(/data-label="Attempts"/.test(dash));
 assert.ok(!/Climbs logged/.test(dash));
 assert.ok(!/% of logged climbs are/.test(js));
 
-// --- X2 DNA excluded from volume, hollow y, falls denominator ---
+// --- DNA counts in volume; still excluded from grade chart and send-rate denom ---
 const dnaMix = [
   { created_at: weekAt('2026-10-12', 1), climbing_type: 'Vertical', grade_value: 'V4', baseline_zone: 'fell', zone: 'learning', is_checkin: false },
   { created_at: weekAt('2026-10-12', 1), climbing_type: 'Vertical', grade_value: 'V9', baseline_zone: 'dna', zone: 'panic', is_checkin: false },
   { created_at: weekAt('2026-10-05', 1), climbing_type: 'Vertical', grade_value: 'V3', baseline_zone: 'sent', zone: 'comfort', is_checkin: false }
 ];
 const volDna = CI.computeTerrainVolume(dnaMix, { days: 90, endDate: volEnd });
-assert.strictEqual(volDna.counts.Vertical, 2, 'DNA was counted in volume before; must not be');
+assert.strictEqual(volDna.counts.Vertical, 3, 'volDna: DNA now counts as a logged climb row');
 const dnaProg = CI.computeProgressSeries(dnaMix, { weekCount: 4, endDate: gradeEnd });
 const dnaVert = dnaProg.boulderGradeSeries.find((s) => s.terrain === 'Vertical');
 const dnaWeek = dnaVert.points[dnaVert.points.length - 1];
-assert.notStrictEqual(dnaWeek.grade, 'V9', 'DNA must not be the hollow hardest attempt');
+assert.notStrictEqual(dnaWeek.grade, 'V9', 'dnaWeek: DNA stays excluded from hardest-attempt grade');
 assert.strictEqual(dnaWeek.grade, 'V4');
 assert.strictEqual(dnaWeek.sent, false);
 const dnaOnly = CI.computeProgressSeries([
@@ -502,7 +503,9 @@ dnaFalls.push({
 });
 const dnaBoard = CI.computeTerrainScoreboard(dnaFalls, { days: 90, endDate: volEnd });
 const roofBoard = dnaBoard.rows.find((r) => r.terrain === 'Roof');
-assert.strictEqual(roofBoard.attempts, 5, 'DNA is not in the falls-per-10 denominator');
+assert.strictEqual(roofBoard.attempts, 6, 'roofBoard.attempts: Attempts column uses volume (DNA counts)');
+assert.strictEqual(roofBoard.fallAttempts, 5, 'roofBoard.fallAttempts: send-rate denom still excludes DNA');
+assert.strictEqual(roofBoard.fallsPerTen, 2, 'falls per 10 = 1 fell / 5 send-rate attempts * 10');
 
 // --- X3 baseline rows can carry terrain/grade; exclude like the athlete app ---
 const baselineRow = {
@@ -568,21 +571,76 @@ const midAxis = radar.axes.find((a) => a.terrain === 'Overhang');
 assert.ok(Math.abs(midAxis.r - 50) < 1e-9, 'radar: linear midpoint');
 assert.strictEqual(radar.rings.length, 4);
 assert.deepStrictEqual(radar.rings.map((r) => r.frac), [0.25, 0.5, 0.75, 1]);
+assert.deepStrictEqual(radar.rings.map((r) => r.valueLabel), ['2', '4', '6', '8']);
 
-const radarExcl = [
+[1, 2, 3, 7, 28].forEach(function (maxVal) {
+  const counts = { Slab: maxVal, Vertical: 0, Overhang: 0, Roof: 0, 'Arête': 0, Dihedral: 0, Crack: 0 };
+  const r = CI.computeTerrainRadar(counts);
+  assert.ok(r.rings.every((ring) => Number.isInteger(ring.value)), 'ring values integer at max=' + maxVal);
+  assert.ok(r.rings.every((ring) => /^\d+$/.test(ring.valueLabel)), 'ring labels integer at max=' + maxVal);
+  assert.strictEqual(r.scale % 4, 0, 'scale is a multiple of 4 at max=' + maxVal);
+  assert.ok(r.scale >= 4);
+});
+assert.strictEqual(CI.niceRadarScale(1), 4);
+assert.strictEqual(CI.niceRadarScale(2), 4);
+assert.strictEqual(CI.niceRadarScale(3), 4);
+assert.strictEqual(CI.niceRadarScale(7), 8);
+assert.strictEqual(CI.niceRadarScale(28), 28);
+
+const countRule = [
   { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Slab', is_checkin: false, baseline_zone: 'sent' },
   { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'dna' },
   { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Overhang', is_checkin: false, is_baseline: true, baseline_zone: 'sent' },
-  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Roof', is_checkin: false, baseline_zone: 'fall_practice' }
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Roof', is_checkin: false, baseline_zone: 'fall_practice' },
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Arête', is_checkin: false, baseline_zone: null },
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Dihedral', is_checkin: false, deleted_at: '2026-10-10T13:00:00Z', baseline_zone: 'sent' },
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Crack', is_checkin: true, baseline_zone: 'checkin' },
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: '', is_checkin: false, baseline_zone: 'took' }
 ];
-const volRadarExcl = CI.computeTerrainVolume(radarExcl, { days: 90, endDate: volEnd });
-assert.strictEqual(volRadarExcl.counts.Slab, 1);
-assert.strictEqual(volRadarExcl.counts.Vertical, 0, 'DNA excluded from radar');
-assert.strictEqual(volRadarExcl.counts.Overhang, 0, 'baseline excluded from radar');
-assert.strictEqual(volRadarExcl.counts.Roof, 0, 'fall-practice excluded from radar');
-const radarFromVol = CI.computeTerrainRadar(volRadarExcl.counts, { maxR: 100 });
-assert.strictEqual(radarFromVol.axes.find((a) => a.terrain === 'Vertical').r, 0);
-assert.strictEqual(radarFromVol.axes.find((a) => a.terrain === 'Overhang').r, 0);
-assert.strictEqual(radarFromVol.axes.find((a) => a.terrain === 'Roof').r, 0);
+const volRule = CI.computeTerrainVolume(countRule, { days: 90, endDate: volEnd });
+assert.strictEqual(volRule.counts.Slab, 1);
+assert.strictEqual(volRule.counts.Vertical, 1, 'dna counted');
+assert.strictEqual(volRule.counts.Overhang, 0, 'baseline not counted');
+assert.strictEqual(volRule.counts.Roof, 1, 'fall_practice counted');
+assert.strictEqual(volRule.counts['Arête'], 1, 'null result counted');
+assert.strictEqual(volRule.counts.Dihedral, 0, 'deleted not counted');
+assert.strictEqual(volRule.counts.Crack, 0, 'check-in not counted');
+assert.strictEqual(volRule.untagged, 1, 'unknown-terrain note N');
+assert.strictEqual(CI.computeTerrainVolume(countRule.filter((r) => r.climbing_type), { days: 90, endDate: volEnd }).untagged, 0);
+
+const agree = [
+  { created_at: '2026-10-10T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'sent', zone: 'learning' },
+  { created_at: '2026-10-09T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'dna', zone: 'panic' },
+  { created_at: '2026-10-08T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'fall_practice', zone: 'learning' },
+  { created_at: '2026-10-07T12:00:00Z', climbing_type: 'Overhang', is_checkin: false, baseline_zone: 'fell', zone: 'learning' }
+];
+const volAgree = CI.computeTerrainVolume(agree, { days: 90, endDate: volEnd });
+const boardAgree = CI.computeTerrainScoreboard(agree, { days: 90, endDate: volEnd });
+const hiAgree = CI.computeHighlights(agree, { days: 90, endDate: volEnd });
+const radarAgree = CI.computeTerrainRadar(volAgree.counts);
+assert.strictEqual(volAgree.total, 4);
+assert.strictEqual(volAgree.counts.Vertical, 3);
+assert.strictEqual(boardAgree.rows.find((r) => r.terrain === 'Vertical').attempts, 3);
+assert.strictEqual(boardAgree.total, volAgree.total);
+assert.strictEqual(hiAgree.mostClimbed.terrain, 'Vertical');
+assert.strictEqual(hiAgree.mostClimbed.share, volAgree.sorted[0].share);
+assert.strictEqual(radarAgree.axes.find((a) => a.terrain === 'Vertical').count, 3);
+assert.strictEqual(radarAgree.axes.find((a) => a.terrain === 'Overhang').count, 1);
+
+const jess = [];
+for (let i = 0; i < 28; i++) jess.push({ created_at: '2026-10-10T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'sent' });
+jess.push({ created_at: '2026-10-11T12:00:00Z', climbing_type: 'Vertical', is_checkin: false, baseline_zone: 'fall_practice' });
+for (let i = 0; i < 8; i++) jess.push({ created_at: '2026-10-10T12:00:00Z', climbing_type: 'Overhang', is_checkin: false, baseline_zone: 'sent' });
+for (let i = 0; i < 5; i++) jess.push({ created_at: '2026-10-10T12:00:00Z', climbing_type: 'Roof', is_checkin: false, baseline_zone: 'sent' });
+for (let i = 0; i < 3; i++) jess.push({ created_at: '2026-10-10T12:00:00Z', climbing_type: 'Dihedral', is_checkin: false, baseline_zone: 'sent' });
+const volJess = CI.computeTerrainVolume(jess, { days: 90, endDate: volEnd });
+assert.strictEqual(volJess.counts.Vertical, 29, 'Jess: Oct 11 fall-practice brings Vertical to 29');
+assert.strictEqual(volJess.counts.Overhang, 8);
+assert.strictEqual(volJess.counts.Roof, 5);
+assert.strictEqual(volJess.counts.Dihedral, 3);
+assert.strictEqual(volJess.counts['Arête'], 0);
+assert.strictEqual(volJess.counts.Slab, 0);
+assert.strictEqual(volJess.counts.Crack, 0);
+assert.strictEqual(volJess.total, 45);
 
 console.log('coach-athlete-insights tests: ok');

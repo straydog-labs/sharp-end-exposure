@@ -58,14 +58,14 @@ const five = [
 const vol90 = CI.computeTerrainVolume(five, { days: 90, endDate: now });
 assert.strictEqual(vol90.mode, 'bars');
 assert.strictEqual(vol90.unit, 'Attempts logged');
-assert.strictEqual(vol90.counts.Slab, 2);
+assert.strictEqual(vol90.counts.Slab, 3, 'fall_practice Slab counts');
 assert.strictEqual(vol90.counts.Vertical, 1);
 assert.strictEqual(vol90.counts.Overhang, 1);
 assert.strictEqual(vol90.counts.Roof, 1);
 assert.strictEqual(vol90.counts['Arête'], 1);
 assert.strictEqual(vol90.counts.Crack, 0, 'Crack is outside 90 days');
 assert.strictEqual(vol90.counts.Dihedral, 0);
-assert.strictEqual(vol90.total, 6);
+assert.strictEqual(vol90.total, 7);
 assert.deepStrictEqual(vol90.sorted.map((row) => row.terrain), ['Slab', 'Arête', 'Overhang', 'Roof', 'Vertical']);
 assert.ok(vol90.notLogged.includes('Crack') && vol90.notLogged.includes('Dihedral'));
 assert.strictEqual(vol90.sorted.reduce((n, row) => n + row.count, 0), vol90.total);
@@ -160,7 +160,7 @@ try{
     };
   }, five);
   assert.strictEqual(fiveUi.mode, 'radar', 'logged terrains render the radar with bars below');
-  assert.strictEqual(fiveUi.counts.Slab, 2);
+  assert.strictEqual(fiveUi.counts.Slab, 3);
   assert.strictEqual(fiveUi.counts.Vertical, 1);
   assert.strictEqual(fiveUi.counts.Overhang, 1);
   assert.strictEqual(fiveUi.counts.Roof, 1);
@@ -206,18 +206,15 @@ try{
     };
   }, five);
   assert.ok(!radarUi.missing, 'radar SVG is present');
-  assert.strictEqual(radarUi.axisCount, 7);
+  assert.strictEqual(radarUi.labels.length, 7, '7 axis labels');
+  assert.strictEqual(radarUi.verts.length, 5, 'zero axes render no marker');
+  assert.ok(!radarUi.verts.some(function(v){ return v.count === 0; }), 'zero axes render no marker');
   assert.strictEqual(radarUi.bars, 5, 'bars stay below the radar as the numeric readout');
   assert.strictEqual(radarUi.fillOpacity, '0.25');
   assert.strictEqual(radarUi.strokeWidth, '2');
-  radarUi.verts.forEach(function(v){
-    assert.ok(v.markerR >= 8, v.terrain + ' vertex marker is at least 8px');
-  });
-  var crack = radarUi.verts.find(function(v){ return v.terrain === 'Crack'; });
-  var dihedral = radarUi.verts.find(function(v){ return v.terrain === 'Dihedral'; });
-  assert.ok(crack && crack.count === 0 && crack.r === 0, 'unlogged Crack sits at radius 0');
-  assert.ok(dihedral && dihedral.count === 0 && dihedral.r === 0, 'unlogged Dihedral sits at radius 0');
-  assert.ok(radarUi.labels.some(function(l){ return l.text === 'Slab 2'; }));
+  assert.ok(radarUi.labels.some(function(l){ return l.text === 'Slab 3'; }));
+  assert.ok(radarUi.labels.some(function(l){ return l.text === 'Crack 0'; }));
+  assert.ok(radarUi.labels.some(function(l){ return l.text === 'Dihedral 0'; }));
   radarUi.labels.forEach(function(l){
     assert.ok(l.x >= radarUi.view.x - 1, 'label left clip: ' + l.text);
     assert.ok(l.right <= radarUi.view.x + radarUi.view.w + 1, 'label right clip: ' + l.text);
@@ -225,6 +222,43 @@ try{
     assert.ok(l.bottom <= radarUi.view.y + radarUi.view.h + 1, 'label bottom clip: ' + l.text);
   });
   assert.strictEqual(radarUi.rings.length, 4);
+  assert.ok(radarUi.rings.every(function(t){ return /^\d+$/.test(t); }), 'ring labels are integers: ' + radarUi.rings.join(','));
+
+  const unknownUi = await page.evaluate(function(){
+    var rows = [
+      { created_at: new Date().toISOString(), climbing_type: 'Slab', is_checkin: false, baseline_zone: 'sent' },
+      { created_at: new Date().toISOString(), climbing_type: '', is_checkin: false, baseline_zone: 'took' },
+      { created_at: new Date().toISOString(), climbing_type: 'mystery', is_checkin: false, baseline_zone: 'fell' }
+    ];
+    window.__coachTerrainVolumeTest.render(rows, 90);
+    var shown = document.querySelector('#terrain-volume-test-host [data-untagged]');
+    window.__coachTerrainVolumeTest.render([
+      { created_at: new Date().toISOString(), climbing_type: 'Slab', is_checkin: false, baseline_zone: 'sent' }
+    ], 90);
+    var hidden = document.querySelector('#terrain-volume-test-host [data-untagged]');
+    return {
+      n: shown ? shown.getAttribute('data-untagged') : null,
+      text: shown ? shown.textContent : '',
+      hidden: !hidden
+    };
+  });
+  assert.strictEqual(unknownUi.n, '2');
+  assert.ok(/2 logged rows have no terrain/.test(unknownUi.text));
+  assert.ok(unknownUi.hidden, 'unknown-terrain note hidden at N = 0');
+
+  await page.setViewportSize({ width: 390, height: 900 });
+  const marker390 = await page.evaluate(function(rows){
+    var host = document.getElementById('terrain-volume-test-host');
+    host.style.width = '390px';
+    host.style.maxWidth = '100%';
+    window.__coachTerrainVolumeTest.render(rows, 90);
+    var c = document.querySelector('#terrain-volume-test-host .radar-vertex');
+    if(!c) return { missing: true };
+    var box = c.getBoundingClientRect();
+    return { cssR: box.width / 2, count: parseInt(c.getAttribute('data-count'), 10) };
+  }, five);
+  assert.ok(!marker390.missing);
+  assert.ok(Math.abs(marker390.cssR - 5) < 0.75, 'marker radius at 390 is 5 CSS px, got ' + marker390.cssR);
 
   const twoUi = await page.evaluate(function(rows){
     window.__coachTerrainVolumeTest.render(rows, 90);

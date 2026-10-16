@@ -329,6 +329,14 @@
     return true;
   }
 
+  function isTerrainVolumeRow(row) {
+    if (!row) return false;
+    if (row.deleted_at) return false;
+    if (row.is_checkin === true) return false;
+    if (row.is_baseline === true) return false;
+    return true;
+  }
+
   function medianGradeLabel(grades) {
     var ranked = [];
     for (var i = 0; i < grades.length; i++) {
@@ -970,14 +978,17 @@
     var endDate = opts.endDate;
     var counts = {};
     TERRAIN_TYPES.forEach(function (t) { counts[t] = 0; });
+    var untagged = 0;
 
     function addRow(row) {
-      if (!isClimbSession(row)) return;
-      if (isFallPracticeRow(row)) return;
-      if (!rowInTerrainWindow(row, days, endDate)) return;
-      var terrain = normalizeTerrainType(row.terrain || row.climbing_type);
-      if (terrain && Object.prototype.hasOwnProperty.call(counts, terrain)) {
-        counts[terrain] += 1;
+      if (!isTerrainVolumeRow(row)) return;
+      if (rowInTerrainWindow(row, days, endDate)) {
+        var terrain = normalizeTerrainType(row.terrain || row.climbing_type);
+        if (terrain && Object.prototype.hasOwnProperty.call(counts, terrain)) {
+          counts[terrain] += 1;
+        } else {
+          untagged += 1;
+        }
       }
       if (Array.isArray(row.attempts)) row.attempts.forEach(addRow);
     }
@@ -1009,17 +1020,15 @@
       total: total,
       days: days,
       unit: 'Attempts logged',
+      untagged: untagged,
       mode: used.length === 0 ? 'empty' : 'bars'
     };
   }
 
   function niceRadarScale(maxCount) {
-    var n = Number(maxCount) || 0;
-    if (n <= 0) return 1;
-    var exp = Math.pow(10, Math.floor(Math.log10(n)));
-    var f = n / exp;
-    var nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 4 ? 4 : f <= 5 ? 5 : f <= 8 ? 8 : 10;
-    return nf * exp;
+    var n = Math.ceil(Number(maxCount) || 0);
+    if (n <= 4) return 4;
+    return Math.ceil(n / 4) * 4;
   }
 
   function computeTerrainRadar(counts, opts) {
@@ -1077,14 +1086,11 @@
     var rings = [0.25, 0.5, 0.75, 1].map(function (frac) {
       var rr = maxR * frac;
       var value = scale * frac;
-      var valueLabel = (Math.abs(value - Math.round(value)) < 1e-9)
-        ? String(Math.round(value))
-        : String(Math.round(value * 10) / 10);
       return {
         frac: frac,
         r: rr,
         value: value,
-        valueLabel: valueLabel,
+        valueLabel: String(value),
         points: TERRAIN_TYPES.map(function (_, i) { return at(i, rr); })
       };
     });
@@ -1101,9 +1107,7 @@
   }
 
   function includedClimbRows(sessions) {
-    return (sessions || []).filter(function (row) {
-      return isClimbSession(row) && !isFallPracticeRow(row);
-    });
+    return (sessions || []).filter(isTerrainVolumeRow);
   }
 
   function hardestSendAmong(rows) {
@@ -1231,18 +1235,19 @@
       });
       var delta = recentN - priorN;
       var trend = delta > 0 ? 'up' : (delta < 0 ? 'down' : 'flat');
-      var enough = onT.length >= 5;
+      var volumeN = item.count;
       return {
         terrain: item.terrain,
-        climbs: item.count,
+        climbs: volumeN,
         share: item.share,
         hardestSend: send ? send.grade : '',
-        fallsPerTen: enough ? fall.rate : null,
-        zones: enough ? pct : null,
-        zoneCounts: enough ? zones : null,
-        attempts: onT.length,
-        trend: enough ? trend : null,
-        trendDelta: enough ? delta : null
+        fallsPerTen: fall.attempts >= 5 ? fall.rate : null,
+        fallAttempts: fall.attempts,
+        zones: volumeN >= 5 ? pct : null,
+        zoneCounts: volumeN >= 5 ? zones : null,
+        attempts: volumeN,
+        trend: volumeN >= 5 ? trend : null,
+        trendDelta: volumeN >= 5 ? delta : null
       };
     });
     return { rows: board, notLogged: vol.notLogged, total: vol.total };
@@ -1312,6 +1317,11 @@
     computeTerrainVolume: computeTerrainVolume,
     computeTerrainRadar: computeTerrainRadar,
     niceRadarScale: niceRadarScale,
+    isTerrainVolumeRow: isTerrainVolumeRow,
+    isClimbSession: isClimbSession,
+    isDnaRow: isDnaRow,
+    isFallPracticeRow: isFallPracticeRow,
+    fallsPerTen: fallsPerTen,
     largestRemainderShares: largestRemainderShares,
     computeCoachRead: computeCoachRead,
     computeTerrainScoreboard: computeTerrainScoreboard,
