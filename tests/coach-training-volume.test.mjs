@@ -83,8 +83,10 @@ assert.ok(/not a target or prescription/.test(renderVol[0]));
 const paint = dash.match(/function paintAthleteLandingStats\(\)\{[\s\S]*?\n  function athleteShareExportStamp/);
 assert.ok(paint, 'SESSIONS tile paint extracted');
 assert.ok(/athlete-stat-sessions/.test(paint[0]));
+assert.ok(/computeSnapshotTiles/.test(paint[0]), 'SESSIONS tile uses the 90-day snapshot rows');
 assert.ok(!/computeTrainingVolumeSeries/.test(paint[0]), 'SESSIONS tile is not the volume series');
 assert.ok(!/loadAthleteTrainingInsightSessions/.test(paint[0]));
+assert.ok(!/_lastSessionRows/.test(paint[0]), 'SESSIONS tile is not the journal feed cap');
 
 const landing = dash.match(/function renderAthleteDetail\([\s\S]*?\n  var _coachLogState/)[0];
 const html = landing.match(/'<div id="athlete-landing">'[\s\S]*?'<\/div>' \+\s*'<div id="athlete-subview"/)[0];
