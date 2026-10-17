@@ -15,8 +15,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index316'/.test(index));
-assert.ok(/APP_VERSION = 'index316'/.test(sw));
+assert.ok(/var app_version = 'index317'/.test(index));
+assert.ok(/APP_VERSION = 'index317'/.test(sw));
 assert.ok(/id="attempts-terrain-card"/.test(index));
 assert.ok(/function buildAttemptsByTerrain/.test(index));
 assert.ok(/js\/coach-athlete-insights\.js/.test(index));
