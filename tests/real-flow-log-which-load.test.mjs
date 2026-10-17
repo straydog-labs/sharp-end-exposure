@@ -14,8 +14,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index316'/.test(index));
-assert.ok(/APP_VERSION = 'index316'/.test(sw));
+assert.ok(/var app_version = 'index317'/.test(index));
+assert.ok(/APP_VERSION = 'index317'/.test(sw));
 
 var startChunk = index.slice(index.indexOf('function startLogFlow'), index.indexOf('function _resetLogFlowContinueButtons'));
 assert.ok(/hasLogWhichClimbItems/.test(index), 'startLogFlow still decides skip via hasLogWhichClimbItems');

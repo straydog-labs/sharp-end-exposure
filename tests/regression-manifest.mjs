@@ -38,6 +38,7 @@ export const FLOWS = [
   { id: 'coach-athlete-insights', group: 'coach', file: 'coach-athlete-insights.test.mjs', covered: true, asserts: 'hardest-send series, coach-read, scoreboard minimums, highlights hide empty' },
   { id: 'coach-zone-share-omit-empty', group: 'coach', file: 'coach-zone-share-omit-empty.test.mjs', covered: true, asserts: 'stretch share one orange line; strip unchanged; Panic none logged' },
   { id: 'attempt-inventory', group: 'meta', file: 'attempt-inventory.test.mjs', covered: true, asserts: 'every addAttemptFromLog/launchLogWithClimb site maps to a flow' },
+  { id: 'workout-runner', group: 'athlete', file: 'real-flow-workout-runner.test.mjs', covered: true, asserts: 'WK flag; EMOM boulder tick+label; derived complete; template_id+energy_type; star PATCH 0-row revert; legacy JSON; 390 layout' },
   { id: 'schema-drift', group: 'meta', file: 'schema-drift.test.mjs', covered: true, asserts: 'every insert column exists in sql/' },
   { id: 'pw-no-download', group: 'meta', file: 'pw-no-download.test.mjs', covered: true, asserts: 'PLAYWRIGHT_BROWSERS_PATH /opt/pw-browsers, no test-level Chromium download' },
   { id: 'regression-manifest', group: 'meta', file: 'regression-manifest.test.mjs', covered: true, asserts: 'every tests/*.test.mjs is in FLOWS or IGNORED' }
