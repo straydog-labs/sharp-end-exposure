@@ -44,18 +44,19 @@ const psyche = idx('athlete-psyche-volume-panel');
 const gap = idx('athlete-gap-panel');
 assert.ok(header < hub && hub < log && log < stats && stats < insights &&
   insights < zone && zone < progress && progress < volume && volume < psyche && psyche < gap,
-  'hub cards sit after header and before log/stats/insights');
+  'pathways sit after header and before snapshot stats');
 assert.ok(!/athlete-projects-panel/.test(html), 'projects left the buried landing panel');
 assert.ok(/athleteHubCardHtml\('projects', 'Track', 'Projects', 'hub-projects-sub', '0 active'\)/.test(html));
-assert.ok(html.indexOf("athleteHubCardHtml('notes'") < html.indexOf("athleteHubCardHtml('projects'"));
 assert.ok(html.indexOf("athleteHubCardHtml('baseline'") < html.indexOf("athleteHubCardHtml('projects'"));
-assert.ok(html.indexOf("athleteHubCardHtml('projects'") < html.indexOf("athleteHubCardHtml('chat'"));
+assert.ok(html.indexOf("athleteHubCardHtml('projects'") < html.indexOf("athleteHubCardHtml('journal'"));
 assert.strictEqual((html.match(/athlete-hub-cards/g) || []).length, 1);
 assert.ok(/athleteHubCardHtml\('assignments'/.test(html));
-assert.ok(/athleteHubCardHtml\('chat'/.test(html));
-assert.ok(/querySelectorAll\('#athlete-hub-cards \.see-card'\)/.test(render[0]));
+assert.ok(/data-path="plan"/.test(html) && /data-path="notes"/.test(html) && /data-path="chat"/.test(html));
+assert.ok(/openAthletePane\('chat'\)/.test(render[0]));
+assert.ok(/querySelectorAll\('#athlete-path-subs \[data-pane\]'\)/.test(render[0]));
 
-assert.ok(/function athleteHubCardHtml\(pane, label, title, subId, subText, wide\)/.test(dash));
+assert.ok(/function athleteHubCardHtml\(pane, label, title, subId, subText\)/.test(dash));
+assert.ok(/function setAthletePathway/.test(dash));
 assert.ok(/coach-layout:not\(\.detail-open\) #detail-panel\{display:none;\}/.test(dash));
 
 console.log('coach-empty-landing-hub tests: ok');
