@@ -63,34 +63,63 @@ function fulfillJson(route, status, body){
   });
 }
 
+async function resetTrainScroll(page){
+  await page.evaluate(function(){
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    var sess = document.getElementById('screen-train-session');
+    if(sess) sess.scrollTop = 0;
+  });
+}
+
 async function shot(page, name, selector){
   if(!existsSync(SHOT_DIR)) mkdirSync(SHOT_DIR, { recursive: true });
   if(!existsSync(REPO_SHOTS)) mkdirSync(REPO_SHOTS, { recursive: true });
   var dest = join(SHOT_DIR, name);
   var repo = join(REPO_SHOTS, name);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForTimeout(80);
-  var lastErr = null;
-  var i;
-  for(i = 0; i < 3; i++){
-    try{
-      if(selector){
-        var loc = page.locator(selector).first();
-        await loc.evaluate(function(el){ el.scrollIntoView({ block: 'center' }); });
-        await page.waitForTimeout(60);
-        await loc.screenshot({ path: dest });
+  await page.waitForTimeout(40);
+  if(selector){
+    var box = await page.evaluate(function(sel){
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      var el = document.querySelector(sel);
+      if(!el) return null;
+      var sess = document.getElementById('screen-train-session');
+      if(sess && sess.contains(el)){
+        var sr = sess.getBoundingClientRect();
+        var er = el.getBoundingClientRect();
+        sess.scrollTop += (er.top - sr.top);
       } else {
-        await page.screenshot({ path: dest, fullPage: true });
+        el.scrollIntoView({ block: 'start', inline: 'nearest' });
       }
-      copyFileSync(dest, repo);
-      lastErr = null;
-      break;
-    }catch(e){
-      lastErr = e;
-      await page.waitForTimeout(120);
+      var r = el.getBoundingClientRect();
+      var vw = window.innerWidth || 390;
+      var vh = window.innerHeight || 844;
+      var x = Math.max(0, Math.min(r.left, vw - 1));
+      var y = Math.max(0, Math.min(r.top, vh - 1));
+      var right = Math.max(x + 1, Math.min(r.right, vw));
+      var bottom = Math.max(y + 1, Math.min(r.bottom, vh));
+      return {
+        x: Math.floor(x),
+        y: Math.floor(y),
+        width: Math.max(1, Math.ceil(right - x)),
+        height: Math.max(1, Math.ceil(bottom - y))
+      };
+    }, selector);
+    if(box && box.width > 1 && box.height > 1){
+      await page.screenshot({ path: dest, clip: box });
+    } else {
+      await page.screenshot({ path: dest });
     }
+  } else {
+    await resetTrainScroll(page);
+    await page.screenshot({ path: dest, fullPage: true });
+    await resetTrainScroll(page);
   }
-  if(lastErr) throw lastErr;
+  copyFileSync(dest, repo);
 }
 
 async function authTrain(page, extra){
@@ -284,10 +313,7 @@ try{
     assert.ok(afterTick.overflowX <= 2, 'no horizontal overflow, extra=' + afterTick.overflowX);
     assert.ok(afterTick.payloadHasComplete, 'payload.blocks contains complete true');
 
-    var emomCard = page.locator('#train-blocks-wrap .train-block-card').filter({ has: page.locator('.wk-sent-hint') }).first();
-    await emomCard.evaluate(function(el){ el.scrollIntoView({ block: 'center' }); });
-    await emomCard.screenshot({ path: join(SHOT_DIR, 'wk-emom-ticked-label.png') });
-    copyFileSync(join(SHOT_DIR, 'wk-emom-ticked-label.png'), join(REPO_SHOTS, 'wk-emom-ticked-label.png'));
+    await shot(page, 'wk-emom-ticked-label.png', '#train-blocks-wrap .train-block-card:has(.wk-sent-hint)');
 
     await page.evaluate(function(){
       var emom = trainSessionState.blocks.filter(function(b){ return b.shape === 'emom'; })[0];
@@ -324,10 +350,7 @@ try{
     assert.strictEqual(circ.round0, true, 'circuit round_complete persisted');
     assert.strictEqual(circ.complete, false, 'one round does not complete circuit');
     assert.ok(circ.n >= 3);
-    var circCard = page.locator('#train-blocks-wrap .train-block-card').filter({ has: page.locator('.wk-circuit-round') }).first();
-    await circCard.evaluate(function(el){ el.scrollIntoView({ block: 'center' }); });
-    await circCard.screenshot({ path: join(SHOT_DIR, 'wk-circuit-round.png') });
-    copyFileSync(join(SHOT_DIR, 'wk-circuit-round.png'), join(REPO_SHOTS, 'wk-circuit-round.png'));
+    await shot(page, 'wk-circuit-round.png', '#train-blocks-wrap .train-block-card:has(.wk-circuit-round)');
 
     await page.locator('#train-blocks-wrap .wk-check-item').first().evaluate(function(el){
       el.scrollIntoView({ block: 'center' });
