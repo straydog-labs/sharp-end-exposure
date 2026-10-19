@@ -392,6 +392,18 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .train-emom-round-label{font-size:12px;font-weight:700;color:var(--muted);}
 .train-emom-rest{font-size:12px;color:var(--accent);margin-top:6px;font-variant-numeric:tabular-nums;}
 .train-emom-round-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.wk-sent-hint{font-size:12px;line-height:1.4;color:var(--muted);margin:0 0 10px;overflow-wrap:anywhere;}
+.wk-check-hit{
+  display:flex;align-items:flex-start;gap:10px;width:100%;min-height:44px;box-sizing:border-box;
+  background:none;border:none;padding:0;margin:0 0 4px;color:inherit;font:inherit;text-align:left;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.wk-check-hit .wk-box{
+  width:22px;height:22px;min-width:22px;min-height:22px;margin:11px 0;flex-shrink:0;
+  pointer-events:none;accent-color:var(--accent);
+}
+.wk-check-text{font-size:13px;line-height:1.35;color:var(--text);padding:11px 0;flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
+.wk-check-hit.is-on .wk-check-text{color:var(--comfort);}
 .train-sess-title-input{
   display:block;
   width:100%;
@@ -6048,7 +6060,19 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index316'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index317'; // keep in sync with APP_VERSION in sw.js
+var WK_DEFAULT_ON = false;
+var WK_LS_KEY = 'see_wk';
+function isWkOn(){
+  try{
+    var q = new URLSearchParams((typeof location !== 'undefined' && location.search) || '');
+    var v = q.get('wk');
+    if(v === '1'){ localStorage.setItem(WK_LS_KEY, '1'); return true; }
+    if(v === '0'){ localStorage.removeItem(WK_LS_KEY); return false; }
+    if(localStorage.getItem(WK_LS_KEY) === '1') return true;
+  }catch(e){}
+  return !!WK_DEFAULT_ON;
+}
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
 var SESSION_EXPIRED_MSG = 'Your session expired, please sign in again.';
@@ -9990,6 +10014,11 @@ function climbStarButtonHtml(climbId){
 function isCustomWorkoutStarred(item){
   return !!(item && item.is_starred);
 }
+function customWorkoutStarFromServer(ok){
+  if(!ok || ok.ok === false) return null;
+  if(!Object.prototype.hasOwnProperty.call(ok, 'id') && !Object.prototype.hasOwnProperty.call(ok, 'is_starred')) return null;
+  return ok;
+}
 function customWorkoutStarButtonHtml(item){
   if(!item || !item.id) return '';
   var filled=isCustomWorkoutStarred(item);
@@ -10009,19 +10038,27 @@ async function toggleCustomWorkoutStar(id){
   _workoutStarBusy[id] = true;
   try{
     var item = (_trainWorkoutCatalog || []).filter(function(x){ return x && x.id === id; })[0];
-    var next = !(item && item.is_starred);
+    var prev = !!(item && item.is_starred);
+    var next = !prev;
+    if(item) item.is_starred = next;
+    renderTrainPinnedStrip();
+    renderTrainStartPinnedStrip();
     var ok = await sbU('custom_workouts', 'id=eq.'+encodeURIComponent(id), { is_starred: next });
-    if(sbFailed(ok)){
+    var row = customWorkoutStarFromServer(ok);
+    if(sbFailed(ok) || !row){
+      if(item) item.is_starred = prev;
+      renderTrainPinnedStrip();
+      renderTrainStartPinnedStrip();
       var msg = String((ok && ok.message) || '');
       if(/is_starred|column|schema/i.test(msg) || (ok && ok.status === 400)){
         _customWorkoutStarColumnReady = false;
         showToast('Starring workouts needs a schema update', true);
       } else {
-        showToast('Could not update pin - try again', true);
+        showToast('Could not save star', true);
       }
       return;
     }
-    if(item) item.is_starred = next;
+    if(item && Object.prototype.hasOwnProperty.call(row, 'is_starred')) item.is_starred = !!row.is_starred;
     renderTrainPinnedStrip();
     renderTrainStartPinnedStrip();
   } finally {
@@ -14982,6 +15019,12 @@ function trainBlockIsComplete(b){
   if(b.shape === 'emom' && Array.isArray(b.rounds) && b.rounds.length){
     return b.rounds.every(function(r){ return !!(r && r.complete); });
   }
+  if((typeof isWkOn === 'function' && isWkOn()) && b.shape === 'circuit' && Array.isArray(b.round_complete) && b.round_complete.length){
+    return b.round_complete.every(function(v){ return !!v; });
+  }
+  if((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(b.items) && b.items.length){
+    return b.items.every(function(it){ return !!(it && it.complete); });
+  }
   return false;
 }
 function trainSessionBlocksAllComplete(state){
@@ -15727,6 +15770,427 @@ function parseTrainSessionBlocks(row){
   return [];
 }
 
+var WK_SENT_HINT = 'Checked = sent / completed successfully. Unchecked = not sent.';
+function wkEscId(v){
+  return String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, '');
+}
+function wkCheckHtml(checked, onclick, text, extraClass){
+  return '<button type="button" class="wk-check-hit'+(extraClass ? ' '+extraClass : '')+(checked ? ' is-on' : '')+'" onclick="'+onclick+'" style="display:flex;align-items:flex-start;gap:10px;width:100%;min-height:44px;min-width:44px;box-sizing:border-box;background:none;border:none;padding:0;margin:0 0 4px;color:inherit;font:inherit;text-align:left;cursor:pointer;">'
+    + '<input type="checkbox" class="wk-box"'+(checked ? ' checked' : '')+' tabindex="-1" aria-hidden="true" style="width:22px;height:22px;min-width:22px;min-height:22px;margin:11px 0;flex-shrink:0;pointer-events:none;">'
+    + '<span class="wk-check-text" style="font-size:13px;line-height:1.35;padding:11px 0;flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word;">'+escTrainHtml(text == null ? '' : String(text))+'</span>'
+    + '</button>';
+}
+function wkRoundCount(b){
+  var n = Number(b && (b.round_count != null ? b.round_count : b.set_rounds));
+  if(isNaN(n) || n < 1) return 0;
+  return Math.floor(n);
+}
+function wkEnsureBoulder(bo){
+  bo = bo || {};
+  return {
+    id: bo.id || uid(),
+    text: (bo.text == null ? '' : String(bo.text)),
+    complete: !!bo.complete
+  };
+}
+function wkDeriveEmom(b){
+  if(!b || !Array.isArray(b.rounds)) return;
+  b.rounds.forEach(function(round){
+    if(!round) return;
+    var bos = Array.isArray(round.boulders) ? round.boulders : [];
+    if(bos.length){
+      round.complete = bos.every(function(bo){ return !!(bo && bo.complete); });
+    }
+  });
+  if(b.rounds.length){
+    b.complete = b.rounds.every(function(r){ return !!(r && r.complete); });
+  }
+}
+function wkExpandEmom(b){
+  if(!b || b.shape !== 'emom') return;
+  var want = wkRoundCount(b);
+  var proto = null;
+  if(Array.isArray(b.boulders) && b.boulders.length) proto = b.boulders;
+  else if(b.rounds && b.rounds[0] && Array.isArray(b.rounds[0].boulders) && b.rounds[0].boulders.length){
+    proto = b.rounds[0].boulders;
+  }
+  if(want > 1 && proto && (!Array.isArray(b.rounds) || b.rounds.length !== want)){
+    var rest = 180;
+    var notes = '';
+    if(b.rounds && b.rounds[0]){
+      if(b.rounds[0].rest_after_sec != null) rest = b.rounds[0].rest_after_sec;
+      notes = b.rounds[0].notes || '';
+    }
+    b.rounds = [];
+    var i;
+    for(i = 0; i < want; i++){
+      b.rounds.push({
+        boulders: proto.map(function(bo){ return wkEnsureBoulder({ text: (bo && bo.text) || '', complete: false }); }),
+        notes: notes,
+        rest_after_sec: rest,
+        complete: false,
+        rest_started_at: null
+      });
+    }
+  }
+  if(!Array.isArray(b.rounds)) b.rounds = [];
+  b.rounds.forEach(function(round){
+    if(!round) return;
+    if(!Array.isArray(round.boulders)) round.boulders = [];
+    round.boulders = round.boulders.map(wkEnsureBoulder);
+  });
+  wkDeriveEmom(b);
+}
+function wkParseCheckItemsFromNotes(notes){
+  var items = [];
+  String(notes || '').split(/\n/).forEach(function(line){
+    var m = String(line).match(/^\s*[-*]\s*\[([ xX])\]\s*(.*)$/);
+    if(!m) return;
+    items.push({ id: uid(), text: m[2] || '', complete: /x/i.test(m[1]) });
+  });
+  return items;
+}
+function wkResizeRoundComplete(b){
+  if(!b) return;
+  var n = Math.max(0, Math.floor(Number(b.rounds) || 0));
+  if(!Array.isArray(b.round_complete)) b.round_complete = [];
+  while(b.round_complete.length < n) b.round_complete.push(false);
+  if(b.round_complete.length > n) b.round_complete = b.round_complete.slice(0, n);
+  if(n > 0){
+    b.complete = b.round_complete.every(function(v){ return !!v; });
+  }
+}
+function wkDeriveCheck(b){
+  if(!b || !Array.isArray(b.items) || !b.items.length) return;
+  b.items = b.items.map(function(it){
+    it = it || {};
+    return { id: it.id || uid(), text: it.text == null ? '' : String(it.text), complete: !!it.complete };
+  });
+  b.complete = b.items.every(function(it){ return !!(it && it.complete); });
+}
+function normalizeWkBlock(b, src){
+  if(!b) return b;
+  src = src || {};
+  if(src.round_count != null && b.round_count == null) b.round_count = src.round_count;
+  if(src.set_rounds != null && b.set_rounds == null) b.set_rounds = src.set_rounds;
+  if(Array.isArray(src.boulders) && !Array.isArray(b.boulders)) b.boulders = src.boulders;
+  if(Array.isArray(src.items) && !Array.isArray(b.items)) b.items = src.items;
+  if(Array.isArray(src.round_complete) && !Array.isArray(b.round_complete)) b.round_complete = src.round_complete.slice();
+  if(b.shape === 'emom') wkExpandEmom(b);
+  else if(b.shape === 'circuit'){
+    if(src.rounds != null && b.rounds == null) b.rounds = src.rounds;
+    wkResizeRoundComplete(b);
+  } else if(b.shape === 'check' || b.shape === 'section'){
+    if(!Array.isArray(b.items) || !b.items.length){
+      if(Array.isArray(src.items) && src.items.length) b.items = src.items.slice();
+      else {
+        var parsed = wkParseCheckItemsFromNotes(b.notes || src.notes || '');
+        if(parsed.length) b.items = parsed;
+      }
+    }
+    if(Array.isArray(b.items) && b.items.length) wkDeriveCheck(b);
+  } else if(b.shape === 'rest'){
+    if(b.duration_sec == null && b.rest_after_sec != null) b.duration_sec = b.rest_after_sec;
+    if(b.rest_after_sec == null && b.duration_sec != null) b.rest_after_sec = b.duration_sec;
+  }
+  return b;
+}
+function wkAdaptSessionBlocks(){
+  if(!(typeof isWkOn === 'function' && isWkOn()) || !trainSessionState || !Array.isArray(trainSessionState.blocks)) return;
+  trainSessionState.blocks.forEach(function(b){ normalizeWkBlock(b); });
+}
+function wkEnsureTrainMenu(){
+  var m = document.getElementById('train-block-menu');
+  if(!m) return;
+  var restBtn = m.querySelector('[data-wk-rest]');
+  if((typeof isWkOn === 'function' && isWkOn())){
+    if(!restBtn){
+      restBtn = document.createElement('button');
+      restBtn.type = 'button';
+      restBtn.className = 'saw-chip';
+      restBtn.setAttribute('data-wk-rest', '1');
+      restBtn.setAttribute('onclick', "trainAddBlock('rest')");
+      restBtn.textContent = 'Rest';
+      m.appendChild(restBtn);
+    }
+  } else if(restBtn){
+    restBtn.remove();
+  }
+}
+function wkHasDerivedComplete(b){
+  if(!b) return false;
+  if(b.shape === 'emom' && Array.isArray(b.rounds) && b.rounds.some(function(r){ return r && Array.isArray(r.boulders) && r.boulders.length; })) return true;
+  if(b.shape === 'circuit' && Array.isArray(b.round_complete) && b.round_complete.length) return true;
+  if((b.shape === 'check' || b.shape === 'section') && Array.isArray(b.items) && b.items.length) return true;
+  return false;
+}
+function wkSetAllComplete(b, on){
+  on = !!on;
+  if(!b) return;
+  if(b.shape === 'emom' && Array.isArray(b.rounds)){
+    b.rounds.forEach(function(round){
+      if(!round) return;
+      (round.boulders || []).forEach(function(bo){ if(bo) bo.complete = on; });
+      if((round.boulders || []).length){
+        round.complete = on;
+        round.rest_started_at = on ? new Date().toISOString() : null;
+      } else {
+        round.complete = on;
+      }
+    });
+    wkDeriveEmom(b);
+  } else if(b.shape === 'circuit'){
+    if(!Array.isArray(b.round_complete)) b.round_complete = [];
+    var i;
+    for(i = 0; i < b.round_complete.length; i++) b.round_complete[i] = on;
+    wkResizeRoundComplete(b);
+  } else if((b.shape === 'check' || b.shape === 'section') && Array.isArray(b.items)){
+    b.items.forEach(function(it){ if(it) it.complete = on; });
+    wkDeriveCheck(b);
+  } else {
+    b.complete = on;
+  }
+}
+function toggleWkBoulder(blockId, roundIndex, boulderId){
+  if(!trainSessionState || !(typeof isWkOn === 'function' && isWkOn())) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
+  var round = b.rounds[roundIndex];
+  var bo = (round.boulders || []).find(function(x){ return x && String(x.id) === String(boulderId); });
+  if(!bo) return;
+  bo.complete = !bo.complete;
+  var wasComplete = !!round.complete;
+  wkDeriveEmom(b);
+  if(round.complete && !wasComplete){
+    round.rest_started_at = new Date().toISOString();
+    if(Number(round.rest_after_sec) > 0) requestTrainWakeLock();
+  } else if(!round.complete){
+    round.rest_started_at = null;
+    if(typeof anyTrainIntervalProtocolActive === 'function' && !anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
+  }
+  renderTrainSessionBuilder();
+}
+function toggleWkCircuitRound(blockId, roundIndex){
+  if(!trainSessionState || !(typeof isWkOn === 'function' && isWkOn())) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || b.shape !== 'circuit') return;
+  wkResizeRoundComplete(b);
+  if(roundIndex < 0 || roundIndex >= b.round_complete.length) return;
+  b.round_complete[roundIndex] = !b.round_complete[roundIndex];
+  wkResizeRoundComplete(b);
+  renderTrainSessionBuilder();
+}
+function toggleWkCheckItem(blockId, itemId){
+  if(!trainSessionState || !(typeof isWkOn === 'function' && isWkOn())) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || !Array.isArray(b.items)) return;
+  var it = b.items.find(function(x){ return x && String(x.id) === String(itemId); });
+  if(!it) return;
+  it.complete = !it.complete;
+  wkDeriveCheck(b);
+  renderTrainSessionBuilder();
+}
+function toggleWkRestComplete(blockId){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || b.shape !== 'rest') return;
+  b.complete = !b.complete;
+  renderTrainSessionBuilder();
+}
+function wkJohnEmomTexts(n){
+  var fourteen = [
+    'V4 orange 30°', 'V3 black slab', 'V5 green volume', 'V2 pink jug rail',
+    'V4 blue crimps', 'V3 yellow arete', 'V6 red campus', 'V2 white feet',
+    'V4 purple roof', 'V3 teal dihedral', 'V5 black pinch', 'V2 orange jugs',
+    'V4 white slab', 'V3 green 40°'
+  ];
+  var twelve = [
+    'V5 orange 45°', 'V4 black crimp rail', 'V3 pink slab', 'V6 green dyno',
+    'V4 blue volume', 'V3 yellow pinch', 'V5 red roof', 'V2 white jugs',
+    'V4 purple arete', 'V3 teal 20°', 'V5 black campus', 'V4 orange sloper'
+  ];
+  return (n === 12 ? twelve : fourteen).slice(0, n);
+}
+function wkJohnSessionBlocks(){
+  function chk(title, texts){
+    return {
+      id: uid(), shape: 'check', title: title, notes: '', complete: false, attempts: [],
+      timer_enabled: false, timer_started_at: null, timer_ended_at: null, interval_started_at: null, duration_sec: null,
+      items: texts.map(function(t){ return { id: uid(), text: t, complete: false }; })
+    };
+  }
+  function restBlock(){
+    return {
+      id: uid(), shape: 'rest', title: 'Rest 10 min', rest_after_sec: 600, duration_sec: 600,
+      complete: false, attempts: [], timer_enabled: false, timer_started_at: null, timer_ended_at: null, interval_started_at: null
+    };
+  }
+  function emomSet(title, texts, roundCount){
+    var block = {
+      id: uid(), shape: 'emom', title: title, rest_after_sec: 0, complete: false, attempts: [],
+      timer_enabled: false, timer_started_at: null, timer_ended_at: null, interval_started_at: null, duration_sec: null,
+      round_count: roundCount,
+      rounds: [{
+        boulders: texts.map(function(t){ return { text: t }; }),
+        notes: '',
+        rest_after_sec: 60,
+        complete: false,
+        rest_started_at: null
+      }]
+    };
+    return normalizeWkBlock(block);
+  }
+  function circuit(title, rounds, exercises, notes){
+    var block = {
+      id: uid(), shape: 'circuit', title: title, rest_after_sec: 120, complete: false, attempts: [],
+      timer_enabled: false, timer_started_at: null, timer_ended_at: null, interval_started_at: null, duration_sec: null,
+      rounds: rounds, exercises: exercises, notes: notes || ''
+    };
+    return normalizeWkBlock(block);
+  }
+  return [
+    chk('Warm Up', ['dynamic stretches', 'climbing-specific warm up']),
+    restBlock(),
+    emomSet('EMOM Set 1', wkJohnEmomTexts(14), 2),
+    emomSet('EMOM Set 2', wkJohnEmomTexts(12), 2),
+    restBlock(),
+    chk('Movement Prep', ['goblet squats', 'kB swings', 'Turkish get ups', 'kB bench press', 'Frenchie']),
+    circuit('Strength Circuit A', 3, [
+      { name: 'Front squat', weight: '20kg', reps: '8' },
+      { name: 'Pull-up', weight: 'BW', reps: '6' }
+    ], 'Keep torso tall. Rest as needed between rounds.'),
+    circuit('Strength Circuit B', 3, [
+      { name: 'Romanian deadlift', weight: '24kg', reps: '8' },
+      { name: 'Push-up', weight: 'BW', reps: '10' }
+    ], 'Smooth tempo. Stop one shy of failure.'),
+    {
+      id: uid(), shape: 'rep_pass_fail', title: 'Hangboard', rest_after_sec: 120, complete: false, attempts: [],
+      timer_enabled: false, timer_started_at: null, timer_ended_at: null, interval_started_at: null, duration_sec: null,
+      grip: '20mm half crimp', assistance: '-20kg',
+      sets: [{ reps: [{ ok: null }, { ok: null }, { ok: null }, { ok: null }, { ok: null }, { ok: null }, { ok: null }] }],
+      progression_note: 'Legacy single grip.'
+    },
+    circuit('Core', 4, [
+      { name: 'Hanging knee raise', weight: '', reps: '8' },
+      { name: 'Hollow hold', weight: '', reps: '20s' }
+    ], '4 rounds.'),
+    circuit('Handstands', 2, [
+      { name: 'Wall handstand', weight: '', reps: '30s' }
+    ], '2 rounds.')
+  ];
+}
+function wkRenderEmomBody(b, compact){
+  var rounds = Array.isArray(b.rounds) && b.rounds.length ? b.rounds : [{ boulders: [], notes: '', rest_after_sec: 180, complete: false }];
+  var hint = '<div class="wk-sent-hint">'+escTrainHtml(WK_SENT_HINT)+'</div>';
+  var roundCards = rounds.map(function(round, ri){
+    round = round || { boulders: [], notes: '', rest_after_sec: 180, complete: false };
+    var locked = emomRoundIsLocked(b, ri);
+    var doneR = !!round.complete;
+    var restSec = round.rest_after_sec != null ? round.rest_after_sec : 180;
+    var rst = emomRoundCountdownState(round);
+    var restHtml = '';
+    if(doneR && rst.phase === 'Counting'){
+      restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Counting">Rest <span data-emom-rest-count="'+escTrainHtml(b.id)+'-'+ri+'">'+formatTrainBlockTimerElapsed(rst.remainingMs)+'</span></div>';
+    } else if(doneR && rst.phase === 'Done' && Number(restSec) > 0){
+      restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Done">Rest done</div>';
+    }
+    var inner = (round.boulders || []).map(function(bo, i){
+      bo = bo || {};
+      var bid = wkEscId(bo.id || ('i'+i));
+      var row = wkCheckHtml(!!bo.complete, "toggleWkBoulder('"+wkEscId(b.id)+"',"+ri+",'"+bid+"')", bo.text || ('Boulder '+(i+1)), 'wk-boulder');
+      if(!compact){
+        row += '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+      }
+      return row;
+    }).join('');
+    if(!compact){
+      inner += '<button type="button" class="train-add-affordance" onclick="trainAddEmomBoulder(\''+b.id+'\','+ri+')" style="margin-bottom:8px;">+ Boulder</button>'
+        + trainBlockNoteField('tb-'+b.id+'-r'+ri+'-notes', 'Round notes', round.notes||'')
+        + fieldHtml('Rest sec', 'tb-'+b.id+'-r'+ri+'-rest', restSec);
+    } else if(trainTextNonEmpty(round.notes)){
+      inner += '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>';
+    }
+    return '<div class="train-emom-round'+(doneR?' is-complete':'')+(locked?' is-locked':'')+'">'
+      + '<div class="train-emom-round-head">'
+      + '<div class="train-emom-round-label">Round '+(ri+1)+(ri===0?' boulders':'')+(doneR?' · Complete':'')+'</div>'
+      + '<button type="button" class="train-section-complete'+(doneR?' on':'')+'" onclick="toggleTrainEmomRoundComplete(\''+b.id+'\','+ri+')">'+(doneR?'Complete':'Mark complete')+'</button>'
+      + '</div>'
+      + inner
+      + restHtml
+      + '</div>';
+  }).join('');
+  return hint + roundCards
+    + '<div class="train-emom-round-actions">'
+    + '<button type="button" class="saw-chip" onclick="trainAddEmomRound(\''+b.id+'\',\'repeat\')">+ Same round again</button>'
+    + '<button type="button" class="saw-chip" onclick="trainAddEmomRound(\''+b.id+'\',\'new\')">+ New round</button>'
+    + '</div>'
+    + attemptSummary(b)
+    + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+}
+function wkRenderCircuitBody(b, compact){
+  var n = Number(b.rounds);
+  if(isNaN(n)) n = 0;
+  if(n < 0) n = 0;
+  wkResizeRoundComplete(b);
+  var i;
+  var roundsHtml = '';
+  for(i = 0; i < n; i++){
+    roundsHtml += wkCheckHtml(!!b.round_complete[i], "toggleWkCircuitRound('"+wkEscId(b.id)+"',"+i+")", 'Round '+(i+1), 'wk-circuit-round');
+  }
+  var exHtml;
+  if(compact){
+    exHtml = (b.exercises || []).map(function(ex){
+      ex = ex || {};
+      var bits = [ex.name, ex.weight, ex.reps].filter(function(x){ return trainTextNonEmpty(x); });
+      return '<div style="font-size:13px;color:var(--text);margin-top:4px;">'+escTrainHtml(bits.join(' · ') || 'Exercise')+'</div>';
+    }).join('')
+      + (trainTextNonEmpty(b.notes) ? '<div class="train-note-preview">'+renderTrainNotePreview(b.notes)+'</div>' : '');
+  } else {
+    exHtml = fieldHtml('Rounds', 'tb-'+b.id+'-rounds', b.rounds)
+      + (b.exercises||[]).map(function(ex, idx){
+        return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-top:6px;">'
+          + '<input id="tb-'+b.id+'-ex'+idx+'-name" value="'+escTrainHtml(ex.name||'')+'" placeholder="Exercise" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+          + '<input id="tb-'+b.id+'-ex'+idx+'-wt" value="'+escTrainHtml(ex.weight||'')+'" placeholder="Weight" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+          + '<input id="tb-'+b.id+'-ex'+idx+'-reps" value="'+escTrainHtml(ex.reps||'')+'" placeholder="Reps" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+          + '</div>';
+      }).join('')
+      + trainBlockNoteField('tb-'+b.id+'-cnotes', 'Block notes', b.notes||'');
+  }
+  return roundsHtml + exHtml + attemptSummary(b)
+    + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+}
+function wkRenderCheckBody(b, compact){
+  var items = Array.isArray(b.items) ? b.items : [];
+  var rows = items.map(function(it, i){
+    it = it || {};
+    var iid = wkEscId(it.id || ('i'+i));
+    var row = wkCheckHtml(!!it.complete, "toggleWkCheckItem('"+wkEscId(b.id)+"','"+iid+"')", it.text || ('Item '+(i+1)), 'wk-check-item');
+    if(!compact){
+      row += '<input id="tb-'+b.id+'-item'+i+'" value="'+escTrainHtml(it.text||'')+'" placeholder="Item" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+    }
+    return row;
+  }).join('');
+  var notes = compact && trainTextNonEmpty(b.notes)
+    ? '<div class="train-note-preview">'+renderTrainNotePreview(b.notes)+'</div>'
+    : (trainBlockHasTitle(b) ? trainBlockNoteField('tb-'+b.id+'-chknotes', 'Notes', b.notes||'') : (fieldHtml('Title', 'tb-'+b.id+'-title', b.title) + trainBlockNoteField('tb-'+b.id+'-chknotes', 'Notes', b.notes||'')));
+  return rows + notes;
+}
+function wkRenderRestBody(b, compact){
+  var secs = Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 0;
+  var mins = secs / 60;
+  if(Math.abs(mins - Math.round(mins)) < 0.05) mins = Math.round(mins);
+  var label = (mins || 0) + ' min rest';
+  var row = wkCheckHtml(!!b.complete, "toggleWkRestComplete('"+wkEscId(b.id)+"')", label, 'wk-rest');
+  if(!compact){
+    row += fieldHtml('Minutes', 'tb-'+b.id+'-restmin', mins);
+  }
+  return row;
+}
+
 function trainCloneBlockForDuplicate(b){
   if(!b) return null;
   var fresh = {
@@ -15754,7 +16218,11 @@ function trainCloneBlockForDuplicate(b){
     fresh.rounds = Array.isArray(b.rounds)
       ? b.rounds.map(function(r){
           return {
-            boulders: Array.isArray(r && r.boulders) ? r.boulders.map(function(bo){ return { text: (bo && bo.text) || '' }; }) : [],
+            boulders: Array.isArray(r && r.boulders) ? r.boulders.map(function(bo){
+              return (typeof isWkOn === 'function' && isWkOn())
+                ? { id: uid(), text: (bo && bo.text) || '', complete: false }
+                : { text: (bo && bo.text) || '' };
+            }) : [],
             notes: (r && r.notes) || '',
             rest_after_sec: (r && r.rest_after_sec != null) ? r.rest_after_sec : 180,
             complete: false,
@@ -15762,12 +16230,19 @@ function trainCloneBlockForDuplicate(b){
           };
         })
       : [];
+    if((typeof isWkOn === 'function' && isWkOn())){
+      if(b.round_count != null) fresh.round_count = b.round_count;
+      if(b.set_rounds != null) fresh.set_rounds = b.set_rounds;
+      if(Array.isArray(b.boulders)) fresh.boulders = b.boulders;
+      normalizeWkBlock(fresh, b);
+    }
   } else if(b.shape === 'circuit'){
     fresh.exercises = Array.isArray(b.exercises)
       ? b.exercises.map(function(ex){ return { name: (ex && ex.name) || '', weight: (ex && ex.weight) || '', reps: (ex && ex.reps) || '' }; })
       : [];
     fresh.rounds = b.rounds;
     fresh.notes = b.notes || '';
+    if((typeof isWkOn === 'function' && isWkOn())) normalizeWkBlock(fresh, b);
   } else if(b.shape === 'rep_pass_fail'){
     fresh.grip = b.grip || '';
     fresh.assistance = b.assistance || '';
@@ -15777,8 +16252,13 @@ function trainCloneBlockForDuplicate(b){
           return { reps: Array.isArray(s && s.reps) ? s.reps.map(function(){ return { ok: null }; }) : [] };
         })
       : [];
-  } else if(b.shape === 'section' || b.shape === 'check'){
+  } else if(b.shape === 'section' || b.shape === 'check' || b.shape === 'rest'){
     fresh.notes = b.notes || '';
+    if(b.shape === 'rest'){
+      if(b.duration_sec != null) fresh.duration_sec = b.duration_sec;
+      if(b.rest_after_sec != null) fresh.rest_after_sec = b.rest_after_sec;
+    }
+    if((typeof isWkOn === 'function' && isWkOn()) && (b.shape === 'check' || b.shape === 'section')) normalizeWkBlock(fresh, b);
   }
   return fresh;
 }
@@ -15871,6 +16351,7 @@ function trainBlockShapeLabel(shape){
   if(shape === 'check') return 'Check';
   if(shape === 'circuit') return 'Weighted circuit';
   if(shape === 'emom') return 'EMOM';
+  if(shape === 'rest') return 'Rest';
   return String(shape || 'block').replace(/_/g, ' ');
 }
 
@@ -15972,7 +16453,7 @@ function renderTrainSessionBlockDetailHtml(b, bi, isWarmup){
     body = (b.rounds || []).map(function(round, ri){
       var bits = (round.boulders || []).map(function(bo){
         if(!trainTextNonEmpty(bo && bo.text)) return '';
-        return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+'</div>';
+        return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+(bo && bo.complete ? ' · sent' : '')+'</div>';
       }).join('');
       if(trainTextNonEmpty(round && round.notes)){
         bits += '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>';
@@ -15989,6 +16470,13 @@ function renderTrainSessionBlockDetailHtml(b, bi, isWarmup){
     var roundsN = Number(b.rounds);
     if(isNaN(roundsN)) roundsN = 0;
     body = '<div style="font-size:13px;color:var(--text);margin-bottom:6px;">'+escTrainHtml(String(roundsN))+' round'+(roundsN===1?'':'s')+'</div>';
+    if(Array.isArray(b.round_complete) && b.round_complete.length){
+      body += '<div style="font-size:13px;color:var(--text);margin-bottom:6px;">'
+        + b.round_complete.map(function(done, ri){
+          return 'Round '+(ri+1)+(done ? ' · complete' : '');
+        }).join(' · ')
+        + '</div>';
+    }
     body += (b.exercises || []).map(function(ex){
       ex = ex || {};
       var bits = [ex.name, ex.weight, ex.reps].filter(function(x){ return trainTextNonEmpty(x); });
@@ -16016,6 +16504,15 @@ function renderTrainSessionBlockDetailHtml(b, bi, isWarmup){
     body += attemptSummary(b);
   } else if(b.shape === 'section' || b.shape === 'check'){
     body = trainTextNonEmpty(b.notes) ? renderTrainNotePreview(b.notes) : '';
+    if(Array.isArray(b.items) && b.items.length){
+      body += b.items.map(function(it){
+        it = it || {};
+        return '<div style="font-size:13px;color:var(--text);margin-top:4px;">'+escTrainHtml(it.text || '')+(it.complete ? ' · done' : '')+'</div>';
+      }).join('');
+    }
+  } else if(b.shape === 'rest'){
+    var restMins = Math.round((Number(b.duration_sec || b.rest_after_sec) || 0) / 60);
+    body = '<div style="font-size:13px;color:var(--text);">'+escTrainHtml(String(restMins))+' min rest</div>';
   }
   return head + timed + body + '</div>';
 }
@@ -16280,7 +16777,10 @@ function seedTrainBlocksFromSections(sections){
   (sections || []).forEach(function(s){
     if(s && s.shape){
       var cloned = trainCloneBlockForDuplicate(s);
-      if(cloned) blocks.push(cloned);
+      if(cloned){
+        if((typeof isWkOn === 'function' && isWkOn())) normalizeWkBlock(cloned, s);
+        blocks.push(cloned);
+      }
       return;
     }
     blocks.push({
@@ -16315,14 +16815,16 @@ function seedTrainBlocksFromSections(sections){
           groups: []
         });
       } else if(kind === 'check'){
-        blocks.push({
+        var chk = {
           id: uid(),
           shape: 'check',
           title: (ex.title || ex.name || ''),
           notes: ex.notes || '',
           complete: false,
           attempts: []
-        });
+        };
+        if((typeof isWkOn === 'function' && isWkOn())) normalizeWkBlock(chk, ex);
+        blocks.push(chk);
       }
     });
   });
@@ -16467,10 +16969,13 @@ function newTrainBlock(shape){
     block.work_sec = 120; block.rest_sec = 120; block.target_sets = 12;
     block.groups = [{ sets: 6, rest_after_sec: 300 }, { sets: 6, rest_after_sec: 0 }];
   } else if(shape === 'emom'){
-    block.rounds = [{ boulders: [{ text: '' }, { text: '' }, { text: '' }, { text: '' }], notes: '', rest_after_sec: 180, complete: false, rest_started_at: null }];
+    var emomBoulders = [{ text: '' }, { text: '' }, { text: '' }, { text: '' }];
+    if((typeof isWkOn === 'function' && isWkOn())) emomBoulders = emomBoulders.map(function(bo){ return { id: uid(), text: bo.text, complete: false }; });
+    block.rounds = [{ boulders: emomBoulders, notes: '', rest_after_sec: 180, complete: false, rest_started_at: null }];
   } else if(shape === 'circuit'){
     block.exercises = [{ name: '', weight: '', reps: '' }];
     block.rounds = 3; block.notes = '';
+    if((typeof isWkOn === 'function' && isWkOn())) block.round_complete = [false, false, false];
   } else if(shape === 'rep_pass_fail'){
     block.grip = ''; block.assistance = '';
     block.sets = [{ reps: [{ ok: null }, { ok: null }, { ok: null }, { ok: null }, { ok: null }] }];
@@ -16479,6 +16984,12 @@ function newTrainBlock(shape){
     block.notes = '';
   } else if(shape === 'check'){
     block.notes = '';
+    if((typeof isWkOn === 'function' && isWkOn())) block.items = [];
+  } else if(shape === 'rest'){
+    block.title = 'Rest';
+    block.notes = '';
+    block.duration_sec = 600;
+    block.rest_after_sec = 600;
   }
   return block;
 }
@@ -16587,6 +17098,8 @@ function renderTrainSessionBuilder(){
     }
   }
   saveTrainSessionDraft();
+  wkAdaptSessionBlocks();
+  wkEnsureTrainMenu();
   var title = document.getElementById('train-sess-title');
   var eye = document.getElementById('train-sess-eyebrow');
   if(title && document.activeElement !== title) title.value = trainSessionState.title || '';
@@ -16702,7 +17215,9 @@ function computeCountdownState(startedAtMs, durationSec, now){
 }
 
 function sectionHasCountdown(b){
-  return !!(b && b.shape === 'section' && Number(b.duration_sec) > 0);
+  if(b && b.shape === 'section' && Number(b.duration_sec) > 0) return true;
+  if((typeof isWkOn === 'function' && isWkOn()) && b && b.shape === 'rest' && Number(b.duration_sec || b.rest_after_sec) > 0) return true;
+  return false;
 }
 
 function emomRoundCountdownState(round, now){
@@ -17249,7 +17764,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
         + '</div>';
     } else if(sectionHasCountdown(b)){
       var cStartMs = b.interval_started_at ? new Date(b.interval_started_at).getTime() : NaN;
-      var cst = computeCountdownState(isNaN(cStartMs) ? null : cStartMs, b.duration_sec, Date.now());
+      var cst = computeCountdownState(isNaN(cStartMs) ? null : cStartMs, b.duration_sec || b.rest_after_sec, Date.now());
       var cPhaseClass = cst.phase === 'Counting' ? ' is-work' : (cst.phase === 'Done' ? ' is-done' : ' is-ready');
       timerRow = '<div class="train-block-timer train-block-interval-timer'+cPhaseClass+'" data-block-countdown-wrap="'+escTrainHtml(b.id)+'">'
         + '<button type="button" class="train-block-timer-btn" onclick="startTrainBlockTimer(\''+b.id+'\')">Start</button>'
@@ -17280,6 +17795,9 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
   } else if(b.shape === 'emom'){
+    if((typeof isWkOn === 'function' && isWkOn())){
+      body = wkRenderEmomBody(b, compact);
+    } else {
     var rounds = Array.isArray(b.rounds) && b.rounds.length ? b.rounds : [{ boulders: [], notes: '', rest_after_sec: 180, complete: false }];
     var roundCards = rounds.map(function(round, ri){
       round = round || { boulders: [], notes: '', rest_after_sec: 180, complete: false };
@@ -17324,8 +17842,11 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       + '</div>'
       + attemptSummary(b)
       + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    }
   } else if(b.shape === 'circuit'){
-    if(compact){
+    if((typeof isWkOn === 'function' && isWkOn())){
+      body = wkRenderCircuitBody(b, compact);
+    } else if(compact){
       var roundsN = Number(b.rounds);
       if(isNaN(roundsN)) roundsN = 0;
       body = '<div style="font-size:13px;color:var(--text);margin-bottom:6px;">'+escTrainHtml(String(roundsN))+' round'+(roundsN===1?'':'s')+'</div>'
@@ -17377,18 +17898,26 @@ function renderTrainBlockHtml(b, bi, isWarmup){
         + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
     }
   } else if(b.shape === 'section'){
-    body = (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
-      + trainSectionDurationField(b)
+    body = ((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(b.items) && b.items.length ? wkRenderCheckBody(b, compact) : (
+      (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
       + (b.notes ? renderTrainNotePreview(b.notes) : '')
+    ))
+      + trainSectionDurationField(b)
       + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
       + '<button type="button" class="saw-chip" onclick="trainAddSectionChild(\''+b.id+'\',\'interval\')">+ Interval</button>'
       + '<button type="button" class="saw-chip" onclick="trainAddSectionChild(\''+b.id+'\',\'check\')">+ Check</button>'
       + '</div>';
   } else if(b.shape === 'check'){
-    body = (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
-      + (compact && trainTextNonEmpty(b.notes)
-        ? '<div class="train-note-preview">'+renderTrainNotePreview(b.notes)+'</div>'
-        : trainBlockNoteField('tb-'+b.id+'-chknotes', 'Notes', b.notes||''));
+    if((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(b.items) && b.items.length){
+      body = wkRenderCheckBody(b, compact);
+    } else {
+      body = (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
+        + (compact && trainTextNonEmpty(b.notes)
+          ? '<div class="train-note-preview">'+renderTrainNotePreview(b.notes)+'</div>'
+          : trainBlockNoteField('tb-'+b.id+'-chknotes', 'Notes', b.notes||''));
+    }
+  } else if(b.shape === 'rest'){
+    body = (typeof isWkOn === 'function' && isWkOn()) ? wkRenderRestBody(b, compact) : fieldHtml('Minutes', 'tb-'+b.id+'-restmin', Math.round((Number(b.duration_sec || b.rest_after_sec) || 0) / 60));
   }
   return head + timerRow + body + '</div>';
 }
@@ -17529,7 +18058,13 @@ function toggleTrainSectionComplete(key){
     if(trainSessionState.cool_down_complete) trainSessionState.cool_down_expanded = false;
   } else {
     var b = trainSessionState.blocks.find(function(x){ return x.id === key; });
-    if(b) b.complete = !b.complete;
+    if(b){
+      if((typeof isWkOn === 'function' && isWkOn()) && wkHasDerivedComplete(b)){
+        wkSetAllComplete(b, !trainBlockIsComplete(b));
+      } else {
+        b.complete = !b.complete;
+      }
+    }
   }
   renderTrainSessionBuilder();
 }
@@ -17541,7 +18076,14 @@ function toggleTrainEmomRoundComplete(blockId, roundIndex){
   var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
   if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
   var round = b.rounds[roundIndex];
-  round.complete = !round.complete;
+  if((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(round.boulders) && round.boulders.length){
+    var nextOn = !round.boulders.every(function(bo){ return bo && bo.complete; });
+    round.boulders.forEach(function(bo){ if(bo) bo.complete = nextOn; });
+    round.complete = nextOn;
+    wkDeriveEmom(b);
+  } else {
+    round.complete = !round.complete;
+  }
   if(round.complete){
     round.rest_started_at = new Date().toISOString();
     if(Number(round.rest_after_sec) > 0) requestTrainWakeLock();
@@ -17561,7 +18103,11 @@ function trainAddEmomRound(blockId, mode){
   var last = b.rounds.length ? b.rounds[b.rounds.length - 1] : null;
   if(mode === 'repeat' && last){
     b.rounds.push({
-      boulders: (last.boulders || []).map(function(bo){ return { text: (bo && bo.text) || '' }; }),
+      boulders: (last.boulders || []).map(function(bo){
+        return (typeof isWkOn === 'function' && isWkOn())
+          ? { id: uid(), text: (bo && bo.text) || '', complete: false }
+          : { text: (bo && bo.text) || '' };
+      }),
       notes: '',
       rest_after_sec: last.rest_after_sec != null ? last.rest_after_sec : 180,
       complete: false,
@@ -17585,7 +18131,7 @@ function trainAddEmomBoulder(blockId, roundIndex){
   var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
   if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
   if(!Array.isArray(b.rounds[roundIndex].boulders)) b.rounds[roundIndex].boulders = [];
-  b.rounds[roundIndex].boulders.push({ text: '' });
+  b.rounds[roundIndex].boulders.push((typeof isWkOn === 'function' && isWkOn()) ? { id: uid(), text: '', complete: false } : { text: '' });
   renderTrainSessionBuilder();
 }
 
@@ -17648,6 +18194,7 @@ function collectTrainBlockFields(){
       });
       var cn = document.getElementById('tb-'+b.id+'-cnotes');
       if(cn) b.notes = cn.value;
+      if((typeof isWkOn === 'function' && isWkOn())) wkResizeRoundComplete(b);
     } else if(b.shape === 'rep_pass_fail'){
       var g = document.getElementById('tb-'+b.id+'-grip');
       var a = document.getElementById('tb-'+b.id+'-assist');
@@ -17669,8 +18216,29 @@ function collectTrainBlockFields(){
       if(ct) b.title = ct.value;
       var chkNotes = document.getElementById('tb-'+b.id+'-chknotes');
       if(chkNotes) b.notes = chkNotes.value;
+      if((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(b.items)){
+        b.items.forEach(function(it, i){
+          var ie = document.getElementById('tb-'+b.id+'-item'+i);
+          if(ie && it) it.text = ie.value;
+        });
+        if(b.items.length) wkDeriveCheck(b);
+      }
+    } else if(b.shape === 'rest'){
+      var rm = document.getElementById('tb-'+b.id+'-restmin');
+      if(rm){
+        var mins = parseFloat(rm.value);
+        if(!isNaN(mins)){
+          b.duration_sec = Math.round(mins * 60);
+          b.rest_after_sec = b.duration_sec;
+        }
+      }
     }
   });
+  if((typeof isWkOn === 'function' && isWkOn())){
+    trainSessionState.blocks.forEach(function(blk){
+      if(blk && blk.shape === 'emom') wkDeriveEmom(blk);
+    });
+  }
 }
 
 function numOr(el, fallback){
@@ -17722,6 +18290,9 @@ async function saveTrainSession(){
     notes: trainSessionState.title || null,
     app_version: app_version
   };
+  if(trainSessionState.custom_workout_item_id){
+    payload.template_id = trainSessionState.custom_workout_item_id;
+  }
   var saved = await sbI('training_sessions', payload);
   var queuedOffline = false;
   if(isSbNetworkFail(saved)){
