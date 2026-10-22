@@ -16,8 +16,8 @@ const sql = readFileSync(join(root, 'sql/sessions-tick-type.sql'), 'utf8');
 const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index317'/.test(index));
-assert.ok(/APP_VERSION = 'index317'/.test(sw));
+assert.ok(/var app_version = 'index318'/.test(index));
+assert.ok(/APP_VERSION = 'index318'/.test(sw));
 assert.ok(!/coach-dashboard\.html/.test(sql));
 assert.ok(/add column if not exists tick_type text/.test(sql));
 assert.ok(/onsight.*flash.*redpoint/.test(sql.replace(/\s+/g, ' ')));
