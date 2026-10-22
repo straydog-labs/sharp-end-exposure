@@ -393,6 +393,24 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .train-emom-rest{font-size:12px;color:var(--accent);margin-top:6px;font-variant-numeric:tabular-nums;}
 .train-emom-round-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
 .wk-sent-hint{font-size:12px;line-height:1.4;color:var(--muted);margin:0 0 10px;overflow-wrap:anywhere;}
+.wk-blk-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.wk-drag-handle{flex:0 0 auto;width:32px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:8px;}
+.wk-drag-handle:active{cursor:grabbing;color:var(--text);}
+.wk-blk-toggle{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:40px;background:none;border:none;padding:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.wk-blk-chev{font-size:18px;transition:transform .2s;flex:0 0 auto;}
+.wk-blk-name{min-width:0;overflow-wrap:anywhere;}
+.wk-mv{flex:0 0 auto;display:flex;gap:4px;}
+.wk-mv-btn{width:40px;height:40px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:16px;line-height:1;cursor:pointer;font-family:inherit;}
+.wk-mv-btn:disabled{opacity:.35;cursor:default;}
+.wk-blk-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.wk-blk-summary{font-size:13px;color:var(--muted);padding:0 0 2px 38px;overflow-wrap:anywhere;}
+.train-block-card.wk-dragging{opacity:.55;}
+.train-block-card.wk-drop-before{box-shadow:0 -3px 0 0 var(--accent);}
+.train-block-card.wk-drop-after{box-shadow:0 3px 0 0 var(--accent);}
+.wk-round-remove{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:inherit;padding:6px 4px;min-height:32px;}
+.wk-round-remove.armed{color:var(--panic);}
+.wk-add-bottom{margin:4px 0 8px;}
+.wk-add-bottom .wk-add-btn{width:100%;min-height:44px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--r-md);color:var(--accent);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
 .wk-check-hit{
   display:flex;align-items:flex-start;gap:10px;width:100%;min-height:44px;box-sizing:border-box;
   background:none;border:none;padding:0;margin:0 0 4px;color:inherit;font:inherit;text-align:left;
@@ -4833,7 +4851,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
     <input type="text" id="train-sess-title" class="train-sess-title-input" placeholder="Name this session" value="Session" oninput="if(trainSessionState) trainSessionState.title = this.value;">
 
     <div class="insight-card" style="margin-bottom:12px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div id="train-sess-dates" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="saw-field" style="margin:0;min-width:0;"><label for="train-sess-start">Start</label><input id="train-sess-start" type="datetime-local"></div>
         <div class="saw-field" style="margin:0;min-width:0;"><label for="train-sess-end">End</label><input id="train-sess-end" type="datetime-local"></div>
       </div>
@@ -4864,6 +4882,10 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
       <button type="button" class="saw-chip" onclick="trainAddBlock('rep_pass_fail')">Rep-level pass/fail</button>
     </div>
     <div id="train-blocks-wrap"></div>
+    <div id="train-block-bottom" class="wk-add-bottom" style="display:none;">
+      <div id="train-block-menu-bottom" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:8px;margin-bottom:10px;"></div>
+      <button type="button" class="wk-add-btn" id="train-add-block-bottom" onclick="trainAddBlockMenu('bottom')">+ Add block</button>
+    </div>
 
     <div class="insight-card train-section-card" id="train-cooldown-card" style="margin:12px 0;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
@@ -6060,7 +6082,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index317'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index318'; // keep in sync with APP_VERSION in sw.js
 var WK_DEFAULT_ON = false;
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
@@ -15899,23 +15921,241 @@ function wkAdaptSessionBlocks(){
   if(!(typeof isWkOn === 'function' && isWkOn()) || !trainSessionState || !Array.isArray(trainSessionState.blocks)) return;
   trainSessionState.blocks.forEach(function(b){ normalizeWkBlock(b); });
 }
+var WK_MENU_ITEMS = [
+  { shape: 'emom', label: 'Climbing (EMOM)' },
+  { shape: 'circuit', label: 'Strength' },
+  { shape: 'rep_pass_fail', label: 'Hangboard / repeaters' },
+  { shape: 'mental', label: 'Mental' },
+  { shape: 'rest', label: 'Rest' },
+  { shape: 'section', label: 'Custom' }
+];
+function wkBuilderOn(){
+  return !!(typeof isWkOn === 'function' && isWkOn());
+}
+function wkMenuHtml(){
+  return WK_MENU_ITEMS.map(function(it){
+    return '<button type="button" class="saw-chip" style="margin:0 6px 6px 0;"'
+      + (it.shape === 'rest' ? ' data-wk-rest="1"' : '')
+      + ' data-wk-menu="' + it.shape + '" onclick="trainAddBlock(\'' + it.shape + '\')">' + escTrainHtml(it.label) + '</button>';
+  }).join('');
+}
 function wkEnsureTrainMenu(){
+  var on = wkBuilderOn();
   var m = document.getElementById('train-block-menu');
-  if(!m) return;
-  var restBtn = m.querySelector('[data-wk-rest]');
-  if((typeof isWkOn === 'function' && isWkOn())){
-    if(!restBtn){
-      restBtn = document.createElement('button');
-      restBtn.type = 'button';
-      restBtn.className = 'saw-chip';
-      restBtn.setAttribute('data-wk-rest', '1');
-      restBtn.setAttribute('onclick', "trainAddBlock('rest')");
-      restBtn.textContent = 'Rest';
-      m.appendChild(restBtn);
+  var mb = document.getElementById('train-block-menu-bottom');
+  var bottom = document.getElementById('train-block-bottom');
+  if(m){
+    if(m._wkLegacyHtml == null) m._wkLegacyHtml = m.innerHTML;
+    if(on){
+      if(!m.getAttribute('data-wk-menu-on')){
+        m.innerHTML = wkMenuHtml();
+        m.setAttribute('data-wk-menu-on', '1');
+      }
+    } else if(m.getAttribute('data-wk-menu-on')){
+      m.innerHTML = m._wkLegacyHtml;
+      m.removeAttribute('data-wk-menu-on');
     }
-  } else if(restBtn){
-    restBtn.remove();
   }
+  if(mb){
+    if(on){
+      if(!mb.getAttribute('data-wk-menu-on')){
+        mb.innerHTML = wkMenuHtml();
+        mb.setAttribute('data-wk-menu-on', '1');
+      }
+    } else {
+      mb.innerHTML = '';
+      mb.removeAttribute('data-wk-menu-on');
+      mb.style.display = 'none';
+    }
+  }
+  if(bottom) bottom.style.display = on ? 'block' : 'none';
+  var dg = document.getElementById('train-sess-dates');
+  if(dg) dg.style.gridTemplateColumns = on ? '1fr' : '1fr 1fr';
+  var sw = document.getElementById('train-sess-save-workout');
+  if(sw && !sw.disabled){
+    var want = on ? 'Save workout' : 'Save as workout';
+    if(sw.textContent !== want && (sw.textContent === 'Save as workout' || sw.textContent === 'Save workout')) sw.textContent = want;
+  }
+}
+
+// ---- Builder v2 (flag on): collapse, reorder, summaries ----
+var wkCollapsed = {};
+var wkRoundArm = null;
+function wkToggleCollapse(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  if(wkCollapsed[id]) delete wkCollapsed[id]; else wkCollapsed[id] = true;
+  renderTrainSessionBuilder();
+}
+function wkSummaryFirstLine(text){
+  var lines = String(text == null ? '' : text).split(/\r?\n/);
+  var i;
+  for(i = 0; i < lines.length; i++){
+    var t = lines[i].replace(/^\s*[-*]\s*(\[[ xX]\]\s*)?/, '').replace(/[*_#>`]/g, '').trim();
+    if(t) return t.length > 80 ? t.slice(0, 77) + '...' : t;
+  }
+  return '';
+}
+function wkBlockSummary(b){
+  if(!b) return '';
+  var out = '';
+  if(b.shape === 'emom'){
+    var total = 0, sent = 0;
+    var rounds = Array.isArray(b.rounds) ? b.rounds : [];
+    rounds.forEach(function(r){
+      ((r && r.boulders) || []).forEach(function(bo){
+        total++;
+        if(bo && bo.complete) sent++;
+      });
+    });
+    out = total ? (sent + ' of ' + total + ' sent') : 'No boulders yet';
+    if(rounds.length > 1) out += ' · ' + rounds.length + ' rounds';
+  } else if(b.shape === 'rep_pass_fail'){
+    var bits = [];
+    if(trainTextNonEmpty(b.grip)) bits.push(String(b.grip).trim());
+    if(trainTextNonEmpty(b.assistance)) bits.push(String(b.assistance).trim());
+    var nSets = Array.isArray(b.sets) && b.sets.length ? b.sets.length : 1;
+    bits.push(nSets + (nSets === 1 ? ' set' : ' sets'));
+    out = bits.join(' · ');
+  } else if(b.shape === 'circuit'){
+    var rn = Number(b.rounds);
+    if(isNaN(rn)) rn = 0;
+    out = rn + (rn === 1 ? ' round' : ' rounds');
+    var names = (b.exercises || []).map(function(ex){ return ex && ex.name ? String(ex.name).trim() : ''; }).filter(Boolean);
+    if(names.length) out += ' · ' + names.slice(0, 2).join(', ') + (names.length > 2 ? '...' : '');
+  } else if(b.shape === 'rest'){
+    var secs = Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 0;
+    var mins = secs / 60;
+    if(Math.abs(mins - Math.round(mins)) < 0.05) mins = Math.round(mins); else mins = Math.round(mins * 10) / 10;
+    out = mins + ' min';
+  } else if(b.shape === 'interval'){
+    out = 'Work ' + (b.work_sec == null ? 0 : b.work_sec) + 's / Rest ' + (b.rest_sec == null ? 0 : b.rest_sec) + 's x ' + (b.target_sets == null ? 0 : b.target_sets) + ' sets';
+  } else {
+    var first = wkSummaryFirstLine(b.notes);
+    if(!first && Array.isArray(b.items) && b.items.length){
+      var doneN = b.items.filter(function(it){ return it && it.complete; }).length;
+      first = doneN + ' of ' + b.items.length + ' done';
+    }
+    out = first || 'Empty';
+  }
+  return out;
+}
+function wkGroupIndices(b){
+  var blocks = (trainSessionState && trainSessionState.blocks) || [];
+  var warm = !!(b && b.is_warmup);
+  var idx = [];
+  blocks.forEach(function(x, i){ if(x && !!x.is_warmup === warm) idx.push(i); });
+  return idx;
+}
+function wkMovePosition(b){
+  var blocks = (trainSessionState && trainSessionState.blocks) || [];
+  var at = blocks.indexOf(b);
+  var group = wkGroupIndices(b);
+  return { pos: group.indexOf(at), len: group.length, group: group };
+}
+function wkMoveBlock(id, dir){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var blocks = trainSessionState.blocks;
+  var b = blocks.find(function(x){ return x && x.id === id; });
+  if(!b) return;
+  var mp = wkMovePosition(b);
+  var to = mp.pos + (dir < 0 ? -1 : 1);
+  if(mp.pos < 0 || to < 0 || to >= mp.len) return;
+  var i = mp.group[mp.pos];
+  var j = mp.group[to];
+  var tmp = blocks[i]; blocks[i] = blocks[j]; blocks[j] = tmp;
+  renderTrainSessionBuilder();
+}
+function wkMoveBlockTo(id, targetId, after){
+  if(!trainSessionState || id === targetId) return;
+  collectTrainBlockFields();
+  var blocks = trainSessionState.blocks;
+  var b = blocks.find(function(x){ return x && x.id === id; });
+  var t = blocks.find(function(x){ return x && x.id === targetId; });
+  if(!b || !t || !!b.is_warmup !== !!t.is_warmup) return;
+  blocks.splice(blocks.indexOf(b), 1);
+  var j = blocks.indexOf(t);
+  blocks.splice(j + (after ? 1 : 0), 0, b);
+  renderTrainSessionBuilder();
+}
+var _wkDrag = null;
+function wkDragClear(){
+  document.querySelectorAll('.wk-drop-before,.wk-drop-after,.wk-dragging').forEach(function(el){
+    el.classList.remove('wk-drop-before', 'wk-drop-after', 'wk-dragging');
+  });
+}
+document.addEventListener('pointerdown', function(e){
+  var h = e.target && e.target.closest ? e.target.closest('[data-wk-drag]') : null;
+  if(!h || !wkBuilderOn() || !trainSessionState) return;
+  var card = h.closest('.train-block-card');
+  if(!card) return;
+  e.preventDefault();
+  _wkDrag = { id: h.getAttribute('data-wk-drag'), targetId: null, after: false };
+  card.classList.add('wk-dragging');
+  try{ h.setPointerCapture(e.pointerId); }catch(err){}
+});
+document.addEventListener('pointermove', function(e){
+  if(!_wkDrag) return;
+  document.querySelectorAll('.wk-drop-before,.wk-drop-after').forEach(function(el){
+    el.classList.remove('wk-drop-before', 'wk-drop-after');
+  });
+  _wkDrag.targetId = null;
+  var el = document.elementFromPoint(e.clientX, e.clientY);
+  var c = el && el.closest ? el.closest('.train-block-card[data-block-id]') : null;
+  if(c){
+    var tid = c.getAttribute('data-block-id');
+    var blocks = (trainSessionState && trainSessionState.blocks) || [];
+    var src = blocks.find(function(x){ return x && x.id === _wkDrag.id; });
+    var tgt = blocks.find(function(x){ return x && x.id === tid; });
+    if(tid !== _wkDrag.id && src && tgt && !!src.is_warmup === !!tgt.is_warmup){
+      var r = c.getBoundingClientRect();
+      var after = e.clientY > r.top + r.height / 2;
+      c.classList.add(after ? 'wk-drop-after' : 'wk-drop-before');
+      _wkDrag.targetId = tid;
+      _wkDrag.after = after;
+    }
+  }
+  if(e.clientY < 70) window.scrollBy(0, -14);
+  else if(e.clientY > (window.innerHeight || 844) - 70) window.scrollBy(0, 14);
+});
+function wkDragEnd(e){
+  if(!_wkDrag) return;
+  var d = _wkDrag;
+  _wkDrag = null;
+  wkDragClear();
+  if(e.type === 'pointerup' && d.targetId) wkMoveBlockTo(d.id, d.targetId, d.after);
+}
+document.addEventListener('pointerup', wkDragEnd);
+document.addEventListener('pointercancel', wkDragEnd);
+
+function wkEmomLabelLive(el){
+  if(!el) return;
+  var btn = el.previousElementSibling;
+  var span = btn && btn.querySelector ? btn.querySelector('.wk-check-text') : null;
+  if(!span) return;
+  var v = String(el.value || '').trim();
+  span.textContent = v || el.getAttribute('data-fallback') || '';
+}
+function wkRemoveEmomRound(blockId, ri){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x && x.id === blockId; });
+  if(!b || b.shape !== 'emom' || !Array.isArray(b.rounds) || b.rounds.length <= 1 || !b.rounds[ri]) return;
+  var round = b.rounds[ri];
+  var hasContent = (round.boulders || []).some(function(bo){ return bo && (trainTextNonEmpty(bo.text) || bo.complete); })
+    || trainTextNonEmpty(round.notes) || !!round.complete;
+  var key = blockId + ':' + ri;
+  var armed = wkRoundArm && wkRoundArm.key === key && (Date.now() - wkRoundArm.at) < 8000;
+  if(hasContent && !armed){
+    wkRoundArm = { key: key, at: Date.now() };
+    renderTrainSessionBuilder();
+    return;
+  }
+  wkRoundArm = null;
+  b.rounds.splice(ri, 1);
+  wkDeriveEmom(b);
+  renderTrainSessionBuilder();
 }
 function wkHasDerivedComplete(b){
   if(!b) return false;
@@ -16103,7 +16343,7 @@ function wkRenderEmomBody(b, compact){
       var bid = wkEscId(bo.id || ('i'+i));
       var row = wkCheckHtml(!!bo.complete, "toggleWkBoulder('"+wkEscId(b.id)+"',"+ri+",'"+bid+"')", bo.text || ('Boulder '+(i+1)), 'wk-boulder');
       if(!compact){
-        row += '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+        row += '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" data-fallback="Boulder '+(i+1)+'" oninput="wkEmomLabelLive(this)" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
       }
       return row;
     }).join('');
@@ -16117,6 +16357,9 @@ function wkRenderEmomBody(b, compact){
     return '<div class="train-emom-round'+(doneR?' is-complete':'')+(locked?' is-locked':'')+'">'
       + '<div class="train-emom-round-head">'
       + '<div class="train-emom-round-label">Round '+(ri+1)+(ri===0?' boulders':'')+(doneR?' · Complete':'')+'</div>'
+      + ((!compact && rounds.length > 1)
+        ? '<button type="button" class="wk-round-remove'+((wkRoundArm && wkRoundArm.key === b.id+':'+ri && (Date.now() - wkRoundArm.at) < 8000)?' armed':'')+'" onclick="wkRemoveEmomRound(\''+b.id+'\','+ri+')">'+((wkRoundArm && wkRoundArm.key === b.id+':'+ri && (Date.now() - wkRoundArm.at) < 8000)?'Confirm remove round':'Remove round')+'</button>'
+        : '')
       + '<button type="button" class="train-section-complete'+(doneR?' on':'')+'" onclick="toggleTrainEmomRoundComplete(\''+b.id+'\','+ri+')">'+(doneR?'Complete':'Mark complete')+'</button>'
       + '</div>'
       + inner
@@ -16345,6 +16588,12 @@ function trainBlockHasTitle(b){
 }
 
 function trainBlockShapeLabel(shape){
+  if(wkBuilderOn()){
+    if(shape === 'emom') return 'Climbing (EMOM)';
+    if(shape === 'circuit') return 'Strength';
+    if(shape === 'rep_pass_fail') return 'Hangboard / repeaters';
+    if(shape === 'section') return 'Custom';
+  }
   if(shape === 'rep_pass_fail') return 'Rep-level pass/fail';
   if(shape === 'interval') return 'Interval';
   if(shape === 'section') return 'Section';
@@ -16958,8 +17207,10 @@ function cancelTrainSession(){
   showScreen('screen-train');
 }
 
-function trainAddBlockMenu(){
-  var m = document.getElementById('train-block-menu');
+function trainAddBlockMenu(where){
+  var m = document.getElementById(where === 'bottom' ? 'train-block-menu-bottom' : 'train-block-menu');
+  var other = document.getElementById(where === 'bottom' ? 'train-block-menu' : 'train-block-menu-bottom');
+  if(other) other.style.display = 'none';
   if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
 }
 
@@ -16996,9 +17247,19 @@ function newTrainBlock(shape){
 
 function trainAddBlock(shape){
   if(!trainSessionState) return;
-  trainSessionState.blocks.push(newTrainBlock(shape));
+  collectTrainBlockFields();
+  var nb;
+  if(shape === 'mental'){
+    nb = newTrainBlock('section');
+    nb.title = 'Mental';
+  } else {
+    nb = newTrainBlock(shape);
+  }
+  trainSessionState.blocks.push(nb);
   var m = document.getElementById('train-block-menu');
   if(m) m.style.display = 'none';
+  var mb = document.getElementById('train-block-menu-bottom');
+  if(mb) mb.style.display = 'none';
   renderTrainSessionBuilder();
 }
 
@@ -17127,7 +17388,7 @@ function renderTrainSessionBuilder(){
   var wrap = document.getElementById('train-blocks-wrap');
   if(!wrap) return;
   if(!split.main.length){
-    wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">No blocks yet. Add a section, interval, circuit, or pass/fail block.</div>';
+    wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">' + (wkBuilderOn() ? 'No blocks yet. Tap + Add block.' : 'No blocks yet. Add a section, interval, circuit, or pass/fail block.') + '</div>';
     if(!allBlocks.length){
       clearAllTrainBlockTimerIntervals();
       return;
@@ -17724,7 +17985,34 @@ function renderTrainBlockHtml(b, bi, isWarmup){
   var kicker = isWarmup || !(bi > 0)
     ? ''
     : '<span class="train-block-kicker">Block '+bi+' · </span>';
-  var head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
+  var wkOn = wkBuilderOn();
+  var head;
+  if(wkOn){
+    var wkPos = wkMovePosition(b);
+    var wkCollapsedNow = !!wkCollapsed[b.id];
+    var actions = (trainBlockHasTitle(b)
+        ? '<button type="button" class="train-block-edit" onclick="toggleTrainBlockEditing(\''+b.id+'\')">'+(b.editing?'Done editing':'Edit')+'</button>'
+        : '')
+      + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
+      + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
+      + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;min-height:32px;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button>';
+    head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
+      + '<div class="wk-blk-row">'
+      + '<span class="wk-drag-handle" data-wk-drag="'+b.id+'" role="button" aria-label="Drag to reorder" title="Drag to reorder">&#8942;&#8942;</span>'
+      + '<button type="button" class="wk-blk-toggle" data-wk-toggle="'+b.id+'" aria-expanded="'+(wkCollapsedNow?'false':'true')+'" onclick="wkToggleCollapse(\''+b.id+'\')">'
+      + '<span class="wk-blk-chev" style="transform:rotate('+(wkCollapsedNow?'0':'90')+'deg);">›</span>'
+      + '<span class="wk-blk-name">'+kicker+'<span class="train-block-title">'+escTrainHtml(trainBlockDisplayTitle(b))+'</span></span>'
+      + '</button>'
+      + '<span class="wk-mv">'
+      + '<button type="button" class="wk-mv-btn" data-wk-move="up" aria-label="Move up" onclick="wkMoveBlock(\''+b.id+'\',-1)"'+(wkPos.pos <= 0 ? ' disabled' : '')+'>&#8593;</button>'
+      + '<button type="button" class="wk-mv-btn" data-wk-move="down" aria-label="Move down" onclick="wkMoveBlock(\''+b.id+'\',1)"'+(wkPos.pos < 0 || wkPos.pos >= wkPos.len - 1 ? ' disabled' : '')+'>&#8595;</button>'
+      + '</span></div>';
+    if(wkCollapsedNow){
+      return head + '<div class="wk-blk-summary" data-wk-summary="'+b.id+'">'+escTrainHtml(wkBlockSummary(b))+'</div></div>';
+    }
+    head += '<div class="wk-blk-actions">'+actions+'</div>';
+  } else {
+    head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
     + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
     + '<div>'+kicker+'<span class="train-block-title">'+escTrainHtml(trainBlockDisplayTitle(b))+'</span></div>'
     + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
@@ -17734,6 +18022,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
     + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
     + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button></div></div>';
+  }
   var timerRow = '';
   if(timerOn && !isCheck){
     if(b.shape === 'interval'){
@@ -17900,7 +18189,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
   } else if(b.shape === 'section'){
     body = ((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(b.items) && b.items.length ? wkRenderCheckBody(b, compact) : (
       (trainBlockHasTitle(b) ? '' : fieldHtml('Title', 'tb-'+b.id+'-title', b.title))
-      + (b.notes ? renderTrainNotePreview(b.notes) : '')
+      + (wkBuilderOn() ? trainBlockNoteField('tb-'+b.id+'-secnotes', 'Notes', b.notes||'') : (b.notes ? renderTrainNotePreview(b.notes) : ''))
     ))
       + trainSectionDurationField(b)
       + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
@@ -18203,6 +18492,8 @@ function collectTrainBlockFields(){
     } else if(b.shape === 'section'){
       var st = document.getElementById('tb-'+b.id+'-title');
       if(st) b.title = st.value;
+      var secNotes = document.getElementById('tb-'+b.id+'-secnotes');
+      if(secNotes) b.notes = secNotes.value;
       var d = document.getElementById('tb-'+b.id+'-dur');
       if(d){
         if(!String(d.value).trim()) b.duration_sec = null;
