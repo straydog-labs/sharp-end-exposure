@@ -6082,7 +6082,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index318'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index319'; // keep in sync with APP_VERSION in sw.js
 var WK_DEFAULT_ON = false;
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
@@ -16129,13 +16129,61 @@ function wkDragEnd(e){
 document.addEventListener('pointerup', wkDragEnd);
 document.addEventListener('pointercancel', wkDragEnd);
 
+function wkBoulderLabel(i, text){
+  var t = String(text == null ? '' : text).trim();
+  return 'Boulder ' + (i + 1) + (t ? ' \u00b7 ' + t : '');
+}
+function restFieldHtml(label, id, secs){
+  var s = Number(secs);
+  if(isNaN(s) || s < 0) s = 0;
+  var unit = (s >= 60 && s % 60 === 0) ? 'min' : 'sec';
+  var val = unit === 'min' ? s / 60 : s;
+  var ctl = 'background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;';
+  return '<div class="saw-field wk-rest-field" style="margin:0 0 8px;"><label for="'+id+'">'+escTrainHtml(label)+'</label>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<input id="'+id+'" inputmode="decimal" value="'+escTrainHtml(String(val))+'" style="flex:1;min-width:0;'+ctl+'">'
+    + '<select id="'+id+'-u" data-prev="'+unit+'" onchange="wkRestUnitChange(this)" aria-label="Rest unit" style="width:84px;'+ctl+'">'
+    + '<option value="sec"'+(unit === 'sec' ? ' selected' : '')+'>sec</option>'
+    + '<option value="min"'+(unit === 'min' ? ' selected' : '')+'>min</option>'
+    + '</select></div></div>';
+}
+// Seconds from a rest field: accepts "90", "3 min", "90 sec", "1:30"; a bare number uses the unit menu.
+function readRestField(id, fallbackSec, unitOverride){
+  var el = document.getElementById(id);
+  if(!el) return fallbackSec;
+  var raw = String(el.value || '').trim().toLowerCase();
+  if(!raw) return fallbackSec;
+  var uEl = document.getElementById(id + '-u');
+  var unit = unitOverride || (uEl ? uEl.value : 'sec');
+  var m = raw.match(/^(\d+):(\d{1,2})$/);
+  if(m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  m = raw.match(/^(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes|s|sec|secs|second|seconds)?$/);
+  if(!m) return fallbackSec;
+  var n = parseFloat(m[1]);
+  var u = m[2] ? (m[2].charAt(0) === 'm' ? 'min' : 'sec') : unit;
+  return Math.round(u === 'min' ? n * 60 : n);
+}
+function wkRestUnitChange(sel){
+  var id = String(sel.id || '').replace(/-u$/, '');
+  var el = document.getElementById(id);
+  var prev = sel.getAttribute('data-prev') || 'sec';
+  if(el){
+    var secs = readRestField(id, null, prev);
+    if(secs != null){
+      var out = sel.value === 'min' ? secs / 60 : secs;
+      el.value = String(Math.round(out * 100) / 100);
+    }
+  }
+  sel.setAttribute('data-prev', sel.value);
+}
 function wkEmomLabelLive(el){
   if(!el) return;
   var btn = el.previousElementSibling;
   var span = btn && btn.querySelector ? btn.querySelector('.wk-check-text') : null;
   if(!span) return;
   var v = String(el.value || '').trim();
-  span.textContent = v || el.getAttribute('data-fallback') || '';
+  var base = el.getAttribute('data-fallback') || '';
+  span.textContent = v ? (base ? base + ' \u00b7 ' + v : v) : base;
 }
 function wkRemoveEmomRound(blockId, ri){
   if(!trainSessionState) return;
@@ -16341,16 +16389,16 @@ function wkRenderEmomBody(b, compact){
     var inner = (round.boulders || []).map(function(bo, i){
       bo = bo || {};
       var bid = wkEscId(bo.id || ('i'+i));
-      var row = wkCheckHtml(!!bo.complete, "toggleWkBoulder('"+wkEscId(b.id)+"',"+ri+",'"+bid+"')", bo.text || ('Boulder '+(i+1)), 'wk-boulder');
+      var row = wkCheckHtml(!!bo.complete, "toggleWkBoulder('"+wkEscId(b.id)+"',"+ri+",'"+bid+"')", wkBoulderLabel(i, bo.text), 'wk-boulder');
       if(!compact){
-        row += '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" data-fallback="Boulder '+(i+1)+'" oninput="wkEmomLabelLive(this)" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
+        row += '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" data-fallback="Boulder '+(i+1)+'" oninput="wkEmomLabelLive(this)" placeholder="Details (grade · color · wall)" aria-label="Boulder '+(i+1)+' details" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
       }
       return row;
     }).join('');
     if(!compact){
       inner += '<button type="button" class="train-add-affordance" onclick="trainAddEmomBoulder(\''+b.id+'\','+ri+')" style="margin-bottom:8px;">+ Boulder</button>'
         + trainBlockNoteField('tb-'+b.id+'-r'+ri+'-notes', 'Round notes', round.notes||'')
-        + fieldHtml('Rest sec', 'tb-'+b.id+'-r'+ri+'-rest', restSec);
+        + restFieldHtml('Rest after round', 'tb-'+b.id+'-r'+ri+'-rest', restSec);
     } else if(trainTextNonEmpty(round.notes)){
       inner += '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>';
     }
@@ -18469,8 +18517,7 @@ function collectTrainBlockFields(){
         if(n) round.notes = n.value;
         var restEl = document.getElementById('tb-'+b.id+'-r'+ri+'-rest');
         if(restEl){
-          var rn = parseFloat(restEl.value);
-          round.rest_after_sec = isNaN(rn) ? (round.rest_after_sec != null ? round.rest_after_sec : 180) : rn;
+          round.rest_after_sec = readRestField('tb-'+b.id+'-r'+ri+'-rest', round.rest_after_sec != null ? round.rest_after_sec : 180);
         }
       });
     } else if(b.shape === 'circuit'){
@@ -18653,6 +18700,21 @@ async function saveTrainSession(){
   }
 }
 
+// custom_workouts.training_focus only accepts the locked list or NULL. A session
+// started with Build session has energy_type '' (which the CHECK rejects), so
+// fall back to the first block's shape, then NULL.
+function trainWorkoutFocusForSave(state){
+  var f = state && state.energy_type;
+  if(f && TRAINING_FOCUS_VALUES.indexOf(f) !== -1) return f;
+  var blocks = (state && state.blocks) || [];
+  for(var i = 0; i < blocks.length; i++){
+    var sh = blocks[i] && blocks[i].shape;
+    if(sh === 'emom') return 'Boulders';
+    if(sh === 'rep_pass_fail') return 'Hangboard';
+    if(sh === 'circuit') return 'Strength & Weights';
+  }
+  return null;
+}
 async function saveTrainSessionAsWorkout(){
   if(!trainSessionState) return;
   if(!window._authUser){ showToast('Sign in to save workouts', true); return; }
@@ -18667,11 +18729,13 @@ async function saveTrainSessionAsWorkout(){
     name: name,
     description: null,
     created_by: window._authUser.id,
-    training_focus: trainSessionState.energy_type,
+    training_focus: trainWorkoutFocusForSave(trainSessionState),
     sections: trainSessionState.blocks
   });
   if(sbFailed(saved) || !saved || !saved.id){
-    showToast('Could not save workout', true);
+    var saveWhy = saved && saved.message ? String(saved.message).slice(0, 140) : '';
+    console.error('saveTrainSessionAsWorkout failed', saved);
+    showToast('Could not save workout' + (saved && saved.status ? ' (' + saved.status + ')' : '') + (saveWhy ? ': ' + saveWhy : ''), true);
     return;
   }
   invalidateTrainWorkoutCatalog();
