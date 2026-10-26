@@ -1178,6 +1178,11 @@
     font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
     color:var(--text-secondary);margin:18px 0 10px;
   }
+  .shaped-preview{display:flex;flex-direction:column;gap:6px;}
+  .shaped-preview-row{display:flex;align-items:baseline;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2, transparent);flex-wrap:wrap;}
+  .shaped-preview-n{font-size:12px;font-weight:700;color:var(--accent);min-width:14px;}
+  .shaped-preview-name{font-size:14px;font-weight:700;color:var(--text);}
+  .shaped-preview-sum{font-size:13px;color:var(--text-secondary);}
   .aw-section-row{
     display:flex;gap:6px;align-items:flex-end;margin-bottom:6px;flex-wrap:wrap;
   }
@@ -5840,7 +5845,8 @@
         .catch(function(){ return []; });
     }
     function loadCustoms(){
-      return selectCoachLibRows(token, 'custom_workouts', ',training_focus,sections')
+      return selectCoachLibRows(token, 'custom_workouts', ',training_focus,sections,created_by_role&deleted_at=is.null')
+        .catch(function(){ return selectCoachLibRows(token, 'custom_workouts', ',training_focus,sections'); })
         .catch(function(){ return selectCoachLibRows(token, 'custom_workouts', ',training_focus'); })
         .catch(function(){ return selectCoachLibRows(token, 'custom_workouts', ',sections'); })
         .catch(function(){ return selectCoachLibRows(token, 'custom_workouts', ''); })
@@ -5857,6 +5863,78 @@
     });
   }
 
+  // ── Shaped workouts (built in the athlete Train builder) ──────────────
+  // Athlete-built workouts store `sections` as shaped blocks
+  // ({shape, title, rounds, exercises, sets, ...}). The legacy coach wizard only
+  // understands {label, duration_sec, exercises[]}. Rewriting a shaped workout
+  // through the wizard would wipe its blocks, so shaped sections are kept
+  // untouched and shown read-only until the coach block builder ships.
+  function parseWorkoutSections(raw){
+    if(typeof raw === 'string'){
+      try{ raw = JSON.parse(raw); }catch(e){ raw = []; }
+    }
+    return Array.isArray(raw) ? raw : [];
+  }
+
+  function sectionsAreShaped(raw){
+    return parseWorkoutSections(raw).some(function(b){
+      return !!(b && typeof b.shape === 'string' && b.shape);
+    });
+  }
+
+  function shapedBlockName(b){
+    if(b && b.title && String(b.title).trim()) return String(b.title).trim();
+    var shape = b && b.shape;
+    if(shape === 'emom') return 'Climbing (EMOM)';
+    if(shape === 'circuit') return 'Strength';
+    if(shape === 'rep_pass_fail') return 'Hangboard / repeaters';
+    if(shape === 'rest') return 'Rest';
+    if(shape === 'check') return 'Check';
+    if(shape === 'interval') return 'Interval';
+    if(shape === 'section') return 'Custom';
+    return String(shape || 'Block').replace(/_/g, ' ');
+  }
+
+  function shapedBlockSummary(b){
+    if(!b) return '';
+    var out = '';
+    if(b.shape === 'emom'){
+      var rounds = Array.isArray(b.rounds) ? b.rounds : [];
+      var total = 0;
+      rounds.forEach(function(r){ total += ((r && r.boulders) || []).length; });
+      out = rounds.length + (rounds.length === 1 ? ' round' : ' rounds') + ' · ' + total + ' boulders';
+    } else if(b.shape === 'circuit'){
+      var names = (b.exercises || []).map(function(ex){ return ex && ex.name ? String(ex.name).trim() : ''; }).filter(Boolean);
+      out = (Number(b.rounds) || 0) + ' rounds' + (names.length ? ' · ' + names.slice(0, 3).join(', ') : '');
+    } else if(b.shape === 'rep_pass_fail'){
+      var bits = [];
+      if(b.grip && String(b.grip).trim()) bits.push(String(b.grip).trim());
+      if(b.assistance && String(b.assistance).trim()) bits.push(String(b.assistance).trim());
+      var n = Array.isArray(b.sets) && b.sets.length ? b.sets.length : 1;
+      bits.push(n + (n === 1 ? ' set' : ' sets'));
+      out = bits.join(' · ');
+    } else if(b.shape === 'rest'){
+      var secs = Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 0;
+      out = Math.round(secs / 6) / 10 + ' min';
+    } else if(b.shape === 'interval'){
+      out = 'Work ' + (b.work_sec == null ? 0 : b.work_sec) + 's / Rest ' + (b.rest_sec == null ? 0 : b.rest_sec) + 's x ' + (b.target_sets == null ? 0 : b.target_sets);
+    } else {
+      var firstLine = String(b.notes || '').split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean)[0] || '';
+      out = firstLine.length > 80 ? firstLine.slice(0, 77) + '...' : firstLine;
+    }
+    return out;
+  }
+
+  function shapedBlocksPreviewHtml(raw){
+    var blocks = parseWorkoutSections(raw);
+    return '<div class="shaped-preview">' + blocks.map(function(b, i){
+      var sum = shapedBlockSummary(b);
+      return '<div class="shaped-preview-row"><span class="shaped-preview-n">' + (i + 1) + '</span>' +
+        '<span class="shaped-preview-name">' + escapeHtml(shapedBlockName(b)) + '</span>' +
+        (sum ? '<span class="shaped-preview-sum">' + escapeHtml(sum) + '</span>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+
   // Coach-created drills go into custom_workouts (foundational catalog is
   // not coach-editable). Do NOT set visibility — DB default + coach_flags
   // trigger decide shared vs private.
@@ -5870,6 +5948,7 @@
       name: fields.name,
       description: fields.description || null,
       created_by: coachUser.id,
+      created_by_role: 'coach',
       sections: fields.sections || null
     };
     function post(body){
@@ -5884,15 +5963,20 @@
         });
       });
     }
-    return post(payload).catch(function(err){
-      var missing = err && (err.code === 'PGRST204' || err.code === '42703');
-      if(missing && Object.prototype.hasOwnProperty.call(payload, 'training_focus')){
-        var retry = Object.assign({}, payload);
-        delete retry.training_focus;
-        return post(retry);
-      }
-      throw err;
-    });
+    // Older schemas may lack training_focus or created_by_role: drop whichever
+    // column PostgREST names as missing and retry (at most once per column).
+    function attempt(body, left){
+      return post(body).catch(function(err){
+        var missing = err && (err.code === 'PGRST204' || err.code === '42703');
+        if(!missing || !left.length) throw err;
+        var msg = String((err && (err.message || err.details)) || '');
+        var col = left.filter(function(c){ return msg.indexOf(c) !== -1; })[0] || left[0];
+        var retry = Object.assign({}, body);
+        delete retry[col];
+        return attempt(retry, left.filter(function(c){ return c !== col; }));
+      });
+    }
+    return attempt(payload, ['training_focus', 'created_by_role']);
   }
 
   // Coach-side assignment insert. Same library_item_id / custom_workout_item_id
@@ -5951,6 +6035,7 @@
       libLoadError: null,
       sections: [],
       editingCustomWorkoutId: null,
+      editingShapedRaw: null,
       warmupCustomWorkoutItemId: null,
       starterShortlist: false,
       quickMode: false
@@ -6404,17 +6489,21 @@
       document.getElementById('new-a-msg').innerHTML = '<div class="form-error">Name is required.</div>';
       return;
     }
-    var sections = cleanedAssignWizardSections();
+    var shaped = !!(_assignWizard && _assignWizard.editingShapedRaw);
+    var sections = shaped ? null : cleanedAssignWizardSections();
     var btn = document.getElementById('edit-cw-save');
     if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
     fetch(SB_URL + '/rest/v1/custom_workouts?id=eq.' + _assignWizard.editingCustomWorkoutId, {
       method: 'PATCH',
       headers: Object.assign(sbHeaders(_assignWizardCtx.token), { 'Prefer': 'return=representation' }),
-      body: JSON.stringify({ name: name, description: (descEl ? descEl.value : '').trim() || null, sections: sections })
+      body: JSON.stringify(shaped
+        ? { name: name, description: (descEl ? descEl.value : '').trim() || null }
+        : { name: name, description: (descEl ? descEl.value : '').trim() || null, sections: sections })
     }).then(function(res){
       if(btn){ btn.disabled = false; btn.textContent = 'Save changes'; }
       if(!res.ok) return res.json().then(function(err){ throw err; });
       _assignWizard.editingCustomWorkoutId = null;
+      _assignWizard.editingShapedRaw = null;
       loadCoachWorkoutLibrary(_assignWizardCtx.token).then(function(rows){ _coachLibCache = Array.isArray(rows) ? rows : []; });
       closeAssignWizardOverlay();
       resetAssignWizard();
@@ -6632,10 +6721,17 @@
   function duplicateCoachCustomWorkout(item){
     var ctx = _assignWizardCtx;
     if(!ctx || !item || item._source !== 'custom') return;
-    var prevSections = _assignWizard && _assignWizard.sections;
-    _assignWizard.sections = sectionsFromLibraryItem(item);
-    var sections = cleanedAssignWizardSections();
-    _assignWizard.sections = prevSections;
+    var sections;
+    if(sectionsAreShaped(item.sections)){
+      // Copy shaped blocks as-is (deep clone). Never run them through the
+      // legacy section cleaner, which would drop everything but label/exercises.
+      sections = JSON.parse(JSON.stringify(parseWorkoutSections(item.sections)));
+    } else {
+      var prevSections = _assignWizard && _assignWizard.sections;
+      _assignWizard.sections = sectionsFromLibraryItem(item);
+      sections = cleanedAssignWizardSections();
+      _assignWizard.sections = prevSections;
+    }
     var baseName = String(item.name || 'Workout').trim() || 'Workout';
     createCoachCustomWorkout(ctx.token, ctx.coachUser, {
       trainingFocus: item._focus || itemTrainingFocus(item) || item.training_focus,
@@ -6670,6 +6766,10 @@
       var snippet = (item.description || '').replace(/\s+/g, ' ').trim();
       if(snippet.length > 100) snippet = snippet.slice(0, 100) + '…';
       meta = escapeHtml(snippet);
+      if(sectionsAreShaped(item.sections)){
+        var nBlocks = parseWorkoutSections(item.sections).length;
+        meta += (meta ? ' · ' : '') + nBlocks + (nBlocks === 1 ? ' block' : ' blocks');
+      }
     }
     var focusNote = pin && pin.focus_note ? String(pin.focus_note).trim() : '';
     var noteKey = pinItemKey(item.id, src);
@@ -6766,11 +6866,9 @@
     _assignWizard.trainingFocus = item._focus || itemTrainingFocus(item);
     _assignWizard.drillName = item.name || '';
     _assignWizard.libraryDescription = item.description || '';
-    var raw = item.sections;
-    if(typeof raw === 'string'){
-      try{ raw = JSON.parse(raw); }catch(e){ raw = []; }
-    }
-    _assignWizard.sections = Array.isArray(raw)
+    var raw = parseWorkoutSections(item.sections);
+    _assignWizard.editingShapedRaw = sectionsAreShaped(raw) ? raw : null;
+    _assignWizard.sections = _assignWizard.editingShapedRaw ? [] : Array.isArray(raw)
       ? raw.map(function(s, i){
           return {
             id: 'sec-' + i + '-' + Date.now(),
@@ -7177,13 +7275,19 @@
           '<div class="aw-field"><label for="edit-cw-desc">Description</label>' +
             '<textarea id="edit-cw-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
-          '<div class="aw-field"><label>Session sections (optional)</label>' +
+          (_assignWizard.editingShapedRaw
+            ? ('<div class="aw-field"><label>Blocks (' + _assignWizard.editingShapedRaw.length + ')</label>' +
+                '<div class="form-note" style="margin:0 0 8px;">Built in the athlete workout builder. You can rename it and edit the description here. Block editing for coaches is coming, so the blocks are kept exactly as built.</div>' +
+                shapedBlocksPreviewHtml(_assignWizard.editingShapedRaw) +
+              '</div>')
+            : ('<div class="aw-field"><label>Session sections (optional)</label>' +
             '<div class="form-note" style="margin:0 0 8px;">Optional Duration (sec) turns a section into a countdown. Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Use + Add N rounds for EMOMs or repeated boulders. Leave exercises empty to keep the section as a label only, same as today.</div>' +
             '<div id="edit-cw-sections-list"></div>' +
             '<button type="button" id="edit-cw-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
-          '</div>';
-        renderEditCustomWorkoutSectionsList();
-        document.getElementById('edit-cw-section-add').addEventListener('click', function(){
+          '</div>'));
+        if(!_assignWizard.editingShapedRaw) renderEditCustomWorkoutSectionsList();
+        var addSecBtn = document.getElementById('edit-cw-section-add');
+        if(addSecBtn) addSecBtn.addEventListener('click', function(){
           _assignWizard.sections = _assignWizard.sections || [];
           _assignWizard.sections.push(newAssignWizardSection(_assignWizard.sections.length));
           renderEditCustomWorkoutSectionsList();

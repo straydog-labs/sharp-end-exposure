@@ -216,13 +216,20 @@ try{
     // work with a scrolled-to-top viewport so both cards are on screen
     await page.evaluate(function(){ window.scrollTo(0, 0); var s = document.getElementById('screen-train-session'); if(s) s.scrollTop = 0; });
     await page.setViewportSize({ width: 390, height: 3200 });
+    // let the resize reflow settle before measuring (slow CI runners)
+    await page.evaluate(function(){ return new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(function(){ setTimeout(r, 150); }); }); }); });
+    // wait until scroll position is stable (smooth-scroll can still be running)
+    await page.evaluate(function(){ return new Promise(function(res){ window.scrollTo(0, 0); var last = -1, n = 0; (function tick(){ var y = window.scrollY; if(y === last && y === 0){ if(++n >= 5) return res(); } else { n = 0; last = y; window.scrollTo(0, 0); } requestAnimationFrame(tick); })(); }); });
     var hb = await handle.boundingBox();
     var tb = await target.boundingBox();
     assert.ok(hb && tb && hb.y + hb.height < 3200, 'handle and target are on screen');
     await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
     await page.mouse.down();
     await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2, { steps: 8 });
+    // re-measure the target now, aim at its top half, and wait for the drop marker before releasing
+    tb = await target.boundingBox();
     await page.mouse.move(tb.x + tb.width / 2, tb.y + 4, { steps: 3 });
+    await page.waitForSelector('.train-block-card[data-block-id="' + ids[1] + '"].wk-drop-before', { timeout: 3000 });
     await page.mouse.up();
     assert.deepStrictEqual(await order(page), ['emom', 'section', 'circuit', 'Rest', 'rep_pass_fail', 'Mental'], 'drag drops Custom before Strength');
     await page.setViewportSize({ width: 390, height: 844 });

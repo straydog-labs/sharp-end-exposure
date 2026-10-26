@@ -41,6 +41,7 @@ export const FLOWS = [
   { id: 'attempt-inventory', group: 'meta', file: 'attempt-inventory.test.mjs', covered: true, asserts: 'every addAttemptFromLog/launchLogWithClimb site maps to a flow' },
   { id: 'workout-runner', group: 'athlete', file: 'real-flow-workout-runner.test.mjs', covered: true, asserts: 'WK flag; EMOM boulder tick+label; derived complete; template_id+energy_type; star PATCH 0-row revert; legacy JSON; 390 layout' },
   { id: 'workout-builder-structure', group: 'athlete', file: 'real-flow-workout-builder-structure.test.mjs', covered: true, asserts: 'WK builder: menu names/order top+bottom; collapse summaries; reorder buttons+drag survive save; remove EMOM round; live boulder label; stacked dates; Save workout label; flag off legacy' },
+  { id: 'coach-shaped-workout-safety', group: 'coach', file: 'coach-shaped-workout-safety.test.mjs', covered: true, asserts: 'shaped blocks survive coach edit PATCH (name+description only) and duplicate; created_by_role coach with missing-column retry; library hides soft-deleted; preview names' },
   { id: 'schema-drift', group: 'meta', file: 'schema-drift.test.mjs', covered: true, asserts: 'every insert column exists in sql/' },
   { id: 'pw-no-download', group: 'meta', file: 'pw-no-download.test.mjs', covered: true, asserts: 'PLAYWRIGHT_BROWSERS_PATH /opt/pw-browsers, no test-level Chromium download' },
   { id: 'regression-manifest', group: 'meta', file: 'regression-manifest.test.mjs', covered: true, asserts: 'every tests/*.test.mjs is in FLOWS or IGNORED' }
