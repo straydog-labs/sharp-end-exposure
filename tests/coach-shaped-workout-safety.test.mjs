@@ -73,6 +73,11 @@ vm.createContext(ctx);
 ['parseWorkoutSections', 'sectionsAreShaped', 'shapedBlockName', 'shapedBlockSummary', 'shapedBlocksPreviewHtml',
  'createCoachCustomWorkout', 'saveEditCustomWorkout', 'duplicateCoachCustomWorkout', 'enterEditCustomWorkout',
  'sectionsFromLibraryItem'].forEach(function(n){ vm.runInContext(extractFn(n), ctx); });
+// the coach block builder module (vars + functions) up to the save helper
+const cwbStart = dash.indexOf('  // ---------- Coach block builder ----------');
+const cwbEnd = dash.indexOf('  function cwbSectionsForSave(');
+assert.ok(cwbStart > 0 && cwbEnd > cwbStart, 'coach block builder module present');
+vm.runInContext(dash.slice(cwbStart, cwbEnd), ctx);
 const run = function(code){ return vm.runInContext(code, ctx); };
 
 // 1. shaped detection
@@ -106,6 +111,20 @@ let patch = fetchCalls.filter(function(c){ return c.method === 'PATCH'; }).pop()
 assert.ok(patch && patch.url.indexOf('/rest/v1/custom_workouts?id=eq.cw-shaped') !== -1, 'PATCH hits the workout');
 assert.deepStrictEqual(Object.keys(patch.body).sort(), ['description', 'name'], 'shaped PATCH has only name+description: ' + JSON.stringify(Object.keys(patch.body)));
 assert.strictEqual(patch.body.name, 'Renamed workout');
+
+// 4b. editing a block in the builder sends the changed blocks, with state reset removed
+fetchCalls.length = 0;
+run('enterEditCustomWorkout')({ id: 'cw-shaped', name: 'Emom + Repeaters', description: 'd', sections: SHAPED, training_focus: 'Boulders' });
+ctx._assignWizard.blocks[0].title = '  EMOM changed ';
+ctx._assignWizard.blocks[0].rounds[0].boulders[0].text = ' v6 ';
+await run('saveEditCustomWorkout')();
+await new Promise(function(r){ setTimeout(r, 20); });
+patch = fetchCalls.filter(function(c){ return c.method === 'PATCH'; }).pop();
+assert.deepStrictEqual(Object.keys(patch.body).sort(), ['description', 'name', 'sections'], 'changed blocks are saved');
+assert.strictEqual(patch.body.sections.length, SHAPED.length, 'no block lost');
+assert.strictEqual(patch.body.sections[0].title, 'EMOM changed');
+assert.strictEqual(patch.body.sections[0].rounds[0].boulders[0].text, 'v6');
+assert.strictEqual(patch.body.sections[1].grip, 'half crimp', 'untouched blocks keep their fields');
 
 // 5. legacy workouts still save their sections
 fetchCalls.length = 0;

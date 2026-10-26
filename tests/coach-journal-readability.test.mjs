@@ -11,8 +11,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
-assert.ok(/var app_version = 'index318'/.test(index));
-assert.ok(/APP_VERSION = 'index318'/.test(sw));
+assert.ok(/var app_version = 'index319'/.test(index));
+assert.ok(/APP_VERSION = 'index319'/.test(sw));
 
 assert.ok(/function renderJournalFeed/.test(dash));
 assert.ok(/function loadAthleteSessions/.test(dash));

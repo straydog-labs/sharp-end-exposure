@@ -14,8 +14,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index318'/.test(index));
-assert.ok(/APP_VERSION = 'index318'/.test(sw));
+assert.ok(/var app_version = 'index319'/.test(index));
+assert.ok(/APP_VERSION = 'index319'/.test(sw));
 
 assert.ok(/id="screen-log-which"/.test(index), 'must add a Which climb? first screen');
 assert.ok(/Which climb\?/.test(index), 'first screen title is Which climb?');

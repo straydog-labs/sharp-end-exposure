@@ -13,8 +13,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index318'/.test(index));
-assert.ok(/APP_VERSION = 'index318'/.test(sw));
+assert.ok(/var app_version = 'index319'/.test(index));
+assert.ok(/APP_VERSION = 'index319'/.test(sw));
 
 // Optional screenshot output (outside the repo). Unset in CI.
 const SHOT_OUT = process.env.SEE_SHOT_OUT || '';
@@ -151,10 +151,37 @@ try{
     var labelSel = '#train-blocks-wrap .train-block-card[data-block-id="' + emomId + '"] .wk-boulder .wk-check-text';
     assert.strictEqual((await page.locator(labelSel).first().textContent()).trim(), 'Boulder 1');
     await page.fill(firstInput, 'V4 orange');
-    assert.strictEqual((await page.locator(labelSel).first().textContent()).trim(), 'V4 orange', 'label updates while typing, no blur needed');
+    assert.strictEqual((await page.locator(labelSel).first().textContent()).trim(), 'Boulder 1 \u00b7 V4 orange', 'label keeps Boulder N and adds the detail while typing');
     await page.fill(firstInput, '');
     assert.strictEqual((await page.locator(labelSel).first().textContent()).trim(), 'Boulder 1', 'empty falls back to Boulder N');
     await page.fill(firstInput, 'V4 orange');
+    assert.strictEqual(await page.locator(firstInput).getAttribute('placeholder'), 'Details (grade \u00b7 color \u00b7 wall)');
+
+    // rest takes minutes or seconds: unit menu, typed suffix, and m:ss
+    var restSel = '#tb-' + emomId + '-r0-rest';
+    var restNow = function(){ return page.evaluate(function(){ collectTrainBlockFields(); return trainSessionState.blocks[0].rounds[0].rest_after_sec; }); };
+    assert.strictEqual(await page.inputValue(restSel), '3', 'default 180s shows as 3');
+    assert.strictEqual(await page.inputValue(restSel + '-u'), 'min', 'default unit is min');
+    await page.selectOption(restSel + '-u', 'sec');
+    assert.strictEqual(await page.inputValue(restSel), '180', 'switching unit converts the number');
+    await page.fill(restSel, '90');
+    assert.strictEqual(await restNow(), 90, '90 sec');
+    await page.selectOption(restSel + '-u', 'min');
+    assert.strictEqual(await page.inputValue(restSel), '1.5', '90 sec shows as 1.5 min');
+    await page.fill(restSel, '10');
+    assert.strictEqual(await restNow(), 600, '10 min');
+    await page.fill(restSel, '45 sec');
+    assert.strictEqual(await restNow(), 45, 'typed sec wins over the menu');
+    await page.fill(restSel, '1:30');
+    assert.strictEqual(await restNow(), 90, 'm:ss');
+    await page.fill(restSel, '2 min');
+    assert.strictEqual(await restNow(), 120, 'typed min');
+    await page.fill(restSel, 'abc');
+    assert.strictEqual(await restNow(), 120, 'junk keeps the previous value');
+    await page.selectOption(restSel + '-u', 'min');
+    await page.fill(restSel, '10');
+    assert.strictEqual(await restNow(), 600);
+
     await page.locator('#train-blocks-wrap .train-block-card[data-block-id="' + emomId + '"] .wk-boulder').first().click();
     await page.click('[data-wk-toggle="' + emomId + '"]');
     var coll = await page.evaluate(function(id){
