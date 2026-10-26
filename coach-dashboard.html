@@ -1178,6 +1178,28 @@
     font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
     color:var(--text-secondary);margin:18px 0 10px;
   }
+  .cwb-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+  .cwb-card{border:1px solid var(--border);border-radius:14px;padding:12px;background:var(--bg);}
+  .cwb-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .cwb-kick{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
+  .cwb-tools,.cwb-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .cwb-row{margin:6px 0;}
+  .cwb-btn,.cwb-chip{background:none;border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:600;padding:8px 12px;min-height:36px;cursor:pointer;}
+  .cwb-btn:disabled{opacity:.35;cursor:default;}
+  .cwb-btn:hover:not(:disabled),.cwb-chip:hover{border-color:rgba(232,146,82,.6);}
+  .cwb-danger{color:var(--danger, #e5604d);}
+  .cwb-chip{color:var(--accent);border-color:rgba(232,146,82,.45);margin:0 6px 6px 0;}
+  .cwb-body{display:flex;flex-direction:column;gap:8px;}
+  .cwb-in{width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;}
+  textarea.cwb-in{min-height:64px;resize:vertical;}
+  .cwb-restrow{display:flex;gap:8px;}
+  .cwb-restrow .cwb-num{flex:1;min-width:0;}
+  .cwb-restrow .cwb-unit{width:84px;flex:none;}
+  .cwb-ex{display:grid;grid-template-columns:1fr 84px 70px;gap:6px;}
+  .cwb-round{border-top:1px dashed var(--border);padding-top:8px;display:flex;flex-direction:column;gap:6px;}
+  .cwb-sub,.cwb-lab{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);}
+  .cwb-sum{font-size:13px;color:var(--text-secondary);}
+  .cwb-menu-label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin:4px 0 8px;}
   .shaped-preview{display:flex;flex-direction:column;gap:6px;}
   .shaped-preview-row{display:flex;align-items:baseline;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2, transparent);flex-wrap:wrap;}
   .shaped-preview-n{font-size:12px;font-weight:700;color:var(--accent);min-width:14px;}
@@ -6034,6 +6056,8 @@
       resourceLink: '',
       libLoadError: null,
       sections: [],
+      blocks: [],
+      blocksInitial: null,
       editingCustomWorkoutId: null,
       editingShapedRaw: null,
       warmupCustomWorkoutItemId: null,
@@ -6160,6 +6184,365 @@
       out.push(row);
     });
     return out;
+  }
+
+  // ---------- Coach block builder ----------
+  // Builds the same shaped blocks the athlete workout builder saves
+  // ({shape, title, rounds, ...}). State lives in _assignWizard.blocks and is
+  // updated live from inputs, so a re-render never loses typed text.
+  var CWB_MENU = [
+    { shape: 'emom', label: 'Climbing (EMOM)' },
+    { shape: 'circuit', label: 'Strength' },
+    { shape: 'rep_pass_fail', label: 'Hangboard / repeaters' },
+    { shape: 'mental', label: 'Mental' },
+    { shape: 'rest', label: 'Rest' },
+    { shape: 'section', label: 'Custom' }
+  ];
+  var _cwbCollapsed = {};
+  var _cwbArm = null;
+  var _cwbArmTimer = null;
+
+  function cwbUid(){
+    return 'cwb' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  function cwbBlocks(){
+    if(!_assignWizard) return [];
+    if(!Array.isArray(_assignWizard.blocks)) _assignWizard.blocks = [];
+    return _assignWizard.blocks;
+  }
+  function cwbClamp(v, lo, hi, dflt){
+    var n = parseInt(v, 10);
+    if(isNaN(n)) n = dflt;
+    return Math.max(lo, Math.min(hi, n));
+  }
+  function cwbNewBoulder(text){
+    return { id: cwbUid(), text: text || '', complete: false };
+  }
+  function cwbNewRound(boulders){
+    return {
+      boulders: (boulders || [{}, {}, {}, {}]).map(function(b){ return cwbNewBoulder(b && b.text); }),
+      notes: '', rest_after_sec: 180, complete: false, rest_started_at: null
+    };
+  }
+  function cwbNewBlock(shape){
+    var b = {
+      id: cwbUid(), shape: shape, title: '', rest_after_sec: 120, complete: false, attempts: [],
+      timer_enabled: false, timer_started_at: null, timer_ended_at: null, interval_started_at: null,
+      duration_sec: null
+    };
+    if(shape === 'emom'){
+      b.rounds = [cwbNewRound()];
+    } else if(shape === 'circuit'){
+      b.exercises = [{ name: '', weight: '', reps: '' }];
+      b.rounds = 3; b.notes = '';
+      b.round_complete = [false, false, false];
+    } else if(shape === 'rep_pass_fail'){
+      b.grip = ''; b.assistance = '';
+      b.sets = [cwbNewSet(5)];
+      b.progression_note = '';
+    } else if(shape === 'rest'){
+      b.title = 'Rest'; b.notes = ''; b.duration_sec = 600; b.rest_after_sec = 600;
+    } else {
+      b.shape = 'section'; b.notes = '';
+    }
+    return b;
+  }
+  function cwbNewSet(n){
+    var reps = [];
+    for(var i = 0; i < n; i++) reps.push({ ok: null });
+    return { reps: reps };
+  }
+  function cwbFind(id){
+    var arr = cwbBlocks();
+    for(var i = 0; i < arr.length; i++) if(arr[i] && arr[i].id === id) return arr[i];
+    return null;
+  }
+  function cwbLabel(b){
+    if(b.shape === 'section' && String(b.title || '').trim() === 'Mental') return 'Mental';
+    return shapedBlockName({ shape: b.shape });
+  }
+  function cwbEnsureIds(blocks){
+    (blocks || []).forEach(function(b){
+      if(!b) return;
+      if(!b.id) b.id = cwbUid();
+      if(b.shape === 'emom') (b.rounds || []).forEach(function(r){
+        (r.boulders || []).forEach(function(bo){ if(bo && !bo.id) bo.id = cwbUid(); });
+      });
+    });
+    return blocks;
+  }
+  function cwbOpenWith(blocks){
+    _assignWizard.blocks = cwbEnsureIds(JSON.parse(JSON.stringify(blocks || [])));
+    _cwbCollapsed = {};
+    _cwbArm = null;
+  }
+
+  // Blocks as saved: trimmed text, no empty circuit rows, no leftover run state.
+  function cwbCleanBlocks(){
+    var out = JSON.parse(JSON.stringify(cwbBlocks())).filter(Boolean);
+    out.forEach(function(b){
+      b.title = String(b.title || '').trim();
+      if(b.shape === 'emom'){
+        (b.rounds || []).forEach(function(r){
+          (r.boulders || []).forEach(function(bo){ bo.text = String(bo.text || '').trim(); });
+        });
+      } else if(b.shape === 'circuit'){
+        var rows = (b.exercises || []).filter(function(ex){ return ex && String(ex.name || '').trim(); });
+        b.exercises = rows.length ? rows : [{ name: '', weight: '', reps: '' }];
+        b.exercises.forEach(function(ex){
+          ex.name = String(ex.name || '').trim();
+          ex.weight = String(ex.weight == null ? '' : ex.weight).trim();
+          ex.reps = String(ex.reps == null ? '' : ex.reps).trim();
+        });
+      } else if(b.shape === 'rep_pass_fail'){
+        b.grip = String(b.grip || '').trim();
+        b.assistance = String(b.assistance || '').trim();
+      }
+    });
+    return out;
+  }
+
+  // Rest as number + sec/min menu; typed "10 min", "90 sec", "1:30" also work.
+  function cwbRestFieldHtml(ri, secs){
+    var s = Number(secs);
+    if(isNaN(s) || s < 0) s = 0;
+    var unit = (s >= 60 && s % 60 === 0) ? 'min' : 'sec';
+    var val = unit === 'min' ? s / 60 : s;
+    return '<div class="cwb-restrow">' +
+      '<input class="cwb-in cwb-num" inputmode="decimal" data-f="roundRest" data-ri="' + ri + '" value="' + escapeHtml(String(val)) + '">' +
+      '<select class="cwb-in cwb-unit" data-f="roundRestU" data-ri="' + ri + '" data-prev="' + unit + '" aria-label="Rest unit">' +
+      '<option value="sec"' + (unit === 'sec' ? ' selected' : '') + '>sec</option>' +
+      '<option value="min"' + (unit === 'min' ? ' selected' : '') + '>min</option></select></div>';
+  }
+  function cwbParseRest(raw, unit, fallback){
+    raw = String(raw == null ? '' : raw).trim().toLowerCase();
+    if(!raw) return fallback;
+    var m = raw.match(/^(\d+):(\d{1,2})$/);
+    if(m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    m = raw.match(/^(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes|s|sec|secs|second|seconds)?$/);
+    if(!m) return fallback;
+    var n = parseFloat(m[1]);
+    var u = m[2] ? (m[2].charAt(0) === 'm' ? 'min' : 'sec') : unit;
+    return Math.max(0, Math.min(7200, Math.round(u === 'min' ? n * 60 : n)));
+  }
+
+  function cwbRenderBlock(b, i, n){
+    var collapsed = !!_cwbCollapsed[b.id];
+    var armed = _cwbArm === 'blk:' + b.id;
+    var h = '<div class="cwb-card" data-bid="' + escapeHtml(b.id) + '">' +
+      '<div class="cwb-head"><span class="cwb-kick">Block ' + (i + 1) + ' &middot; ' + escapeHtml(cwbLabel(b)) + '</span>' +
+      '<span class="cwb-tools">' +
+        '<button type="button" class="cwb-btn" data-act="up" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + '>&uarr;</button>' +
+        '<button type="button" class="cwb-btn" data-act="down" aria-label="Move down"' + (i === n - 1 ? ' disabled' : '') + '>&darr;</button>' +
+        '<button type="button" class="cwb-btn" data-act="toggle" aria-expanded="' + (!collapsed) + '">' + (collapsed ? 'Expand' : 'Collapse') + '</button>' +
+        '<button type="button" class="cwb-btn cwb-danger" data-act="remove" data-arm="blk:' + escapeHtml(b.id) + '">' + (armed ? 'Confirm remove' : 'Remove') + '</button>' +
+      '</span></div>';
+    if(collapsed){
+      var sum = shapedBlockSummary(b);
+      h += '<div class="cwb-sum"><b>' + escapeHtml(shapedBlockName(b)) + '</b>' + (sum ? ' &middot; ' + escapeHtml(sum) : '') + '</div></div>';
+      return h;
+    }
+    h += '<div class="cwb-body">';
+    var isMental = b.shape === 'section' && String(b.title || '').trim() === 'Mental';
+    h += '<input class="cwb-in" data-f="title" placeholder="' +
+      (b.shape === 'emom' ? 'Title (e.g. EMOM)' :
+       b.shape === 'rep_pass_fail' ? 'Title (e.g. Repeaters)' :
+       b.shape === 'circuit' ? 'Title (e.g. Strength circuit)' :
+       b.shape === 'rest' ? 'Title' : 'Title') + '" value="' + escapeHtml(b.title || '') + '">';
+    if(b.shape === 'emom'){
+      (b.rounds || []).forEach(function(r, ri){
+        var rarmed = _cwbArm === 'rnd:' + b.id + ':' + ri;
+        h += '<div class="cwb-round"><div class="cwb-sub">Round ' + (ri + 1) + '</div>';
+        (r.boulders || []).forEach(function(bo, bi){
+          h += '<input class="cwb-in" data-f="boulder" data-ri="' + ri + '" data-bi="' + bi + '" placeholder="Boulder ' + (bi + 1) + ' (e.g. v4 orange)" value="' + escapeHtml(bo.text || '') + '">';
+        });
+        h += '<div class="cwb-row">' +
+          '<button type="button" class="cwb-btn" data-act="add-boulder" data-ri="' + ri + '">+ Boulder</button>' +
+          '<button type="button" class="cwb-btn" data-act="del-boulder" data-ri="' + ri + '"' + ((r.boulders || []).length <= 1 ? ' disabled' : '') + '>&minus; Boulder</button>' +
+          '</div>' +
+          '<label class="cwb-lab">Rest after round</label>' +
+          cwbRestFieldHtml(ri, r.rest_after_sec == null ? 180 : r.rest_after_sec) +
+          '<div class="cwb-row">' +
+          '<button type="button" class="cwb-btn" data-act="same-round" data-ri="' + ri + '">+ Same round again</button>' +
+          ((b.rounds || []).length > 1
+            ? '<button type="button" class="cwb-btn cwb-danger" data-act="del-round" data-ri="' + ri + '" data-arm="rnd:' + escapeHtml(b.id) + ':' + ri + '">' + (rarmed ? 'Confirm remove round' : 'Remove round') + '</button>'
+            : '') +
+          '</div></div>';
+      });
+      h += '<div class="cwb-row"><button type="button" class="cwb-btn" data-act="new-round">+ New round</button></div>';
+    } else if(b.shape === 'circuit'){
+      (b.exercises || []).forEach(function(ex, ei){
+        h += '<div class="cwb-ex">' +
+          '<input class="cwb-in" data-f="exname" data-ei="' + ei + '" placeholder="Exercise" value="' + escapeHtml(ex.name || '') + '">' +
+          '<input class="cwb-in cwb-num" data-f="exweight" data-ei="' + ei + '" placeholder="Load" value="' + escapeHtml(String(ex.weight == null ? '' : ex.weight)) + '">' +
+          '<input class="cwb-in cwb-num" data-f="exreps" data-ei="' + ei + '" placeholder="Reps" value="' + escapeHtml(String(ex.reps == null ? '' : ex.reps)) + '">' +
+          '</div>';
+      });
+      h += '<div class="cwb-row">' +
+        '<button type="button" class="cwb-btn" data-act="add-ex">+ Exercise</button>' +
+        '<button type="button" class="cwb-btn" data-act="del-ex"' + ((b.exercises || []).length <= 1 ? ' disabled' : '') + '>&minus; Exercise</button></div>' +
+        '<label class="cwb-lab">Rounds</label>' +
+        '<input class="cwb-in cwb-num" type="number" min="1" max="10" data-f="rounds" value="' + escapeHtml(String(b.rounds == null ? 3 : b.rounds)) + '">' +
+        '<textarea class="cwb-in" data-f="notes" placeholder="Notes (optional)">' + escapeHtml(b.notes || '') + '</textarea>';
+    } else if(b.shape === 'rep_pass_fail'){
+      var nsets = (b.sets || []).length || 1;
+      var nreps = ((b.sets && b.sets[0] && b.sets[0].reps) || []).length || 5;
+      h += '<input class="cwb-in" data-f="grip" placeholder="Grip (e.g. half crimp)" value="' + escapeHtml(b.grip || '') + '">' +
+        '<input class="cwb-in" data-f="assistance" placeholder="Load (+/-), e.g. +35 lb" value="' + escapeHtml(b.assistance || '') + '">' +
+        '<div class="cwb-row"><span class="cwb-lab">Sets ' + nsets + '</span>' +
+        '<button type="button" class="cwb-btn" data-act="set-minus"' + (nsets <= 1 ? ' disabled' : '') + '>&minus; Set</button>' +
+        '<button type="button" class="cwb-btn" data-act="set-plus"' + (nsets >= 6 ? ' disabled' : '') + '>+ Set</button></div>' +
+        '<div class="cwb-row"><span class="cwb-lab">Reps per set ' + nreps + '</span>' +
+        '<button type="button" class="cwb-btn" data-act="rep-minus"' + (nreps <= 1 ? ' disabled' : '') + '>&minus; Rep</button>' +
+        '<button type="button" class="cwb-btn" data-act="rep-plus"' + (nreps >= 10 ? ' disabled' : '') + '>+ Rep</button></div>' +
+        '<textarea class="cwb-in" data-f="progression_note" placeholder="Progression note (optional)">' + escapeHtml(b.progression_note || '') + '</textarea>';
+    } else if(b.shape === 'rest'){
+      h += '<label class="cwb-lab">Rest (minutes)</label>' +
+        '<input class="cwb-in cwb-num" type="number" min="1" max="60" data-f="restMin" value="' + escapeHtml(String(Math.round((Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 600) / 60))) + '">';
+    } else if(b.shape === 'section'){
+      h += '<textarea class="cwb-in" data-f="notes" placeholder="' + (isMental ? 'Mental focus, cues, prompts' : 'Notes') + '">' + escapeHtml(b.notes || '') + '</textarea>';
+    } else {
+      h += '<div class="cwb-sum">This block type is kept exactly as built.</div>';
+    }
+    h += '</div></div>';
+    return h;
+  }
+
+  function renderCwb(){
+    var root = document.getElementById('cwb-root');
+    if(!root) return;
+    var blocks = cwbBlocks();
+    var h = '<div class="cwb-list">' + blocks.map(function(b, i){ return cwbRenderBlock(b, i, blocks.length); }).join('') + '</div>' +
+      (blocks.length ? '' : '<div class="form-note" style="margin:0 0 8px;">No blocks yet. Add the parts of the session below. Leave it empty to save a name and description only.</div>') +
+      '<div class="cwb-menu-label">Add a block</div><div class="cwb-menu">' +
+      CWB_MENU.map(function(it){
+        return '<button type="button" class="cwb-chip" data-act="add" data-shape="' + it.shape + '">' + escapeHtml(it.label) + '</button>';
+      }).join('') + '</div>';
+    root.innerHTML = h;
+    root.onclick = cwbOnClick;
+    root.oninput = cwbOnInput;
+  }
+
+  function cwbDisarm(){
+    _cwbArm = null;
+    if(_cwbArmTimer){ clearTimeout(_cwbArmTimer); _cwbArmTimer = null; }
+  }
+  function cwbArmFor(key){
+    _cwbArm = key;
+    if(_cwbArmTimer) clearTimeout(_cwbArmTimer);
+    _cwbArmTimer = setTimeout(function(){
+      if(_cwbArm === key){ _cwbArm = null; renderCwb(); }
+    }, 8000);
+  }
+
+  function cwbOnClick(e){
+    var btn = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
+    if(!btn || btn.disabled) return;
+    var act = btn.getAttribute('data-act');
+    var card = btn.closest('.cwb-card');
+    var bid = card ? card.getAttribute('data-bid') : null;
+    var blocks = cwbBlocks();
+    var b = bid ? cwbFind(bid) : null;
+    var ri = parseInt(btn.getAttribute('data-ri'), 10);
+    var idx = b ? blocks.indexOf(b) : -1;
+
+    if(act === 'add'){
+      var shape = btn.getAttribute('data-shape');
+      var nb;
+      if(shape === 'mental'){ nb = cwbNewBlock('section'); nb.title = 'Mental'; }
+      else nb = cwbNewBlock(shape);
+      blocks.push(nb);
+    } else if(!b){
+      return;
+    } else if(act === 'up' || act === 'down'){
+      var to = act === 'up' ? idx - 1 : idx + 1;
+      if(to < 0 || to >= blocks.length) return;
+      blocks.splice(idx, 1);
+      blocks.splice(to, 0, b);
+    } else if(act === 'toggle'){
+      _cwbCollapsed[b.id] = !_cwbCollapsed[b.id];
+    } else if(act === 'remove'){
+      if(_cwbArm !== 'blk:' + b.id){ cwbArmFor('blk:' + b.id); }
+      else { cwbDisarm(); blocks.splice(idx, 1); delete _cwbCollapsed[b.id]; }
+    } else if(b.shape === 'emom'){
+      var r = (b.rounds || [])[ri];
+      if(act === 'add-boulder' && r){ r.boulders.push(cwbNewBoulder('')); }
+      else if(act === 'del-boulder' && r && r.boulders.length > 1){ r.boulders.pop(); }
+      else if(act === 'same-round' && r){ b.rounds.splice(ri + 1, 0, cwbNewRound(r.boulders)); b.rounds[ri + 1].rest_after_sec = r.rest_after_sec; b.rounds[ri + 1].notes = r.notes || ''; }
+      else if(act === 'new-round'){ b.rounds.push(cwbNewRound()); }
+      else if(act === 'del-round' && r && b.rounds.length > 1){
+        var rk = 'rnd:' + b.id + ':' + ri;
+        if(_cwbArm !== rk){ cwbArmFor(rk); }
+        else { cwbDisarm(); b.rounds.splice(ri, 1); }
+      }
+    } else if(b.shape === 'circuit'){
+      if(act === 'add-ex'){ b.exercises.push({ name: '', weight: '', reps: '' }); }
+      else if(act === 'del-ex' && b.exercises.length > 1){ b.exercises.pop(); }
+    } else if(b.shape === 'rep_pass_fail'){
+      var nreps = ((b.sets && b.sets[0] && b.sets[0].reps) || []).length || 5;
+      if(act === 'set-plus' && b.sets.length < 6){ b.sets.push(cwbNewSet(nreps)); }
+      else if(act === 'set-minus' && b.sets.length > 1){ b.sets.pop(); }
+      else if(act === 'rep-plus' && nreps < 10){ b.sets.forEach(function(s){ s.reps.push({ ok: null }); }); }
+      else if(act === 'rep-minus' && nreps > 1){ b.sets.forEach(function(s){ s.reps.pop(); }); }
+    }
+    renderCwb();
+  }
+
+  function cwbOnInput(e){
+    var el = e.target;
+    if(!el || !el.getAttribute) return;
+    var f = el.getAttribute('data-f');
+    if(!f) return;
+    var card = el.closest('.cwb-card');
+    var b = card ? cwbFind(card.getAttribute('data-bid')) : null;
+    if(!b) return;
+    var ri = parseInt(el.getAttribute('data-ri'), 10);
+    var bi = parseInt(el.getAttribute('data-bi'), 10);
+    var ei = parseInt(el.getAttribute('data-ei'), 10);
+    var v = el.value;
+    if(f === 'title') b.title = v;
+    else if(f === 'notes') b.notes = v;
+    else if(f === 'grip') b.grip = v;
+    else if(f === 'assistance') b.assistance = v;
+    else if(f === 'progression_note') b.progression_note = v;
+    else if(f === 'boulder'){ var r = (b.rounds || [])[ri]; if(r && r.boulders[bi]) r.boulders[bi].text = v; }
+    else if(f === 'roundRest' || f === 'roundRestU'){
+      var rr = (b.rounds || [])[ri];
+      var row = el.closest('.cwb-restrow');
+      var numEl = row && row.querySelector('[data-f="roundRest"]');
+      var unitEl = row && row.querySelector('[data-f="roundRestU"]');
+      if(rr && numEl && unitEl){
+        if(f === 'roundRestU'){
+          // unit changed: convert the shown number, keep the seconds value
+          var prev = unitEl.getAttribute('data-prev') || 'sec';
+          var cur = cwbParseRest(numEl.value, prev, null);
+          if(cur != null){
+            numEl.value = String(Math.round((unitEl.value === 'min' ? cur / 60 : cur) * 100) / 100);
+            rr.rest_after_sec = cur;
+          }
+          unitEl.setAttribute('data-prev', unitEl.value);
+        } else {
+          rr.rest_after_sec = cwbParseRest(numEl.value, unitEl.value, rr.rest_after_sec == null ? 180 : rr.rest_after_sec);
+        }
+      }
+    }
+    else if(f === 'exname' && b.exercises && b.exercises[ei]) b.exercises[ei].name = v;
+    else if(f === 'exweight' && b.exercises && b.exercises[ei]) b.exercises[ei].weight = v;
+    else if(f === 'exreps' && b.exercises && b.exercises[ei]) b.exercises[ei].reps = v;
+    else if(f === 'rounds'){
+      var n = cwbClamp(v, 1, 10, 3);
+      b.rounds = n;
+      var rc = [];
+      for(var i = 0; i < n; i++) rc.push(false);
+      b.round_complete = rc;
+    } else if(f === 'restMin'){
+      var secs = cwbClamp(v, 1, 60, 10) * 60;
+      b.duration_sec = secs; b.rest_after_sec = secs;
+    }
+  }
+
+  function cwbSectionsForSave(){
+    return cwbBlocks().length ? cwbCleanBlocks() : cleanedAssignWizardSections();
   }
 
   function cleanedAssignWizardSections(){
@@ -6491,13 +6874,18 @@
     }
     var shaped = !!(_assignWizard && _assignWizard.editingShapedRaw);
     var sections = shaped ? null : cleanedAssignWizardSections();
+    // Shaped workouts: only send blocks when the coach actually changed them.
+    var shapedChanged = shaped && JSON.stringify(cwbBlocks()) !== _assignWizard.blocksInitial;
+    var shapedSections = shapedChanged ? cwbCleanBlocks() : null;
     var btn = document.getElementById('edit-cw-save');
     if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
     fetch(SB_URL + '/rest/v1/custom_workouts?id=eq.' + _assignWizard.editingCustomWorkoutId, {
       method: 'PATCH',
       headers: Object.assign(sbHeaders(_assignWizardCtx.token), { 'Prefer': 'return=representation' }),
       body: JSON.stringify(shaped
-        ? { name: name, description: (descEl ? descEl.value : '').trim() || null }
+        ? (shapedSections
+            ? { name: name, description: (descEl ? descEl.value : '').trim() || null, sections: shapedSections }
+            : { name: name, description: (descEl ? descEl.value : '').trim() || null })
         : { name: name, description: (descEl ? descEl.value : '').trim() || null, sections: sections })
     }).then(function(res){
       if(btn){ btn.disabled = false; btn.textContent = 'Save changes'; }
@@ -6868,6 +7256,13 @@
     _assignWizard.libraryDescription = item.description || '';
     var raw = parseWorkoutSections(item.sections);
     _assignWizard.editingShapedRaw = sectionsAreShaped(raw) ? raw : null;
+    if(_assignWizard.editingShapedRaw){
+      cwbOpenWith(_assignWizard.editingShapedRaw);
+      _assignWizard.blocksInitial = JSON.stringify(_assignWizard.blocks);
+    } else {
+      _assignWizard.blocks = [];
+      _assignWizard.blocksInitial = null;
+    }
     _assignWizard.sections = _assignWizard.editingShapedRaw ? [] : Array.isArray(raw)
       ? raw.map(function(s, i){
           return {
@@ -7276,16 +7671,17 @@
             '<textarea id="edit-cw-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
           (_assignWizard.editingShapedRaw
-            ? ('<div class="aw-field"><label>Blocks (' + _assignWizard.editingShapedRaw.length + ')</label>' +
-                '<div class="form-note" style="margin:0 0 8px;">Built in the athlete workout builder. You can rename it and edit the description here. Block editing for coaches is coming, so the blocks are kept exactly as built.</div>' +
-                shapedBlocksPreviewHtml(_assignWizard.editingShapedRaw) +
+            ? ('<div class="aw-field"><label>Session blocks</label>' +
+                '<div class="form-note" style="margin:0 0 8px;">Edit the blocks here. If you change nothing, the blocks are kept exactly as built.</div>' +
+                '<div id="cwb-root"></div>' +
               '</div>')
             : ('<div class="aw-field"><label>Session sections (optional)</label>' +
             '<div class="form-note" style="margin:0 0 8px;">Optional Duration (sec) turns a section into a countdown. Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Use + Add N rounds for EMOMs or repeated boulders. Leave exercises empty to keep the section as a label only, same as today.</div>' +
             '<div id="edit-cw-sections-list"></div>' +
             '<button type="button" id="edit-cw-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
           '</div>'));
-        if(!_assignWizard.editingShapedRaw) renderEditCustomWorkoutSectionsList();
+        if(_assignWizard.editingShapedRaw) renderCwb();
+        else renderEditCustomWorkoutSectionsList();
         var addSecBtn = document.getElementById('edit-cw-section-add');
         if(addSecBtn) addSecBtn.addEventListener('click', function(){
           _assignWizard.sections = _assignWizard.sections || [];
@@ -7327,10 +7723,9 @@
           '<div class="aw-field"><label for="new-a-lib-desc">Description</label>' +
             '<textarea id="new-a-lib-desc" placeholder="Optional protocol details">' +
             escapeHtml(_assignWizard.libraryDescription) + '</textarea></div>' +
-          '<div class="aw-field"><label>Session sections (optional)</label>' +
-            '<div class="form-note" style="margin:0 0 8px;">Build the checklist the athlete sees and checks off during the session — e.g. "Warm up", "Round 1 — 12 boulders (EMOM)", "Rest 5 min". Optional Duration (sec) turns a section into a countdown (300 = 5 min rest). Add exercises inside a section for interval timers (work / rest / sets) or check-off items. Use + Add N rounds to generate numbered repeats (Boulder 1 … Boulder 12). Leave duration and exercises blank for a label-only section. Leave the list empty to fall back to a single free-text block, same as today.</div>' +
-            '<div id="new-a-sections-list"></div>' +
-            '<button type="button" id="new-a-section-add" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:4px 0;">+ Add section</button>' +
+          '<div class="aw-field"><label>Session blocks</label>' +
+            '<div class="form-note" style="margin:0 0 8px;">Build the session the athlete will run, with the same blocks as the athlete workout builder. Reorder with the arrows, collapse a block to see the whole session, and remove rounds or blocks you do not need.</div>' +
+            '<div id="cwb-root"></div>' +
           '</div>';
         Array.prototype.forEach.call(body.querySelectorAll('#new-a-focus-chips .aw-chip'), function(btn){
           btn.addEventListener('click', function(){
@@ -7350,15 +7745,7 @@
             }
           });
         });
-        renderAssignWizardSectionsList();
-        var addSecBtn = document.getElementById('new-a-section-add');
-        if(addSecBtn){
-          addSecBtn.addEventListener('click', function(){
-            _assignWizard.sections = _assignWizard.sections || [];
-            _assignWizard.sections.push(newAssignWizardSection(_assignWizard.sections.length));
-            renderAssignWizardSectionsList();
-          });
-        }
+        renderCwb();
         setAssignWizardFooter(
           '<button type="button" class="aw-next" id="wiz-next">Next →</button>' +
           '<button type="button" class="aw-secondary-btn" id="wiz-back">← Back</button>'
@@ -7599,7 +7986,7 @@
           trainingFocus: _assignWizard.trainingFocus,
           name: _assignWizard.drillName,
           description: (_assignWizard.libraryDescription || '').trim() || null,
-          sections: cleanedAssignWizardSections()
+          sections: cwbSectionsForSave()
         }).then(function(customRow){
           if(!customRow || !customRow.id) throw { message: 'Custom workout insert returned no id' };
           return applyEditPatch({ custom_workout_item_id: customRow.id });
@@ -7640,7 +8027,7 @@
       trainingFocus: _assignWizard.trainingFocus,
       name: _assignWizard.drillName,
       description: (_assignWizard.libraryDescription || '').trim() || null,
-      sections: cleanedAssignWizardSections()
+      sections: cwbSectionsForSave()
     }).then(function(customRow){
       if(!customRow || !customRow.id) throw { message: 'Custom workout insert returned no id' };
       var payload = {
