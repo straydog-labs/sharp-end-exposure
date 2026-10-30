@@ -6059,6 +6059,7 @@
       blocks: [],
       blocksInitial: null,
       editingCustomWorkoutId: null,
+      returnStash: null,
       editingShapedRaw: null,
       warmupCustomWorkoutItemId: null,
       starterShortlist: false,
@@ -6890,6 +6891,11 @@
     }).then(function(res){
       if(btn){ btn.disabled = false; btn.textContent = 'Save changes'; }
       if(!res.ok) return res.json().then(function(err){ throw err; });
+      if(_assignWizard.returnStash){
+        loadCoachWorkoutLibrary(_assignWizardCtx.token).then(function(rows){ _coachLibCache = Array.isArray(rows) ? rows : []; });
+        returnToCustomizeStep('Workout updated. Continue with the assignment.');
+        return;
+      }
       _assignWizard.editingCustomWorkoutId = null;
       _assignWizard.editingShapedRaw = null;
       loadCoachWorkoutLibrary(_assignWizardCtx.token).then(function(rows){ _coachLibCache = Array.isArray(rows) ? rows : []; });
@@ -7246,6 +7252,47 @@
     _assignWizard.libraryDescription = '';
     _assignWizard.assignDescription = '';
     goAssignWizardStep(2);
+  }
+
+  // Custom workout behind the current assignment, only when this coach owns it
+  // (the custom_workouts UPDATE policy is created_by = auth.uid()).
+  function editableWorkoutForWizard(){
+    if(!_assignWizard || !_assignWizardCtx || !_assignWizard.customWorkoutItemId) return null;
+    var id = _assignWizard.customWorkoutItemId;
+    var item = (_coachLibCache || []).find(function(r){ return r.id === id && r._source === 'custom'; });
+    if(!item || !_assignWizardCtx.coachUser || item.created_by !== _assignWizardCtx.coachUser.id) return null;
+    return item;
+  }
+
+  // Open the workout editor from the customize step and come back to it after.
+  function editWorkoutFromCustomize(item){
+    var nameEl = document.getElementById('new-a-name-edit');
+    if(nameEl) _assignWizard.drillName = (nameEl.value || '').trim() || _assignWizard.drillName;
+    readAssignWizardWarmupPicker();
+    _assignWizard.returnStash = {
+      drillName: _assignWizard.drillName,
+      libraryDescription: _assignWizard.libraryDescription,
+      trainingFocus: _assignWizard.trainingFocus
+    };
+    enterEditCustomWorkout(item);
+  }
+
+  function returnToCustomizeStep(msg){
+    var st = _assignWizard.returnStash || {};
+    _assignWizard.returnStash = null;
+    _assignWizard.editingCustomWorkoutId = null;
+    _assignWizard.editingShapedRaw = null;
+    _assignWizard.blocks = [];
+    _assignWizard.blocksInitial = null;
+    _assignWizard.sections = [];
+    if(st.drillName != null) _assignWizard.drillName = st.drillName;
+    if(st.libraryDescription != null) _assignWizard.libraryDescription = st.libraryDescription;
+    if(st.trainingFocus != null) _assignWizard.trainingFocus = st.trainingFocus;
+    goAssignWizardStep(3);
+    if(msg){
+      var m = document.getElementById('new-a-msg');
+      if(m) m.innerHTML = '<div class="form-note">' + escapeHtml(msg) + '</div>';
+    }
   }
 
   function enterEditCustomWorkout(item){
@@ -7693,6 +7740,7 @@
           '<button type="button" class="aw-secondary-btn" id="wiz-cancel-edit">Cancel</button>'
         );
         document.getElementById('wiz-cancel-edit').addEventListener('click', function(){
+          if(_assignWizard.returnStash){ returnToCustomizeStep(''); return; }
           _assignWizard.editingCustomWorkoutId = null;
           goAssignWizardStep(1);
         });
@@ -7815,7 +7863,18 @@
         '<div class="aw-field"><label for="new-a-name-edit">Title</label>' +
           '<input id="new-a-name-edit" type="text" maxlength="120" value="' +
           escapeHtml(_assignWizard.drillName || '') + '"></div>' +
+        (editableWorkoutForWizard()
+          ? ('<div class="aw-field"><label>Workout blocks</label>' +
+              '<button type="button" class="aw-secondary-btn" id="wiz-edit-blocks">Edit workout blocks</button>' +
+              '<div class="form-note" style="margin:6px 0 0;">Changes the workout itself, so any other assignment using it changes too.</div>' +
+            '</div>')
+          : '') +
         assignWizardWarmupPickerHtml();
+      var editBlocksBtn = document.getElementById('wiz-edit-blocks');
+      if(editBlocksBtn) editBlocksBtn.addEventListener('click', function(){
+        var it = editableWorkoutForWizard();
+        if(it) editWorkoutFromCustomize(it);
+      });
       var warmupSel = document.getElementById('new-a-warmup');
       if(warmupSel) warmupSel.addEventListener('change', readAssignWizardWarmupPicker);
       setAssignWizardFooter(
