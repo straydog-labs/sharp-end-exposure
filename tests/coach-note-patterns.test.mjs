@@ -41,12 +41,16 @@ assert.ok(/function insertCoachAthleteNoteAfterSave\(/.test(dash));
 assert.ok(/function addCoachPatternTagInline\(/.test(dash));
 assert.ok(/function ensureCoachPatternTag\(/.test(dash));
 
-const generalItem = dash.match(/if\(type === 'general'\)\{[\s\S]*?return '<div class="coach-note-item">[\s\S]*?<\/div>';/);
-assert.ok(generalItem, 'general notes keep the legacy item template');
-assert.ok(/escapeHtml\(n\.title \|\| 'Untitled'\)/.test(generalItem[0]));
-assert.ok(/escapeHtml\(n\.body \|\| ''\)/.test(generalItem[0]));
-assert.ok(!/coach-note-type-chip/.test(generalItem[0]), 'general notes have no type chip');
-assert.ok(!/coachNotePatternsViewHtml/.test(generalItem[0]));
+// Notes render through one collapsible item template; general notes carry no
+// type chip, call/video-review notes do.
+const itemStart = dash.indexOf('function coachNoteItemHtml(');
+const itemEnd = dash.indexOf('function renderCoachAthleteNotes(', itemStart);
+assert.ok(itemStart > 0 && itemEnd > itemStart, 'coachNoteItemHtml present');
+const itemFn = dash.slice(itemStart, itemEnd);
+assert.ok(/escapeHtml\(n\.title \|\| 'Untitled'\)/.test(itemFn));
+assert.ok(/escapeHtml\(n\.body \|\| ''\)/.test(itemFn));
+assert.ok(/var chip = type === 'call'/.test(itemFn) && /: '';/.test(itemFn), 'general notes get an empty chip');
+assert.ok(/type === 'video_review' \? coachNotePatternsViewHtml\(n\)/.test(itemFn), 'patterns only on video-review notes');
 
 const saveFnStart = dash.indexOf('async function saveNewCoachAthleteNote(');
 const saveFnEnd = dash.indexOf('function wireCoachAthleteNoteActions(', saveFnStart);
