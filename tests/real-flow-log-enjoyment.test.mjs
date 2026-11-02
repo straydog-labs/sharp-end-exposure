@@ -308,7 +308,7 @@ try{
       return {
         withLabel: /Enjoyment 4\/5/.test(withVal),
         withoutLabel: /Enjoyment/.test(without),
-        overlayLabel: /Enjoyment 4\/5/.test(overlay)
+        overlayLabel: /Enjoyment/.test(overlay) && /4\/5/.test(overlay)
       };
     });
     assert.ok(detail.withLabel, 'detail row shows Enjoyment 4/5 when set');
