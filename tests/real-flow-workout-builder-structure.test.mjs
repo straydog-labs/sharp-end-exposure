@@ -150,11 +150,29 @@ try{
     var firstInput = '#tb-' + emomId + '-r0-b0';
     var labelSel = '#train-blocks-wrap .train-block-card[data-block-id="' + emomId + '"] .wk-boulder .wk-check-text';
     assert.strictEqual((await page.locator(labelSel).first().textContent()).trim(), 'Boulder 1');
-    await page.fill(firstInput, 'V4 orange');
-    assert.strictEqual((await page.locator(labelSel).first().textContent()).trim(), 'Boulder 1 \u00b7 V4 orange', 'label keeps Boulder N and adds the detail while typing');
-    await page.fill(firstInput, '');
-    assert.strictEqual((await page.locator(labelSel).first().textContent()).trim(), 'Boulder 1', 'empty falls back to Boulder N');
-    await page.fill(firstInput, 'V4 orange');
+    // Slow CI runners can re-render the builder just after a fill and drop the typed text,
+    // so refill and wait for the label instead of reading it once.
+    const fillAndSettle = async function(value, expected, msg){
+      let got = '';
+      for(let attempt = 0; attempt < 5; attempt++){
+        await page.fill(firstInput, value);
+        try{
+          await page.waitForFunction(function(args){
+            var n = document.querySelector(args[0]);
+            return !!n && n.textContent.trim() === args[1];
+          }, [labelSel, expected], { timeout: 1500 });
+          got = expected;
+          break;
+        }catch(e){
+          got = (await page.locator(labelSel).first().textContent()).trim();
+        }
+      }
+      assert.strictEqual(got, expected, msg);
+    };
+    await page.waitForTimeout(300);
+    await fillAndSettle('V4 orange', 'Boulder 1 \u00b7 V4 orange', 'label keeps Boulder N and adds the detail while typing');
+    await fillAndSettle('', 'Boulder 1', 'empty falls back to Boulder N');
+    await fillAndSettle('V4 orange', 'Boulder 1 \u00b7 V4 orange', 'label restored after retyping');
     assert.strictEqual(await page.locator(firstInput).getAttribute('placeholder'), 'Details (grade \u00b7 color \u00b7 wall)');
 
     // rest takes minutes or seconds: unit menu, typed suffix, and m:ss

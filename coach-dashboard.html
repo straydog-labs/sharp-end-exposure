@@ -750,6 +750,20 @@
   .chat-compose .btn-primary{flex-shrink:0;}
 
   .coach-note-hint{font-size:11.5px;color:var(--text-secondary);margin-bottom:10px;}
+  .coach-note-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .coach-note-fold-all{display:flex;gap:12px;margin-left:auto;}
+  .coach-note-form{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px;}
+  .coach-note-form-actions{display:flex;gap:10px;align-items:center;margin-top:4px;}
+  .coach-note-fold{padding:0;}
+  .coach-note-fold > summary{list-style:none;cursor:pointer;display:flex;gap:10px;align-items:flex-start;padding:12px 14px;}
+  .coach-note-fold > summary::-webkit-details-marker{display:none;}
+  .coach-note-chev{flex-shrink:0;width:7px;height:7px;margin-top:6px;border-right:2px solid var(--text-secondary);border-bottom:2px solid var(--text-secondary);transform:rotate(-45deg);transition:transform .15s;}
+  .coach-note-fold[open] > summary .coach-note-chev{transform:rotate(45deg);}
+  .coach-note-sum-main{flex:1;min-width:0;display:block;}
+  .coach-note-sum-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .coach-note-preview{display:block;margin-top:3px;font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .coach-note-fold[open] .coach-note-preview{display:none;}
+  .coach-note-detail{padding:0 14px 14px 31px;}
   .coach-note-list{margin-bottom:14px;}
   .coach-note-item{
     background:var(--bg);border:1px solid var(--border);border-radius:16px;
@@ -3043,6 +3057,8 @@
   var _athleteProjectClimbsCache = [];
   var _coachPatternTagsCache = [];
   var _coachNoteFormType = 'general';
+  var _coachNoteFormOpen = false;
+  var _coachNotesOpenIds = {};
   var _coachNoteCueSeq = 0;
   var _coachBaselineSet = false;
 
@@ -9188,11 +9204,16 @@
     if(!el) return;
     _coachAthleteNotesCtx = { token: token, coachUser: coachUser, athleteId: athleteId };
     el.innerHTML = '<div class="panel-title">Coach\'s Notes (private)</div><div>Loading···</div>';
+    var noteFilter = '&coach_id=eq.' + coachUser.id + '&athlete_id=eq.' + athleteId + '&order=created_at.desc';
+    // If the structured-note tables are missing live, fall back to the plain
+    // columns so the pane still loads (it must never be all-or-nothing).
+    var notesQuery = sbSelect(token, 'coach_athlete_notes',
+      'select=id,title,body,note_type,created_at,edited_at,coach_athlete_note_patterns(id,kind,detail,sort_order,tag_id,coach_pattern_tags(id,label))' + noteFilter
+    ).catch(function(){
+      return sbSelect(token, 'coach_athlete_notes', 'select=id,title,body,created_at' + noteFilter);
+    });
     Promise.all([
-      sbSelect(token, 'coach_athlete_notes',
-        'select=id,title,body,note_type,created_at,edited_at,coach_athlete_note_patterns(id,kind,detail,sort_order,tag_id,coach_pattern_tags(id,label))&coach_id=eq.' + coachUser.id +
-        '&athlete_id=eq.' + athleteId + '&order=created_at.desc'
-      ),
+      notesQuery,
       loadCoachPatternTags(token)
     ]).then(function(parts){
       _coachAthleteNotesCache = normalizeCoachAthleteNotes(parts[0] || []);
@@ -9513,11 +9534,63 @@
     _coachAthleteNotesCache = [note].concat(_coachAthleteNotesCache || []).filter(function(n, i, arr){
       return arr.findIndex(function(x){ return x.id === n.id; }) === i;
     });
+    _coachAthleteNotesCache.sort(function(a, b){
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
     _coachNoteFormType = 'general';
+    _coachNoteFormOpen = false;
+    _coachNotesOpenIds[note.id] = true;
     _editingCoachAthleteNoteId = null;
     var el = document.getElementById('detail-coach-notes');
     if(el) renderCoachAthleteNotes(el, _coachAthleteNotesCache);
     paintAthleteHubBadges();
+  }
+
+  function coachNoteDateLabel(d){
+    var dt = new Date(d);
+    if(!d || isNaN(dt.getTime())) return '—';
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function coachNoteTodayValue(){
+    var t = new Date();
+    function two(n){ return (n < 10 ? '0' : '') + n; }
+    return t.getFullYear() + '-' + two(t.getMonth() + 1) + '-' + two(t.getDate());
+  }
+
+  function coachNotePreview(n){
+    var t = String(n.body || '').replace(/\s+/g, ' ').trim();
+    return t.length > 110 ? t.slice(0, 110) + '…' : t;
+  }
+
+  // One collapsible note. General notes carry no type chip (legacy look);
+  // call and video-review notes show their type and pattern summary.
+  function coachNoteItemHtml(n){
+    var type = n.note_type || 'general';
+    var chip = type === 'call' ? '<span class="coach-note-type-chip">Call</span>'
+      : type === 'video_review' ? '<span class="coach-note-type-chip">Video review</span>' : '';
+    var open = _coachNotesOpenIds[n.id] ? ' open' : '';
+    return '<details class="coach-note-item coach-note-fold" data-note-id="' + escapeHtml(n.id) + '"' + open + '>' +
+      '<summary class="coach-note-summary">' +
+        '<span class="coach-note-chev" aria-hidden="true"></span>' +
+        '<span class="coach-note-sum-main">' +
+          '<span class="coach-note-sum-top">' +
+            '<span class="coach-note-title">' + chip + escapeHtml(n.title || 'Untitled') + '</span>' +
+            '<span class="coach-note-time mono">' + coachNoteDateLabel(n.created_at) + (n.edited_at ? ' · edited' : '') + '</span>' +
+          '</span>' +
+          '<span class="coach-note-preview">' + escapeHtml(coachNotePreview(n)) + '</span>' +
+        '</span>' +
+      '</summary>' +
+      '<div class="coach-note-detail">' +
+        (type === 'video_review' ? coachNotePatternsViewHtml(n) : '') +
+        '<div class="coach-note-body">' + escapeHtml(n.body || '') + '</div>' +
+        '<div class="inline-edit-actions">' +
+          '<button type="button" class="text-action" data-note-edit="' + escapeHtml(n.id) + '">Edit</button>' +
+          '<button type="button" class="text-action danger" data-note-delete="' + escapeHtml(n.id) + '">Delete</button>' +
+        '</div>' +
+        '<div class="form-error" id="coach-note-item-msg-' + n.id + '"></div>' +
+      '</div>' +
+    '</details>';
   }
 
   function renderCoachAthleteNotes(el, notes){
@@ -9534,41 +9607,26 @@
               '<div class="form-error" id="coach-note-edit-msg-' + n.id + '"></div>' +
             '</div>';
           }
-          var type = n.note_type || 'general';
-          if(type === 'general'){
-            return '<div class="coach-note-item">' +
-              '<div class="coach-note-meta"><span class="coach-note-title">' + escapeHtml(n.title || 'Untitled') + '</span>' +
-              '<span class="coach-note-time mono">' + fmtChatTime(n.created_at) + (n.edited_at ? ' · edited' : '') + '</span></div>' +
-              '<div class="coach-note-body">' + escapeHtml(n.body || '') + '</div>' +
-              '<div class="inline-edit-actions">' +
-                '<button type="button" class="text-action" data-note-edit="' + escapeHtml(n.id) + '">Edit</button>' +
-                '<button type="button" class="text-action danger" data-note-delete="' + escapeHtml(n.id) + '">Delete</button>' +
-              '</div>' +
-              '<div class="form-error" id="coach-note-item-msg-' + n.id + '"></div>' +
-            '</div>';
-          }
-          var chip = type === 'call' ? '<span class="coach-note-type-chip">Call</span>'
-            : '<span class="coach-note-type-chip">Video review</span>';
-          return '<div class="coach-note-item">' +
-            '<div class="coach-note-meta"><span class="coach-note-title">' + chip + escapeHtml(n.title || 'Untitled') + '</span>' +
-            '<span class="coach-note-time mono">' + fmtChatTime(n.created_at) + (n.edited_at ? ' · edited' : '') + '</span></div>' +
-            (type === 'video_review' ? coachNotePatternsViewHtml(n) : '') +
-            '<div class="coach-note-body">' + escapeHtml(n.body || '') + '</div>' +
-            '<div class="inline-edit-actions">' +
-              '<button type="button" class="text-action" data-note-edit="' + escapeHtml(n.id) + '">Edit</button>' +
-              '<button type="button" class="text-action danger" data-note-delete="' + escapeHtml(n.id) + '">Delete</button>' +
-            '</div>' +
-            '<div class="form-error" id="coach-note-item-msg-' + n.id + '"></div>' +
-          '</div>';
+          return coachNoteItemHtml(n);
         }).join('')
       : '<div class="empty-state">No notes yet — private to you, never visible to the athlete.</div>';
 
     _coachNoteCueSeq = 0;
+    var formShown = !!_coachNoteFormOpen;
     el.innerHTML = '<div class="panel-title">Coach\'s Notes (private)</div>' +
       '<div class="coach-note-hint">Only you can see this — use it for call recaps, anything you don\'t want the athlete seeing.</div>' +
-      coachNotePatternsStripHtml(notes) +
-      '<div class="coach-note-list">' + list + '</div>' +
-      '<div class="coach-note-form">' +
+      '<div class="coach-note-toolbar">' +
+        '<button type="button" class="btn-primary" id="coach-note-add-open"' + (formShown ? ' style="display:none;"' : '') + '>+ Add note</button>' +
+        (notes.length > 1
+          ? '<span class="coach-note-fold-all">' +
+              '<button type="button" class="text-action" id="coach-note-expand-all">Expand all</button>' +
+              '<button type="button" class="text-action" id="coach-note-collapse-all">Collapse all</button>' +
+            '</span>'
+          : '') +
+      '</div>' +
+      '<div class="coach-note-form" id="coach-note-form"' + (formShown ? '' : ' style="display:none;"') + '>' +
+        '<label class="coach-note-field-label" for="coach-note-date">Date</label>' +
+        '<input type="date" id="coach-note-date" value="' + coachNoteTodayValue() + '" max="' + coachNoteTodayValue() + '" />' +
         '<label class="coach-note-field-label" for="coach-note-type-general">Type</label>' +
         '<div class="coach-note-type-row" id="coach-note-type-row">' +
           '<button type="button" id="coach-note-type-general" data-note-type="general" class="selected">General</button>' +
@@ -9588,9 +9646,14 @@
         '</div>' +
         '<label class="coach-note-field-label" id="coach-note-body-label" style="display:none;" for="coach-note-body">Video / session notes</label>' +
         '<textarea id="coach-note-body" rows="12" placeholder="Notes..."></textarea>' +
-        '<button type="button" class="btn-primary" id="coach-note-save">Save note</button>' +
+        '<div class="coach-note-form-actions">' +
+          '<button type="button" class="btn-primary" id="coach-note-save">Save note</button>' +
+          '<button type="button" class="btn-cancel" id="coach-note-form-cancel">Cancel</button>' +
+        '</div>' +
         '<div id="coach-note-msg"></div>' +
-      '</div>';
+      '</div>' +
+      coachNotePatternsStripHtml(notes) +
+      '<div class="coach-note-list">' + list + '</div>';
 
     setCoachNoteFormType(_coachNoteFormType || 'general');
     wireCoachNoteTagPickers(el);
@@ -9602,6 +9665,34 @@
       });
     });
     document.getElementById('coach-note-save').addEventListener('click', saveNewCoachAthleteNote);
+    var openBtn = document.getElementById('coach-note-add-open');
+    var formEl = document.getElementById('coach-note-form');
+    function showNoteForm(show){
+      _coachNoteFormOpen = !!show;
+      if(formEl) formEl.style.display = show ? '' : 'none';
+      if(openBtn) openBtn.style.display = show ? 'none' : '';
+      if(show){
+        var t = document.getElementById('coach-note-title');
+        if(t && t.focus) t.focus();
+      }
+    }
+    if(openBtn) openBtn.addEventListener('click', function(){ showNoteForm(true); });
+    document.getElementById('coach-note-form-cancel').addEventListener('click', function(){ showNoteForm(false); });
+    function setAllNotes(open){
+      Array.prototype.forEach.call(el.querySelectorAll('details.coach-note-fold'), function(d){
+        d.open = open;
+        _coachNotesOpenIds[d.getAttribute('data-note-id')] = open;
+      });
+    }
+    var expandAll = document.getElementById('coach-note-expand-all');
+    var collapseAll = document.getElementById('coach-note-collapse-all');
+    if(expandAll) expandAll.addEventListener('click', function(){ setAllNotes(true); });
+    if(collapseAll) collapseAll.addEventListener('click', function(){ setAllNotes(false); });
+    Array.prototype.forEach.call(el.querySelectorAll('details.coach-note-fold'), function(d){
+      d.addEventListener('toggle', function(){
+        _coachNotesOpenIds[d.getAttribute('data-note-id')] = d.open;
+      });
+    });
     wireCoachAthleteNoteActions(el);
   }
 
@@ -9625,6 +9716,15 @@
       body: body || '',
       note_type: type
     };
+    // Backdated note: store the chosen day (noon local) as created_at so the
+    // list stays newest-first by the date the coach picked. Today keeps the
+    // server timestamp.
+    var dateEl = document.getElementById('coach-note-date');
+    var chosenDay = dateEl && dateEl.value;
+    if(chosenDay && chosenDay !== coachNoteTodayValue()){
+      var when = new Date(chosenDay + 'T12:00:00');
+      if(!isNaN(when.getTime())) payload.created_at = when.toISOString();
+    }
     function postCoachAthleteNote(body){
       return fetch(SB_URL + '/rest/v1/coach_athlete_notes', {
         method: 'POST',
