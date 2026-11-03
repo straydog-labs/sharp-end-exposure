@@ -24,7 +24,7 @@ export const FLOWS = [
   { id: 'home-next', group: 'athlete', file: 'real-flow-home-next.test.mjs', covered: true, asserts: 'H1-H5 action row outline omit order filled; S0-S6; destinations; one filled' },
   { id: 'climb-clip', group: 'athlete', file: 'real-flow-climb-clip.test.mjs', covered: true, asserts: 'projects/history no overflow; 1 attempt/2 attempts; star +Attempt; falls color not panic' },
   { id: 'go-deeper-confirm', group: 'athlete', file: 'real-flow-go-deeper-confirm.test.mjs', covered: true, asserts: 'PATCH sessions zone_confidence confirmed' },
-  { id: 'log-enjoyment', group: 'athlete', file: 'real-flow-log-enjoyment.test.mjs', covered: true, asserts: 'Go Deeper enjoyment 1-5 card; PATCH enjoyment; missing-column retry; detail+CSV; score unchanged; skip path' },
+  { id: 'log-enjoyment', group: 'athlete', file: 'real-flow-log-enjoyment.test.mjs', covered: true, asserts: 'Go Deeper enjoyment 1-5 card; PATCH enjoyment; enjoyment-only confirm estimated; missing-column retry; detail+CSV; score unchanged; skip path' },
   { id: 'project-toggle', group: 'athlete', file: 'real-flow-project-toggle.test.mjs', covered: true, asserts: 'Project star log/edit/null-climb_id/unproject/send-prompt/rollback + same-name grade/terrain match' },
   { id: 'climb-table-dense-star', group: 'athlete', file: 'climb-table-dense-star.test.mjs', covered: true, asserts: 'dense-row star aria-label, no visible Project label' },
   { id: 'log-auth-refocus', group: 'athlete', file: 'real-flow-log-auth-refocus.test.mjs', covered: true, asserts: 'same-user SIGNED_IN keeps log step 6; new/other user routes Home' },

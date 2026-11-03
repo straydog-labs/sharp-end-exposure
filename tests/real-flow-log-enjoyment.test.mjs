@@ -28,6 +28,7 @@ assert.ok(/1 = Not at all/.test(index) && /5 = Loved it/.test(index));
 assert.ok(/function selectEnjoyChip\(/.test(index));
 assert.ok(/deepAnswers=\{q1:null,q2:null,q3:null,q4:null,q5:null,q6:null,q7:null,enjoy:null\}/.test(index));
 assert.ok(/enjoyment: deepAnswers\.enjoy \|\| null/.test(index));
+assert.ok(/breathing_post: null,\s*gut_post: null,\s*crux_response: null,\s*body_state: null,\s*enjoyment: deepAnswers\.enjoy/.test(index));
 assert.ok(/hasOwnProperty\.call\(p,'enjoyment'\)/.test(index));
 assert.ok(/function sessionEnjoymentLabel\(/.test(index));
 assert.ok(/'send_notes','enjoyment'\]/.test(index.replace(/\s+/g, '')));
@@ -266,6 +267,40 @@ try{
       return b && Object.prototype.hasOwnProperty.call(b, 'enjoyment');
     });
     assert.strictEqual(enjoyPatches.length, 0, 'Done for now does not PATCH enjoyment');
+  });
+
+  await withPage(browser, port, {
+    path: '/index.html',
+    viewport: { width: 390, height: 844 }
+  }, async function(page, recorded){
+    await bootDeeper(page, { sessId: 'sess-enjoy-only' });
+    await tap(page, '#dq-enjoy-card .dq-chip[data-enjoy="4"]');
+    await tap(page, '#deeper-confirm-btn');
+    await waitForScreen(page, 'screen-log-done');
+    var state = await page.evaluate(function(){
+      return {
+        zone: logState.zone,
+        conf: logState.zoneConf,
+        screen: (document.querySelector('.screen.active') || {}).id
+      };
+    });
+    assert.strictEqual(state.zone, 'learning', 'enjoyment-only leaves estimated zone');
+    assert.strictEqual(state.conf, 'estimated');
+    assert.strictEqual(state.screen, 'screen-log-done');
+    var enjoyOnly = postsTo(recorded, 'sessions', 'PATCH').map(function(r){
+      var b = r.body;
+      if(Array.isArray(b)) b = b[0];
+      return b;
+    }).filter(function(b){ return b && Object.prototype.hasOwnProperty.call(b, 'enjoyment'); });
+    assert.ok(enjoyOnly.length, 'confirm with only enjoyment PATCHes enjoyment');
+    var body = enjoyOnly[enjoyOnly.length - 1];
+    assert.strictEqual(body.enjoyment, 4);
+    assert.strictEqual(body.breathing_post, null);
+    assert.strictEqual(body.gut_post, null);
+    assert.strictEqual(body.crux_response, null);
+    assert.strictEqual(body.body_state, null);
+    assert.ok(body.zone_confidence !== 'confirmed', 'does not confirm zone');
+    assert.ok(!Object.prototype.hasOwnProperty.call(body, 'zone') || body.zone == null, 'does not rewrite zone');
   });
 
   await withPage(browser, port, {
