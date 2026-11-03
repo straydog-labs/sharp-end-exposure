@@ -12,8 +12,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index320'/.test(index));
-assert.ok(/APP_VERSION = 'index320'/.test(sw));
+assert.ok(/var app_version = 'index321'/.test(index));
+assert.ok(/APP_VERSION = 'index321'/.test(sw));
 assert.ok(!/id="psyche-landing-col"/.test(dash), 'coach-dashboard untouched');
 
 function extractFn(src, name){
@@ -126,6 +126,16 @@ assert.strictEqual(pinned[0].kind, 'talk');
 assert.strictEqual(ctx.psycheTalkCue(pinned[0].row), 'Breathe');
 assert.strictEqual(pinned[1].row.drill_key, 'bee_humming');
 assert.strictEqual(ctx.pickPsychePinned([]).length, 0);
+const pinnedAw = ctx.pickPsychePinned([
+  { created_at: '2026-09-10', drill_key: 'awareness' },
+  { created_at: '2026-09-09', drill_key: 'pmr' }
+]);
+assert.strictEqual(pinnedAw.length, 1, 'awareness is not a startable pinned drill');
+assert.strictEqual(pinnedAw[0].row.drill_key, 'pmr');
+const hubWithAwareness = ctx.computePsycheHubStats(manyCheckins, [
+  { created_at: '2026-09-10T11:00:00', drill_key: 'awareness' }
+], now);
+assert.notStrictEqual(hubWithAwareness.week, '—', 'hub week count includes awareness');
 assert.strictEqual(ctx.psycheCheckinName({ prepare_type: 'full' }), 'Prepare for a climb');
 assert.strictEqual(ctx.psycheCheckinName({}), 'Quick check-in');
 

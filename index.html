@@ -1343,6 +1343,21 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .dq-enjoy-wrap{flex-direction:row;gap:6px;}
 .dq-enjoy-wrap .dq-chip{flex:1;min-width:0;min-height:44px;padding:10px 0;font-weight:700;}
 .dq-enjoy-ends{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);line-height:1.3;}
+.wk-notice-hint{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--muted);line-height:1.35;margin:0 0 8px;}
+.wk-notice-hint[hidden]{display:none;}
+.wk-notice-hint button{background:none;border:none;color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;padding:0;text-decoration:underline;flex:0 0 auto;}
+.wk-notice-link{flex:0 0 auto;width:72px;background:none;border:none;color:var(--muted);font-size:11px;line-height:1.2;font-family:inherit;cursor:pointer;padding:0;text-align:right;text-decoration:underline;}
+.wk-notice-summary{font-size:12px;color:var(--muted);}
+.wk-notice-card{margin-top:10px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);}
+.wk-notice-title{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text);}
+.wk-notice-q{font-size:13px;color:var(--muted);margin-bottom:6px;}
+.wk-notice-wrap{display:flex;flex-direction:row;gap:6px;}
+.wk-notice-wrap .wk-notice-chip{flex:1;min-width:0;min-height:44px;padding:10px 0;font-weight:700;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;cursor:pointer;}
+.wk-notice-wrap .wk-notice-chip.selected{border-color:var(--accent);color:var(--accent);}
+.wk-notice-ends{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);line-height:1.3;margin-top:4px;}
+.wk-notice-note{width:100%;min-height:72px;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;resize:vertical;}
+.wk-notice-collapsed{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.wk-notice-detail{font-size:13px;color:var(--text);margin-top:8px;}
 
 /* ── FALL/INCIDENT ── */
 .incident-header{background:rgba(255,92,58,.06);border-bottom:1px solid rgba(255,92,58,.15);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
@@ -4867,6 +4882,10 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   <div class="content">
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="train-sess-eyebrow">Training session</div>
     <input type="text" id="train-sess-title" class="train-sess-title-input" placeholder="Name this session" value="Session" oninput="if(trainSessionState) trainSessionState.title = this.value;">
+    <div id="train-notice-hint" class="wk-notice-hint" hidden>
+      <span>After each block, note what you noticed.</span>
+      <button type="button" onclick="dismissTrainNoticeHint()">Got it</button>
+    </div>
 
     <div class="insight-card" style="margin-bottom:12px;">
       <div id="train-sess-dates" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -6100,7 +6119,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index320'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index321'; // keep in sync with APP_VERSION in sw.js
 var WK_DEFAULT_ON = false;
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
@@ -9075,6 +9094,7 @@ async function logFlowSaveReflectionIfFilled(){
   var hasAny = refl.went_well || refl.still_learning || refl.surprised_by;
   if(!hasAny) return;
   await sbU('sessions', 'id=eq.' + logState.sessId, refl);
+  await creditClimbAwareness();
 }
 
 var _logFlowSaveBusy = false;
@@ -11732,7 +11752,7 @@ function countHomeWeekSessions(climbs, trains, psyche, drills, fromDate){
   (climbs || []).forEach(function(s){ if(isAthleteStreakClimb(s) && inWeek(s.created_at)) n++; });
   (trains || []).forEach(function(t){ if(isAthleteStreakTraining(t) && inWeek(t.created_at || t.started_at)) n++; });
   (psyche || []).forEach(function(s){ if(isAthleteStreakPsyche(s) && inWeek(s.created_at)) n++; });
-  (drills || []).forEach(function(d){ if(isAthleteStreakPsycheDrill(d) && inWeek(d.created_at)) n++; });
+  (drills || []).forEach(function(d){ if(isAthleteStreakPsycheDrill(d) && d.drill_key !== 'awareness' && inWeek(d.created_at)) n++; });
   return n;
 }
 function homeProjectLastLabel(iso){
@@ -15073,6 +15093,153 @@ function trainSessionBlocksAllComplete(state){
   if(!blocks.length) return false;
   return blocks.every(trainBlockIsComplete);
 }
+
+// Single place to change awareness crediting. 'session' = one psyche_drills row per
+// training session / climb, never per block.
+var PSYCHE_AWARENESS_CREDIT_PER = 'session';
+var TRAIN_NOTICE_HINT_LS = 'see_train_notice_hint';
+var TRAIN_NOTICE_SHAPES = { emom: 1, rep_pass_fail: 1, circuit: 1, section: 1, check: 1 };
+
+function trainBlockAllowsNotice(b){
+  return !!(b && TRAIN_NOTICE_SHAPES[b.shape] && typeof isWkOn === 'function' && isWkOn());
+}
+function trainHangboardAllRepsMarked(b){
+  if(!b || b.shape !== 'rep_pass_fail') return false;
+  var reps = (b.sets && b.sets[0] && b.sets[0].reps) || [];
+  return reps.length > 0 && reps.every(function(rp){ return rp && (rp.ok === true || rp.ok === false); });
+}
+function trainBlockWorkComplete(b){
+  if(!b) return false;
+  if(b.shape === 'rep_pass_fail') return !!b.complete || trainHangboardAllRepsMarked(b);
+  return trainBlockIsComplete(b);
+}
+function trainNoticeHasAnswer(n){
+  if(!n) return false;
+  var att = parseInt(n.attention, 10);
+  var note = String(n.note || '').trim();
+  return (att >= 1 && att <= 5) || !!note;
+}
+function trainNoticePresentLabel(n){
+  var att = n && parseInt(n.attention, 10);
+  return (att >= 1 && att <= 5) ? ('Present ' + att + '/5') : '';
+}
+function trainCollectNoticeBlocks(blocks){
+  var out = [];
+  (blocks || []).forEach(function(b){
+    if(!b || !trainNoticeHasAnswer(b.notice)) return;
+    out.push({
+      shape: b.shape || '',
+      title: b.title || '',
+      attention: (b.notice.attention >= 1 && b.notice.attention <= 5) ? b.notice.attention : null,
+      note: String(b.notice.note || '')
+    });
+  });
+  return out;
+}
+function trainStripBlockForLibrary(b){
+  var fresh = trainCloneBlockForDuplicate(b);
+  if(!fresh) return fresh;
+  delete fresh.notice;
+  fresh.complete = false;
+  if(Array.isArray(fresh.items)){
+    fresh.items.forEach(function(it){ if(it) it.complete = false; });
+    if(typeof wkDeriveCheck === 'function') wkDeriveCheck(fresh);
+  }
+  if(Array.isArray(fresh.round_complete)){
+    fresh.round_complete = fresh.round_complete.map(function(){ return false; });
+  }
+  if(Array.isArray(fresh.rounds)){
+    fresh.rounds.forEach(function(r){
+      if(!r) return;
+      r.complete = false;
+      r.rest_started_at = null;
+      (r.boulders || []).forEach(function(bo){ if(bo) bo.complete = false; });
+    });
+  }
+  if(Array.isArray(fresh.sets)){
+    fresh.sets.forEach(function(s){
+      (s && s.reps || []).forEach(function(rp){ if(rp) rp.ok = null; });
+    });
+  }
+  return fresh;
+}
+function paintTrainNoticeHint(){
+  var el = document.getElementById('train-notice-hint');
+  if(!el) return;
+  var show = false;
+  try{
+    show = (typeof isWkOn === 'function' && isWkOn()) && localStorage.getItem(TRAIN_NOTICE_HINT_LS) !== '1';
+  }catch(e){}
+  el.hidden = !show;
+}
+function dismissTrainNoticeHint(){
+  try{ localStorage.setItem(TRAIN_NOTICE_HINT_LS, '1'); }catch(e){}
+  var el = document.getElementById('train-notice-hint');
+  if(el) el.hidden = true;
+}
+function trainMaybeOfferNotice(b, wasComplete){
+  if(!trainBlockAllowsNotice(b)) return;
+  var now = trainBlockWorkComplete(b);
+  if(now && !wasComplete && !trainNoticeHasAnswer(b.notice)){
+    b._noticeOpen = true;
+    if(typeof wkCollapsed !== 'undefined') wkCollapsed[b.id] = false;
+  }
+}
+function toggleTrainNoticeOpen(blockId){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || !trainBlockAllowsNotice(b)) return;
+  b._noticeOpen = !b._noticeOpen;
+  if(b._noticeOpen && typeof wkCollapsed !== 'undefined') wkCollapsed[b.id] = false;
+  renderTrainSessionBuilder();
+}
+function selectTrainNoticeAttention(blockId, n){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || !trainBlockAllowsNotice(b)) return;
+  n = parseInt(n, 10);
+  if(!(n >= 1 && n <= 5)) return;
+  if(!b.notice) b.notice = { attention: null, note: '', at: new Date().toISOString() };
+  b.notice.attention = (b.notice.attention === n) ? null : n;
+  b.notice.at = new Date().toISOString();
+  b._noticeOpen = true;
+  renderTrainSessionBuilder();
+}
+function trainNoticeIsCardOpen(b){
+  if(!trainBlockAllowsNotice(b)) return false;
+  if(b._noticeOpen) return true;
+  if(trainNoticeHasAnswer(b.notice)) return false;
+  return trainBlockWorkComplete(b);
+}
+function renderTrainNoticeLink(b){
+  if(!trainBlockAllowsNotice(b)) return '';
+  return '<button type="button" class="wk-notice-link" data-notice-link="'+escTrainHtml(b.id)+'" onclick="event.stopPropagation();toggleTrainNoticeOpen(\''+b.id+'\')">What did you notice?</button>';
+}
+function renderTrainNoticeHtml(b){
+  if(!trainBlockAllowsNotice(b)) return '';
+  var n = b.notice || {};
+  var answered = trainNoticeHasAnswer(n);
+  var present = trainNoticePresentLabel(n);
+  if(!trainNoticeIsCardOpen(b)){
+    if(!answered) return '';
+    return '<div class="wk-notice-collapsed" data-notice="'+escTrainHtml(b.id)+'">'
+      + (present ? '<span class="wk-notice-summary">'+escTrainHtml(present)+'</span>' : '')
+      + '</div>';
+  }
+  var att = parseInt(n.attention, 10);
+  var chips = [1,2,3,4,5].map(function(i){
+    return '<button type="button" class="wk-notice-chip'+(att === i ? ' selected' : '')+'" data-notice-att="'+i+'" onclick="selectTrainNoticeAttention(\''+b.id+'\','+i+')">'+i+'</button>';
+  }).join('');
+  return '<div class="wk-notice-card" data-notice="'+escTrainHtml(b.id)+'">'
+    + '<div class="wk-notice-title">What did you notice?</div>'
+    + '<div class="wk-notice-q">How present were you?</div>'
+    + '<div class="wk-notice-wrap">'+chips+'</div>'
+    + '<div class="wk-notice-ends"><span>1 Autopilot</span><span>5 Dialed in</span></div>'
+    + '<textarea class="wk-notice-note" id="tb-'+b.id+'-notice" placeholder="Body, effort, attention. What was different this time?" rows="3">'+escTrainHtml(n.note || '')+'</textarea>'
+    + '</div>';
+}
 function hideTrainDoneAssignPrompt(){
   _pendingAssignCompleteId = null;
   var el = document.getElementById('train-done-assign-prompt');
@@ -16057,6 +16224,8 @@ function wkBlockSummary(b){
     }
     out = first || 'Empty';
   }
+  var present = trainNoticePresentLabel(b.notice);
+  if(present) out += ' · ' + present;
   return out;
 }
 function wkGroupIndices(b){
@@ -16266,6 +16435,7 @@ function toggleWkBoulder(blockId, roundIndex, boulderId){
   var round = b.rounds[roundIndex];
   var bo = (round.boulders || []).find(function(x){ return x && String(x.id) === String(boulderId); });
   if(!bo) return;
+  var wasBlock = trainBlockWorkComplete(b);
   bo.complete = !bo.complete;
   var wasComplete = !!round.complete;
   wkDeriveEmom(b);
@@ -16276,6 +16446,7 @@ function toggleWkBoulder(blockId, roundIndex, boulderId){
     round.rest_started_at = null;
     if(typeof anyTrainIntervalProtocolActive === 'function' && !anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
   }
+  trainMaybeOfferNotice(b, wasBlock);
   renderTrainSessionBuilder();
 }
 function toggleWkCircuitRound(blockId, roundIndex){
@@ -16283,10 +16454,12 @@ function toggleWkCircuitRound(blockId, roundIndex){
   collectTrainBlockFields();
   var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
   if(!b || b.shape !== 'circuit') return;
+  var wasBlock = trainBlockWorkComplete(b);
   wkResizeRoundComplete(b);
   if(roundIndex < 0 || roundIndex >= b.round_complete.length) return;
   b.round_complete[roundIndex] = !b.round_complete[roundIndex];
   wkResizeRoundComplete(b);
+  trainMaybeOfferNotice(b, wasBlock);
   renderTrainSessionBuilder();
 }
 function toggleWkCheckItem(blockId, itemId){
@@ -16296,8 +16469,10 @@ function toggleWkCheckItem(blockId, itemId){
   if(!b || !Array.isArray(b.items)) return;
   var it = b.items.find(function(x){ return x && String(x.id) === String(itemId); });
   if(!it) return;
+  var wasBlock = trainBlockWorkComplete(b);
   it.complete = !it.complete;
   wkDeriveCheck(b);
+  trainMaybeOfferNotice(b, wasBlock);
   renderTrainSessionBuilder();
 }
 function toggleWkRestComplete(blockId){
@@ -16829,6 +17004,13 @@ function renderTrainSessionBlockDetailHtml(b, bi, isWarmup){
   } else if(b.shape === 'rest'){
     var restMins = Math.round((Number(b.duration_sec || b.rest_after_sec) || 0) / 60);
     body = '<div style="font-size:13px;color:var(--text);">'+escTrainHtml(String(restMins))+' min rest</div>';
+  }
+  if(trainNoticeHasAnswer(b.notice)){
+    var present = trainNoticePresentLabel(b.notice);
+    body += '<div class="wk-notice-detail"><div style="font-weight:700;margin-bottom:4px;">What did you notice?</div>'
+      + (present ? '<div>'+escTrainHtml(present)+'</div>' : '')
+      + (String(b.notice.note || '').trim() ? '<div class="train-note-preview">'+renderTrainNotePreview(b.notice.note)+'</div>' : '')
+      + '</div>';
   }
   return head + timed + body + '</div>';
 }
@@ -17432,6 +17614,7 @@ function renderTrainSessionBuilder(){
   var eye = document.getElementById('train-sess-eyebrow');
   if(title && document.activeElement !== title) title.value = trainSessionState.title || '';
   if(eye) eye.textContent = workoutTypeLabel(trainSessionState.energy_type) || 'Training session';
+  paintTrainNoticeHint();
   var s = document.getElementById('train-sess-start');
   var e = document.getElementById('train-sess-end');
   var w = document.getElementById('train-sess-warmup');
@@ -18069,6 +18252,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       + '<span class="wk-blk-chev" style="transform:rotate('+(wkCollapsedNow?'0':'90')+'deg);">›</span>'
       + '<span class="wk-blk-name">'+kicker+'<span class="train-block-title">'+escTrainHtml(trainBlockDisplayTitle(b))+'</span></span>'
       + '</button>'
+      + renderTrainNoticeLink(b)
       + '<span class="wk-mv">'
       + '<span class="wk-drag-handle" data-wk-drag="'+b.id+'" role="button" aria-label="Drag to reorder" title="Drag to reorder">&#8801;</span>'
       + '<button type="button" class="wk-mv-btn" data-wk-move="up" aria-label="Move up" onclick="wkMoveBlock(\''+b.id+'\',-1)"'+(wkPos.pos <= 0 ? ' disabled' : '')+'>&#8593;</button>'
@@ -18275,7 +18459,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
   } else if(b.shape === 'rest'){
     body = (typeof isWkOn === 'function' && isWkOn()) ? wkRenderRestBody(b, compact) : fieldHtml('Minutes', 'tb-'+b.id+'-restmin', Math.round((Number(b.duration_sec || b.rest_after_sec) || 0) / 60));
   }
-  return head + timerRow + body + '</div>';
+  return head + timerRow + body + renderTrainNoticeHtml(b) + '</div>';
 }
 
 function renderTrainNotePreview(text){
@@ -18415,11 +18599,13 @@ function toggleTrainSectionComplete(key){
   } else {
     var b = trainSessionState.blocks.find(function(x){ return x.id === key; });
     if(b){
+      var wasBlock = trainBlockWorkComplete(b);
       if((typeof isWkOn === 'function' && isWkOn()) && wkHasDerivedComplete(b)){
         wkSetAllComplete(b, !trainBlockIsComplete(b));
       } else {
         b.complete = !b.complete;
       }
+      trainMaybeOfferNotice(b, wasBlock);
     }
   }
   renderTrainSessionBuilder();
@@ -18432,6 +18618,7 @@ function toggleTrainEmomRoundComplete(blockId, roundIndex){
   var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
   if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
   var round = b.rounds[roundIndex];
+  var wasBlock = trainBlockWorkComplete(b);
   if((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(round.boulders) && round.boulders.length){
     var nextOn = !round.boulders.every(function(bo){ return bo && bo.complete; });
     round.boulders.forEach(function(bo){ if(bo) bo.complete = nextOn; });
@@ -18440,6 +18627,7 @@ function toggleTrainEmomRoundComplete(blockId, roundIndex){
   } else {
     round.complete = !round.complete;
   }
+  trainMaybeOfferNotice(b, wasBlock);
   if(round.complete){
     round.rest_started_at = new Date().toISOString();
     if(Number(round.rest_after_sec) > 0) requestTrainWakeLock();
@@ -18508,9 +18696,11 @@ function trainToggleRep(blockId, repIdx){
   if(!trainSessionState) return;
   var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
   if(!b || !b.sets || !b.sets[0] || !b.sets[0].reps[repIdx]) return;
+  var wasBlock = trainBlockWorkComplete(b);
   var cur = b.sets[0].reps[repIdx].ok;
   b.sets[0].reps[repIdx].ok = (cur === true) ? false : (cur === false ? null : true);
   collectTrainBlockFields();
+  trainMaybeOfferNotice(b, wasBlock);
   renderTrainSessionBuilder();
 }
 
@@ -18588,6 +18778,16 @@ function collectTrainBlockFields(){
           b.duration_sec = Math.round(mins * 60);
           b.rest_after_sec = b.duration_sec;
         }
+      }
+    }
+    var noticeEl = document.getElementById('tb-'+b.id+'-notice');
+    if(noticeEl && trainBlockAllowsNotice(b)){
+      var att = (b.notice && b.notice.attention >= 1 && b.notice.attention <= 5) ? b.notice.attention : null;
+      var note = noticeEl.value;
+      if(att || String(note).trim()){
+        b.notice = { attention: att, note: note, at: (b.notice && b.notice.at) || new Date().toISOString() };
+      } else if(b.notice){
+        b.notice.note = note;
       }
     }
   });
@@ -18710,6 +18910,9 @@ async function saveTrainSession(){
     cool_down_complete: !!trainSessionState.cool_down_complete
   };
   try{ localStorage.setItem('see_pinned_session_id', String(trainSessionState.id)); }catch(e){}
+  if(!queuedOffline){
+    await creditTrainingAwareness(trainSessionState);
+  }
   trainSessionState = null;
   clearTrainSessionDraft();
   populateTrainDoneScreen(_trainDoneSnapshot, true);
@@ -18749,7 +18952,7 @@ async function saveTrainSessionAsWorkout(){
     description: null,
     created_by: window._authUser.id,
     training_focus: trainWorkoutFocusForSave(trainSessionState),
-    sections: trainSessionState.blocks
+    sections: trainSessionState.blocks.map(trainStripBlockForLibrary).filter(Boolean)
   });
   if(sbFailed(saved) || !saved || !saved.id){
     var saveWhy = saved && saved.message ? String(saved.message).slice(0, 140) : '';
@@ -19828,6 +20031,7 @@ async function afterQ4(){
       zone_confidence: 'confirmed'
     });
   }
+  await creditClimbAwareness();
 
   window._prevZoneForConfirm = prevZone;
   showLogReveal();
@@ -20991,6 +21195,70 @@ async function logPsycheDrill(drillKey, durationSeconds, metadata){
   return saved;
 }
 
+function psycheParseMetadata(row){
+  var meta = row && row.metadata;
+  if(typeof meta === 'string'){
+    try{ meta = JSON.parse(meta); }catch(e){ meta = null; }
+  }
+  return meta && typeof meta === 'object' ? meta : {};
+}
+async function lookupAwarenessRowId(metaKey, metaVal){
+  if(!metaVal || !window._authUser) return null;
+  var uid = window._authUser.id;
+  var rows = await sbS(
+    'psyche_drills',
+    'select=id,deleted_at,metadata,drill_key&user_id=eq.' + uid + '&deleted_at=is.null&drill_key=eq.awareness&metadata->>' + metaKey + '=eq.' + encodeURIComponent(String(metaVal)) + '&limit=5'
+  );
+  if(!Array.isArray(rows)) return null;
+  for(var i = 0; i < rows.length; i++){
+    var r = rows[i];
+    if(!r || r.deleted_at || r.drill_key !== 'awareness') continue;
+    var meta = psycheParseMetadata(r);
+    if(String(meta[metaKey] || '') === String(metaVal)) return r.id;
+  }
+  return null;
+}
+async function upsertAwarenessRow(existingId, metaKey, metaVal, metadata){
+  if(PSYCHE_AWARENESS_CREDIT_PER !== 'session') return null;
+  var id = existingId || await lookupAwarenessRowId(metaKey, metaVal);
+  if(id){
+    var patched = await sbU('psyche_drills', 'id=eq.' + id + '&deleted_at=is.null', { metadata: metadata });
+    if(sbFailed(patched)) return id;
+    return (patched && patched.id) || id;
+  }
+  var saved = await logPsycheDrill('awareness', null, metadata);
+  return saved && saved.id ? saved.id : null;
+}
+async function creditTrainingAwareness(state){
+  if(PSYCHE_AWARENESS_CREDIT_PER !== 'session') return null;
+  if(!(typeof isWkOn === 'function' && isWkOn())) return null;
+  if(!state || !state.id || !window._authUser) return null;
+  var blocks = trainCollectNoticeBlocks(state.blocks);
+  if(!blocks.length) return null;
+  var meta = { source: 'training', training_session_id: state.id, blocks: blocks };
+  var id = await upsertAwarenessRow(state.awarenessId, 'training_session_id', state.id, meta);
+  if(id) state.awarenessId = id;
+  return id;
+}
+async function creditClimbAwareness(){
+  if(PSYCHE_AWARENESS_CREDIT_PER !== 'session') return null;
+  if(!logState || !logState.sessId || !window._authUser) return null;
+  var answered = [];
+  if(deepAnswers && deepAnswers.q1) answered.push('breath');
+  if(deepAnswers && deepAnswers.q2) answered.push('gut');
+  if(deepAnswers && deepAnswers.q3) answered.push('crux');
+  if(deepAnswers && deepAnswers.q4) answered.push('body');
+  var refl = typeof _logFlowReflectionFields === 'function' ? _logFlowReflectionFields() : {};
+  if(refl.went_well) answered.push('went_well');
+  if(refl.still_learning) answered.push('still_learning');
+  if(refl.surprised_by) answered.push('surprised_by');
+  if(!answered.length) return null;
+  var meta = { source: 'climb', session_id: logState.sessId, answered: answered };
+  var id = await upsertAwarenessRow(logState.awarenessId, 'session_id', logState.sessId, meta);
+  if(id) logState.awarenessId = id;
+  return id;
+}
+
 function exitPsycheDrill(){
   stopPsycheTimers();
   showScreen('screen-drill');
@@ -21016,7 +21284,7 @@ function psycheActivityInWindow(iso, fromDate, days){
 }
 
 function psycheRadarCounts(checkins, drills, days, fromDate){
-  var counts = { checkin: 0, breath: 0, exposure: 0, viz: 0, relax: 0, talk: 0 };
+  var counts = { checkin: 0, breath: 0, exposure: 0, viz: 0, relax: 0, talk: 0, awareness: 0 };
   (checkins || []).forEach(function(s){
     if(!s || s.deleted_at || s.is_baseline || !s.is_checkin) return;
     if(!psycheActivityInWindow(s.created_at, fromDate, days)) return;
@@ -21032,6 +21300,7 @@ function psycheRadarCounts(checkins, drills, days, fromDate){
     else if(k === 'project_visualization') counts.viz++;
     else if(k === 'pmr') counts.relax++;
     else if(k === 'self_talk') counts.talk++;
+    else if(k === 'awareness') counts.awareness++;
   });
   return counts;
 }
@@ -21045,14 +21314,15 @@ function buildPsycheRadar(counts){
     { key: 'exposure', label: 'Exposure' },
     { key: 'viz', label: 'Visualize' },
     { key: 'relax', label: 'Relax' },
-    { key: 'talk', label: 'Self-talk' }
+    { key: 'talk', label: 'Self-talk' },
+    { key: 'awareness', label: 'Awareness' }
   ];
   counts = counts || {};
   var total = axes.reduce(function(s, a){ return s + (counts[a.key] || 0); }, 0);
   var max = 0;
   axes.forEach(function(a){ max = Math.max(max, counts[a.key] || 0); });
   var scale = Math.max(max, 1);
-  var cx = 170, cy = 158, maxR = 70;
+  var cx = 170, cy = 158, maxR = 62;
   var n = axes.length;
   var angleStep = (2 * Math.PI) / n;
   var startAngle = -Math.PI / 2;
@@ -21083,7 +21353,7 @@ function buildPsycheRadar(counts){
     }).join('');
   }
   var labelHtml = axes.map(function(a, i){
-    var p = axisPoint(i, maxR + 30);
+    var p = axisPoint(i, maxR + 26);
     var nVal = counts[a.key] || 0;
     var anchor = 'middle';
     var x = p.x;
@@ -21091,6 +21361,7 @@ function buildPsycheRadar(counts){
     if(p.x < cx - 20){ anchor = 'end'; x = Math.max(8, p.x); }
     else if(p.x > cx + 20){ anchor = 'start'; x = Math.min(332, p.x); }
     else { y = p.y < cy ? p.y + 2 : p.y + 4; }
+    y = Math.max(12, Math.min(308, y));
     return '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" text-anchor="' + anchor + '" font-family="Space Grotesk,sans-serif" font-size="10" font-weight="700" fill="var(--text)">' + a.label + ' ' + nVal + '</text>';
   }).join('');
   el.innerHTML = '<svg width="100%" viewBox="0 0 340 320" style="display:block;max-width:340px;margin:0 auto;">'
@@ -21108,6 +21379,7 @@ function psycheDrillLabel(key){
   if(key === 'pmr') return 'Progressive Muscle Relaxation';
   if(key === 'project_visualization') return 'Project Visualization';
   if(key === 'self_talk') return 'Self-Talk Cue';
+  if(key === 'awareness') return 'Awareness';
   return 'Practice';
 }
 function psycheTalkCue(row){
@@ -21145,7 +21417,9 @@ function collectPsychePractices(checkins, drills){
   return rows;
 }
 function pickPsychePinned(drills){
-  drills = (drills || []).filter(isAthleteStreakPsycheDrill);
+  drills = (drills || []).filter(function(d){
+    return isAthleteStreakPsycheDrill(d) && d.drill_key !== 'awareness';
+  });
   var talk = null, last = null;
   drills.forEach(function(d){
     if(!talk && d.drill_key === 'self_talk') talk = d;
@@ -21241,11 +21515,34 @@ function renderPsychePinnedStrip(){
     });
   }).join('');
 }
+function psycheAwarenessHistoryBits(item){
+  var meta = psycheParseMetadata(item && item.row);
+  var source = meta.source === 'climb' ? 'Climb' : (meta.source === 'training' ? 'Training' : '');
+  var extra = '';
+  if(meta.source === 'training' && Array.isArray(meta.blocks)){
+    var first = null;
+    for(var i = 0; i < meta.blocks.length; i++){
+      var bl = meta.blocks[i] || {};
+      if(String(bl.note || '').trim()){ extra = String(bl.note).trim(); break; }
+      if(!first && bl.attention >= 1 && bl.attention <= 5) first = bl;
+    }
+    if(!extra && first) extra = 'Present ' + first.attention + '/5';
+  }
+  return { source: source, extra: extra };
+}
 function psycheHistoryRowHtml(item){
   var when = formatChatTimestamp(item.at);
+  var bits = [when];
+  if(item && item.row && item.row.drill_key === 'awareness'){
+    var aw = psycheAwarenessHistoryBits(item);
+    if(aw.source) bits.push(aw.source);
+    if(aw.extra) bits.push(aw.extra);
+  } else {
+    bits.push(item.name);
+  }
   return '<div class="insight-card" style="padding:12px 14px;margin-bottom:8px;">'
     + '<div style="font-size:14px;font-weight:700;">' + escTrainHtml(item.name) + '</div>'
-    + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' + escTrainHtml(when) + ' · ' + escTrainHtml(item.name) + '</div>'
+    + '<div style="font-size:12px;color:var(--muted);margin-top:4px;">' + escTrainHtml(bits.join(' · ')) + '</div>'
     + '</div>';
 }
 function renderPsycheHistoryMini(){

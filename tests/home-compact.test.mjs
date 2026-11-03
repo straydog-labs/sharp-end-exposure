@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index320'/.test(index));
-assert.ok(/APP_VERSION = 'index320'/.test(sw));
+assert.ok(/var app_version = 'index321'/.test(index));
+assert.ok(/APP_VERSION = 'index321'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -234,6 +234,10 @@ assert.ok((helperCtx.homeWeekDotsHtml(days, weekFrom).match(/home-week-dot/g) ||
 assert.strictEqual(helperCtx.countHomeWeekSessions([
   { created_at: '2026-09-08T12:00:00' }
 ], [], [], [], weekFrom), 1);
+assert.strictEqual(helperCtx.countHomeWeekSessions([], [], [], [
+  { created_at: '2026-09-08T12:00:00', drill_key: 'bee_humming' },
+  { created_at: '2026-09-08T12:00:00', drill_key: 'awareness' }
+], weekFrom), 1, 'Home week tally excludes awareness (already counted on the session)');
 
 const tueLocal = new Date(2026, 9, 6, 15, 30, 0);
 assert.strictEqual(tueLocal.getDay(), 2, 'fixture is a local Tuesday');
