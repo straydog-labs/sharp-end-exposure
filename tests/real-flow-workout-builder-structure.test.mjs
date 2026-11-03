@@ -13,8 +13,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index320'/.test(index));
-assert.ok(/APP_VERSION = 'index320'/.test(sw));
+assert.ok(/var app_version = 'index321'/.test(index));
+assert.ok(/APP_VERSION = 'index321'/.test(sw));
 
 // Optional screenshot output (outside the repo). Unset in CI.
 const SHOT_OUT = process.env.SEE_SHOT_OUT || '';
@@ -260,14 +260,14 @@ try{
     await handle.scrollIntoViewIfNeeded();
     // work with a scrolled-to-top viewport so both cards are on screen
     await page.evaluate(function(){ window.scrollTo(0, 0); var s = document.getElementById('screen-train-session'); if(s) s.scrollTop = 0; });
-    await page.setViewportSize({ width: 390, height: 3200 });
+    await page.setViewportSize({ width: 390, height: 3400 });
     // let the resize reflow settle before measuring (slow CI runners)
     await page.evaluate(function(){ return new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(function(){ setTimeout(r, 150); }); }); }); });
     // wait until scroll position is stable (smooth-scroll can still be running)
     await page.evaluate(function(){ return new Promise(function(res){ window.scrollTo(0, 0); var last = -1, n = 0; (function tick(){ var y = window.scrollY; if(y === last && y === 0){ if(++n >= 5) return res(); } else { n = 0; last = y; window.scrollTo(0, 0); } requestAnimationFrame(tick); })(); }); });
     var hb = await handle.boundingBox();
     var tb = await target.boundingBox();
-    assert.ok(hb && tb && hb.y + hb.height < 3200, 'handle and target are on screen');
+    assert.ok(hb && tb && hb.y + hb.height < 3400, 'handle and target are on screen');
     await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
     await page.mouse.down();
     await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2, { steps: 8 });

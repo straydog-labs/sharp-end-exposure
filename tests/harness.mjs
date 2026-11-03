@@ -141,6 +141,12 @@ export async function withPage(browser, port, opts, fn){
     if(method === 'GET' && url.indexOf('/rest/v1/psyche_drills') !== -1){
       return fulfillJson(route, 200, opts.psycheDrills || []);
     }
+    if(method === 'POST' && url.indexOf('/rest/v1/psyche_drills') !== -1){
+      return fulfillJson(route, 201, [Object.assign({ id: 'psyche-drill-' + recorded.length, deleted_at: null }, body || {})]);
+    }
+    if(method === 'PATCH' && url.indexOf('/rest/v1/psyche_drills') !== -1){
+      return fulfillJson(route, 200, [Object.assign({ id: 'psyche-drill-patched', deleted_at: null }, body || {})]);
+    }
     if(method === 'POST' && url.indexOf('/rest/v1/sessions') !== -1){
       return fulfillJson(route, 201, [Object.assign({ id: 'sess-saved-' + recorded.length }, body || {})]);
     }

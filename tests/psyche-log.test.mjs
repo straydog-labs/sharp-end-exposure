@@ -10,8 +10,8 @@ const sw = readFileSync(join(__dirname, '../sw.js'), 'utf8');
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index320'/.test(index));
-assert.ok(/APP_VERSION = 'index320'/.test(sw));
+assert.ok(/var app_version = 'index321'/.test(index));
+assert.ok(/APP_VERSION = 'index321'/.test(sw));
 
 assert.ok(/function startPrepare\(/.test(index));
 assert.ok(/function startPrepareClimb\(/.test(index));
@@ -32,6 +32,9 @@ assert.ok(/logPsycheDrill\('cyclic_sighing'/.test(index));
 assert.ok(/logPsycheDrill\('pmr'/.test(index));
 assert.ok(/logPsycheDrill\('project_visualization'/.test(index));
 assert.ok(/logPsycheDrill\('self_talk'/.test(index));
+assert.ok(/PSYCHE_AWARENESS_CREDIT_PER = 'session'/.test(index));
+assert.ok(/key === 'awareness'/.test(index));
+assert.ok(!/id="psyche-row-awareness"/.test(index), 'awareness is not a startable drill');
 
 assert.ok(/id="screen-psyche-bee"/.test(index));
 assert.ok(/id="screen-psyche-sigh"/.test(index));
