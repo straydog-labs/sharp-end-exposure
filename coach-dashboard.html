@@ -989,9 +989,16 @@
   }
   #coach-train-log-overlay.open{display:block;}
   #coach-train-log-overlay .aw-top,
-  #coach-train-log-overlay .aw-content,
-  #coach-train-log-overlay .clog-footer{max-width:640px;}
-  #coach-train-log-overlay .aw-content{padding-bottom:24px;}
+  #coach-train-log-overlay .aw-content{max-width:640px;}
+  #coach-train-log-overlay .aw-content{padding-bottom:calc(28px + env(safe-area-inset-bottom, 0px));}
+  #coach-train-log-overlay .clog-footer{
+    align-self:center;
+    background:var(--bg);border-top:1px solid var(--border);
+    padding:10px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+    max-width:640px;width:100%;margin:0 auto;box-sizing:border-box;
+  }
+  #coach-train-log-overlay .clog-footer .form-actions{width:100%;}
+  #coach-train-log-overlay .clog-footer .btn-primary{flex:1 1 auto;}
   #coach-train-log-overlay.locked #ctl-body{pointer-events:none;opacity:.72;}
   .ctl-starts{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
   .ctl-starts button{
@@ -1003,6 +1010,7 @@
   .ctl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .ctl-grid .form-row{margin:0;}
   .ctl-assign-check{display:flex;align-items:center;gap:8px;margin:8px 0 4px;font-size:14px;font-weight:600;}
+  .ctl-assign-check[hidden],#ctl-mark-all-wrap[hidden]{display:none !important;}
   .ctl-assign-check input{width:18px;height:18px;accent-color:var(--accent);}
   .cwb-boulder-row{display:flex;gap:6px;align-items:center;}
   .cwb-boulder-row .cwb-in{flex:1;min-width:0;}
@@ -1227,9 +1235,27 @@
     font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
     color:var(--text-secondary);margin:18px 0 10px;
   }
+  .cwb-section-head{display:flex;align-items:center;gap:12px;margin:4px 0 10px;}
+  .cwb-section-links{display:flex;gap:14px;margin-right:auto;align-items:center;}
+  .cwb-section-links:empty{display:none;}
+  .cwb-textlink{
+    background:none;border:none;padding:0;color:var(--accent);font-family:'Space Grotesk',sans-serif;
+    font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;
+  }
+  .cwb-add-jump{margin-left:auto;}
   .cwb-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
   .cwb-card{border:1px solid var(--border);border-radius:14px;padding:12px;background:var(--bg);}
+  .cwb-card.is-dragging{opacity:.45;}
+  .cwb-card.cwb-drop-before{box-shadow:0 -4px 0 0 var(--accent);}
+  .cwb-card.cwb-drop-after{box-shadow:0 4px 0 0 var(--accent);}
   .cwb-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .cwb-grip{
+    flex:0 0 auto;width:36px;height:36px;padding:0;border:1px solid var(--border);border-radius:8px;
+    background:var(--surface);color:var(--text-secondary);cursor:grab;touch-action:none;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .cwb-grip:active{cursor:grabbing;color:var(--text);}
+  .cwb-grip svg{display:block;fill:currentColor;}
   .cwb-kick{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);}
   .cwb-tools,.cwb-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
   .cwb-row{margin:6px 0;}
@@ -1644,7 +1670,7 @@
           <input type="checkbox" id="ctl-assign-complete" checked>
           Mark assignment complete
         </label>
-        <div class="cwb-row">
+        <div class="cwb-row" id="ctl-mark-all-wrap" hidden>
           <button type="button" class="cwb-btn" id="ctl-mark-all">Mark all complete</button>
         </div>
         <div id="ctl-cwb-root"></div>
@@ -4573,12 +4599,14 @@
   }
 
   function coachTrainEntryFromState(payload){
+    var wrap = document.getElementById('ctl-assign-wrap');
     var box = document.getElementById('ctl-assign-complete');
-    var mark = !!(box && box.checked && _ctlState && _ctlState.assignmentId);
+    var shown = !!(wrap && !wrap.hidden && _ctlState && _ctlState.assignmentId);
+    var mark = !!(shown && box && box.checked);
     return {
       id: payload.id,
       body: payload,
-      assignmentId: mark ? _ctlState.assignmentId : (_ctlState && _ctlState.assignmentId),
+      assignmentId: mark ? _ctlState.assignmentId : null,
       markComplete: mark
     };
   }
@@ -7102,7 +7130,14 @@
     var collapsed = !!_cwbCollapsed[b.id];
     var armed = _cwbArm === 'blk:' + b.id;
     var h = '<div class="cwb-card" data-bid="' + escapeHtml(b.id) + '">' +
-      '<div class="cwb-head"><span class="cwb-kick">Block ' + (i + 1) + ' &middot; ' + escapeHtml(cwbLabel(b)) + '</span>' +
+      '<div class="cwb-head">' +
+      '<button type="button" class="cwb-grip" data-act="grip" aria-label="Drag to reorder" title="Drag to reorder">' +
+        '<svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true">' +
+          '<circle cx="2" cy="2" r="1.3"/><circle cx="8" cy="2" r="1.3"/>' +
+          '<circle cx="2" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/>' +
+          '<circle cx="2" cy="14" r="1.3"/><circle cx="8" cy="14" r="1.3"/>' +
+        '</svg></button>' +
+      '<span class="cwb-kick">Block ' + (i + 1) + ' &middot; ' + escapeHtml(cwbLabel(b)) + '</span>' +
       '<span class="cwb-tools">' +
         '<button type="button" class="cwb-btn" data-act="up" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + '>&uarr;</button>' +
         '<button type="button" class="cwb-btn" data-act="down" aria-label="Move down"' + (i === n - 1 ? ' disabled' : '') + '>&darr;</button>' +
@@ -7200,19 +7235,44 @@
     return h;
   }
 
+  function paintCtlMarkAll(){
+    var wrap = document.getElementById('ctl-mark-all-wrap');
+    if(!wrap) return;
+    var show = _cwbRootId === 'ctl-cwb-root' && cwbBlocks().length > 0;
+    wrap.hidden = !show;
+  }
+
+  function cwbFocusAddMenu(root){
+    if(!root) return;
+    var menu = root.querySelector('.cwb-menu');
+    if(!menu) return;
+    menu.scrollIntoView({ block: 'center', inline: 'nearest' });
+    var chip = menu.querySelector('.cwb-chip');
+    if(chip) chip.focus();
+    else menu.focus();
+  }
+
   function renderCwb(){
     var root = document.getElementById(_cwbRootId || 'cwb-root');
     if(!root) return;
     var blocks = cwbBlocks();
-    var h = '<div class="cwb-list">' + blocks.map(function(b, i){ return cwbRenderBlock(b, i, blocks.length); }).join('') + '</div>' +
+    var links = '';
+    if(blocks.length >= 2){
+      links = '<button type="button" class="cwb-textlink" data-act="collapse-all">Collapse all</button>' +
+        '<button type="button" class="cwb-textlink" data-act="expand-all">Expand all</button>';
+    }
+    var h = '<div class="cwb-section-head"><div class="cwb-section-links">' + links + '</div>' +
+      '<button type="button" class="cwb-btn cwb-add-jump" data-act="jump-add">+ Add block</button></div>' +
+      '<div class="cwb-list">' + blocks.map(function(b, i){ return cwbRenderBlock(b, i, blocks.length); }).join('') + '</div>' +
       (blocks.length ? '' : '<div class="form-note" style="margin:0 0 8px;">No blocks yet. Add the parts of the session below. Leave it empty to save a name and description only.</div>') +
-      '<div class="cwb-menu-label">Add a block</div><div class="cwb-menu">' +
+      '<div class="cwb-menu-label">Add a block</div><div class="cwb-menu" tabindex="-1">' +
       CWB_MENU.map(function(it){
         return '<button type="button" class="cwb-chip" data-act="add" data-shape="' + it.shape + '">' + escapeHtml(it.label) + '</button>';
       }).join('') + '</div>';
     root.innerHTML = h;
     root.onclick = cwbOnClick;
     root.oninput = cwbOnInput;
+    paintCtlMarkAll();
   }
 
   function cwbDisarm(){
@@ -7239,7 +7299,16 @@
     var ri = parseInt(btn.getAttribute('data-ri'), 10);
     var idx = b ? blocks.indexOf(b) : -1;
 
-    if(act === 'add'){
+    if(act === 'grip'){
+      return;
+    } else if(act === 'jump-add'){
+      cwbFocusAddMenu(document.getElementById(_cwbRootId || 'cwb-root'));
+      return;
+    } else if(act === 'collapse-all'){
+      blocks.forEach(function(block){ if(block && block.id) _cwbCollapsed[block.id] = true; });
+    } else if(act === 'expand-all'){
+      blocks.forEach(function(block){ if(block && block.id) delete _cwbCollapsed[block.id]; });
+    } else if(act === 'add'){
       var shape = btn.getAttribute('data-shape');
       var nb;
       if(shape === 'mental'){ nb = cwbNewBlock('section'); nb.title = 'Mental'; }
@@ -7296,6 +7365,78 @@
       else if(act === 'rep-minus' && nreps > 1){ b.sets.forEach(function(s){ s.reps.pop(); }); }
     }
     renderCwb();
+  }
+
+  var _cwbDrag = null;
+  function cwbDragClear(){
+    document.querySelectorAll('.cwb-drop-before,.cwb-drop-after,.is-dragging').forEach(function(el){
+      el.classList.remove('cwb-drop-before', 'cwb-drop-after', 'is-dragging');
+    });
+  }
+  function cwbMoveBlock(id, targetId, after){
+    if(!id || !targetId || id === targetId || _cwbLocked) return;
+    var blocks = cwbBlocks();
+    var from = -1;
+    var to = -1;
+    var i;
+    for(i = 0; i < blocks.length; i++){
+      if(blocks[i] && blocks[i].id === id) from = i;
+      if(blocks[i] && blocks[i].id === targetId) to = i;
+    }
+    if(from < 0 || to < 0) return;
+    var b = blocks.splice(from, 1)[0];
+    if(from < to) to -= 1;
+    blocks.splice(to + (after ? 1 : 0), 0, b);
+    renderCwb();
+  }
+  if(typeof document !== 'undefined' && document.addEventListener) document.addEventListener('pointerdown', function(e){
+    var h = e.target && e.target.closest ? e.target.closest('.cwb-grip') : null;
+    if(!h || _cwbLocked) return;
+    var root = h.closest('#cwb-root, #ctl-cwb-root');
+    if(!root || root.id !== (_cwbRootId || 'cwb-root')) return;
+    var card = h.closest('.cwb-card');
+    if(!card) return;
+    e.preventDefault();
+    _cwbDrag = { id: card.getAttribute('data-bid'), targetId: null, after: false };
+    card.classList.add('is-dragging');
+    try{ h.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  if(typeof document !== 'undefined' && document.addEventListener) document.addEventListener('pointermove', function(e){
+    if(!_cwbDrag) return;
+    document.querySelectorAll('.cwb-drop-before,.cwb-drop-after').forEach(function(el){
+      el.classList.remove('cwb-drop-before', 'cwb-drop-after');
+    });
+    _cwbDrag.targetId = null;
+    var el = document.elementFromPoint(e.clientX, e.clientY);
+    var c = el && el.closest ? el.closest('.cwb-card[data-bid]') : null;
+    if(c){
+      var tid = c.getAttribute('data-bid');
+      if(tid && tid !== _cwbDrag.id){
+        var r = c.getBoundingClientRect();
+        var after = e.clientY > r.top + r.height / 2;
+        c.classList.add(after ? 'cwb-drop-after' : 'cwb-drop-before');
+        _cwbDrag.targetId = tid;
+        _cwbDrag.after = after;
+      }
+    }
+    var sc = document.getElementById(_cwbRootId || 'cwb-root');
+    sc = sc && sc.closest('#coach-train-log-overlay, #assign-wizard-overlay');
+    if(sc){
+      var edge = sc.getBoundingClientRect();
+      if(e.clientY < edge.top + 56) sc.scrollTop -= 16;
+      else if(e.clientY > edge.bottom - 72) sc.scrollTop += 16;
+    }
+  });
+  function cwbDragEnd(e){
+    if(!_cwbDrag) return;
+    var d = _cwbDrag;
+    _cwbDrag = null;
+    cwbDragClear();
+    if(e.type === 'pointerup' && d.targetId) cwbMoveBlock(d.id, d.targetId, d.after);
+  }
+  if(typeof document !== 'undefined' && document.addEventListener){
+    document.addEventListener('pointerup', cwbDragEnd);
+    document.addEventListener('pointercancel', cwbDragEnd);
   }
 
   function cwbOnInput(e){
