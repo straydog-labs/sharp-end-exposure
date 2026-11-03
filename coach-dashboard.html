@@ -221,7 +221,8 @@
     gap:8px 10px;align-items:center;margin:0 0 14px;min-width:0;
   }
   .athlete-path-btns{grid-area:paths;display:flex;flex-wrap:wrap;gap:8px;min-width:0;}
-  .athlete-path-log{grid-area:log;}
+  .athlete-path-logs{grid-area:log;display:flex;flex-wrap:nowrap;gap:8px;justify-content:flex-end;align-items:center;min-width:0;}
+  .athlete-path-log{grid-area:auto;}
   .athlete-path-subs{grid-area:subs;margin:0;min-width:0;}
   .athlete-path-btn{
     display:inline-flex;align-items:center;justify-content:center;gap:8px;
@@ -927,6 +928,7 @@
     .see-card{min-height:96px;}
     .athlete-path-wrap{grid-template-columns:1fr;grid-template-areas:"paths" "subs" "log";}
     .athlete-path-btn{flex:1 1 calc(33.33% - 8px);}
+    .athlete-path-logs{width:100%;flex-direction:column;align-items:stretch;}
     .assign-launch.athlete-path-log{width:100%;flex:1 1 auto;justify-content:center;}
     .coach-layout:not(.detail-open) #detail-panel{display:none;}
     .coach-layout.detail-open #detail-panel{
@@ -981,6 +983,39 @@
     overflow-y:auto;-webkit-overflow-scrolling:touch;
   }
   #coach-log-overlay.open{display:block;}
+  #coach-train-log-overlay{
+    display:none;position:fixed;inset:0;z-index:1800;background:var(--bg);
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+  #coach-train-log-overlay.open{display:block;}
+  #coach-train-log-overlay .aw-top,
+  #coach-train-log-overlay .aw-content,
+  #coach-train-log-overlay .clog-footer{max-width:640px;}
+  #coach-train-log-overlay .aw-content{padding-bottom:24px;}
+  #coach-train-log-overlay.locked #ctl-body{pointer-events:none;opacity:.72;}
+  .ctl-starts{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px;}
+  .ctl-starts button{
+    background:var(--surface);border:1px solid var(--border);border-radius:999px;
+    padding:10px 14px;color:var(--text);font-family:'Space Grotesk',sans-serif;
+    font-size:13px;font-weight:600;cursor:pointer;min-height:44px;
+  }
+  .ctl-starts button.selected{border-color:var(--accent);color:var(--accent);background:rgba(232,146,82,.08);}
+  .ctl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .ctl-grid .form-row{margin:0;}
+  .ctl-assign-check{display:flex;align-items:center;gap:8px;margin:8px 0 4px;font-size:14px;font-weight:600;}
+  .ctl-assign-check input{width:18px;height:18px;accent-color:var(--accent);}
+  .cwb-boulder-row{display:flex;gap:6px;align-items:center;}
+  .cwb-boulder-row .cwb-in{flex:1;min-width:0;}
+  .cwb-tick,.cwb-rep{
+    min-width:44px;min-height:36px;border-radius:8px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text-secondary);font-family:'Space Grotesk',sans-serif;
+    font-size:12px;font-weight:700;cursor:pointer;padding:6px 8px;
+  }
+  .cwb-tick.is-pass,.cwb-rep.is-pass{border-color:var(--comfort);color:var(--comfort);}
+  .cwb-rep.is-fail{border-color:var(--panic);color:var(--panic);}
+  .cwb-reps{display:flex;flex-wrap:wrap;gap:6px;}
+  .cwb-setlab{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);}
+  .journal-block-line{font-size:13px;color:var(--text);margin-top:4px;}
   .clog-gauge{margin:16px 0 18px;}
   .clog-gauge-wrap{max-width:360px;margin:0 auto;position:relative;user-select:none;}
   .clog-gauge-readout{min-height:72px;}
@@ -1342,6 +1377,7 @@
     #topbar,
     #coach-toast,
     #coach-log-overlay,
+    #coach-train-log-overlay,
     #assign-wizard-overlay,
     #coach-invite-welcome,
     .page-title,
@@ -1569,6 +1605,60 @@
         <div id="clog-queue-banner" class="clog-queue-banner" hidden>
           <span id="clog-queue-text">Saved on this device, will retry</span>
           <button type="button" class="btn-cancel" id="clog-retry-now">Retry now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="coach-train-log-overlay" aria-hidden="true">
+    <div class="aw-shell">
+      <div class="aw-top">
+        <button type="button" class="aw-back" id="ctl-back">← Back</button>
+        <div class="aw-word">STRAY<span>DOG</span> · Train</div>
+      </div>
+      <div class="aw-content" id="ctl-body">
+        <div class="aw-eyebrow">Log a training session</div>
+        <div class="aw-hero" id="ctl-hero">What did they actually do?</div>
+        <div class="aw-hero-sub" id="ctl-hero-sub">Pick a start, then record the blocks block by block.</div>
+        <div class="aw-section-label">Start</div>
+        <div class="ctl-starts" id="ctl-starts">
+          <button type="button" data-start="blank">Blank</button>
+          <button type="button" data-start="hangboard">Hangboard</button>
+          <button type="button" data-start="emom">EMOM</button>
+          <button type="button" data-start="full">Full session</button>
+        </div>
+        <div class="form-row">
+          <label for="ctl-assignment">From this athlete's assigned workout</label>
+          <select id="ctl-assignment">
+            <option value="">Choose an open assignment</option>
+          </select>
+        </div>
+        <div class="ctl-grid">
+          <div class="form-row"><label for="ctl-date">Date</label><input id="ctl-date" type="date"></div>
+          <div class="form-row"><label for="ctl-time">Start time</label><input id="ctl-time" type="time"></div>
+        </div>
+        <div class="form-row"><label for="ctl-end">End <span class="clog-optional">optional</span></label><input id="ctl-end" type="time"></div>
+        <div class="form-row"><label for="ctl-title">Title</label><input id="ctl-title" type="text" autocomplete="off"></div>
+        <div class="form-row"><label for="ctl-notes">Notes</label><textarea id="ctl-notes" rows="2" placeholder="Anything about how the session actually went"></textarea></div>
+        <label class="ctl-assign-check" id="ctl-assign-wrap" hidden>
+          <input type="checkbox" id="ctl-assign-complete" checked>
+          Mark assignment complete
+        </label>
+        <div class="cwb-row">
+          <button type="button" class="cwb-btn" id="ctl-mark-all">Mark all complete</button>
+        </div>
+        <div id="ctl-cwb-root"></div>
+      </div>
+      <div class="clog-footer">
+        <div class="form-actions">
+          <button type="button" class="btn-primary" id="ctl-save">Save</button>
+          <button type="button" class="btn-cancel" id="ctl-again" style="display:none;">Log another</button>
+          <button type="button" class="btn-cancel" id="ctl-back-athlete" style="display:none;">Back to athlete</button>
+        </div>
+        <div class="form-error" id="ctl-msg"></div>
+        <div id="ctl-queue-banner" class="clog-queue-banner" hidden>
+          <span id="ctl-queue-text">Saved on this device, will retry</span>
+          <button type="button" class="btn-cancel" id="ctl-retry-now">Retry now</button>
         </div>
       </div>
     </div>
@@ -3274,9 +3364,11 @@
       athleteEmail: athleteEmail || ''
     };
     replayCoachLogQueue();
+    replayCoachTrainQueue();
     _lastCoachAssignments = [];
     _coachGoalsCache = [];
     _lastSessionRows = [];
+    _ctlJournalPins = [];
     _coachAthleteNotesCache = [];
     _athleteProjectClimbsCache = [];
     _coachBaselineSet = false;
@@ -3307,7 +3399,10 @@
               '<span class="te-sub" id="hub-chat-sub">Message this athlete</span>' +
             '</button>' +
           '</div>' +
-          '<button type="button" class="assign-launch athlete-path-log" id="coach-log-launch">Log a climb</button>' +
+          '<div class="athlete-path-logs">' +
+            '<button type="button" class="assign-launch athlete-path-log" id="coach-log-launch">Log a climb</button>' +
+            '<button type="button" class="assign-launch athlete-path-log assign-launch-secondary" id="coach-train-log-launch">Log a training session</button>' +
+          '</div>' +
           '<div class="athlete-path-subs" id="athlete-path-subs" hidden>' +
           '<div class="athlete-path-sub-row" data-path-subs="plan" hidden>' +
             athleteHubCardHtml('assignments', 'Plan', 'Assignments', 'hub-assign-sub', 'Open plans') +
@@ -3393,6 +3488,12 @@
     if(logLaunch){
       logLaunch.addEventListener('click', function(){
         openCoachLogOverlay();
+      });
+    }
+    var trainLaunch = document.getElementById('coach-train-log-launch');
+    if(trainLaunch){
+      trainLaunch.addEventListener('click', function(){
+        openCoachTrainLogOverlay();
       });
     }
     var shareBtn = document.getElementById('athlete-share-btn');
@@ -4050,6 +4151,632 @@
     if(msg){ msg.className = 'form-error'; msg.textContent = ''; }
     paintCoachLogForm();
   }
+
+  var COACH_TRAIN_QUEUE_KEY = 'see-coach-train-log-queue-v1';
+  var _coachTrainReplayInFlight = null;
+  var _ctlState = null;
+  var _ctlSaving = false;
+  var _ctlLocked = false;
+  var _ctlJournalPins = [];
+
+  function ctlFormLocked(){
+    return _ctlLocked || _ctlSaving;
+  }
+
+  function ctlNowParts(){
+    var d = new Date();
+    function p(n){ return (n < 10 ? '0' : '') + n; }
+    return {
+      date: d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()),
+      time: p(d.getHours()) + ':' + p(d.getMinutes())
+    };
+  }
+
+  function ctlCombineDateTime(dateStr, timeStr){
+    var d = String(dateStr || '').slice(0, 10);
+    var t = String(timeStr || '').slice(0, 5);
+    var parts = d.split('-');
+    var hm = t.split(':');
+    if(parts.length < 3) return new Date().toISOString();
+    var dt = new Date(
+      parseInt(parts[0], 10),
+      (parseInt(parts[1], 10) || 1) - 1,
+      parseInt(parts[2], 10) || 1,
+      parseInt(hm[0], 10) || 0,
+      parseInt(hm[1], 10) || 0,
+      0,
+      0
+    );
+    if(isNaN(dt.getTime())) return new Date().toISOString();
+    return dt.toISOString();
+  }
+
+  function ctlPresetBlocks(kind){
+    if(kind === 'hangboard'){
+      var h = cwbNewBlock('rep_pass_fail');
+      h.title = 'Hangboard';
+      return [h];
+    }
+    if(kind === 'emom'){
+      var e = cwbNewBlock('emom');
+      e.title = 'EMOM';
+      return [e];
+    }
+    if(kind === 'full'){
+      var e2 = cwbNewBlock('emom');
+      e2.title = 'EMOM';
+      var h2 = cwbNewBlock('rep_pass_fail');
+      h2.title = 'Hangboard';
+      var m = cwbNewBlock('section');
+      m.title = 'Mental';
+      return [e2, h2, m];
+    }
+    return [];
+  }
+
+  function ctlCloneWorkoutBlocks(sections){
+    var raw = parseWorkoutSections(sections);
+    var cloned = [];
+    try{ cloned = JSON.parse(JSON.stringify(raw || [])); }catch(e){ cloned = []; }
+    cloned.forEach(function(b){
+      if(!b || typeof b !== 'object') return;
+      if(!b.shape && b.label){
+        b.shape = 'section';
+        b.title = b.label;
+        b.notes = b.notes || '';
+      }
+      b.id = '';
+      b.complete = false;
+      b.attempts = [];
+      b.timer_started_at = null;
+      b.timer_ended_at = null;
+      b.interval_started_at = null;
+      if(b.shape === 'emom'){
+        (b.rounds || []).forEach(function(r){
+          if(!r) return;
+          r.complete = false;
+          r.rest_started_at = null;
+          (r.boulders || []).forEach(function(bo){
+            if(!bo) return;
+            bo.complete = false;
+            bo.id = '';
+          });
+        });
+      } else if(b.shape === 'rep_pass_fail'){
+        (b.sets || []).forEach(function(s){
+          (s && s.reps || []).forEach(function(rp){ if(rp) rp.ok = null; });
+        });
+      } else if(b.shape === 'circuit' && Array.isArray(b.round_complete)){
+        b.round_complete = b.round_complete.map(function(){ return false; });
+      }
+    });
+    return cwbEnsureIds(cloned.filter(function(b){ return b && b.shape; }));
+  }
+
+  function ctlOpenCustomAssignments(){
+    return (_lastCoachAssignments || []).filter(function(a){
+      return a && !a.completed_at && a.custom_workout_item_id && !a.deleted_at;
+    });
+  }
+
+  function ctlFindCustomWorkout(id){
+    if(!id) return null;
+    var hit = (_coachLibCache || []).find(function(r){
+      return r && String(r.id) === String(id) && r.sections;
+    });
+    return hit || null;
+  }
+
+  function paintCtlStartButtons(){
+    var mode = _ctlState && _ctlState.mode;
+    Array.prototype.forEach.call(document.querySelectorAll('#ctl-starts [data-start]'), function(btn){
+      btn.classList.toggle('selected', btn.getAttribute('data-start') === mode);
+    });
+  }
+
+  function paintCtlAssignCheck(){
+    var wrap = document.getElementById('ctl-assign-wrap');
+    var box = document.getElementById('ctl-assign-complete');
+    var on = !!(_ctlState && _ctlState.assignmentId);
+    if(wrap) wrap.hidden = !on;
+    if(box && on) box.checked = _ctlState.markComplete !== false;
+  }
+
+  function paintCtlAssignmentOptions(){
+    var sel = document.getElementById('ctl-assignment');
+    if(!sel) return;
+    var current = _ctlState && _ctlState.assignmentId ? String(_ctlState.assignmentId) : (sel.value || '');
+    var rows = ctlOpenCustomAssignments();
+    var html = '<option value="">Choose an open assignment</option>';
+    rows.forEach(function(a){
+      html += '<option value="' + escapeHtml(a.id) + '">' + escapeHtml(a.title || 'Assignment') + '</option>';
+    });
+    sel.innerHTML = html;
+    if(current && rows.some(function(a){ return String(a.id) === current; })) sel.value = current;
+  }
+
+  function paintCtlLock(){
+    var overlay = document.getElementById('coach-train-log-overlay');
+    if(overlay){
+      overlay.classList.toggle('locked', !!_ctlLocked);
+      overlay.classList.toggle('saving', !!_ctlSaving);
+    }
+    _cwbLocked = ctlFormLocked();
+    var saveBtn = document.getElementById('ctl-save');
+    if(saveBtn){
+      saveBtn.disabled = ctlFormLocked();
+      saveBtn.textContent = _ctlSaving ? 'Saving...' : 'Save';
+      saveBtn.style.display = _ctlLocked ? 'none' : '';
+    }
+    ['ctl-date', 'ctl-time', 'ctl-end', 'ctl-title', 'ctl-notes', 'ctl-assignment', 'ctl-assign-complete', 'ctl-mark-all'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.disabled = ctlFormLocked();
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#ctl-starts button'), function(btn){
+      btn.disabled = ctlFormLocked();
+    });
+    var again = document.getElementById('ctl-again');
+    var backAth = document.getElementById('ctl-back-athlete');
+    if(again) again.style.display = _ctlLocked ? '' : 'none';
+    if(backAth) backAth.style.display = _ctlLocked ? '' : 'none';
+  }
+
+  function paintCtlQueueBanner(){
+    var banner = document.getElementById('ctl-queue-banner');
+    if(banner) banner.hidden = readCoachTrainQueue().length === 0;
+  }
+
+  function readCoachTrainQueue(){
+    try{
+      var list = JSON.parse(localStorage.getItem(COACH_TRAIN_QUEUE_KEY) || '[]');
+      return Array.isArray(list) ? list : [];
+    }catch(e){ return []; }
+  }
+
+  function writeCoachTrainQueue(list){
+    try{ localStorage.setItem(COACH_TRAIN_QUEUE_KEY, JSON.stringify(list || [])); }
+    catch(e){}
+  }
+
+  function enqueueCoachTrain(entry){
+    if(!entry || !entry.id) return;
+    var list = readCoachTrainQueue();
+    var i;
+    for(i = 0; i < list.length; i++){
+      if(list[i] && list[i].id === entry.id){
+        list[i] = entry;
+        writeCoachTrainQueue(list);
+        return;
+      }
+    }
+    list.push(entry);
+    writeCoachTrainQueue(list);
+  }
+
+  function dequeueCoachTrain(id){
+    if(!id) return;
+    writeCoachTrainQueue(readCoachTrainQueue().filter(function(p){ return !p || p.id !== id; }));
+  }
+
+  function ctlUseBuilder(){
+    if(!_ctlState){
+      _ctlState = { mode: 'blank', blocks: [], clientId: newCoachLogClientId(), templateId: null, assignmentId: null, markComplete: true };
+    }
+    _cwbStore = _ctlState;
+    _cwbRootId = 'ctl-cwb-root';
+    _cwbLogMode = true;
+    _cwbLocked = ctlFormLocked();
+  }
+
+  function ctlReleaseCwb(){
+    _cwbStore = null;
+    _cwbRootId = 'cwb-root';
+    _cwbLogMode = false;
+    _cwbLocked = false;
+  }
+
+  function ctlApplyStart(kind){
+    if(ctlFormLocked()) return;
+    ctlUseBuilder();
+    _ctlState.mode = kind;
+    _ctlState.assignmentId = null;
+    _ctlState.templateId = null;
+    _ctlState.markComplete = false;
+    var titles = { blank: 'Training session', hangboard: 'Hangboard', emom: 'EMOM', full: 'Full session' };
+    var titleEl = document.getElementById('ctl-title');
+    if(titleEl) titleEl.value = titles[kind] || 'Training session';
+    var sel = document.getElementById('ctl-assignment');
+    if(sel) sel.value = '';
+    _cwbCollapsed = {};
+    _cwbArm = null;
+    _ctlState.blocks = ctlPresetBlocks(kind);
+    paintCtlStartButtons();
+    paintCtlAssignCheck();
+    renderCwb();
+  }
+
+  function ctlApplyAssignment(a){
+    if(ctlFormLocked() || !a) return;
+    ctlUseBuilder();
+    _ctlState.mode = 'assignment';
+    _ctlState.assignmentId = a.id;
+    _ctlState.templateId = a.custom_workout_item_id || null;
+    _ctlState.markComplete = true;
+    var titleEl = document.getElementById('ctl-title');
+    if(titleEl) titleEl.value = a.title || 'Training session';
+    paintCtlStartButtons();
+    paintCtlAssignCheck();
+    _cwbCollapsed = {};
+    _cwbArm = null;
+    function useSections(sections){
+      if(!_ctlState || String(_ctlState.assignmentId) !== String(a.id)) return;
+      _ctlState.blocks = ctlCloneWorkoutBlocks(sections);
+      renderCwb();
+    }
+    var cached = ctlFindCustomWorkout(a.custom_workout_item_id);
+    if(cached){
+      useSections(cached.sections);
+      return;
+    }
+    if(!_detailCtx){
+      useSections([]);
+      return;
+    }
+    sbSelect(
+      _detailCtx.token,
+      'custom_workouts',
+      'select=id,name,sections&id=eq.' + encodeURIComponent(a.custom_workout_item_id) + '&limit=1'
+    ).then(function(rows){
+      var row = Array.isArray(rows) ? rows[0] : null;
+      useSections(row && row.sections);
+    }).catch(function(){
+      useSections([]);
+    });
+  }
+
+  function onCtlAssignmentChange(){
+    if(ctlFormLocked()) return;
+    var sel = document.getElementById('ctl-assignment');
+    var id = sel ? sel.value : '';
+    if(!id){
+      ctlApplyStart('blank');
+      return;
+    }
+    var a = (_lastCoachAssignments || []).find(function(x){ return String(x.id) === String(id); });
+    if(a) ctlApplyAssignment(a);
+  }
+
+  function openCoachTrainLogOverlay(){
+    if(!_detailCtx) return;
+    var overlay = document.getElementById('coach-train-log-overlay');
+    if(!overlay) return;
+    _ctlSaving = false;
+    _ctlLocked = false;
+    _ctlState = {
+      mode: 'blank',
+      blocks: [],
+      clientId: newCoachLogClientId(),
+      templateId: null,
+      assignmentId: null,
+      markComplete: true
+    };
+    ctlUseBuilder();
+    var now = ctlNowParts();
+    var dateEl = document.getElementById('ctl-date');
+    var timeEl = document.getElementById('ctl-time');
+    var endEl = document.getElementById('ctl-end');
+    var notesEl = document.getElementById('ctl-notes');
+    if(dateEl) dateEl.value = now.date;
+    if(timeEl) timeEl.value = now.time;
+    if(endEl) endEl.value = '';
+    if(notesEl) notesEl.value = '';
+    var msg = document.getElementById('ctl-msg');
+    if(msg){ msg.className = 'form-error'; msg.textContent = ''; }
+    var hero = document.getElementById('ctl-hero');
+    if(hero) hero.textContent = 'What did they actually do?';
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    paintCtlAssignmentOptions();
+    ctlApplyStart('blank');
+    paintCtlLock();
+    paintCtlQueueBanner();
+  }
+
+  function closeCoachTrainLogOverlay(){
+    var overlay = document.getElementById('coach-train-log-overlay');
+    if(overlay){
+      overlay.classList.remove('open');
+      overlay.classList.remove('locked');
+      overlay.classList.remove('saving');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+    ctlReleaseCwb();
+    var keep = (coachNavIsMobile() && document.querySelector('.coach-layout.detail-open'))
+      || (document.getElementById('assign-wizard-overlay') &&
+          document.getElementById('assign-wizard-overlay').classList.contains('open'))
+      || (document.getElementById('coach-log-overlay') &&
+          document.getElementById('coach-log-overlay').classList.contains('open'));
+    document.body.style.overflow = keep ? 'hidden' : '';
+  }
+
+  function resetCoachTrainAnother(){
+    _ctlLocked = false;
+    _ctlSaving = false;
+    openCoachTrainLogOverlay();
+  }
+
+  function buildCoachTrainPayload(){
+    ctlUseBuilder();
+    var dateEl = document.getElementById('ctl-date');
+    var timeEl = document.getElementById('ctl-time');
+    var endEl = document.getElementById('ctl-end');
+    var titleEl = document.getElementById('ctl-title');
+    var notesEl = document.getElementById('ctl-notes');
+    var started = ctlCombineDateTime(dateEl && dateEl.value, timeEl && timeEl.value);
+    var ended = (endEl && endEl.value)
+      ? ctlCombineDateTime(dateEl && dateEl.value, endEl.value)
+      : started;
+    var title = String(titleEl && titleEl.value || '').trim() || 'Training session';
+    var extra = String(notesEl && notesEl.value || '').trim();
+    if(!_ctlState.clientId) _ctlState.clientId = newCoachLogClientId();
+    var payload = {
+      id: _ctlState.clientId,
+      user_id: _detailCtx.athleteId,
+      device_id: 'coach-dashboard',
+      energy_type: null,
+      started_at: started,
+      ended_at: ended,
+      blocks: cwbCleanBlocks(),
+      notes: extra ? (title + '\n' + extra) : title,
+      logged_by_coach: true,
+      logged_by: _detailCtx.coachUser.id,
+      app_version: 'coach-dashboard'
+    };
+    if(_ctlState.templateId) payload.template_id = _ctlState.templateId;
+    return payload;
+  }
+
+  function postCoachTrainSession(body){
+    if(!_detailCtx || !_detailCtx.token){
+      return Promise.reject({ message: 'Not signed in.', status: 401 });
+    }
+    return fetch(SB_URL + '/rest/v1/training_sessions', {
+      method: 'POST',
+      headers: Object.assign(sbHeaders(_detailCtx.token), { 'Prefer': 'return=representation' }),
+      body: JSON.stringify(body)
+    }).then(parseCoachLogFetchResponse);
+  }
+
+  function postCoachTrainWithColumnFallbacks(payload, state){
+    state = state || {};
+    state.dropped = state.dropped || [];
+    state.untaggedFallback = !!state.untaggedFallback;
+    var optional = ['logged_by_coach', 'logged_by', 'template_id'];
+    function attempt(){
+      return postCoachTrainSession(payload).catch(function(err){
+        if(!state.firstErr) state.firstErr = err;
+        var i;
+        for(i = 0; i < optional.length; i++){
+          var col = optional[i];
+          if(!isCoachLogMissingColumn(err, col)) continue;
+          if(!Object.prototype.hasOwnProperty.call(payload, col)) continue;
+          delete payload[col];
+          if(state.dropped.indexOf(col) === -1) state.dropped.push(col);
+          if(col === 'logged_by_coach') state.untaggedFallback = true;
+          return attempt();
+        }
+        throw err;
+      });
+    }
+    return attempt();
+  }
+
+  function coachTrainEntryFromState(payload){
+    var box = document.getElementById('ctl-assign-complete');
+    var mark = !!(box && box.checked && _ctlState && _ctlState.assignmentId);
+    return {
+      id: payload.id,
+      body: payload,
+      assignmentId: mark ? _ctlState.assignmentId : (_ctlState && _ctlState.assignmentId),
+      markComplete: mark
+    };
+  }
+
+  function maybeCompleteTrainAssignment(entry){
+    if(!entry || !entry.markComplete || !entry.assignmentId || !_detailCtx) return Promise.resolve();
+    return patchCoachAssignment(_detailCtx.token, entry.assignmentId, { completed_at: new Date().toISOString() })
+      .then(function(){
+        var stamp = new Date().toISOString();
+        (_lastCoachAssignments || []).forEach(function(a){
+          if(String(a.id) === String(entry.assignmentId)) a.completed_at = stamp;
+        });
+        paintCtlAssignmentOptions();
+        var list = document.getElementById('detail-assignments');
+        if(list && _detailCtx){
+          list.innerHTML = '<div class="panel-title">Assignments</div>' +
+            renderAssignmentGroups(_lastCoachAssignments, false, true);
+          wireCoachAssignmentActions(_detailCtx.token, _detailCtx.coachUser, _detailCtx.athleteId, list);
+        }
+      });
+  }
+
+  function mergeCoachTrainJournalPins(){
+    if(!_ctlJournalPins.length) return;
+    _ctlJournalPins.forEach(function(payload){
+      if(!payload || !_journalCtx) return;
+      if(String(payload.user_id) !== String(_journalCtx.athleteId)) return;
+      var found = (_lastSessionRows || []).some(function(s){ return s && s.id === payload.id; });
+      if(found) return;
+      var row = asJournalWorkout(Object.assign({}, payload, {
+        created_at: payload.started_at || new Date().toISOString(),
+        logged_by_coach: !!payload.logged_by_coach
+      }));
+      _lastSessionRows.unshift(row);
+    });
+    if(_lastSessionRows.length > 30) _lastSessionRows = _lastSessionRows.slice(0, 30);
+  }
+
+  function pinCoachTrainJournal(payload){
+    if(!payload || !_journalCtx) return;
+    if(String(payload.user_id) !== String(_journalCtx.athleteId)) return;
+    _ctlJournalPins = _ctlJournalPins.filter(function(p){ return p && p.id !== payload.id; });
+    _ctlJournalPins.push(payload);
+    mergeCoachTrainJournalPins();
+    var el = document.getElementById('detail-sessions');
+    if(el) renderJournalFeed(el);
+  }
+
+  function finishCoachTrainSave(entry, retryState){
+    dequeueCoachTrain(entry.id);
+    paintCtlQueueBanner();
+    _ctlSaving = false;
+    _ctlLocked = true;
+    paintCtlLock();
+    renderCwb();
+    var msg = document.getElementById('ctl-msg');
+    var hero = document.getElementById('ctl-hero');
+    if(retryState && retryState.untaggedFallback){
+      showCoachToast('Saved, not tagged Logged by coach');
+      if(msg){
+        msg.className = 'form-success';
+        msg.textContent = 'Saved, not tagged Logged by coach';
+      }
+    } else {
+      showCoachToast('Training session logged.');
+      if(msg){ msg.className = 'form-success'; msg.textContent = 'Saved.'; }
+    }
+    if(hero) hero.textContent = 'Logged.';
+    pinCoachTrainJournal(entry.body);
+    if(_detailCtx){
+      loadAthleteSessions(_detailCtx.token, _detailCtx.coachUser, _detailCtx.athleteId, _detailCtx.athleteLabel);
+    }
+  }
+
+  function failCoachTrainSave(entry, err, retryState){
+    _ctlSaving = false;
+    _ctlLocked = false;
+    paintCtlLock();
+    enqueueCoachTrain(entry);
+    paintCtlQueueBanner();
+    var msg = document.getElementById('ctl-msg');
+    var rawErr = (retryState && retryState.firstErr) || err;
+    if(msg){
+      if(isCoachLogNetworkErr(rawErr) && !(rawErr && rawErr.status >= 400 && rawErr.status < 500)){
+        msg.className = 'form-warning';
+        msg.textContent = 'Saved on this device, will retry';
+      } else {
+        msg.className = 'form-error';
+        msg.textContent = formatCoachLogSaveError(rawErr);
+      }
+    }
+  }
+
+  function deliverCoachTrain(entry){
+    var retryState = {};
+    return postCoachTrainWithColumnFallbacks(entry.body, retryState)
+      .then(function(){
+        return maybeCompleteTrainAssignment(entry).catch(function(){
+          return { assignFailed: true };
+        }).then(function(){
+          finishCoachTrainSave(entry, retryState);
+        });
+      })
+      .catch(function(err){
+        if(isCoachLogDuplicateSuccess(err)){
+          finishCoachTrainSave(entry, retryState);
+          return;
+        }
+        failCoachTrainSave(entry, err, retryState);
+        throw err;
+      });
+  }
+
+  function saveCoachTrainSession(){
+    if(!_detailCtx || ctlFormLocked()) return;
+    ctlUseBuilder();
+    var payload = buildCoachTrainPayload();
+    var entry = coachTrainEntryFromState(payload);
+    _ctlSaving = true;
+    paintCtlLock();
+    var msg = document.getElementById('ctl-msg');
+    if(msg) msg.textContent = '';
+    deliverCoachTrain(entry).catch(function(){});
+  }
+
+  function ctlMarkAllComplete(){
+    if(ctlFormLocked()) return;
+    ctlUseBuilder();
+    cwbBlocks().forEach(function(b){ cwbMarkBlockComplete(b, true); });
+    renderCwb();
+  }
+
+  function replayCoachTrainQueue(){
+    if(_coachTrainReplayInFlight) return _coachTrainReplayInFlight;
+    if(!_detailCtx || !_detailCtx.token) return Promise.resolve();
+    var list = readCoachTrainQueue();
+    if(!list.length) return Promise.resolve();
+    function replayOne(entry){
+      if(!entry || !entry.id || !entry.body) return Promise.resolve();
+      var retryState = {};
+      return postCoachTrainWithColumnFallbacks(entry.body, retryState)
+        .then(function(){
+          dequeueCoachTrain(entry.id);
+          pinCoachTrainJournal(entry.body);
+          return maybeCompleteTrainAssignment(entry).catch(function(){});
+        })
+        .catch(function(err){
+          if(isCoachLogDuplicateSuccess(err)){
+            dequeueCoachTrain(entry.id);
+            return;
+          }
+          enqueueCoachTrain(entry);
+          throw err;
+        });
+    }
+    var chain = Promise.resolve();
+    list.forEach(function(entry){
+      chain = chain.then(function(){ return replayOne(entry); });
+    });
+    _coachTrainReplayInFlight = chain.then(function(){
+      _coachTrainReplayInFlight = null;
+      paintCtlQueueBanner();
+      if(_detailCtx){
+        loadAthleteSessions(_detailCtx.token, _detailCtx.coachUser, _detailCtx.athleteId, _detailCtx.athleteLabel);
+      }
+    }, function(){
+      _coachTrainReplayInFlight = null;
+      paintCtlQueueBanner();
+    });
+    return _coachTrainReplayInFlight;
+  }
+
+  var ctlStarts = document.getElementById('ctl-starts');
+  if(ctlStarts){
+    ctlStarts.addEventListener('click', function(e){
+      var btn = e.target && e.target.closest ? e.target.closest('[data-start]') : null;
+      if(!btn) return;
+      ctlApplyStart(btn.getAttribute('data-start'));
+    });
+  }
+  var ctlAssignment = document.getElementById('ctl-assignment');
+  if(ctlAssignment) ctlAssignment.addEventListener('change', onCtlAssignmentChange);
+  var ctlMarkAllBtn = document.getElementById('ctl-mark-all');
+  if(ctlMarkAllBtn) ctlMarkAllBtn.addEventListener('click', ctlMarkAllComplete);
+  var ctlSaveBtn = document.getElementById('ctl-save');
+  if(ctlSaveBtn) ctlSaveBtn.addEventListener('click', function(){
+    if(ctlFormLocked()) return;
+    saveCoachTrainSession();
+  });
+  var ctlAgainBtn = document.getElementById('ctl-again');
+  if(ctlAgainBtn) ctlAgainBtn.addEventListener('click', resetCoachTrainAnother);
+  var ctlBackBtn = document.getElementById('ctl-back');
+  if(ctlBackBtn) ctlBackBtn.addEventListener('click', closeCoachTrainLogOverlay);
+  var ctlBackAthBtn = document.getElementById('ctl-back-athlete');
+  if(ctlBackAthBtn) ctlBackAthBtn.addEventListener('click', closeCoachTrainLogOverlay);
+  var ctlRetryBtn = document.getElementById('ctl-retry-now');
+  if(ctlRetryBtn) ctlRetryBtn.addEventListener('click', function(){ replayCoachTrainQueue(); });
+  window.addEventListener('online', function(){ replayCoachTrainQueue(); });
 
   var _athleteInsightCache = {};
   var _athleteTrainingInsightCache = {};
@@ -5289,12 +6016,14 @@
           wireCoachAssignmentActions(token, coachUser, athleteId, el);
         }
         paintAssignmentList();
+        paintCtlAssignmentOptions();
         if(!_coachLibCache.length){
           loadCoachWorkoutLibrary(token).then(function(libRows){
             _coachLibCache = Array.isArray(libRows) ? libRows : [];
             if(document.getElementById('detail-assignments') === el && _lastCoachAssignments.length){
               paintAssignmentList();
             }
+            paintCtlAssignmentOptions();
           }).catch(function(){ /* warmup names are optional */ });
         }
       })
@@ -6207,6 +6936,12 @@
   // Builds the same shaped blocks the athlete workout builder saves
   // ({shape, title, rounds, ...}). State lives in _assignWizard.blocks and is
   // updated live from inputs, so a re-render never loses typed text.
+  // Log mode (_cwbStore / _cwbLogMode) reuses this module for a coach-logged
+  // training session without touching an open assignment wizard.
+  var _cwbLogMode = false;
+  var _cwbRootId = 'cwb-root';
+  var _cwbStore = null;
+  var _cwbLocked = false;
   var CWB_MENU = [
     { shape: 'emom', label: 'Climbing (EMOM)' },
     { shape: 'circuit', label: 'Strength' },
@@ -6223,9 +6958,29 @@
     return 'cwb' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
   function cwbBlocks(){
-    if(!_assignWizard) return [];
-    if(!Array.isArray(_assignWizard.blocks)) _assignWizard.blocks = [];
-    return _assignWizard.blocks;
+    var holder = _cwbStore || _assignWizard;
+    if(!holder) return [];
+    if(!Array.isArray(holder.blocks)) holder.blocks = [];
+    return holder.blocks;
+  }
+  function cwbMarkBlockComplete(b, on){
+    if(!b) return;
+    on = !!on;
+    b.complete = on;
+    if(b.shape === 'emom' && Array.isArray(b.rounds)){
+      b.rounds.forEach(function(r){
+        if(!r) return;
+        (r.boulders || []).forEach(function(bo){ if(bo) bo.complete = on; });
+        r.complete = on;
+      });
+    } else if(b.shape === 'rep_pass_fail'){
+      (b.sets || []).forEach(function(s){
+        (s && s.reps || []).forEach(function(rp){ if(rp) rp.ok = on ? true : null; });
+      });
+    } else if(b.shape === 'circuit' && Array.isArray(b.round_complete)){
+      var i;
+      for(i = 0; i < b.round_complete.length; i++) b.round_complete[i] = on;
+    }
   }
   function cwbClamp(v, lo, hi, dflt){
     var n = parseInt(v, 10);
@@ -6371,7 +7126,13 @@
         var rarmed = _cwbArm === 'rnd:' + b.id + ':' + ri;
         h += '<div class="cwb-round"><div class="cwb-sub">Round ' + (ri + 1) + '</div>';
         (r.boulders || []).forEach(function(bo, bi){
-          h += '<input class="cwb-in" data-f="boulder" data-ri="' + ri + '" data-bi="' + bi + '" placeholder="Boulder ' + (bi + 1) + ' (e.g. v4 orange)" value="' + escapeHtml(bo.text || '') + '">';
+          var tick = '';
+          if(_cwbLogMode){
+            tick = '<button type="button" class="cwb-tick' + (bo && bo.complete ? ' is-pass' : '') + '" data-act="tick-boulder" data-ri="' + ri + '" data-bi="' + bi + '" aria-pressed="' + (bo && bo.complete ? 'true' : 'false') + '" aria-label="Sent">' + (bo && bo.complete ? 'Sent' : 'Tick') + '</button>';
+          }
+          h += '<div class="cwb-boulder-row">' +
+            '<input class="cwb-in" data-f="boulder" data-ri="' + ri + '" data-bi="' + bi + '" placeholder="Boulder ' + (bi + 1) + ' (e.g. v4 orange)" value="' + escapeHtml((bo && bo.text) || '') + '">' +
+            tick + '</div>';
         });
         h += '<div class="cwb-row">' +
           '<button type="button" class="cwb-btn" data-act="add-boulder" data-ri="' + ri + '">+ Boulder</button>' +
@@ -6411,8 +7172,19 @@
         '<button type="button" class="cwb-btn" data-act="set-plus"' + (nsets >= 6 ? ' disabled' : '') + '>+ Set</button></div>' +
         '<div class="cwb-row"><span class="cwb-lab">Reps per set ' + nreps + '</span>' +
         '<button type="button" class="cwb-btn" data-act="rep-minus"' + (nreps <= 1 ? ' disabled' : '') + '>&minus; Rep</button>' +
-        '<button type="button" class="cwb-btn" data-act="rep-plus"' + (nreps >= 10 ? ' disabled' : '') + '>+ Rep</button></div>' +
-        '<textarea class="cwb-in" data-f="progression_note" placeholder="Progression note (optional)">' + escapeHtml(b.progression_note || '') + '</textarea>';
+        '<button type="button" class="cwb-btn" data-act="rep-plus"' + (nreps >= 10 ? ' disabled' : '') + '>+ Rep</button></div>';
+      if(_cwbLogMode){
+        (b.sets || []).forEach(function(set, si){
+          h += '<div class="cwb-setlab">Set ' + (si + 1) + '</div><div class="cwb-reps">';
+          ((set && set.reps) || []).forEach(function(rp, rpi){
+            var state = rp && rp.ok === true ? 'pass' : (rp && rp.ok === false ? 'fail' : 'untested');
+            var label = state === 'pass' ? 'Pass' : (state === 'fail' ? 'Fail' : String(rpi + 1));
+            h += '<button type="button" class="cwb-rep is-' + state + '" data-act="cycle-rep" data-si="' + si + '" data-ri="' + rpi + '" aria-label="Rep ' + (rpi + 1) + ' ' + state + '">' + label + '</button>';
+          });
+          h += '</div>';
+        });
+      }
+      h += '<textarea class="cwb-in" data-f="progression_note" placeholder="Progression note (optional)">' + escapeHtml(b.progression_note || '') + '</textarea>';
     } else if(b.shape === 'rest'){
       h += '<label class="cwb-lab">Rest (minutes)</label>' +
         '<input class="cwb-in cwb-num" type="number" min="1" max="60" data-f="restMin" value="' + escapeHtml(String(Math.round((Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 600) / 60))) + '">';
@@ -6421,12 +7193,15 @@
     } else {
       h += '<div class="cwb-sum">This block type is kept exactly as built.</div>';
     }
+    if(_cwbLogMode && b.shape !== 'rest'){
+      h += '<div class="cwb-row"><button type="button" class="cwb-btn" data-act="mark-block">Mark all complete</button></div>';
+    }
     h += '</div></div>';
     return h;
   }
 
   function renderCwb(){
-    var root = document.getElementById('cwb-root');
+    var root = document.getElementById(_cwbRootId || 'cwb-root');
     if(!root) return;
     var blocks = cwbBlocks();
     var h = '<div class="cwb-list">' + blocks.map(function(b, i){ return cwbRenderBlock(b, i, blocks.length); }).join('') + '</div>' +
@@ -6453,6 +7228,7 @@
   }
 
   function cwbOnClick(e){
+    if(_cwbLocked) return;
     var btn = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
     if(!btn || btn.disabled) return;
     var act = btn.getAttribute('data-act');
@@ -6481,6 +7257,23 @@
     } else if(act === 'remove'){
       if(_cwbArm !== 'blk:' + b.id){ cwbArmFor('blk:' + b.id); }
       else { cwbDisarm(); blocks.splice(idx, 1); delete _cwbCollapsed[b.id]; }
+    } else if(act === 'tick-boulder' && b.shape === 'emom'){
+      var round = (b.rounds || [])[ri];
+      var bi = parseInt(btn.getAttribute('data-bi'), 10);
+      if(round && round.boulders && round.boulders[bi]){
+        round.boulders[bi].complete = !round.boulders[bi].complete;
+        var allOn = round.boulders.length && round.boulders.every(function(bo){ return bo && bo.complete; });
+        round.complete = !!allOn;
+      }
+    } else if(act === 'cycle-rep' && b.shape === 'rep_pass_fail'){
+      var si = parseInt(btn.getAttribute('data-si'), 10);
+      var set = (b.sets || [])[si];
+      if(set && set.reps && set.reps[ri]){
+        var cur = set.reps[ri].ok;
+        set.reps[ri].ok = cur === true ? false : (cur === false ? null : true);
+      }
+    } else if(act === 'mark-block'){
+      cwbMarkBlockComplete(b, true);
     } else if(b.shape === 'emom'){
       var r = (b.rounds || [])[ri];
       if(act === 'add-boulder' && r){ r.boulders.push(cwbNewBoulder('')); }
@@ -6506,6 +7299,7 @@
   }
 
   function cwbOnInput(e){
+    if(_cwbLocked) return;
     var el = e.target;
     if(!el || !el.getAttribute) return;
     var f = el.getAttribute('data-f');
@@ -8678,6 +9472,35 @@
     '</div>';
   }
 
+  function journalTrainBlockSummary(b){
+    if(!b) return '';
+    if(b.shape === 'emom'){
+      var total = 0;
+      var sent = 0;
+      (Array.isArray(b.rounds) ? b.rounds : []).forEach(function(r){
+        ((r && r.boulders) || []).forEach(function(bo){
+          total++;
+          if(bo && bo.complete) sent++;
+        });
+      });
+      if(total) return sent + ' of ' + total + ' sent';
+    }
+    return shapedBlockSummary(b);
+  }
+
+  function journalTrainBlocksHtml(s){
+    var blocks = s && s.blocks;
+    if(typeof blocks === 'string'){
+      try{ blocks = JSON.parse(blocks); }catch(e){ blocks = []; }
+    }
+    if(!Array.isArray(blocks) || !blocks.length) return '';
+    return '<div class="journal-blocks">' + blocks.map(function(b){
+      var sum = journalTrainBlockSummary(b);
+      return '<div class="journal-block-line">' + escapeHtml(shapedBlockName(b)) +
+        (sum ? ' · ' + escapeHtml(sum) : '') + '</div>';
+    }).join('') + '</div>';
+  }
+
   function journalWorkoutEntryHtml(s, notes, notesError, coachUserId, athleteLabel){
     var when = s.started_at || s.created_at;
     var dur = journalDurationLabel(s.started_at, s.ended_at);
@@ -8689,7 +9512,8 @@
       journalFieldHtml('Duration', dur) +
       journalFieldHtml('Warm-up', s.warm_up) +
       journalFieldHtml('Cool-down', s.cool_down);
-    var empty = !details
+    var blockLines = journalTrainBlocksHtml(s);
+    var empty = !details && !blockLines
       ? '<div class="journal-empty-refl">No workout details logged.</div>'
       : '';
     var side = blocks
@@ -8699,12 +9523,15 @@
       '<div class="journal-head">' +
         '<div>' +
           '<div class="journal-route"><span class="journal-kind workout">Workout</span>' +
-            escapeHtml(journalWorkoutTitle(s)) + '</div>' +
+            escapeHtml(journalWorkoutTitle(s)) +
+            (s.logged_by_coach ? '<span class="journal-coach-tag">Logged by coach</span>' : '') +
+            '</div>' +
           '<div class="journal-when">' + fmtChatTime(when) + '</div>' +
         '</div>' +
         side +
       '</div>' +
       details +
+      blockLines +
       empty +
       journalNotesThreadHtml(s.id, notes, notesError, coachUserId, athleteLabel, 'workout') +
     '</div>';
@@ -8864,19 +9691,31 @@
       });
     }
     var climbP = fetchClimbSessions();
-    var trainP = sbSelect(
-      token,
-      'training_sessions',
-      'select=id,created_at,started_at,ended_at,energy_type,notes,warm_up,cool_down,blocks' +
+    function fetchTrainJournal(){
+      var withTag = 'select=id,created_at,started_at,ended_at,energy_type,notes,warm_up,cool_down,blocks,logged_by_coach' +
         '&user_id=eq.' + athleteId +
-        '&deleted_at=is.null&order=created_at.desc&limit=20'
-    ).then(function(rows){
-      _journalTrainingError = null;
-      return Array.isArray(rows) ? rows : [];
-    }).catch(function(err){
-      _journalTrainingError = err || { message: 'unavailable' };
-      return [];
-    });
+        '&deleted_at=is.null&order=created_at.desc&limit=20';
+      var withoutTag = 'select=id,created_at,started_at,ended_at,energy_type,notes,warm_up,cool_down,blocks' +
+        '&user_id=eq.' + athleteId +
+        '&deleted_at=is.null&order=created_at.desc&limit=20';
+      return sbSelect(token, 'training_sessions', withTag).then(function(rows){
+        _journalTrainingError = null;
+        return Array.isArray(rows) ? rows : [];
+      }).catch(function(err){
+        if(!isCoachLogMissingColumn(err, 'logged_by_coach')){
+          _journalTrainingError = err || { message: 'unavailable' };
+          return [];
+        }
+        return sbSelect(token, 'training_sessions', withoutTag).then(function(rows){
+          _journalTrainingError = null;
+          return Array.isArray(rows) ? rows : [];
+        }).catch(function(err2){
+          _journalTrainingError = err2 || { message: 'unavailable' };
+          return [];
+        });
+      });
+    }
+    var trainP = fetchTrainJournal();
     return Promise.all([climbP, trainP]).then(function(parts){
       var climbs = (Array.isArray(parts[0]) ? parts[0] : []).map(asJournalClimb);
       var workouts = (Array.isArray(parts[1]) ? parts[1] : []).map(asJournalWorkout);
@@ -8886,6 +9725,7 @@
       });
       if(_lastSessionRows.length > 30) _lastSessionRows = _lastSessionRows.slice(0, 30);
       return loadJournalNotes(token, coachUser, athleteId).then(function(){
+        mergeCoachTrainJournalPins();
         renderJournalFeed(el);
         return _lastSessionRows;
       });
