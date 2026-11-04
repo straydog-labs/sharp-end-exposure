@@ -1042,10 +1042,20 @@
   }
   .cwb-presets{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
   .cwb-presets .cwb-btn.is-on{border-color:var(--accent);color:var(--accent);}
-  .cwb-onoff{display:flex;gap:12px;margin:8px 0;}
+  .cwb-onoff{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0;}
   .cwb-onoff label{display:flex;flex-direction:column;gap:4px;}
   .cwb-onoff input{width:88px;}
   .cwb-set{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);}
+  .cwb-setrow{display:flex;align-items:center;gap:8px;margin-top:6px;}
+  .cwb-setnum{width:18px;flex:0 0 18px;font-size:13px;font-weight:700;color:var(--text-secondary);}
+  .cwb-setrow .cwb-in{min-width:0;}
+  .cwb-setrow [data-f="setGrip"]{flex:1.1;}
+  .cwb-setrow [data-f="setLoad"]{flex:1;}
+  .cwb-setmenu{margin:4px 0 8px 26px;padding:8px;border:1px solid var(--border);border-radius:10px;background:var(--surface);}
+  .cwb-setlog{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 0 26px;}
+  .assign-blocks-line,.aw-block-summary{font-size:13px;color:var(--text-secondary);margin-top:6px;}
+  .aw-edit-blocks{border:1px solid var(--accent);color:var(--accent);border-radius:12px;background:transparent;}
+  .aw-edit-blocks:hover{color:var(--accent);background:rgba(232,146,82,.12);}
   .clog-gauge{margin:16px 0 18px;}
   .clog-gauge-wrap{max-width:360px;margin:0 auto;position:relative;user-select:none;}
   .clog-gauge-readout{min-height:72px;}
@@ -1399,6 +1409,10 @@
     font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:10px;cursor:pointer;
   }
   .aw-secondary-btn:hover{color:var(--text);}
+  .aw-secondary-btn.aw-edit-blocks{
+    border:1px solid var(--accent);color:var(--accent);border-radius:12px;background:transparent;
+  }
+  .aw-secondary-btn.aw-edit-blocks:hover{color:var(--accent);background:rgba(232,146,82,.12);}
   .aw-linkish{
     background:none;border:none;padding:8px 0;color:var(--accent);font-family:'Space Grotesk',sans-serif;
     font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;
@@ -1906,6 +1920,14 @@
     return '<div class="assign-desc">' + html + '</div>';
   }
 
+  function assignmentWorkoutSections(a){
+    if(!a || !a.custom_workout_item_id) return [];
+    var item = (_coachLibCache || []).find(function(r){
+      return r && r.id === a.custom_workout_item_id;
+    });
+    return parseWorkoutSections(item && item.sections);
+  }
+
   function assignmentWarmupTagHtml(a){
     if(!a || !a.warmup_custom_workout_item_id) return '';
     var item = (_coachLibCache || []).find(function(r){
@@ -2009,11 +2031,13 @@
       ? '<span class="assign-due' + (overdue ? ' overdue' : '') + '">Due ' + fmtDate(a.due_date) +
         (overdue ? ' · Overdue' : '') + '</span>'
       : '';
+    var blockLine = coachBlockListSummary(assignmentWorkoutSections(a));
     return '<div class="assign-card' + (done ? ' done' : '') + '"' + (withCompleteButton ? ' data-id="' + idAttr + '"' : '') + '>' +
       '<div class="assign-title-row">' +
         '<div class="assign-title">' + escapeHtml(a.title) + '</div>' +
         checkBadge +
       '</div>' +
+      (blockLine ? '<div class="assign-blocks-line">' + escapeHtml(blockLine) + '</div>' : '') +
       assignmentWarmupTagHtml(a) +
       (a.description ? assignmentDescriptionHtml(a.description) : '') +
       assignResourceHtml(a) +
@@ -2031,8 +2055,22 @@
   // Locked scope: completed assignments must visually separate from open ones
   // (not just dim in place) — open ones render normally, completed ones drop
   // into a collapsed <details> group below, most-recently-completed first.
+  function compareAssignmentsNewest(a, b){
+    function day(row){
+      var t = row && row.created_at ? new Date(row.created_at).getTime() : 0;
+      if(!t || isNaN(t)) return '';
+      return new Date(t).toISOString().slice(0, 10);
+    }
+    var da = day(a);
+    var db = day(b);
+    if(da !== db) return da < db ? 1 : -1;
+    var ta = a && a.created_at ? new Date(a.created_at).getTime() : 0;
+    var tb = b && b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tb - ta;
+  }
+
   function renderAssignmentGroups(rows, withCompleteButton, withRepeatButton){
-    var open = rows.filter(function(a){ return !a.completed_at; });
+    var open = rows.filter(function(a){ return !a.completed_at; }).sort(compareAssignmentsNewest);
     var done = rows.filter(function(a){ return !!a.completed_at; }).sort(function(a, b){
       return new Date(b.completed_at) - new Date(a.completed_at);
     });
@@ -6148,12 +6186,11 @@
           }).catch(function(){ /* warmup names are optional */ });
         }
       })
-      .catch(function(err){
+      .catch(function(){
         _lastCoachAssignments = [];
         _assignmentSessionMap = {};
         paintAthleteHubBadges();
-        el.innerHTML = '<div class="panel-title">Assignments</div><div class="form-error">Could not load assignments. ' +
-          escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';
+        el.innerHTML = '<div class="panel-title">Assignments</div><div class="empty-state">No assignments yet.</div>';
       });
   }
 
@@ -6780,6 +6817,13 @@
     });
   }
 
+  function coachBlockListSummary(sections){
+    var blocks = parseWorkoutSections(sections);
+    if(!blocks.length) return '';
+    var names = blocks.map(function(b){ return shapedBlockName(b); });
+    return names.length + (names.length === 1 ? ' block: ' : ' blocks: ') + names.join(', ');
+  }
+
   function shapedBlockName(b){
     if(b && b.title && String(b.title).trim()) return String(b.title).trim();
     var shape = b && b.shape;
@@ -7140,7 +7184,7 @@
     { shape: 'emom', label: 'Climbing (EMOM)' },
     { shape: 'circuit', label: 'Strength' },
     { shape: 'rep_pass_fail', label: 'Hangboard / repeaters' },
-    { shape: 'mental', label: 'Mental' },
+    { shape: 'mental', label: 'Psyche' },
     { shape: 'rest', label: 'Rest' },
     { shape: 'section', label: 'Custom' },
     { shape: 'cooldown', label: 'Cool down' }
@@ -7148,6 +7192,7 @@
   var _cwbCollapsed = {};
   var _cwbArm = null;
   var _cwbArmTimer = null;
+  var _cwbSetMenu = null;
   var _cwbMenuFlashTimer = null;
 
   function cwbUid(){
@@ -7320,6 +7365,7 @@
   }
   function cwbLabel(b){
     if(b.shape === 'section' && String(b.title || '').trim() === 'Mental') return 'Mental';
+    if(b.shape === 'section' && String(b.title || '').trim() === 'Psyche') return 'Psyche';
     if(b.shape === 'check' && String(b.title || '').trim()) return String(b.title).trim();
     return shapedBlockName({ shape: b.shape });
   }
@@ -7364,8 +7410,14 @@
         if(Array.isArray(b.sets)){
           b.sets.forEach(function(s){
             if(!s) return;
-            if(Object.prototype.hasOwnProperty.call(s, 'grip')) s.grip = String(s.grip || '').trim();
-            if(Object.prototype.hasOwnProperty.call(s, 'load')) s.load = String(s.load || '').trim();
+            var hadGrip = Object.prototype.hasOwnProperty.call(s, 'grip');
+            var hadLoad = Object.prototype.hasOwnProperty.call(s, 'load');
+            var g = hadGrip ? String(s.grip || '').trim() : '';
+            var l = hadLoad ? String(s.load || '').trim() : '';
+            if(!g && b.grip) s.grip = b.grip;
+            else if(hadGrip) s.grip = g;
+            if(!l && b.assistance) s.load = b.assistance;
+            else if(hadLoad) s.load = l;
           });
         }
       } else if(b.shape === 'check'){
@@ -7410,6 +7462,71 @@
     return Math.max(0, Math.min(7200, Math.round(u === 'min' ? n * 60 : n)));
   }
 
+  function cwbShown(setVal, blockVal){
+    var s = setVal != null ? String(setVal) : '';
+    if(s.trim()) return s;
+    return blockVal != null ? String(blockVal) : '';
+  }
+  function cwbCommonReps(sets){
+    if(!sets || !sets.length) return '';
+    var n = ((sets[0] && sets[0].reps) || []).length;
+    var i;
+    for(i = 1; i < sets.length; i++){
+      if((((sets[i] && sets[i].reps) || []).length) !== n) return '';
+    }
+    return String(n);
+  }
+  function cwbCommonRest(sets){
+    if(!sets || !sets.length) return null;
+    function restOf(s){
+      if(!s || s.rest_after_sec == null || s.rest_after_sec === '') return null;
+      return Number(s.rest_after_sec);
+    }
+    var r = restOf(sets[0]);
+    var i;
+    for(i = 1; i < sets.length; i++){
+      if(restOf(sets[i]) !== r) return null;
+    }
+    return r;
+  }
+  function cwbHangCollapsedLine(b){
+    var title = String((b && b.title) || '').trim() || 'Hangboard';
+    var n = Array.isArray(b && b.sets) && b.sets.length ? b.sets.length : 1;
+    var line = title + ' · ' + n + (n === 1 ? ' set' : ' sets');
+    var timing = '';
+    if(b && b.on_sec != null && b.on_sec !== '') timing = String(b.on_sec) + 's on';
+    if(b && b.off_sec != null && b.off_sec !== ''){
+      timing = timing ? (timing + ' / ' + b.off_sec + 's off') : (String(b.off_sec) + 's off');
+    }
+    if(timing) line += ' · ' + timing;
+    return line;
+  }
+  function cwbHangSig(b){
+    function numOrNull(v){
+      if(v == null || v === '') return null;
+      var n = Number(v);
+      return isNaN(n) ? null : n;
+    }
+    return JSON.stringify({
+      g: b && b.grip != null ? String(b.grip) : '',
+      a: b && b.assistance != null ? String(b.assistance) : '',
+      on: numOrNull(b && b.on_sec),
+      off: numOrNull(b && b.off_sec),
+      sets: ((b && b.sets) || []).map(function(s){
+        return {
+          g: s && s.grip != null ? String(s.grip) : '',
+          l: s && s.load != null ? String(s.load) : '',
+          n: s && s.reps ? s.reps.length : 0,
+          r: (s && s.rest_after_sec != null && s.rest_after_sec !== '') ? Number(s.rest_after_sec) : null
+        };
+      })
+    });
+  }
+  function cwbHangDirty(b){
+    if(!b || b.shape !== 'rep_pass_fail') return false;
+    return cwbHangSig(b) !== cwbHangSig(cwbHangPreset(b.preset || 'custom', b.id));
+  }
+
   function cwbRenderBlock(b, i, n){
     var collapsed = !!_cwbCollapsed[b.id];
     var armed = _cwbArm === 'blk:' + b.id;
@@ -7429,12 +7546,16 @@
         '<button type="button" class="cwb-btn cwb-danger" data-act="remove" data-arm="blk:' + escapeHtml(b.id) + '">' + (armed ? 'Confirm remove' : 'Remove') + '</button>' +
       '</span></div>';
     if(collapsed){
+      if(b.shape === 'rep_pass_fail'){
+        h += '<div class="cwb-sum">' + escapeHtml(cwbHangCollapsedLine(b)) + '</div></div>';
+        return h;
+      }
       var sum = shapedBlockSummary(b);
       h += '<div class="cwb-sum"><b>' + escapeHtml(shapedBlockName(b)) + '</b>' + (sum ? ' &middot; ' + escapeHtml(sum) : '') + '</div></div>';
       return h;
     }
     h += '<div class="cwb-body">';
-    var isMental = b.shape === 'section' && String(b.title || '').trim() === 'Mental';
+    var isMental = b.shape === 'section' && /^(mental|psyche)$/i.test(String(b.title || '').trim());
     h += '<input class="cwb-in" data-f="title" placeholder="' +
       (b.shape === 'emom' ? 'Title (e.g. EMOM)' :
        b.shape === 'rep_pass_fail' ? 'Title (e.g. Repeaters)' :
@@ -7484,35 +7605,37 @@
     } else if(b.shape === 'rep_pass_fail'){
       var preset = b.preset || '';
       var sets = (b.sets && b.sets.length) ? b.sets : [cwbNewSet(5)];
+      function presetBtn(key, label){
+        var on = key === 'custom' ? (preset === 'custom' || !preset) : preset === key;
+        var armedPre = _cwbArm === 'pre:' + b.id + ':' + key;
+        return '<button type="button" class="cwb-btn' + (on ? ' is-on' : '') + '" data-act="preset" data-preset="' + key + '">' +
+          (armedPre ? 'Replace sets?' : label) + '</button>';
+      }
       h += '<div class="cwb-presets" role="group" aria-label="Hangboard preset">' +
-        '<button type="button" class="cwb-btn' + (preset === 'repeaters' ? ' is-on' : '') + '" data-act="preset" data-preset="repeaters">Repeaters</button>' +
-        '<button type="button" class="cwb-btn' + (preset === 'repeaters_2_grips' ? ' is-on' : '') + '" data-act="preset" data-preset="repeaters_2_grips">Repeaters - 2 grips</button>' +
-        '<button type="button" class="cwb-btn' + (preset === 'max_hang' ? ' is-on' : '') + '" data-act="preset" data-preset="max_hang">Max hang</button>' +
-        '<button type="button" class="cwb-btn' + (preset === 'custom' || !preset ? ' is-on' : '') + '" data-act="preset" data-preset="custom">Custom</button>' +
+        presetBtn('repeaters', 'Repeaters') +
+        presetBtn('repeaters_2_grips', 'Repeaters - 2 grips') +
+        presetBtn('max_hang', 'Max hang') +
+        presetBtn('custom', 'Custom') +
         '</div>' +
         '<div class="cwb-onoff">' +
-          '<label class="cwb-lab">On (sec)<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="on_sec" value="' + (b.on_sec == null || b.on_sec === '' ? '' : escapeHtml(String(b.on_sec))) + '"></label>' +
-          '<label class="cwb-lab">Off (sec)<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="off_sec" value="' + (b.off_sec == null || b.off_sec === '' ? '' : escapeHtml(String(b.off_sec))) + '"></label>' +
-        '</div>' +
-        '<label class="cwb-lab">Grip</label>' +
-        '<input class="cwb-in" data-f="grip" placeholder="e.g. half crimp" value="' + escapeHtml(b.grip || '') + '">' +
-        '<label class="cwb-lab">Load or assistance</label>' +
-        '<input class="cwb-in" data-f="assistance" placeholder="e.g. 35 lb assist or +20 lb" value="' + escapeHtml(b.assistance || '') + '">';
+          '<label class="cwb-lab">On<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="on_sec" aria-label="On seconds" value="' + (b.on_sec == null || b.on_sec === '' ? '' : escapeHtml(String(b.on_sec))) + '"></label>' +
+          '<label class="cwb-lab">Off<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="off_sec" aria-label="Off seconds" value="' + (b.off_sec == null || b.off_sec === '' ? '' : escapeHtml(String(b.off_sec))) + '"></label>' +
+          '<label class="cwb-lab">Reps<input class="cwb-in cwb-num" inputmode="numeric" data-f="allReps" aria-label="Reps for every set" value="' + escapeHtml(cwbCommonReps(sets)) + '"></label>' +
+          '<label class="cwb-lab">Rest between sets' +
+          cwbRestFieldHtml(0, cwbCommonRest(sets), { num: 'allRest', unit: 'allRestU', attr: 'data-all' }) +
+          '</label></div>';
       sets.forEach(function(set, si){
         var reps = (set && set.reps) || [];
         var nrep = reps.length || 1;
-        h += '<div class="cwb-set"><div class="cwb-sub">Set ' + (si + 1) + '</div>' +
-          '<label class="cwb-lab">Grip</label>' +
-          '<input class="cwb-in" data-f="setGrip" data-si="' + si + '" placeholder="e.g. half crimp" value="' + escapeHtml((set && set.grip) || '') + '">' +
-          '<label class="cwb-lab">Load or assistance</label>' +
-          '<input class="cwb-in" data-f="setLoad" data-si="' + si + '" placeholder="e.g. 35 lb assist or +20 lb" value="' + escapeHtml((set && set.load) || '') + '">' +
-          '<div class="cwb-row"><span class="cwb-lab">Reps ' + nrep + '</span>' +
-          '<button type="button" class="cwb-btn" data-act="rep-minus" data-si="' + si + '"' + (nrep <= 1 ? ' disabled' : '') + '>&minus; Rep</button>' +
-          '<button type="button" class="cwb-btn" data-act="rep-plus" data-si="' + si + '"' + (nrep >= 10 ? ' disabled' : '') + '>+ Rep</button></div>' +
-          '<label class="cwb-lab">Rest after set</label>' +
-          cwbRestFieldHtml(si, set && set.rest_after_sec != null ? set.rest_after_sec : null, { num: 'setRest', unit: 'setRestU', attr: 'data-si' });
+        var menuOpen = _cwbSetMenu === (b.id + ':' + si);
+        h += '<div class="cwb-setrow">' +
+          '<span class="cwb-setnum">' + (si + 1) + '</span>' +
+          '<input class="cwb-in" data-f="setGrip" data-si="' + si + '" aria-label="Grip" placeholder="Grip" value="' + escapeHtml(cwbShown(set && set.grip, b.grip)) + '">' +
+          '<input class="cwb-in" data-f="setLoad" data-si="' + si + '" aria-label="Load or assistance" placeholder="e.g. 35 lb assist or +20 lb" value="' + escapeHtml(cwbShown(set && set.load, b.assistance)) + '">' +
+          '<button type="button" class="cwb-btn" data-act="set-menu" data-si="' + si + '" aria-label="Set options" aria-expanded="' + (menuOpen ? 'true' : 'false') + '">⋯</button>' +
+          '</div>';
         if(_cwbLogMode){
-          h += '<div class="cwb-reps">';
+          h += '<div class="cwb-setlog">';
           reps.forEach(function(rp, rpi){
             var state = rp && rp.ok === true ? 'pass' : (rp && rp.ok === false ? 'fail' : 'untested');
             var label = state === 'pass' ? 'Pass' : (state === 'fail' ? 'Fail' : String(rpi + 1));
@@ -7520,12 +7643,20 @@
           });
           h += '</div>';
         }
-        h += '<div class="cwb-row">' +
-          '<button type="button" class="cwb-btn" data-act="same-set" data-si="' + si + '"' + (sets.length >= 8 ? ' disabled' : '') + '>+ Same set again</button>' +
-          '<button type="button" class="cwb-btn" data-act="del-set" data-si="' + si + '"' + (sets.length <= 1 ? ' disabled' : '') + '>Remove set</button>' +
-          '</div></div>';
+        if(menuOpen){
+          h += '<div class="cwb-setmenu">' +
+            '<div class="cwb-row"><span class="cwb-lab">Reps ' + nrep + '</span>' +
+            '<button type="button" class="cwb-btn" data-act="rep-minus" data-si="' + si + '"' + (nrep <= 1 ? ' disabled' : '') + '>&minus; Rep</button>' +
+            '<button type="button" class="cwb-btn" data-act="rep-plus" data-si="' + si + '"' + (nrep >= 10 ? ' disabled' : '') + '>+ Rep</button></div>' +
+            '<label class="cwb-lab">Rest after this set</label>' +
+            cwbRestFieldHtml(si, set && set.rest_after_sec != null ? set.rest_after_sec : null, { num: 'setRest', unit: 'setRestU', attr: 'data-si' }) +
+            '<div class="cwb-row">' +
+            '<button type="button" class="cwb-btn" data-act="same-set" data-si="' + si + '"' + (sets.length >= 8 ? ' disabled' : '') + '>Duplicate</button>' +
+            '<button type="button" class="cwb-btn" data-act="del-set" data-si="' + si + '"' + (sets.length <= 1 ? ' disabled' : '') + '>Remove</button>' +
+            '</div></div>';
+        }
       });
-      h += '<div class="cwb-row"><button type="button" class="cwb-btn" data-act="set-plus"' + (sets.length >= 8 ? ' disabled' : '') + '>+ New set</button></div>' +
+      h += '<div class="cwb-row"><button type="button" class="cwb-btn" data-act="set-plus"' + (sets.length >= 8 ? ' disabled' : '') + '>+ Set</button></div>' +
         '<textarea class="cwb-in" data-f="progression_note" placeholder="Progression note (optional)">' + escapeHtml(b.progression_note || '') + '</textarea>';
     } else if(b.shape === 'rest'){
       h += '<label class="cwb-lab">Rest (minutes)</label>' +
@@ -7591,8 +7722,11 @@
       links = '<button type="button" class="cwb-textlink" data-act="collapse-all">Collapse all</button>' +
         '<button type="button" class="cwb-textlink" data-act="expand-all">Expand all</button>';
     }
+    var jump = blocks.length >= 3
+      ? '<button type="button" class="cwb-btn cwb-add-jump" data-act="jump-add">+ Add block</button>'
+      : '';
     var h = '<div class="cwb-section-head"><div class="cwb-section-links">' + links + '</div>' +
-      '<button type="button" class="cwb-btn cwb-add-jump" data-act="jump-add">+ Add block</button></div>' +
+      jump + '</div>' +
       '<div class="cwb-list">' + blocks.map(function(b, i){ return cwbRenderBlock(b, i, blocks.length); }).join('') + '</div>' +
       (blocks.length ? '' : '<div class="form-note" style="margin:0 0 8px;">No blocks yet. Add the parts of the session below. Leave it empty to save a name and description only.</div>') +
       '<div class="cwb-menu-label">Add a block</div><div class="cwb-menu" tabindex="-1">' +
@@ -7641,7 +7775,7 @@
     } else if(act === 'add'){
       var shape = btn.getAttribute('data-shape');
       var nb;
-      if(shape === 'mental'){ nb = cwbNewBlock('section'); nb.title = 'Mental'; }
+      if(shape === 'mental'){ nb = cwbNewBlock('section'); nb.title = 'Psyche'; }
       else if(shape === 'warmup'){ nb = cwbNewBlock('check'); nb.title = 'Warm up'; }
       else if(shape === 'cooldown'){ nb = cwbNewBlock('check'); nb.title = 'Cool down'; }
       else nb = cwbNewBlock(shape);
@@ -7700,7 +7834,18 @@
     } else if(b.shape === 'rep_pass_fail'){
       var si = parseInt(btn.getAttribute('data-si'), 10);
       if(act === 'preset'){
-        if(idx >= 0) blocks[idx] = cwbHangPreset(btn.getAttribute('data-preset'), b.id);
+        var nextPreset = btn.getAttribute('data-preset');
+        var preKey = 'pre:' + b.id + ':' + nextPreset;
+        if(cwbHangDirty(b) && _cwbArm !== preKey){
+          cwbArmFor(preKey);
+        } else {
+          cwbDisarm();
+          _cwbSetMenu = null;
+          if(idx >= 0) blocks[idx] = cwbHangPreset(nextPreset, b.id);
+        }
+      } else if(act === 'set-menu' && !isNaN(si)){
+        var menuKey = b.id + ':' + si;
+        _cwbSetMenu = _cwbSetMenu === menuKey ? null : menuKey;
       } else if((act === 'set-plus' || act === 'new-set') && b.sets.length < 8){
         var lastN = (b.sets[b.sets.length - 1] && b.sets[b.sets.length - 1].reps && b.sets[b.sets.length - 1].reps.length) || 5;
         b.sets.push(cwbNewSet(lastN));
@@ -7864,6 +8009,37 @@
       if(!Array.isArray(b.items)) b.items = [];
       if(!b.items[iiIn]) b.items[iiIn] = { id: cwbUid(), text: '', complete: false };
       b.items[iiIn].text = v;
+    } else if(f === 'allReps'){
+      var nrepAll = parseInt(String(v == null ? '' : v).trim(), 10);
+      if(!isNaN(nrepAll)){
+        nrepAll = Math.max(1, Math.min(10, nrepAll));
+        (b.sets || []).forEach(function(s){
+          if(!s) return;
+          if(!Array.isArray(s.reps)) s.reps = [];
+          while(s.reps.length < nrepAll) s.reps.push({ ok: null });
+          while(s.reps.length > nrepAll) s.reps.pop();
+        });
+      }
+    } else if(f === 'allRest' || f === 'allRestU'){
+      var allRow = el.closest('.cwb-restrow');
+      var allNum = allRow && allRow.querySelector('[data-f="allRest"]');
+      var allUnit = allRow && allRow.querySelector('[data-f="allRestU"]');
+      if(allNum && allUnit){
+        var parsedAll = null;
+        if(f === 'allRestU'){
+          var prevAll = allUnit.getAttribute('data-prev') || 'sec';
+          parsedAll = cwbParseRest(allNum.value, prevAll, null);
+          if(parsedAll != null){
+            allNum.value = String(Math.round((allUnit.value === 'min' ? parsedAll / 60 : parsedAll) * 100) / 100);
+          }
+          allUnit.setAttribute('data-prev', allUnit.value);
+        } else {
+          parsedAll = cwbParseRest(allNum.value, allUnit.value, null);
+        }
+        (b.sets || []).forEach(function(s){
+          if(s) s.rest_after_sec = parsedAll == null ? null : parsedAll;
+        });
+      }
     } else if(f === 'setRest' || f === 'setRestU'){
       var setRow = (b.sets || [])[siIn];
       var setRestRow = el.closest('.cwb-restrow');
@@ -8918,7 +9094,7 @@
         '&deleted_at=is.null&order=created_at.desc'
     ).then(function(rows){
       if(document.getElementById('aw-side-assigns') !== el) return;
-      var list = Array.isArray(rows) ? rows : [];
+      var list = (Array.isArray(rows) ? rows.slice() : []).sort(compareAssignmentsNewest);
       if(!list.length){
         el.innerHTML = '<div class="aw-side-empty">No assignments yet</div>';
         return;
@@ -8932,7 +9108,7 @@
       }).join('') + (extra ? '<div class="aw-side-more">+' + extra + ' more</div>' : '');
     }).catch(function(){
       if(document.getElementById('aw-side-assigns') !== el) return;
-      el.innerHTML = '<div class="aw-side-empty">Could not load assignments</div>';
+      el.innerHTML = '<div class="aw-side-empty">No assignments yet</div>';
     });
   }
 
@@ -8979,6 +9155,21 @@
     note.className = 'assign-inline-success';
     note.textContent = text;
     el.appendChild(note);
+  }
+
+  function wizardSessionBlocks(){
+    if(!_assignWizard) return [];
+    if(_assignWizard.createMode && Array.isArray(_assignWizard.blocks) && _assignWizard.blocks.length) return _assignWizard.blocks;
+    if(Array.isArray(_assignWizard.editingShapedRaw) && _assignWizard.editingShapedRaw.length) return _assignWizard.editingShapedRaw;
+    var id = _assignWizard.customWorkoutItemId;
+    if(!id) return [];
+    var item = (_coachLibCache || []).find(function(r){ return r && r.id === id; });
+    return parseWorkoutSections(item && item.sections);
+  }
+  function wizardHasWarmupBlock(){
+    return wizardSessionBlocks().some(function(b){
+      return b && String(b.title || '').trim().toLowerCase() === 'warm up';
+    });
   }
 
   function renderAssignWizardBody(){
@@ -9247,11 +9438,11 @@
           escapeHtml(_assignWizard.drillName || '') + '"></div>' +
         (editableWorkoutForWizard()
           ? ('<div class="aw-field"><label>Workout blocks</label>' +
-              '<button type="button" class="aw-secondary-btn" id="wiz-edit-blocks">Edit workout blocks</button>' +
+              '<button type="button" class="aw-secondary-btn aw-edit-blocks" id="wiz-edit-blocks">Edit workout blocks</button>' +
               '<div class="form-note" style="margin:6px 0 0;">Changes the workout itself, so any other assignment using it changes too.</div>' +
             '</div>')
           : '') +
-        assignWizardWarmupPickerHtml();
+        (wizardHasWarmupBlock() ? '' : assignWizardWarmupPickerHtml());
       var editBlocksBtn = document.getElementById('wiz-edit-blocks');
       if(editBlocksBtn) editBlocksBtn.addEventListener('click', function(){
         var it = editableWorkoutForWizard();
@@ -9286,8 +9477,10 @@
     }
 
     setAssignWizardChrome('Due date & resource', 'Optional schedule, a link, and a note for the athlete.');
+    var reviewBlocks = coachBlockListSummary(wizardSessionBlocks());
     body.innerHTML =
       wizardPathSummaryHtml() +
+      (reviewBlocks ? '<div class="aw-block-summary">' + escapeHtml(reviewBlocks) + '</div>' : '') +
       '<div class="aw-field"><label for="new-a-due">Due date</label>' +
         '<input id="new-a-due" type="date" value="' + escapeHtml(_assignWizard.dueDate) + '"></div>' +
       '<div class="aw-field"><label for="new-a-link">Resource link</label>' +

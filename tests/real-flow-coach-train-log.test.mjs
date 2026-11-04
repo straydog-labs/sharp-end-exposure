@@ -253,8 +253,8 @@ async function run(){
           ticks: ticks,
           reps: reps,
           texts: texts,
-          grip: (document.querySelector('#ctl-cwb-root [data-f="grip"]') || {}).value || '',
-          load: (document.querySelector('#ctl-cwb-root [data-f="assistance"]') || {}).value || '',
+          grip: (document.querySelector('#ctl-cwb-root [data-f="setGrip"]') || {}).value || '',
+          load: (document.querySelector('#ctl-cwb-root [data-f="setLoad"]') || {}).value || '',
           assignShown: !!(wrap && !wrap.hidden),
           assignChecked: !!(box && box.checked)
         };
@@ -319,7 +319,7 @@ async function run(){
       assert.ok(/Open power/.test(after.journal), 'journal shows the new session without a reload');
       assert.ok(/Logged by coach/.test(after.journal), 'journal tags the coach log');
       assert.ok(/2 of 2 sent/.test(after.journal), 'EMOM summary uses sent count');
-      assert.ok(/half crimp/.test(after.journal) && /\+35 lb/.test(after.journal) && /1 set/.test(after.journal),
+      assert.ok(/half crimp/.test(after.journal) && /\+35 lb/.test(after.journal) && /1 x 3/.test(after.journal),
         'hangboard summary keeps grip/load/sets');
 
       const posts = recorded.filter(function(r){

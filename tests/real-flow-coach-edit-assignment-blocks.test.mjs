@@ -57,7 +57,7 @@ async function run(){
       await tap(page, '#wiz-edit-blocks');
       await page.waitForSelector('#cwb-root .cwb-card', { timeout: 8000 });
       assert.strictEqual(await page.locator('#cwb-root .cwb-card').count(), 2, 'both blocks load');
-      await page.locator('#cwb-root .cwb-card').nth(0).locator('[data-f="assistance"]').fill('+45 lb');
+      await page.locator('#cwb-root .cwb-card').nth(0).locator('[data-f="setLoad"]').fill('+45 lb');
       await tap(page, '#edit-cw-save');
 
       // back on Customize with the assignment title kept
@@ -65,7 +65,8 @@ async function run(){
       assert.strictEqual(await page.inputValue('#new-a-name-edit'), 'Repeaters for Jess', 'assignment title kept');
       const cwPatch = recorded.filter(function(r){ return r.method === 'PATCH' && r.url.indexOf('custom_workouts') !== -1; }).pop();
       assert.ok(cwPatch, 'workout PATCH sent');
-      assert.strictEqual(cwPatch.body.sections[0].assistance, '+45 lb');
+      assert.strictEqual(cwPatch.body.sections[0].sets[0].load, '+45 lb');
+      assert.strictEqual(cwPatch.body.sections[0].assistance, '+35 lb');
       assert.strictEqual(cwPatch.body.name, 'Repeaters', 'workout name not overwritten by assignment title');
 
       // finish the assignment edit
