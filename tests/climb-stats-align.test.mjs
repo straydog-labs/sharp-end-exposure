@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging);
-assert.ok(/var app_version = 'index321'/.test(index));
-assert.ok(/APP_VERSION = 'index321'/.test(sw));
+assert.ok(/var app_version = 'index322'/.test(index));
+assert.ok(/APP_VERSION = 'index322'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');

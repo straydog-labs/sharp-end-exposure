@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index321'/.test(index));
-assert.ok(/APP_VERSION = 'index321'/.test(sw));
+assert.ok(/var app_version = 'index322'/.test(index));
+assert.ok(/APP_VERSION = 'index322'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -51,6 +51,13 @@ assert.ok(home.indexOf('id="home-action-row"') < home.indexOf('id="home-welcome-
 assert.ok(home.indexOf('id="home-welcome-hint"') < home.indexOf('id="home-projects-wrap"'));
 assert.ok(home.indexOf('id="home-projects-wrap"') < home.indexOf('id="home-recent-wrap"'), 'H3 last session before week card');
 assert.ok(home.indexOf('id="home-recent-wrap"') < home.indexOf('id="home-streak-band"'), 'H3 week card after last session');
+assert.ok(home.indexOf('id="home-today-card"') < home.indexOf('id="home-card-research"'), 'research is below the prompt card');
+assert.ok(home.indexOf('id="home-action-row"') < home.indexOf('id="home-card-research"'), 'research is below the action row');
+assert.ok(home.indexOf('id="home-recent-wrap"') < home.indexOf('id="home-card-research"'), 'research is after last-session');
+assert.ok(home.indexOf('id="home-streak-band"') < home.indexOf('id="home-card-research"'), 'research is after the week card');
+assert.ok(/id="home-card-research"/.test(home));
+assert.ok(/The science behind SEE/.test(home));
+assert.ok(!/id="home-more-hidden"/.test(home));
 assert.ok(/id="home-today-log-attempt"/.test(home));
 assert.ok(/launchHomeProjectLog/.test(home));
 assert.ok(/onclick="showClimbTable\(\)"/.test(home));
