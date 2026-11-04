@@ -13,8 +13,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index321'/.test(index));
-assert.ok(/APP_VERSION = 'index321'/.test(sw));
+assert.ok(/var app_version = 'index322'/.test(index));
+assert.ok(/APP_VERSION = 'index322'/.test(sw));
 
 // Optional screenshot output (outside the repo). Unset in CI.
 const SHOT_OUT = process.env.SEE_SHOT_OUT || '';

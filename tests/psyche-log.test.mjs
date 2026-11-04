@@ -10,8 +10,8 @@ const sw = readFileSync(join(__dirname, '../sw.js'), 'utf8');
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index321'/.test(index));
-assert.ok(/APP_VERSION = 'index321'/.test(sw));
+assert.ok(/var app_version = 'index322'/.test(index));
+assert.ok(/APP_VERSION = 'index322'/.test(sw));
 
 assert.ok(/function startPrepare\(/.test(index));
 assert.ok(/function startPrepareClimb\(/.test(index));
@@ -46,6 +46,8 @@ assert.ok(/'screen-psyche-talk':'fnav-mental'/.test(index));
 
 assert.ok(/Log a practice to see your mix/.test(index));
 assert.ok(/total === 0/.test(index));
+assert.ok(/Math\.max\(max,\s*4\)/.test(index));
+assert.ok(!/Math\.max\(0\.06/.test(index.slice(index.indexOf('function buildPsycheRadar'), index.indexOf('function psycheDrillLabel'))));
 assert.ok(/id="psyche-hub-card-exposure"/.test(index));
 assert.ok(/id="psyche-card-checkin"/.test(index));
 assert.ok(/onclick="startPrepare\(\)"/.test(index.match(/id="psyche-card-checkin"[\s\S]{0,400}/)[0]));
