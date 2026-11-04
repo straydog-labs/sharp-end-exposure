@@ -1024,6 +1024,28 @@
   .cwb-reps{display:flex;flex-wrap:wrap;gap:6px;}
   .cwb-setlab{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);}
   .journal-block-line{font-size:13px;color:var(--text);margin-top:4px;}
+  .journal-show-blocks{margin-top:8px;}
+  .journal-block-detail,.assign-session-detail{margin-top:8px;}
+  .journal-from-asg{font-size:12px;font-weight:700;color:var(--accent);margin-top:6px;}
+  .assign-logged{font-size:13px;margin-top:8px;color:var(--text);}
+  .assign-logged-more{color:var(--text-secondary);margin-left:6px;}
+  .clog-h{font-weight:700;font-size:13px;margin-top:8px;}
+  .clog-sub{font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:6px;}
+  .clog-item,.clog-note,.clog-rest,.clog-line{font-size:13px;margin-top:2px;}
+  .clog-rep{display:inline-block;font-size:11px;font-weight:700;margin:2px 4px 0 0;text-transform:uppercase;}
+  .clog-rep.is-pass{color:var(--comfort);}
+  .clog-rep.is-fail{color:var(--panic);}
+  .clog-rep.is-untested{color:var(--text-secondary);}
+  .cwb-menu.cwb-menu-flash{
+    outline:2px solid var(--accent);outline-offset:4px;border-radius:12px;
+    box-shadow:0 0 0 6px rgba(232,146,82,.28);
+  }
+  .cwb-presets{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+  .cwb-presets .cwb-btn.is-on{border-color:var(--accent);color:var(--accent);}
+  .cwb-onoff{display:flex;gap:12px;margin:8px 0;}
+  .cwb-onoff label{display:flex;flex-direction:column;gap:4px;}
+  .cwb-onoff input{width:88px;}
+  .cwb-set{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);}
   .clog-gauge{margin:16px 0 18px;}
   .clog-gauge-wrap{max-width:360px;margin:0 auto;position:relative;user-select:none;}
   .clog-gauge-readout{min-height:72px;}
@@ -1201,9 +1223,19 @@
   .aw-field textarea{resize:vertical;min-height:140px;line-height:1.5;}
   .aw-lib-results{
     max-height:min(42vh,320px);overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;
+    scrollbar-width:thin;scrollbar-color:var(--border) var(--bg);
   }
   .aw-pinned-block{margin-bottom:12px;}
-  .aw-pinned-list{display:flex;flex-direction:column;gap:8px;max-height:min(28vh,220px);overflow-y:auto;}
+  .aw-pinned-list{
+    display:flex;flex-direction:column;gap:8px;max-height:min(28vh,220px);overflow-y:auto;
+    scrollbar-width:thin;scrollbar-color:var(--border) var(--bg);
+  }
+  .aw-lib-results::-webkit-scrollbar,
+  .aw-pinned-list::-webkit-scrollbar{width:8px;height:8px;}
+  .aw-lib-results::-webkit-scrollbar-track,
+  .aw-pinned-list::-webkit-scrollbar-track{background:var(--bg);}
+  .aw-lib-results::-webkit-scrollbar-thumb,
+  .aw-pinned-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;}
   .aw-lib-row{display:flex;flex-direction:column;gap:2px;}
   .aw-lib-row-actions{
     display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:0 2px 8px;
@@ -1985,6 +2017,7 @@
       assignmentWarmupTagHtml(a) +
       (a.description ? assignmentDescriptionHtml(a.description) : '') +
       assignResourceHtml(a) +
+      assignmentLoggedHtml(a) +
       '<div class="assign-meta">' +
         '<div class="assign-dates">' +
           '<span class="assign-due">Assigned ' + fmtDate(a.created_at) + '</span>' +
@@ -6023,6 +6056,59 @@
   }
 
   var _lastCoachAssignments = [];
+  var _assignmentSessionMap = {};
+  var _journalReady = false;
+
+  function assignmentLoggedHtml(a){
+    var rows = (_assignmentSessionMap && a && _assignmentSessionMap[String(a.id)]) || [];
+    if(!rows.length) return '';
+    var latest = rows[0];
+    var when = fmtDate(latest.started_at || latest.ended_at);
+    var more = rows.length > 1
+      ? ' <span class="assign-logged-more">+' + (rows.length - 1) + ' more</span>'
+      : '';
+    var sid = escapeHtml(latest.id);
+    var detail = '';
+    try{ detail = coachLoggedBlocksHtml(latest.blocks); }
+    catch(err){ detail = '<div class="clog-line">kept as logged</div>'; }
+    return '<div class="assign-logged">Logged ' + escapeHtml(when) + more +
+      ' <button type="button" class="cwb-textlink" data-show-session="' + sid + '">Show session</button></div>' +
+      '<div class="assign-session-detail" hidden data-session-panel="' + sid + '">' + detail + '</div>';
+  }
+
+  function loadAssignmentSessions(token, assignments){
+    var ids = (assignments || []).map(function(a){ return a && a.id; }).filter(Boolean);
+    if(!ids.length){
+      _assignmentSessionMap = {};
+      return Promise.resolve();
+    }
+    var q = 'select=id,assignment_id,started_at,ended_at,blocks,notes' +
+      '&assignment_id=in.(' + ids.join(',') + ')' +
+      '&deleted_at=is.null';
+    return sbSelect(token, 'training_sessions', q).then(function(rows){
+      var map = {};
+      (Array.isArray(rows) ? rows : []).forEach(function(s){
+        if(!s || !s.assignment_id) return;
+        var k = String(s.assignment_id);
+        if(!map[k]) map[k] = [];
+        map[k].push(s);
+      });
+      Object.keys(map).forEach(function(k){
+        map[k].sort(function(a, b){
+          return new Date(b.started_at || b.ended_at || 0) - new Date(a.started_at || a.ended_at || 0);
+        });
+      });
+      _assignmentSessionMap = map;
+    }).catch(function(){
+      _assignmentSessionMap = {};
+    });
+  }
+
+  function refreshJournalFromAssignments(){
+    if(!_journalReady || !_journalCtx) return;
+    var journal = document.getElementById('detail-sessions');
+    if(journal) renderJournalFeed(journal);
+  }
 
   function loadAssignments(token, coachUser, athleteId){
     var el = document.getElementById('detail-assignments');
@@ -6030,6 +6116,7 @@
     sbSelect(token, 'assignments', 'select=*&athlete_id=eq.' + athleteId + '&coach_id=eq.' + coachUser.id + '&deleted_at=is.null&order=due_date.asc.nullslast')
       .then(function(rows){
         _lastCoachAssignments = Array.isArray(rows) ? rows : [];
+        _assignmentSessionMap = {};
         paintAthleteHubBadges();
         if(_detailCtx){
           paintAthleteProjects(_athleteProjectClimbsCache, _athleteInsightCache[_detailCtx.athleteId] || []);
@@ -6045,6 +6132,12 @@
         }
         paintAssignmentList();
         paintCtlAssignmentOptions();
+        loadAssignmentSessions(token, _lastCoachAssignments).then(function(){
+          if(document.getElementById('detail-assignments') === el && _lastCoachAssignments.length){
+            paintAssignmentList();
+          }
+          refreshJournalFromAssignments();
+        });
         if(!_coachLibCache.length){
           loadCoachWorkoutLibrary(token).then(function(libRows){
             _coachLibCache = Array.isArray(libRows) ? libRows : [];
@@ -6057,6 +6150,7 @@
       })
       .catch(function(err){
         _lastCoachAssignments = [];
+        _assignmentSessionMap = {};
         paintAthleteHubBadges();
         el.innerHTML = '<div class="panel-title">Assignments</div><div class="form-error">Could not load assignments. ' +
           escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';
@@ -6405,6 +6499,15 @@
         startAssignWizardFromAssignment(src, 'repeat');
       });
     });
+    Array.prototype.forEach.call(rootEl.querySelectorAll('[data-show-session]'), function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-show-session');
+        var panel = rootEl.querySelector('[data-session-panel="' + id + '"]');
+        if(!panel) return;
+        panel.hidden = !panel.hidden;
+        btn.textContent = panel.hidden ? 'Show session' : 'Hide session';
+      });
+    });
     Array.prototype.forEach.call(rootEl.querySelectorAll('.assign-delete-btn'), function(btn){
       btn.addEventListener('click', function(){
         var id = btn.getAttribute('data-id');
@@ -6690,6 +6793,42 @@
     return String(shape || 'Block').replace(/_/g, ' ');
   }
 
+  function coachEffGrip(block, set){
+    var g = set && set.grip != null ? String(set.grip).trim() : '';
+    if(g) return g;
+    return block && block.grip != null ? String(block.grip).trim() : '';
+  }
+  function coachEffLoad(block, set){
+    var l = set && set.load != null ? String(set.load).trim() : '';
+    if(l) return l;
+    return block && block.assistance != null ? String(block.assistance).trim() : '';
+  }
+  function coachHangHasOwn(b){
+    return !!((b && b.sets) || []).some(function(s){
+      if(!s) return false;
+      return (s.grip != null && String(s.grip).trim()) || (s.load != null && String(s.load).trim());
+    });
+  }
+  function coachHangGroupText(b){
+    var sets = Array.isArray(b && b.sets) ? b.sets : [];
+    var groups = [];
+    sets.forEach(function(s){
+      var grip = coachEffGrip(b, s);
+      var load = coachEffLoad(b, s);
+      var reps = Array.isArray(s && s.reps) ? s.reps.length : 0;
+      var key = grip.toLowerCase() + '\0' + load + '\0' + reps;
+      var last = groups[groups.length - 1];
+      if(last && last.key === key) last.n += 1;
+      else groups.push({ key: key, grip: grip, load: load, reps: reps, n: 1 });
+    });
+    return groups.map(function(g){
+      var head = g.grip ? g.grip.toLowerCase() : '';
+      if(g.load) head = head ? (head + ' ' + g.load) : g.load;
+      var tail = g.n + ' x ' + g.reps;
+      return head ? (head + ' · ' + tail) : tail;
+    }).join(' | ');
+  }
+
   function shapedBlockSummary(b){
     if(!b) return '';
     var out = '';
@@ -6702,12 +6841,38 @@
       var names = (b.exercises || []).map(function(ex){ return ex && ex.name ? String(ex.name).trim() : ''; }).filter(Boolean);
       out = (Number(b.rounds) || 0) + ' rounds' + (names.length ? ' · ' + names.slice(0, 3).join(', ') : '');
     } else if(b.shape === 'rep_pass_fail'){
-      var bits = [];
-      if(b.grip && String(b.grip).trim()) bits.push(String(b.grip).trim());
-      if(b.assistance && String(b.assistance).trim()) bits.push(String(b.assistance).trim());
-      var n = Array.isArray(b.sets) && b.sets.length ? b.sets.length : 1;
-      bits.push(n + (n === 1 ? ' set' : ' sets'));
-      out = bits.join(' · ');
+      var ownGrip = !!((b.sets) || []).some(function(s){
+        if(!s) return false;
+        return (s.grip != null && String(s.grip).trim()) || (s.load != null && String(s.load).trim());
+      });
+      if(ownGrip){
+        var groups = [];
+        (b.sets || []).forEach(function(s){
+          var grip = (s && s.grip != null && String(s.grip).trim()) ? String(s.grip).trim() : String((b.grip || '')).trim();
+          var load = (s && s.load != null && String(s.load).trim()) ? String(s.load).trim() : String((b.assistance || '')).trim();
+          var reps = Array.isArray(s && s.reps) ? s.reps.length : 0;
+          var key = grip.toLowerCase() + '\0' + load + '\0' + reps;
+          var last = groups[groups.length - 1];
+          if(last && last.key === key) last.n += 1;
+          else groups.push({ key: key, grip: grip, load: load, reps: reps, n: 1 });
+        });
+        out = groups.map(function(g){
+          var head = g.grip ? g.grip.toLowerCase() : '';
+          if(g.load) head = head ? (head + ' ' + g.load) : g.load;
+          var tail = g.n + ' x ' + g.reps;
+          return head ? (head + ' · ' + tail) : tail;
+        }).join(' | ');
+      } else {
+        var bits = [];
+        if(b.grip && String(b.grip).trim()) bits.push(String(b.grip).trim());
+        if(b.assistance && String(b.assistance).trim()) bits.push(String(b.assistance).trim());
+        var n = Array.isArray(b.sets) && b.sets.length ? b.sets.length : 1;
+        bits.push(n + (n === 1 ? ' set' : ' sets'));
+        out = bits.join(' · ');
+      }
+    } else if(b.shape === 'check'){
+      var ni = Array.isArray(b.items) ? b.items.length : 0;
+      out = ni + ' item' + (ni === 1 ? '' : 's');
     } else if(b.shape === 'rest'){
       var secs = Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 0;
       out = Math.round(secs / 6) / 10 + ' min';
@@ -6971,16 +7136,19 @@
   var _cwbStore = null;
   var _cwbLocked = false;
   var CWB_MENU = [
+    { shape: 'warmup', label: 'Warm up' },
     { shape: 'emom', label: 'Climbing (EMOM)' },
     { shape: 'circuit', label: 'Strength' },
     { shape: 'rep_pass_fail', label: 'Hangboard / repeaters' },
     { shape: 'mental', label: 'Mental' },
     { shape: 'rest', label: 'Rest' },
-    { shape: 'section', label: 'Custom' }
+    { shape: 'section', label: 'Custom' },
+    { shape: 'cooldown', label: 'Cool down' }
   ];
   var _cwbCollapsed = {};
   var _cwbArm = null;
   var _cwbArmTimer = null;
+  var _cwbMenuFlashTimer = null;
 
   function cwbUid(){
     return 'cwb' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -7008,6 +7176,8 @@
     } else if(b.shape === 'circuit' && Array.isArray(b.round_complete)){
       var i;
       for(i = 0; i < b.round_complete.length; i++) b.round_complete[i] = on;
+    } else if(b.shape === 'check' && Array.isArray(b.items)){
+      b.items.forEach(function(it){ if(it) it.complete = on; });
     }
   }
   function cwbClamp(v, lo, hi, dflt){
@@ -7040,6 +7210,9 @@
       b.grip = ''; b.assistance = '';
       b.sets = [cwbNewSet(5)];
       b.progression_note = '';
+    } else if(shape === 'check'){
+      b.notes = '';
+      b.items = [{ id: cwbUid(), text: '', complete: false }];
     } else if(shape === 'rest'){
       b.title = 'Rest'; b.notes = ''; b.duration_sec = 600; b.rest_after_sec = 600;
     } else {
@@ -7052,6 +7225,94 @@
     for(var i = 0; i < n; i++) reps.push({ ok: null });
     return { reps: reps };
   }
+  function cwbBlankReps(n){
+    var reps = [];
+    var i;
+    for(i = 0; i < n; i++) reps.push({ ok: null });
+    return reps;
+  }
+  function cwbCopySet(set){
+    var n = (set && set.reps && set.reps.length) || 1;
+    var copy = { reps: cwbBlankReps(n) };
+    if(set && Object.prototype.hasOwnProperty.call(set, 'grip')) copy.grip = set.grip;
+    if(set && Object.prototype.hasOwnProperty.call(set, 'load')) copy.load = set.load;
+    if(set && set.rest_after_sec != null && set.rest_after_sec !== '') copy.rest_after_sec = set.rest_after_sec;
+    return copy;
+  }
+  function cwbHangSet(grip, load, rest, n){
+    return { grip: grip, load: load, rest_after_sec: rest, reps: cwbBlankReps(n) };
+  }
+  function cwbHangPreset(preset, id){
+    if(preset === 'repeaters_2_grips'){
+      return {
+        id: id,
+        shape: 'rep_pass_fail',
+        title: 'Hangboard repeaters',
+        grip: '',
+        assistance: '',
+        progression_note: '',
+        on_sec: 7,
+        off_sec: 3,
+        preset: 'repeaters_2_grips',
+        complete: false,
+        attempts: [],
+        sets: [
+          cwbHangSet('Half crimp', '', 180, 6),
+          cwbHangSet('Half crimp', '', 180, 6),
+          cwbHangSet('Half crimp', '', 180, 6),
+          cwbHangSet('3-finger drag', '', 180, 6),
+          cwbHangSet('3-finger drag', '', 180, 6),
+          cwbHangSet('3-finger drag', '', 180, 6)
+        ]
+      };
+    }
+    if(preset === 'repeaters'){
+      return {
+        id: id,
+        shape: 'rep_pass_fail',
+        title: 'Hangboard repeaters',
+        grip: '',
+        assistance: '',
+        progression_note: '',
+        on_sec: 7,
+        off_sec: 3,
+        preset: 'repeaters',
+        complete: false,
+        attempts: [],
+        sets: [
+          cwbHangSet('Half crimp', '', 180, 6),
+          cwbHangSet('Half crimp', '', 180, 6),
+          cwbHangSet('Half crimp', '', 180, 6)
+        ]
+      };
+    }
+    if(preset === 'max_hang'){
+      return {
+        id: id,
+        shape: 'rep_pass_fail',
+        title: 'Max hang',
+        grip: '',
+        assistance: '',
+        progression_note: '',
+        on_sec: 10,
+        off_sec: null,
+        preset: 'max_hang',
+        complete: false,
+        attempts: [],
+        sets: [
+          cwbHangSet('', '', 180, 5),
+          cwbHangSet('', '', 180, 5),
+          cwbHangSet('', '', 180, 5)
+        ]
+      };
+    }
+    var b = cwbNewBlock('rep_pass_fail');
+    b.id = id;
+    b.preset = 'custom';
+    b.on_sec = null;
+    b.off_sec = null;
+    return b;
+  }
   function cwbFind(id){
     var arr = cwbBlocks();
     for(var i = 0; i < arr.length; i++) if(arr[i] && arr[i].id === id) return arr[i];
@@ -7059,6 +7320,7 @@
   }
   function cwbLabel(b){
     if(b.shape === 'section' && String(b.title || '').trim() === 'Mental') return 'Mental';
+    if(b.shape === 'check' && String(b.title || '').trim()) return String(b.title).trim();
     return shapedBlockName({ shape: b.shape });
   }
   function cwbEnsureIds(blocks){
@@ -7068,6 +7330,7 @@
       if(b.shape === 'emom') (b.rounds || []).forEach(function(r){
         (r.boulders || []).forEach(function(bo){ if(bo && !bo.id) bo.id = cwbUid(); });
       });
+      if(b.shape === 'check') (b.items || []).forEach(function(it){ if(it && !it.id) it.id = cwbUid(); });
     });
     return blocks;
   }
@@ -7097,20 +7360,41 @@
       } else if(b.shape === 'rep_pass_fail'){
         b.grip = String(b.grip || '').trim();
         b.assistance = String(b.assistance || '').trim();
+        if(b.progression_note != null) b.progression_note = String(b.progression_note).trim();
+        if(Array.isArray(b.sets)){
+          b.sets.forEach(function(s){
+            if(!s) return;
+            if(Object.prototype.hasOwnProperty.call(s, 'grip')) s.grip = String(s.grip || '').trim();
+            if(Object.prototype.hasOwnProperty.call(s, 'load')) s.load = String(s.load || '').trim();
+          });
+        }
+      } else if(b.shape === 'check'){
+        if(Array.isArray(b.items)){
+          b.items.forEach(function(it){
+            if(!it) return;
+            it.text = String(it.text || '').trim();
+            it.complete = !!it.complete;
+          });
+        }
       }
     });
     return out;
   }
 
   // Rest as number + sec/min menu; typed "10 min", "90 sec", "1:30" also work.
-  function cwbRestFieldHtml(ri, secs){
+  function cwbRestFieldHtml(ri, secs, field){
+    field = field || {};
+    var fNum = field.num || 'roundRest';
+    var fUnit = field.unit || 'roundRestU';
+    var attr = field.attr || 'data-ri';
+    var blank = secs == null || secs === '';
     var s = Number(secs);
-    if(isNaN(s) || s < 0) s = 0;
-    var unit = (s >= 60 && s % 60 === 0) ? 'min' : 'sec';
-    var val = unit === 'min' ? s / 60 : s;
+    if(blank || isNaN(s) || s < 0) s = 0;
+    var unit = (!blank && s >= 60 && s % 60 === 0) ? 'min' : 'sec';
+    var val = blank ? '' : (unit === 'min' ? s / 60 : s);
     return '<div class="cwb-restrow">' +
-      '<input class="cwb-in cwb-num" inputmode="decimal" data-f="roundRest" data-ri="' + ri + '" value="' + escapeHtml(String(val)) + '">' +
-      '<select class="cwb-in cwb-unit" data-f="roundRestU" data-ri="' + ri + '" data-prev="' + unit + '" aria-label="Rest unit">' +
+      '<input class="cwb-in cwb-num" inputmode="decimal" data-f="' + fNum + '" ' + attr + '="' + ri + '" value="' + escapeHtml(String(val)) + '">' +
+      '<select class="cwb-in cwb-unit" data-f="' + fUnit + '" ' + attr + '="' + ri + '" data-prev="' + unit + '" aria-label="Rest unit">' +
       '<option value="sec"' + (unit === 'sec' ? ' selected' : '') + '>sec</option>' +
       '<option value="min"' + (unit === 'min' ? ' selected' : '') + '>min</option></select></div>';
   }
@@ -7198,33 +7482,65 @@
         '<input class="cwb-in cwb-num" type="number" min="1" max="10" data-f="rounds" value="' + escapeHtml(String(b.rounds == null ? 3 : b.rounds)) + '">' +
         '<textarea class="cwb-in" data-f="notes" placeholder="Notes (optional)">' + escapeHtml(b.notes || '') + '</textarea>';
     } else if(b.shape === 'rep_pass_fail'){
-      var nsets = (b.sets || []).length || 1;
-      var nreps = ((b.sets && b.sets[0] && b.sets[0].reps) || []).length || 5;
-      h += '<input class="cwb-in" data-f="grip" placeholder="Grip (e.g. half crimp)" value="' + escapeHtml(b.grip || '') + '">' +
-        '<input class="cwb-in" data-f="assistance" placeholder="Load (+/-), e.g. +35 lb" value="' + escapeHtml(b.assistance || '') + '">' +
-        '<div class="cwb-row"><span class="cwb-lab">Sets ' + nsets + '</span>' +
-        '<button type="button" class="cwb-btn" data-act="set-minus"' + (nsets <= 1 ? ' disabled' : '') + '>&minus; Set</button>' +
-        '<button type="button" class="cwb-btn" data-act="set-plus"' + (nsets >= 6 ? ' disabled' : '') + '>+ Set</button></div>' +
-        '<div class="cwb-row"><span class="cwb-lab">Reps per set ' + nreps + '</span>' +
-        '<button type="button" class="cwb-btn" data-act="rep-minus"' + (nreps <= 1 ? ' disabled' : '') + '>&minus; Rep</button>' +
-        '<button type="button" class="cwb-btn" data-act="rep-plus"' + (nreps >= 10 ? ' disabled' : '') + '>+ Rep</button></div>';
-      if(_cwbLogMode){
-        (b.sets || []).forEach(function(set, si){
-          h += '<div class="cwb-setlab">Set ' + (si + 1) + '</div><div class="cwb-reps">';
-          ((set && set.reps) || []).forEach(function(rp, rpi){
+      var preset = b.preset || '';
+      var sets = (b.sets && b.sets.length) ? b.sets : [cwbNewSet(5)];
+      h += '<div class="cwb-presets" role="group" aria-label="Hangboard preset">' +
+        '<button type="button" class="cwb-btn' + (preset === 'repeaters' ? ' is-on' : '') + '" data-act="preset" data-preset="repeaters">Repeaters</button>' +
+        '<button type="button" class="cwb-btn' + (preset === 'repeaters_2_grips' ? ' is-on' : '') + '" data-act="preset" data-preset="repeaters_2_grips">Repeaters - 2 grips</button>' +
+        '<button type="button" class="cwb-btn' + (preset === 'max_hang' ? ' is-on' : '') + '" data-act="preset" data-preset="max_hang">Max hang</button>' +
+        '<button type="button" class="cwb-btn' + (preset === 'custom' || !preset ? ' is-on' : '') + '" data-act="preset" data-preset="custom">Custom</button>' +
+        '</div>' +
+        '<div class="cwb-onoff">' +
+          '<label class="cwb-lab">On (sec)<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="on_sec" value="' + (b.on_sec == null || b.on_sec === '' ? '' : escapeHtml(String(b.on_sec))) + '"></label>' +
+          '<label class="cwb-lab">Off (sec)<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="off_sec" value="' + (b.off_sec == null || b.off_sec === '' ? '' : escapeHtml(String(b.off_sec))) + '"></label>' +
+        '</div>' +
+        '<label class="cwb-lab">Grip</label>' +
+        '<input class="cwb-in" data-f="grip" placeholder="e.g. half crimp" value="' + escapeHtml(b.grip || '') + '">' +
+        '<label class="cwb-lab">Load or assistance</label>' +
+        '<input class="cwb-in" data-f="assistance" placeholder="e.g. 35 lb assist or +20 lb" value="' + escapeHtml(b.assistance || '') + '">';
+      sets.forEach(function(set, si){
+        var reps = (set && set.reps) || [];
+        var nrep = reps.length || 1;
+        h += '<div class="cwb-set"><div class="cwb-sub">Set ' + (si + 1) + '</div>' +
+          '<label class="cwb-lab">Grip</label>' +
+          '<input class="cwb-in" data-f="setGrip" data-si="' + si + '" placeholder="e.g. half crimp" value="' + escapeHtml((set && set.grip) || '') + '">' +
+          '<label class="cwb-lab">Load or assistance</label>' +
+          '<input class="cwb-in" data-f="setLoad" data-si="' + si + '" placeholder="e.g. 35 lb assist or +20 lb" value="' + escapeHtml((set && set.load) || '') + '">' +
+          '<div class="cwb-row"><span class="cwb-lab">Reps ' + nrep + '</span>' +
+          '<button type="button" class="cwb-btn" data-act="rep-minus" data-si="' + si + '"' + (nrep <= 1 ? ' disabled' : '') + '>&minus; Rep</button>' +
+          '<button type="button" class="cwb-btn" data-act="rep-plus" data-si="' + si + '"' + (nrep >= 10 ? ' disabled' : '') + '>+ Rep</button></div>' +
+          '<label class="cwb-lab">Rest after set</label>' +
+          cwbRestFieldHtml(si, set && set.rest_after_sec != null ? set.rest_after_sec : null, { num: 'setRest', unit: 'setRestU', attr: 'data-si' });
+        if(_cwbLogMode){
+          h += '<div class="cwb-reps">';
+          reps.forEach(function(rp, rpi){
             var state = rp && rp.ok === true ? 'pass' : (rp && rp.ok === false ? 'fail' : 'untested');
             var label = state === 'pass' ? 'Pass' : (state === 'fail' ? 'Fail' : String(rpi + 1));
             h += '<button type="button" class="cwb-rep is-' + state + '" data-act="cycle-rep" data-si="' + si + '" data-ri="' + rpi + '" aria-label="Rep ' + (rpi + 1) + ' ' + state + '">' + label + '</button>';
           });
           h += '</div>';
-        });
-      }
-      h += '<textarea class="cwb-in" data-f="progression_note" placeholder="Progression note (optional)">' + escapeHtml(b.progression_note || '') + '</textarea>';
+        }
+        h += '<div class="cwb-row">' +
+          '<button type="button" class="cwb-btn" data-act="same-set" data-si="' + si + '"' + (sets.length >= 8 ? ' disabled' : '') + '>+ Same set again</button>' +
+          '<button type="button" class="cwb-btn" data-act="del-set" data-si="' + si + '"' + (sets.length <= 1 ? ' disabled' : '') + '>Remove set</button>' +
+          '</div></div>';
+      });
+      h += '<div class="cwb-row"><button type="button" class="cwb-btn" data-act="set-plus"' + (sets.length >= 8 ? ' disabled' : '') + '>+ New set</button></div>' +
+        '<textarea class="cwb-in" data-f="progression_note" placeholder="Progression note (optional)">' + escapeHtml(b.progression_note || '') + '</textarea>';
     } else if(b.shape === 'rest'){
       h += '<label class="cwb-lab">Rest (minutes)</label>' +
         '<input class="cwb-in cwb-num" type="number" min="1" max="60" data-f="restMin" value="' + escapeHtml(String(Math.round((Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 600) / 60))) + '">';
     } else if(b.shape === 'section'){
       h += '<textarea class="cwb-in" data-f="notes" placeholder="' + (isMental ? 'Mental focus, cues, prompts' : 'Notes') + '">' + escapeHtml(b.notes || '') + '</textarea>';
+    } else if(b.shape === 'check'){
+      var items = (b.items && b.items.length) ? b.items : [{ id: '', text: '', complete: false }];
+      items.forEach(function(it, ii){
+        h += '<div class="cwb-item-row">' +
+          '<input class="cwb-in" data-f="item" data-ii="' + ii + '" placeholder="Item" value="' + escapeHtml((it && it.text) || '') + '">' +
+          '<button type="button" class="cwb-btn" data-act="del-item" data-ii="' + ii + '"' + (items.length <= 1 ? ' disabled' : '') + '>Remove item</button>' +
+          '</div>';
+      });
+      h += '<div class="cwb-row"><button type="button" class="cwb-btn" data-act="add-item">+ Item</button></div>';
     } else {
       h += '<div class="cwb-sum">This block type is kept exactly as built.</div>';
     }
@@ -7246,10 +7562,24 @@
     if(!root) return;
     var menu = root.querySelector('.cwb-menu');
     if(!menu) return;
-    menu.scrollIntoView({ block: 'center', inline: 'nearest' });
+    var scroller = root.closest('#coach-train-log-overlay, #assign-wizard-overlay');
+    if(scroller && menu.getBoundingClientRect){
+      var m = menu.getBoundingClientRect();
+      var s = scroller.getBoundingClientRect();
+      var viewH = s.height || window.innerHeight;
+      var delta = (m.top + m.height / 2) - (s.top + viewH / 2);
+      scroller.scrollTop = scroller.scrollTop + delta;
+    }
+    if(menu.scrollIntoView) menu.scrollIntoView({ block: 'center', inline: 'nearest' });
+    menu.classList.add('cwb-menu-flash');
+    if(_cwbMenuFlashTimer) clearTimeout(_cwbMenuFlashTimer);
+    var flashed = menu;
+    _cwbMenuFlashTimer = setTimeout(function(){
+      if(flashed && flashed.classList) flashed.classList.remove('cwb-menu-flash');
+    }, 1600);
     var chip = menu.querySelector('.cwb-chip');
-    if(chip) chip.focus();
-    else menu.focus();
+    if(chip && chip.focus) chip.focus({ preventScroll: true });
+    else if(menu.focus) menu.focus({ preventScroll: true });
   }
 
   function renderCwb(){
@@ -7312,6 +7642,8 @@
       var shape = btn.getAttribute('data-shape');
       var nb;
       if(shape === 'mental'){ nb = cwbNewBlock('section'); nb.title = 'Mental'; }
+      else if(shape === 'warmup'){ nb = cwbNewBlock('check'); nb.title = 'Warm up'; }
+      else if(shape === 'cooldown'){ nb = cwbNewBlock('check'); nb.title = 'Cool down'; }
       else nb = cwbNewBlock(shape);
       blocks.push(nb);
     } else if(!b){
@@ -7357,12 +7689,38 @@
     } else if(b.shape === 'circuit'){
       if(act === 'add-ex'){ b.exercises.push({ name: '', weight: '', reps: '' }); }
       else if(act === 'del-ex' && b.exercises.length > 1){ b.exercises.pop(); }
+    } else if(b.shape === 'check'){
+      if(act === 'add-item'){
+        if(!Array.isArray(b.items)) b.items = [];
+        b.items.push({ id: cwbUid(), text: '', complete: false });
+      } else if(act === 'del-item'){
+        var ii = parseInt(btn.getAttribute('data-ii'), 10);
+        if(Array.isArray(b.items) && b.items.length > 1 && !isNaN(ii)) b.items.splice(ii, 1);
+      }
     } else if(b.shape === 'rep_pass_fail'){
-      var nreps = ((b.sets && b.sets[0] && b.sets[0].reps) || []).length || 5;
-      if(act === 'set-plus' && b.sets.length < 6){ b.sets.push(cwbNewSet(nreps)); }
-      else if(act === 'set-minus' && b.sets.length > 1){ b.sets.pop(); }
-      else if(act === 'rep-plus' && nreps < 10){ b.sets.forEach(function(s){ s.reps.push({ ok: null }); }); }
-      else if(act === 'rep-minus' && nreps > 1){ b.sets.forEach(function(s){ s.reps.pop(); }); }
+      var si = parseInt(btn.getAttribute('data-si'), 10);
+      if(act === 'preset'){
+        if(idx >= 0) blocks[idx] = cwbHangPreset(btn.getAttribute('data-preset'), b.id);
+      } else if((act === 'set-plus' || act === 'new-set') && b.sets.length < 8){
+        var lastN = (b.sets[b.sets.length - 1] && b.sets[b.sets.length - 1].reps && b.sets[b.sets.length - 1].reps.length) || 5;
+        b.sets.push(cwbNewSet(lastN));
+      } else if(act === 'set-minus' && b.sets.length > 1){
+        b.sets.pop();
+      } else if(act === 'rep-plus' && !isNaN(si) && b.sets[si] && b.sets[si].reps.length < 10){
+        b.sets[si].reps.push({ ok: null });
+      } else if(act === 'rep-minus' && !isNaN(si) && b.sets[si] && b.sets[si].reps.length > 1){
+        b.sets[si].reps.pop();
+      } else if(act === 'rep-plus' && isNaN(si)){
+        var nreps = ((b.sets && b.sets[0] && b.sets[0].reps) || []).length || 5;
+        if(nreps < 10) b.sets.forEach(function(s){ if(s && s.reps) s.reps.push({ ok: null }); });
+      } else if(act === 'rep-minus' && isNaN(si)){
+        var nreps2 = ((b.sets && b.sets[0] && b.sets[0].reps) || []).length || 5;
+        if(nreps2 > 1) b.sets.forEach(function(s){ if(s && s.reps && s.reps.length > 1) s.reps.pop(); });
+      } else if(act === 'same-set' && !isNaN(si) && b.sets[si] && b.sets.length < 8){
+        b.sets.splice(si + 1, 0, cwbCopySet(b.sets[si]));
+      } else if(act === 'del-set' && !isNaN(si) && b.sets.length > 1){
+        b.sets.splice(si, 1);
+      }
     }
     renderCwb();
   }
@@ -7451,12 +7809,43 @@
     var ri = parseInt(el.getAttribute('data-ri'), 10);
     var bi = parseInt(el.getAttribute('data-bi'), 10);
     var ei = parseInt(el.getAttribute('data-ei'), 10);
+    var siIn = parseInt(el.getAttribute('data-si'), 10);
     var v = el.value;
     if(f === 'title') b.title = v;
     else if(f === 'notes') b.notes = v;
     else if(f === 'grip') b.grip = v;
     else if(f === 'assistance') b.assistance = v;
     else if(f === 'progression_note') b.progression_note = v;
+    else if(f === 'setGrip' && b.sets && b.sets[siIn]) b.sets[siIn].grip = v;
+    else if(f === 'setLoad' && b.sets && b.sets[siIn]) b.sets[siIn].load = v;
+    else if(f === 'on_sec' || f === 'off_sec'){
+      var rawNum = String(v == null ? '' : v).trim();
+      b[f] = rawNum === '' ? null : Number(rawNum);
+    } else if(f === 'item'){
+      var iiIn = parseInt(el.getAttribute('data-ii'), 10);
+      if(!Array.isArray(b.items)) b.items = [];
+      if(!b.items[iiIn]) b.items[iiIn] = { id: cwbUid(), text: '', complete: false };
+      b.items[iiIn].text = v;
+    } else if(f === 'setRest' || f === 'setRestU'){
+      var setRow = (b.sets || [])[siIn];
+      var setRestRow = el.closest('.cwb-restrow');
+      var setNumEl = setRestRow && setRestRow.querySelector('[data-f="setRest"]');
+      var setUnitEl = setRestRow && setRestRow.querySelector('[data-f="setRestU"]');
+      if(setRow && setNumEl && setUnitEl){
+        if(f === 'setRestU'){
+          var setPrev = setUnitEl.getAttribute('data-prev') || 'sec';
+          var setCur = cwbParseRest(setNumEl.value, setPrev, null);
+          if(setCur != null){
+            setNumEl.value = String(Math.round((setUnitEl.value === 'min' ? setCur / 60 : setCur) * 100) / 100);
+            setRow.rest_after_sec = setCur;
+          }
+          setUnitEl.setAttribute('data-prev', setUnitEl.value);
+        } else {
+          var setParsed = cwbParseRest(setNumEl.value, setUnitEl.value, null);
+          setRow.rest_after_sec = setParsed == null ? null : setParsed;
+        }
+      }
+    }
     else if(f === 'boulder'){ var r = (b.rounds || [])[ri]; if(r && r.boulders[bi]) r.boulders[bi].text = v; }
     else if(f === 'roundRest' || f === 'roundRestU'){
       var rr = (b.rounds || [])[ri];
@@ -7496,6 +7885,10 @@
   function cwbSectionsForSave(){
     return cwbBlocks().length ? cwbCleanBlocks() : cleanedAssignWizardSections();
   }
+
+  window.__cwbTest = {
+    clean: function(){ return cwbCleanBlocks(); }
+  };
 
   function cleanedAssignWizardSections(){
     var clean = (_assignWizard.sections || []).map(function(s){
@@ -9613,6 +10006,123 @@
     '</div>';
   }
 
+  function coachRestPhrase(sec){
+    if(sec == null || sec === '') return '';
+    var n = Number(sec);
+    if(!isFinite(n) || n <= 0) return '';
+    if(n % 60 === 0) return (n / 60) + ' min';
+    return n + ' sec';
+  }
+
+  function coachLoggedBlockHtml(b){
+    if(!b || typeof b !== 'object') return '<div class="clog-line">kept as logged</div>';
+    var shape = b.shape;
+    if(shape === 'emom'){
+      var sent = 0;
+      var total = 0;
+      (Array.isArray(b.rounds) ? b.rounds : []).forEach(function(r){
+        (Array.isArray(r && r.boulders) ? r.boulders : []).forEach(function(bo){
+          total++;
+          if(bo && bo.complete) sent++;
+        });
+      });
+      var html = '<div class="clog-block"><div class="clog-h">EMOM · ' + sent + ' of ' + total + ' sent</div>';
+      (b.rounds || []).forEach(function(r, ri){
+        html += '<div class="clog-round"><div class="clog-sub">Round ' + (ri + 1) + '</div>';
+        (Array.isArray(r && r.boulders) ? r.boulders : []).forEach(function(bo, bi){
+          var text = bo && String(bo.text || '').trim();
+          if(!text) text = 'Boulder ' + (bi + 1);
+          html += '<div class="clog-item">' + escapeHtml(text) + ' · ' + (bo && bo.complete ? 'done' : 'not done') + '</div>';
+        });
+        if(r && String(r.notes || '').trim()) html += '<div class="clog-note">' + escapeHtml(String(r.notes).trim()) + '</div>';
+        var rest = coachRestPhrase(r && r.rest_after_sec);
+        if(rest) html += '<div class="clog-rest">Rest after round · ' + escapeHtml(rest) + '</div>';
+        html += '</div>';
+      });
+      return html + '</div>';
+    }
+    if(shape === 'rep_pass_fail'){
+      var summary = '';
+      try{ summary = coachHangGroupText(b); }catch(err){ summary = ''; }
+      var html = '<div class="clog-block"><div class="clog-h">Hangboard' + (summary ? ' · ' + escapeHtml(summary) : '') + '</div>';
+      (Array.isArray(b.sets) ? b.sets : []).forEach(function(s, si){
+        var grip = coachEffGrip(b, s);
+        var load = coachEffLoad(b, s);
+        var rest = coachRestPhrase(s && s.rest_after_sec);
+        var bits = ['Set ' + (si + 1)];
+        if(grip) bits.push(grip);
+        if(load) bits.push(load);
+        if(rest) bits.push(rest);
+        html += '<div class="clog-set"><div class="clog-sub">' + escapeHtml(bits.join(' · ')) + '</div>';
+        (Array.isArray(s && s.reps) ? s.reps : []).forEach(function(rp){
+          var mark = rp && rp.ok === true ? 'pass' : (rp && rp.ok === false ? 'fail' : 'untested');
+          html += '<span class="clog-rep is-' + mark + '">' + mark + '</span>';
+        });
+        html += '</div>';
+      });
+      if(b.progression_note && String(b.progression_note).trim()){
+        html += '<div class="clog-note">' + escapeHtml(String(b.progression_note).trim()) + '</div>';
+      }
+      return html + '</div>';
+    }
+    if(shape === 'check'){
+      var html = '<div class="clog-block"><div class="clog-h">' + escapeHtml(b.title || 'Check') + '</div>';
+      (Array.isArray(b.items) ? b.items : []).forEach(function(it){
+        html += '<div class="clog-item">' + escapeHtml((it && it.text) || '') + ' · ' + (it && it.complete ? 'done' : 'not done') + '</div>';
+      });
+      return html + '</div>';
+    }
+    if(shape === 'circuit'){
+      var html = '<div class="clog-block"><div class="clog-h">Strength · ' + escapeHtml(String(b.rounds == null ? '' : b.rounds)) + ' rounds</div>';
+      (Array.isArray(b.exercises) ? b.exercises : []).forEach(function(ex){
+        html += '<div class="clog-item">' + escapeHtml([ex && ex.name, ex && ex.weight, ex && ex.reps].filter(function(part){ return part != null && String(part) !== ''; }).join(' · ')) + '</div>';
+      });
+      return html + '</div>';
+    }
+    if(shape === 'section' || shape === 'custom' || shape === 'mental'){
+      return '<div class="clog-block"><div class="clog-h">' + escapeHtml(b.title || (shape === 'mental' ? 'Mental' : 'Custom')) + '</div>' +
+        (b.notes ? '<div class="clog-note">' + escapeHtml(String(b.notes)) + '</div>' : '') + '</div>';
+    }
+    if(shape === 'rest'){
+      var mins = Math.round((Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 0) / 60);
+      return '<div class="clog-block"><div class="clog-h">Rest · ' + mins + ' min</div></div>';
+    }
+    if(shape === 'interval'){
+      return '<div class="clog-block"><div class="clog-h">Interval · work ' + escapeHtml(String(b.work_sec == null ? '' : b.work_sec)) +
+        's / rest ' + escapeHtml(String(b.rest_sec == null ? '' : b.rest_sec)) + 's × ' +
+        escapeHtml(String(b.target_sets == null ? '' : b.target_sets)) + ' sets</div></div>';
+    }
+    return '<div class="clog-line">kept as logged</div>';
+  }
+
+  function coachLoggedBlocksHtml(raw){
+    try{
+      var blocks = raw;
+      if(blocks == null || blocks === '') return '';
+      if(typeof blocks === 'string'){
+        try{ blocks = JSON.parse(blocks); }catch(err){ return '<div class="clog-read"><div class="clog-line">kept as logged</div></div>'; }
+      }
+      if(!Array.isArray(blocks) || !blocks.length) return '';
+      return '<div class="clog-read">' + blocks.map(function(b){
+        try{ return coachLoggedBlockHtml(b); }
+        catch(err){ return '<div class="clog-line">kept as logged</div>'; }
+      }).join('') + '</div>';
+    }catch(err){
+      return '<div class="clog-read"><div class="clog-line">kept as logged</div></div>';
+    }
+  }
+
+  function journalFromAssignmentHtml(s){
+    if(!s || !s.assignment_id) return '';
+    var match = null;
+    (_lastCoachAssignments || []).some(function(a){
+      if(a && String(a.id) === String(s.assignment_id)){ match = a; return true; }
+      return false;
+    });
+    if(!match || !match.title) return '';
+    return '<div class="journal-from-asg">From assignment: ' + escapeHtml(match.title) + '</div>';
+  }
+
   function journalTrainBlockSummary(b){
     if(!b) return '';
     if(b.shape === 'emom'){
@@ -9654,7 +10164,14 @@
       journalFieldHtml('Warm-up', s.warm_up) +
       journalFieldHtml('Cool-down', s.cool_down);
     var blockLines = journalTrainBlocksHtml(s);
-    var empty = !details && !blockLines
+    var blockDetail = '';
+    try{ blockDetail = coachLoggedBlocksHtml(s && s.blocks); }
+    catch(err){ blockDetail = '<div class="clog-line">kept as logged</div>'; }
+    var showBlocks = blockDetail
+      ? '<button type="button" class="cwb-textlink journal-show-blocks" data-show-blocks="' + escapeHtml(s.id) + '">Show blocks</button>' +
+        '<div class="journal-block-detail" hidden data-block-panel="' + escapeHtml(s.id) + '">' + blockDetail + '</div>'
+      : '';
+    var empty = !details && !blockLines && !showBlocks
       ? '<div class="journal-empty-refl">No workout details logged.</div>'
       : '';
     var side = blocks
@@ -9671,8 +10188,10 @@
         '</div>' +
         side +
       '</div>' +
+      journalFromAssignmentHtml(s) +
       details +
       blockLines +
+      showBlocks +
       empty +
       journalNotesThreadHtml(s.id, notes, notesError, coachUserId, athleteLabel, 'workout') +
     '</div>';
@@ -9737,6 +10256,15 @@
       _journalSortNewest = false;
       renderJournalFeed(rootEl);
     });
+    Array.prototype.forEach.call(rootEl.querySelectorAll('[data-show-blocks]'), function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-show-blocks');
+        var panel = rootEl.querySelector('[data-block-panel="' + id + '"]');
+        if(!panel) return;
+        panel.hidden = !panel.hidden;
+        btn.textContent = panel.hidden ? 'Show blocks' : 'Hide blocks';
+      });
+    });
     Array.prototype.forEach.call(rootEl.querySelectorAll('.journal-reply-btn'), function(btn){
       btn.addEventListener('click', function(){
         postJournalNote(btn.getAttribute('data-session-id'));
@@ -9796,6 +10324,7 @@
 
   function loadAthleteSessions(token, coachUser, athleteId, athleteLabel){
     var el = document.getElementById('detail-sessions');
+    _journalReady = false;
     _journalCtx = {
       token: token,
       coachUser: coachUser,
@@ -9833,28 +10362,31 @@
     }
     var climbP = fetchClimbSessions();
     function fetchTrainJournal(){
-      var withTag = 'select=id,created_at,started_at,ended_at,energy_type,notes,warm_up,cool_down,blocks,logged_by_coach' +
-        '&user_id=eq.' + athleteId +
-        '&deleted_at=is.null&order=created_at.desc&limit=20';
-      var withoutTag = 'select=id,created_at,started_at,ended_at,energy_type,notes,warm_up,cool_down,blocks' +
-        '&user_id=eq.' + athleteId +
-        '&deleted_at=is.null&order=created_at.desc&limit=20';
-      return sbSelect(token, 'training_sessions', withTag).then(function(rows){
-        _journalTrainingError = null;
-        return Array.isArray(rows) ? rows : [];
-      }).catch(function(err){
-        if(!isCoachLogMissingColumn(err, 'logged_by_coach')){
-          _journalTrainingError = err || { message: 'unavailable' };
-          return [];
-        }
-        return sbSelect(token, 'training_sessions', withoutTag).then(function(rows){
+      var cols = ['id','created_at','started_at','ended_at','energy_type','notes','warm_up','cool_down','blocks','logged_by_coach','assignment_id'];
+      function run(){
+        var q = 'select=' + cols.join(',') +
+          '&user_id=eq.' + athleteId +
+          '&deleted_at=is.null&order=created_at.desc&limit=20';
+        return sbSelect(token, 'training_sessions', q).then(function(rows){
           _journalTrainingError = null;
           return Array.isArray(rows) ? rows : [];
-        }).catch(function(err2){
-          _journalTrainingError = err2 || { message: 'unavailable' };
-          return [];
+        }).catch(function(err){
+          var dropped = false;
+          ['assignment_id', 'logged_by_coach'].forEach(function(col){
+            var at = cols.indexOf(col);
+            if(at !== -1 && isCoachLogMissingColumn(err, col)){
+              cols.splice(at, 1);
+              dropped = true;
+            }
+          });
+          if(!dropped){
+            _journalTrainingError = err || { message: 'unavailable' };
+            return [];
+          }
+          return run();
         });
-      });
+      }
+      return run();
     }
     var trainP = fetchTrainJournal();
     return Promise.all([climbP, trainP]).then(function(parts){
@@ -9867,6 +10399,7 @@
       if(_lastSessionRows.length > 30) _lastSessionRows = _lastSessionRows.slice(0, 30);
       return loadJournalNotes(token, coachUser, athleteId).then(function(){
         mergeCoachTrainJournalPins();
+        _journalReady = true;
         renderJournalFeed(el);
         return _lastSessionRows;
       });

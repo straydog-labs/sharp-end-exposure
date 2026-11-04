@@ -87,7 +87,7 @@ async function run(){
       await hb.locator('[data-f="grip"]').fill('half crimp');
       await hb.locator('[data-f="assistance"]').fill('+35 lb');
       await hb.locator('[data-act="set-plus"]').click();
-      await hb.locator('[data-act="rep-plus"]').click();
+      await hb.locator('[data-act="rep-plus"]').first().click();
 
       // Mental notes, rest minutes
       await page.locator('#cwb-root .cwb-card').nth(2).locator('[data-f="notes"]').fill('Box breathing 4 min');
