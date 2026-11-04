@@ -57,6 +57,19 @@ function filledHang(){
   };
 }
 
+function expectCopied(actual, original){
+  assert.strictEqual(actual.grip, original.grip);
+  assert.strictEqual(actual.assistance, original.assistance);
+  assert.strictEqual(actual.title, original.title);
+  assert.strictEqual(actual.progression_note, original.progression_note);
+  assert.strictEqual(actual.sets.length, original.sets.length);
+  actual.sets.forEach(function(s, i){
+    assert.strictEqual(s.grip, original.grip);
+    assert.strictEqual(s.load, original.assistance);
+    assert.strictEqual(s.reps.length, original.sets[i].reps.length);
+  });
+}
+
 async function loadValues(card){
   return card.locator('[data-f="setLoad"]').evaluateAll(function(els){
     return els.map(function(el){ return el.value; });
@@ -125,10 +138,6 @@ async function run(){
       const loads = hb.locator('[data-f="setLoad"]');
       assert.strictEqual(await loads.count(), 6);
 
-      await hb.locator('[data-f="assistance"]').fill('+99 lb');
-      assert.deepStrictEqual(await loadValues(hb), ['', '', '', '', '', ''], 'block assistance does not fill set loads');
-      await hb.locator('[data-f="assistance"]').fill('');
-
       await loads.nth(2).fill('28 lb assist');
       await loads.nth(1).fill('22 lb assist');
       await loads.nth(0).fill('35 lb assist');
@@ -136,12 +145,8 @@ async function run(){
         '35 lb assist', '22 lb assist', '28 lb assist', '', '', ''
       ], 'different hand-entered loads stay put');
 
-      await hb.locator('[data-act="preset"][data-preset="custom"]').click();
-      await hb.locator('[data-f="grip"]').fill('Half crimp');
-      await hb.locator('[data-act="set-plus"]').click();
-      await loads.nth(0).fill('15 lb');
-      assert.deepStrictEqual(await loadValues(hb), ['15 lb', '15 lb'], 'empty set grip uses the block grip');
-
+      await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
+      assert.match(await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').innerText(), /Replace sets/);
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
       assert.deepStrictEqual(await loadValues(hb), ['', '', '', '', '', '']);
       await runFillSequence(hb);
@@ -217,9 +222,10 @@ async function run(){
         '40 lb assist', '30 lb assist', '30 lb assist', '', '', ''
       ], 'filled loads reopen in Edit workout blocks');
       const opened = await page.evaluate(function(){ return window.__cwbTest.clean(); });
-      assert.deepStrictEqual(opened.find(function(b){ return b.id === 'old-hb'; }), LEGACY);
-      assert.deepStrictEqual(opened.find(function(b){ return b.id === 'old-multi'; }), OLD_MULTI);
+      expectCopied(opened.find(function(b){ return b.id === 'old-hb'; }), LEGACY);
+      expectCopied(opened.find(function(b){ return b.id === 'old-multi'; }), OLD_MULTI);
       assert.ok(opened[0].sets.every(function(s){ return !Object.prototype.hasOwnProperty.call(s, '_hangLoadSrc'); }));
+      await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
       await runFillSequence(hb);
       await hb.locator('[data-f="title"]').fill('Hangboard repeaters.');
@@ -232,8 +238,8 @@ async function run(){
         '40 lb assist', '30 lb assist', '30 lb assist', '', '', ''
       ]);
       assert.ok(patched.body.sections[0].sets.every(function(s){ return !Object.prototype.hasOwnProperty.call(s, '_hangLoadSrc'); }));
-      assert.deepStrictEqual(patched.body.sections[1], LEGACY);
-      assert.deepStrictEqual(patched.body.sections[2], OLD_MULTI);
+      expectCopied(patched.body.sections[1], LEGACY);
+      expectCopied(patched.body.sections[2], OLD_MULTI);
     });
   } finally {
     await browser.close();

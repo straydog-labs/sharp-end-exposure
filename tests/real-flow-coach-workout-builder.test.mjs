@@ -53,7 +53,7 @@ async function run(){
         return page.$$eval('#cwb-root .cwb-kick', function(ns){ return ns.map(function(n){ return n.textContent.replace(/\s+/g, ' ').trim(); }); });
       };
       assert.deepStrictEqual(await kinds(), [
-        'Block 1 · Climbing (EMOM)', 'Block 2 · Hangboard / repeaters', 'Block 3 · Mental', 'Block 4 · Rest', 'Block 5 · Custom'
+        'Block 1 · Climbing (EMOM)', 'Block 2 · Hangboard / repeaters', 'Block 3 · Psyche', 'Block 4 · Rest', 'Block 5 · Custom'
       ]);
 
       // EMOM: title, 2 boulders, same round again, rest, then remove a round with confirmation
@@ -84,9 +84,10 @@ async function run(){
       // Hangboard: grip, load, +1 set, +1 rep
       const hb = page.locator('#cwb-root .cwb-card').nth(1);
       await hb.locator('[data-f="title"]').fill('Repeaters');
-      await hb.locator('[data-f="grip"]').fill('half crimp');
-      await hb.locator('[data-f="assistance"]').fill('+35 lb');
+      await hb.locator('[data-f="setGrip"]').fill('half crimp');
+      await hb.locator('[data-f="setLoad"]').fill('+35 lb');
       await hb.locator('[data-act="set-plus"]').click();
+      await hb.locator('[data-act="set-menu"]').first().click();
       await hb.locator('[data-act="rep-plus"]').first().click();
 
       // Mental notes, rest minutes
@@ -96,11 +97,11 @@ async function run(){
       // reorder: move Mental up above Hangboard; collapse hangboard keeps summary
       await page.locator('#cwb-root .cwb-card').nth(2).locator('[data-act="up"]').click();
       assert.deepStrictEqual(await kinds(), [
-        'Block 1 · Climbing (EMOM)', 'Block 2 · Mental', 'Block 3 · Hangboard / repeaters', 'Block 4 · Rest', 'Block 5 · Custom'
+        'Block 1 · Climbing (EMOM)', 'Block 2 · Psyche', 'Block 3 · Hangboard / repeaters', 'Block 4 · Rest', 'Block 5 · Custom'
       ]);
       await page.locator('#cwb-root .cwb-card').nth(2).locator('[data-act="toggle"]').click();
       const sum = await page.locator('#cwb-root .cwb-card').nth(2).locator('.cwb-sum').textContent();
-      assert.ok(/Repeaters/.test(sum) && /half crimp/.test(sum) && /2 sets/.test(sum), 'collapsed summary: ' + sum);
+      assert.ok(/Repeaters · 2 sets/.test(sum), 'collapsed summary: ' + sum);
       await page.locator('#cwb-root .cwb-card').nth(2).locator('[data-act="toggle"]').click();
 
       // remove the empty Custom block (needs confirm)
@@ -131,11 +132,11 @@ async function run(){
       assert.strictEqual(e.rounds[0].rest_after_sec, 600);
       assert.strictEqual(e.rounds[1].rest_after_sec, 90, 'm:ss typed in round 2 saved as 90 sec');
       assert.ok(e.rounds.every(function(r){ return r.boulders.every(function(b){ return b.id && b.complete === false; }); }), 'boulders have ids, not complete');
-      assert.strictEqual(cw.sections[1].title, 'Mental');
+      assert.strictEqual(cw.sections[1].title, 'Psyche');
       assert.strictEqual(cw.sections[1].notes, 'Box breathing 4 min');
       const h = cw.sections[2];
-      assert.strictEqual(h.grip, 'half crimp');
-      assert.strictEqual(h.assistance, '+35 lb');
+      assert.strictEqual(h.sets[0].grip, 'half crimp');
+      assert.strictEqual(h.sets[0].load, '+35 lb');
       assert.strictEqual(h.sets.length, 2);
       assert.strictEqual(h.sets[0].reps.length, 6);
       assert.ok(h.sets.every(function(s){ return s.reps.every(function(r){ return r.ok === null; }); }), 'reps unticked');

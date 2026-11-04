@@ -176,14 +176,15 @@ async function run(){
       assert.strictEqual(await page.locator('#ctl-assign-wrap').isHidden(), true, 'checkbox hides again when the assignment is cleared');
       assert.strictEqual(await page.locator('#ctl-mark-all').isHidden(), true, 'Mark all complete hides when the blocks are cleared');
 
+      assert.strictEqual(await page.locator('#ctl-cwb-root [data-act="jump-add"]').count(), 0, 'top Add block stays hidden under 3 blocks');
+      await tap(page, '#ctl-cwb-root [data-act="add"][data-shape="section"]');
+      await tap(page, '#ctl-cwb-root [data-act="add"][data-shape="rest"]');
+      await tap(page, '#ctl-cwb-root [data-act="add"][data-shape="mental"]');
       await tap(page, '#ctl-cwb-root [data-act="jump-add"]');
       await page.waitForFunction(function(){
         var a = document.activeElement;
         return !!(a && a.closest && a.closest('#ctl-cwb-root .cwb-menu'));
       });
-      await tap(page, '#ctl-cwb-root [data-act="add"][data-shape="section"]');
-      await tap(page, '#ctl-cwb-root [data-act="add"][data-shape="rest"]');
-      await tap(page, '#ctl-cwb-root [data-act="add"][data-shape="mental"]');
       assert.strictEqual(await page.locator('#ctl-cwb-root [data-act="collapse-all"]').count(), 1, 'Collapse all appears at 2+ blocks');
       await page.locator('#ctl-cwb-root .cwb-card').nth(0).locator('[data-f="title"]').fill('Alpha');
       await page.locator('#ctl-cwb-root .cwb-card').nth(2).locator('[data-f="title"]').fill('Mental');
@@ -248,28 +249,29 @@ async function run(){
       await page.fill('#new-a-name', 'Reorder me');
       await tap(page, '#cwb-root [data-act="add"][data-shape="rest"]');
       await tap(page, '#cwb-root [data-act="add"][data-shape="mental"]');
+      assert.strictEqual(await page.locator('#cwb-root [data-act="jump-add"]').count(), 0, 'top Add block stays hidden at 2 blocks');
       assert.strictEqual(await page.locator('#cwb-root .cwb-body').count(), 2);
       await tap(page, '#cwb-root [data-act="collapse-all"]');
       assert.strictEqual(await page.locator('#cwb-root .cwb-body').count(), 0, 'wizard Collapse all closes every block');
       await tap(page, '#cwb-root [data-act="expand-all"]');
       assert.strictEqual(await page.locator('#cwb-root .cwb-body').count(), 2, 'wizard Expand all opens every block');
+      await tap(page, '#cwb-root [data-act="add"][data-shape="section"]');
       await tap(page, '#cwb-root [data-act="jump-add"]');
       await page.waitForFunction(function(){
         var a = document.activeElement;
         return !!(a && a.closest && a.closest('#cwb-root .cwb-menu'));
       });
-      await tap(page, '#cwb-root [data-act="add"][data-shape="section"]');
       await page.locator('#cwb-root .cwb-card').nth(2).locator('[data-f="title"]').fill('Custom A');
       assert.deepStrictEqual(await kicks(page, '#cwb-root'), [
-        'Block 1 · Rest', 'Block 2 · Mental', 'Block 3 · Custom'
+        'Block 1 · Rest', 'Block 2 · Psyche', 'Block 3 · Custom'
       ]);
       await page.locator('#cwb-root .cwb-card').nth(2).locator('[data-act="up"]').click();
       assert.deepStrictEqual(await kicks(page, '#cwb-root'), [
-        'Block 1 · Rest', 'Block 2 · Custom', 'Block 3 · Mental'
+        'Block 1 · Rest', 'Block 2 · Custom', 'Block 3 · Psyche'
       ], 'wizard arrows reorder');
       await dragGrip(page, '#cwb-root', 1, 0, 'mouse');
       assert.deepStrictEqual(await kicks(page, '#cwb-root'), [
-        'Block 1 · Custom', 'Block 2 · Rest', 'Block 3 · Mental'
+        'Block 1 · Custom', 'Block 2 · Rest', 'Block 3 · Psyche'
       ], 'wizard drag reorders');
       await tap(page, '#wiz-next');
       await page.waitForSelector('#new-a-name-edit', { timeout: 8000 });
@@ -279,7 +281,7 @@ async function run(){
       await page.waitForTimeout(400);
       const cw = firstBody(postsTo(recorded, 'custom_workouts', 'POST'));
       assert.ok(cw, 'custom_workouts POST made');
-      assert.deepStrictEqual(cw.sections.map(function(b){ return b.title; }), ['Custom A', 'Rest', 'Mental']);
+      assert.deepStrictEqual(cw.sections.map(function(b){ return b.title; }), ['Custom A', 'Rest', 'Psyche']);
     });
 
     console.log('real-flow-coach-log-ui-fixes: ok');

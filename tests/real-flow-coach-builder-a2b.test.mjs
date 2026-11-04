@@ -97,7 +97,10 @@ function contractFromVm(){
 
   ctx._assignWizard.blocks = [JSON.parse(JSON.stringify(LEGACY))];
   const cleaned = vm.runInContext('cwbCleanBlocks()', ctx);
-  assert.deepStrictEqual(cleaned[0], LEGACY, 'legacy hangboard survives cwbCleanBlocks');
+  const legacySaved = JSON.parse(JSON.stringify(LEGACY));
+  legacySaved.sets[0].grip = 'half crimp';
+  legacySaved.sets[0].load = '+35 lb';
+  assert.deepStrictEqual(cleaned[0], legacySaved, 'legacy block grip and load are written onto the set at save');
 
   const rich = {
     id: 'rich',
@@ -357,31 +360,31 @@ async function run(){
       assert.strictEqual(labels[0], 'Warm up');
       assert.strictEqual(labels[labels.length - 1], 'Cool down');
 
-      await page.locator('#cwb-root [data-act="jump-add"]').click();
-      assert.strictEqual(await page.locator('#cwb-root .cwb-menu.cwb-menu-flash').count(), 1, 'empty list highlights the chip row');
-      const emptyBox = await page.locator('#cwb-root .cwb-menu').boundingBox();
-      assert.ok(emptyBox && emptyBox.y >= 0 && emptyBox.y < 700, 'empty chip row is in view');
+      assert.strictEqual(await page.locator('#cwb-root [data-act="jump-add"]').count(), 0, 'no top Add block on an empty session');
+      assert.strictEqual(await page.locator('#cwb-root .cwb-chip').count(), 8, 'add-block chips stay on the page');
 
       await tap(page, '#cwb-root [data-act="add"][data-shape="rep_pass_fail"]');
       const hb = page.locator('#cwb-root .cwb-card').nth(0);
-      assert.ok((await hb.locator('.cwb-lab').allTextContents()).some(function(t){ return /Grip/.test(t); }));
-      assert.ok((await hb.locator('.cwb-lab').allTextContents()).some(function(t){ return /Load or assistance/.test(t); }));
-      assert.ok((await hb.locator('.cwb-lab').allTextContents()).some(function(t){ return /Rest after set/.test(t); }));
-      assert.strictEqual(await hb.locator('[data-f="assistance"]').getAttribute('placeholder'), 'e.g. 35 lb assist or +20 lb');
+      assert.strictEqual(await hb.locator('[data-f="setGrip"]').first().getAttribute('aria-label'), 'Grip');
+      assert.strictEqual(await hb.locator('[data-f="setLoad"]').first().getAttribute('aria-label'), 'Load or assistance');
+      assert.ok((await hb.locator('.cwb-lab').allTextContents()).some(function(t){ return /Rest between sets/.test(t); }));
+      assert.strictEqual(await hb.locator('[data-f="grip"]').count(), 0);
+      assert.strictEqual(await hb.locator('[data-f="assistance"]').count(), 0);
       assert.strictEqual(await hb.locator('[data-f="setLoad"]').first().getAttribute('placeholder'), 'e.g. 35 lb assist or +20 lb');
 
+      await hb.locator('[data-act="set-menu"]').first().click();
       for(var i = 0; i < 5; i++) await hb.locator('[data-act="rep-plus"]').first().click();
-      assert.strictEqual(await hb.locator('[data-f="setGrip"]').count() > 0 && await hb.locator('.cwb-set').first().locator('[data-act="rep-plus"]').isDisabled(), true, '+ Rep stops at 10');
-      await hb.locator('.cwb-set').first().locator('[data-act="rep-minus"]').click();
-      assert.strictEqual(await hb.locator('.cwb-set').first().locator('[data-act="rep-plus"]').isDisabled(), false);
+      assert.strictEqual(await hb.locator('[data-act="rep-plus"]').first().isDisabled(), true, '+ Rep stops at 10');
+      await hb.locator('[data-act="rep-minus"]').first().click();
+      assert.strictEqual(await hb.locator('[data-act="rep-plus"]').first().isDisabled(), false);
 
       for(var s = 0; s < 7; s++) await hb.locator('[data-act="set-plus"]').click();
-      assert.strictEqual(await hb.locator('.cwb-set').count(), 8);
+      assert.strictEqual(await hb.locator('.cwb-setrow').count(), 8);
       assert.strictEqual(await hb.locator('[data-act="set-plus"]').isDisabled(), true, 'sets stop at 8');
       await hb.locator('[data-act="del-set"]').first().click();
-      assert.strictEqual(await hb.locator('.cwb-set').count(), 7);
+      assert.strictEqual(await hb.locator('.cwb-setrow').count(), 7);
       assert.strictEqual(await hb.locator('[data-act="set-plus"]').isDisabled(), false);
-      assert.strictEqual(await hb.locator('.cwb-set').first().locator('[data-act="del-set"]').isDisabled(), false);
+      assert.strictEqual(await hb.locator('[data-act="del-set"]').first().isDisabled(), false);
 
       await hb.locator('[data-f="setGrip"]').first().fill('Half crimp');
       await hb.locator('[data-f="setLoad"]').first().fill('35 lb assist');
@@ -390,15 +393,17 @@ async function run(){
       await hb.locator('[data-act="same-set"]').first().click();
       assert.strictEqual(await hb.locator('[data-f="setGrip"]').nth(1).inputValue(), 'Half crimp');
       assert.strictEqual(await hb.locator('[data-f="setLoad"]').nth(1).inputValue(), '35 lb assist');
-      assert.strictEqual(await hb.locator('[data-f="setRest"]').nth(1).inputValue(), '3');
-      assert.strictEqual(await hb.locator('[data-f="setRestU"]').nth(1).inputValue(), 'min');
+      await hb.locator('.cwb-setrow').nth(1).locator('[data-act="set-menu"]').click();
+      assert.strictEqual(await hb.locator('[data-f="setRest"]').inputValue(), '3');
+      assert.strictEqual(await hb.locator('[data-f="setRestU"]').inputValue(), 'min');
 
+      await hb.locator('[data-act="preset"][data-preset="repeaters"]').click();
       await hb.locator('[data-act="preset"][data-preset="repeaters"]').click();
       await hb.locator('[data-act="preset"][data-preset="max_hang"]').click();
       assert.strictEqual(await hb.locator('[data-f="on_sec"]').inputValue(), '10');
       assert.strictEqual(await hb.locator('[data-f="off_sec"]').inputValue(), '');
       await hb.locator('[data-act="preset"][data-preset="custom"]').click();
-      assert.strictEqual(await hb.locator('.cwb-set').count(), 1);
+      assert.strictEqual(await hb.locator('.cwb-setrow').count(), 1);
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
       const got = await page.evaluate(function(){
         var blocks = window.__cwbTest.clean();
@@ -411,24 +416,14 @@ async function run(){
       const loads = hb.locator('[data-f="setLoad"]');
       for(var a = 0; a < 3; a++) await loads.nth(a).fill('35 lb assist');
       for(var c = 3; c < 6; c++) await loads.nth(c).fill('45 lb assist');
+      await hb.locator('[data-act="set-menu"]').first().click();
       await hb.locator('[data-f="setRestU"]').first().selectOption('sec');
       assert.strictEqual(await hb.locator('[data-f="setRest"]').first().inputValue(), '180');
       await hb.locator('[data-f="setRestU"]').first().selectOption('min');
       await hb.locator('[data-act="toggle"]').click();
       const sum = await hb.locator('.cwb-sum').textContent();
-      assert.ok(sum.indexOf('half crimp 35 lb assist · 3 x 6 | 3-finger drag 45 lb assist · 3 x 6') !== -1, 'grouped summary: ' + sum);
+      assert.strictEqual(String(sum).replace(/\s+/g, ' ').trim(), 'Hangboard repeaters · 6 sets · 7s on / 3s off');
       await hb.locator('[data-act="toggle"]').click();
-
-      await page.evaluate(function(){ document.getElementById('assign-wizard-overlay').scrollTop = 0; });
-      const beforeTop = await page.evaluate(function(){ return document.getElementById('assign-wizard-overlay').scrollTop; });
-      const beforeMenu = await page.locator('#cwb-root .cwb-menu').boundingBox();
-      assert.ok(beforeMenu.y > 700, 'chip row starts below the fold once blocks exist');
-      await page.locator('#cwb-root [data-act="jump-add"]').click();
-      const afterTop = await page.evaluate(function(){ return document.getElementById('assign-wizard-overlay').scrollTop; });
-      const afterMenu = await page.locator('#cwb-root .cwb-menu').boundingBox();
-      assert.ok(afterTop > beforeTop, 'non-empty + Add block scrolls');
-      assert.ok(afterMenu && afterMenu.y < 700, 'chip row scrolled into view');
-      assert.strictEqual(await page.locator('#cwb-root .cwb-menu.cwb-menu-flash').count(), 1, 'non-empty highlight');
 
       await tap(page, '#cwb-root [data-act="add"][data-shape="warmup"]');
       await tap(page, '#cwb-root [data-act="add"][data-shape="cooldown"]');
@@ -444,6 +439,12 @@ async function run(){
       const cool = page.locator('#cwb-root .cwb-card', { hasText: 'Cool down' }).last();
       assert.strictEqual(await cool.locator('[data-f="title"]').inputValue(), 'Cool down');
       await cool.locator('[data-f="item"]').fill('Easy walk');
+      assert.strictEqual(await page.locator('#cwb-root [data-act="jump-add"]').count(), 1, 'top Add block shows at 3 blocks');
+      await page.evaluate(function(){ document.getElementById('assign-wizard-overlay').scrollTop = 0; });
+      await page.locator('#cwb-root [data-act="jump-add"]').click();
+      const afterMenu = await page.locator('#cwb-root .cwb-menu').boundingBox();
+      assert.ok(afterMenu && afterMenu.y >= 0 && afterMenu.y < 800, 'chip row is in view');
+      assert.strictEqual(await page.locator('#cwb-root .cwb-menu.cwb-menu-flash').count(), 1, 'Add block highlights the chip row');
       await warm.locator('[data-act="toggle"]').click();
       assert.ok(/1 item/.test(await warm.locator('.cwb-sum').textContent()));
 
@@ -518,17 +519,20 @@ async function run(){
       const hbEdit = page.locator('#cwb-root .cwb-card').nth(0);
       assert.strictEqual(await hbEdit.locator('[data-f="setGrip"]').first().inputValue(), 'Half crimp');
       assert.strictEqual(await hbEdit.locator('[data-f="setLoad"]').first().inputValue(), '35 lb assist');
-      assert.strictEqual(await hbEdit.locator('[data-f="setRest"]').first().inputValue(), '3');
-      assert.strictEqual(await hbEdit.locator('[data-f="setRestU"]').first().inputValue(), 'min');
+      assert.strictEqual(await hbEdit.locator('[data-f="allRest"]').inputValue(), '3');
+      assert.strictEqual(await hbEdit.locator('[data-f="allRestU"]').inputValue(), 'min');
       assert.strictEqual(await hbEdit.locator('[data-f="on_sec"]').inputValue(), '7');
       const warmEdit = page.locator('#cwb-root .cwb-card').nth(1);
       assert.strictEqual(await warmEdit.locator('[data-f="item"]').inputValue(), 'Shoulder rolls');
       const legacy = page.locator('#cwb-root .cwb-card').nth(2);
-      assert.strictEqual(await legacy.locator('[data-f="grip"]').inputValue(), 'half crimp');
-      assert.strictEqual(await legacy.locator('[data-f="assistance"]').inputValue(), '+35 lb');
-      assert.strictEqual(await legacy.locator('[data-f="setGrip"]').inputValue(), '');
+      assert.strictEqual(await legacy.locator('[data-f="setGrip"]').inputValue(), 'half crimp');
+      assert.strictEqual(await legacy.locator('[data-f="setLoad"]').inputValue(), '+35 lb');
       const opened = await page.evaluate(function(){ return window.__cwbTest.clean(); });
-      assert.deepStrictEqual(opened.find(function(b){ return b.id === 'old-hb'; }).sets, LEGACY.sets);
+      const oldOpened = opened.find(function(b){ return b.id === 'old-hb'; });
+      assert.strictEqual(oldOpened.grip, 'half crimp');
+      assert.strictEqual(oldOpened.assistance, '+35 lb');
+      assert.strictEqual(oldOpened.sets[0].grip, 'half crimp');
+      assert.strictEqual(oldOpened.sets[0].load, '+35 lb');
       await hbEdit.locator('[data-f="setLoad"]').first().fill('40 lb assist');
       await tap(page, '#edit-cw-save');
       await page.waitForTimeout(500);
@@ -539,7 +543,8 @@ async function run(){
       assert.strictEqual(patched.body.sections[0].sets[0].rest_after_sec, 180);
       assert.strictEqual(patched.body.sections[1].shape, 'check');
       assert.strictEqual(patched.body.sections[1].items[0].text, 'Shoulder rolls');
-      assert.deepStrictEqual(patched.body.sections[2].sets, LEGACY.sets);
+      assert.strictEqual(patched.body.sections[2].sets[0].grip, 'half crimp');
+      assert.strictEqual(patched.body.sections[2].sets[0].load, '+35 lb');
       assert.strictEqual(patched.body.sections[2].grip, 'half crimp');
       assert.strictEqual(patched.body.sections[2].assistance, '+35 lb');
     });
