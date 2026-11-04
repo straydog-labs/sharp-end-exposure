@@ -7797,6 +7797,46 @@
     document.addEventListener('pointercancel', cwbDragEnd);
   }
 
+  function cwbEffGrip(block, set){
+    var g = set && set.grip != null ? String(set.grip).trim() : '';
+    if(g) return g;
+    return block && block.grip != null ? String(block.grip).trim() : '';
+  }
+  function cwbLoadNorm(v){
+    return v == null ? '' : String(v).trim();
+  }
+  // Copy a set's new load forward. A later set is updated when its load is
+  // empty, or when it still holds this set's previous load and no earlier
+  // same-grip set still holds that previous load (a middle-set edit is local).
+  // A different hand-entered load is left alone. Other grips are left alone.
+  function cwbForwardFillSetLoad(block, si, oldLoad, newLoad){
+    var sets = block && block.sets;
+    if(!sets || !sets[si]) return;
+    var grip = cwbEffGrip(block, sets[si]);
+    var oldNorm = cwbLoadNorm(oldLoad);
+    var anchored = false;
+    var p, j;
+    if(oldNorm){
+      for(p = 0; p < si; p++){
+        if(!sets[p]) continue;
+        if(cwbEffGrip(block, sets[p]) !== grip) continue;
+        if(cwbLoadNorm(sets[p].load) === oldNorm){ anchored = true; break; }
+      }
+    }
+    for(j = si + 1; j < sets.length; j++){
+      var set = sets[j];
+      if(!set) continue;
+      if(cwbEffGrip(block, set) !== grip) continue;
+      var cur = cwbLoadNorm(set.load);
+      if(cur === ''){
+        if(cwbLoadNorm(newLoad) === '') continue;
+        set.load = newLoad;
+      } else if(!anchored && cur === oldNorm){
+        set.load = newLoad;
+      }
+    }
+  }
+
   function cwbOnInput(e){
     if(_cwbLocked) return;
     var el = e.target;
@@ -7817,7 +7857,17 @@
     else if(f === 'assistance') b.assistance = v;
     else if(f === 'progression_note') b.progression_note = v;
     else if(f === 'setGrip' && b.sets && b.sets[siIn]) b.sets[siIn].grip = v;
-    else if(f === 'setLoad' && b.sets && b.sets[siIn]) b.sets[siIn].load = v;
+    else if(f === 'setLoad' && b.sets && b.sets[siIn]){
+      var prevLoad = b.sets[siIn].load;
+      b.sets[siIn].load = v;
+      cwbForwardFillSetLoad(b, siIn, prevLoad, v);
+      var loadInputs = card.querySelectorAll('[data-f="setLoad"]');
+      var li;
+      for(li = siIn + 1; li < b.sets.length && li < loadInputs.length; li++){
+        var shown = b.sets[li] && b.sets[li].load != null ? String(b.sets[li].load) : '';
+        if(loadInputs[li].value !== shown) loadInputs[li].value = shown;
+      }
+    }
     else if(f === 'on_sec' || f === 'off_sec'){
       var rawNum = String(v == null ? '' : v).trim();
       b[f] = rawNum === '' ? null : Number(rawNum);
