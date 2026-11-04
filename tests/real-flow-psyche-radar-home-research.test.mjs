@@ -14,8 +14,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index322'/.test(index));
-assert.ok(/APP_VERSION = 'index322'/.test(sw));
+assert.ok(/var app_version = 'index323'/.test(index));
+assert.ok(/APP_VERSION = 'index323'/.test(sw));
 assert.ok(/Math\.max\(max,\s*4\)/.test(index));
 assert.ok(!/Math\.max\(0\.06/.test(index.slice(index.indexOf('function buildPsycheRadar'), index.indexOf('function psycheDrillLabel'))));
 assert.ok(/filter\(function\(d\)\{\s*return d\.n > 0/.test(index) || /d\.n > 0/.test(index.slice(index.indexOf('function buildPsycheRadar'), index.indexOf('function psycheDrillLabel'))));
@@ -160,11 +160,28 @@ try{
     await page.evaluate(function(){
       var sk = document.getElementById('route-loading-skeleton');
       if(sk) sk.style.display = 'none';
+    });
+    await page.locator('#home-card-research').first().scrollIntoViewIfNeeded();
+    await page.evaluate(function(){
       var card = document.getElementById('home-card-research');
       var screen = document.getElementById('screen-home');
-      if(card) card.scrollIntoView({ block: 'end', inline: 'nearest' });
-      if(screen) screen.scrollTop = screen.scrollHeight;
-      window.scrollTo(0, document.documentElement.scrollHeight);
+      var nav = document.querySelector('.footer-nav');
+      var navBottom = nav ? nav.getBoundingClientRect().bottom : 0;
+      function box(){ return card.getBoundingClientRect(); }
+      function fits(){
+        var cr = box();
+        return cr.top >= navBottom - 1 && cr.bottom <= window.innerHeight + 1;
+      }
+      var i;
+      for(i = 0; i < 8 && !fits(); i++){
+        var cr = box();
+        var dy = 0;
+        if(cr.bottom > window.innerHeight) dy += cr.bottom - window.innerHeight;
+        if(cr.top < navBottom) dy -= (navBottom - cr.top);
+        if(dy === 0) break;
+        if(screen) screen.scrollTop += dy;
+        window.scrollBy(0, dy);
+      }
     });
     await page.waitForTimeout(80);
     var box = await page.evaluate(function(){
