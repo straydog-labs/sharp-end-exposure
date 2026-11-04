@@ -38,7 +38,7 @@ const OLD_MULTI = {
 function filledHang(){
   const six = [{ ok: null }, { ok: null }, { ok: null }, { ok: null }, { ok: null }, { ok: null }];
   const grips = ['Half crimp', 'Half crimp', 'Half crimp', '3-finger drag', '3-finger drag', '3-finger drag'];
-  const loads = ['40 lb assist', '30 lb assist', '40 lb assist', '', '', ''];
+  const loads = ['40 lb assist', '30 lb assist', '30 lb assist', '', '', ''];
   return {
     id: 'hb-saved',
     shape: 'rep_pass_fail',
@@ -61,6 +61,20 @@ async function loadValues(card){
   return card.locator('[data-f="setLoad"]').evaluateAll(function(els){
     return els.map(function(el){ return el.value; });
   });
+}
+
+async function runFillSequence(card){
+  const loads = card.locator('[data-f="setLoad"]');
+  await loads.nth(0).fill('35 lb assist');
+  assert.deepStrictEqual(await loadValues(card), [
+    '35 lb assist', '35 lb assist', '35 lb assist', '', '', ''
+  ], 'set 1 fills later empty same-grip sets only');
+  await loads.nth(1).fill('30 lb assist');
+  assert.strictEqual(await loads.nth(2).inputValue(), '30 lb assist', 'set 3 held the old value, so it follows set 2');
+  await loads.nth(0).fill('40 lb assist');
+  assert.deepStrictEqual(await loadValues(card), [
+    '40 lb assist', '30 lb assist', '30 lb assist', '', '', ''
+  ], 'sets 2 and 3 no longer match set 1, so they stay 30');
 }
 
 async function openBuilder(page){
@@ -130,20 +144,7 @@ async function run(){
 
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
       assert.deepStrictEqual(await loadValues(hb), ['', '', '', '', '', '']);
-
-      await loads.nth(0).fill('35 lb assist');
-      assert.deepStrictEqual(await loadValues(hb), [
-        '35 lb assist', '35 lb assist', '35 lb assist', '', '', ''
-      ], 'set 1 fills later empty same-grip sets only');
-
-      await loads.nth(1).fill('30 lb assist');
-      assert.strictEqual(await loads.nth(1).inputValue(), '30 lb assist');
-      assert.strictEqual(await loads.nth(2).inputValue(), '35 lb assist', 'middle edit does not take the later copy');
-
-      await loads.nth(0).fill('40 lb assist');
-      assert.deepStrictEqual(await loadValues(hb), [
-        '40 lb assist', '30 lb assist', '40 lb assist', '', '', ''
-      ], 'set 2 stays hand-entered; set 3 follows set 1');
+      await runFillSequence(hb);
 
       await tap(page, '#wiz-next');
       await page.waitForSelector('#new-a-name-edit', { timeout: 8000 });
@@ -157,8 +158,9 @@ async function run(){
       assert.strictEqual(saved.preset, 'repeaters_2_grips');
       assert.strictEqual(saved.assistance, '');
       assert.deepStrictEqual(saved.sets.map(function(s){ return s.load; }), [
-        '40 lb assist', '30 lb assist', '40 lb assist', '', '', ''
+        '40 lb assist', '30 lb assist', '30 lb assist', '', '', ''
       ]);
+      assert.ok(saved.sets.every(function(s){ return !Object.prototype.hasOwnProperty.call(s, '_hangLoadSrc'); }), 'saved sets have no fill memory');
       assert.deepStrictEqual(saved.sets.map(function(s){ return s.grip; }), [
         'Half crimp', 'Half crimp', 'Half crimp', '3-finger drag', '3-finger drag', '3-finger drag'
       ]);
@@ -212,11 +214,14 @@ async function run(){
       await page.waitForSelector('#cwb-root .cwb-card', { timeout: 8000 });
       const hb = page.locator('#cwb-root .cwb-card').nth(0);
       assert.deepStrictEqual(await loadValues(hb), [
-        '40 lb assist', '30 lb assist', '40 lb assist', '', '', ''
+        '40 lb assist', '30 lb assist', '30 lb assist', '', '', ''
       ], 'filled loads reopen in Edit workout blocks');
       const opened = await page.evaluate(function(){ return window.__cwbTest.clean(); });
       assert.deepStrictEqual(opened.find(function(b){ return b.id === 'old-hb'; }), LEGACY);
       assert.deepStrictEqual(opened.find(function(b){ return b.id === 'old-multi'; }), OLD_MULTI);
+      assert.ok(opened[0].sets.every(function(s){ return !Object.prototype.hasOwnProperty.call(s, '_hangLoadSrc'); }));
+      await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
+      await runFillSequence(hb);
       await hb.locator('[data-f="title"]').fill('Hangboard repeaters.');
       await tap(page, '#edit-cw-save');
       await page.waitForTimeout(500);
@@ -224,8 +229,9 @@ async function run(){
       assert.ok(patched && patched.body.sections, 'edit workout PATCH sends blocks');
       assert.strictEqual(patched.body.sections[0].title, 'Hangboard repeaters.');
       assert.deepStrictEqual(patched.body.sections[0].sets.map(function(s){ return s.load; }), [
-        '40 lb assist', '30 lb assist', '40 lb assist', '', '', ''
+        '40 lb assist', '30 lb assist', '30 lb assist', '', '', ''
       ]);
+      assert.ok(patched.body.sections[0].sets.every(function(s){ return !Object.prototype.hasOwnProperty.call(s, '_hangLoadSrc'); }));
       assert.deepStrictEqual(patched.body.sections[1], LEGACY);
       assert.deepStrictEqual(patched.body.sections[2], OLD_MULTI);
     });
