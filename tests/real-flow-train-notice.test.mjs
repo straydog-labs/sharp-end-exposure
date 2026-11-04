@@ -19,8 +19,8 @@ const insights = existsSync(join(root, 'js/coach-athlete-insights.js'))
 const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index324'/.test(index));
-assert.ok(/APP_VERSION = 'index324'/.test(sw));
+assert.ok(/var app_version = 'index325'/.test(index));
+assert.ok(/APP_VERSION = 'index325'/.test(sw));
 assert.ok(/PSYCHE_AWARENESS_CREDIT_PER = 'session'/.test(index));
 assert.ok(/What did you notice\?/.test(index));
 assert.ok(/How present were you\?/.test(index));
@@ -403,14 +403,14 @@ try{
   });
 
   await withPage(browser, port, {
-    path: '/index.html?wk=0',
+    path: '/index.html?wk=0&aw=1',
     viewport: { width: 390, height: 844 },
     session: { access_token: 'test-token', user: { id: USER_ID } },
+    storage: { see_wk: '0' },
     stub: awarenessStub({ rows: [] })
   }, async function(page, recorded){
     await authTrain(page);
     await page.evaluate(function(){
-      try{ localStorage.removeItem('see_wk'); }catch(e){}
       trainSessionState = newTrainSessionState('Boulders', 'Legacy');
       trainAddBlock('emom');
       trainSessionState.blocks[0].complete = true;

@@ -37,7 +37,10 @@ async function seeded(flag){
   const { server, port } = await startStaticServer();
   try{
     let out = null;
-    await withPage(browser, port, { path: '/index.html?wk=' + flag }, async function(page){
+    await withPage(browser, port, {
+      path: '/index.html?wk=' + flag + '&aw=1',
+      storage: flag === '0' ? { see_wk: '0' } : null
+    }, async function(page){
       await page.waitForFunction(function(){ return typeof window.seedTrainBlocksFromSections === 'function'; }, null, { timeout: 30000 });
       out = await page.evaluate(function(b){ return JSON.parse(JSON.stringify(seedTrainBlocksFromSections(b))); }, blocks);
     });

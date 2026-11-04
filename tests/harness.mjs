@@ -192,8 +192,14 @@ export async function withPage(browser, port, opts, fn){
       localStorage.setItem('see_device_id', 'dev_regression');
     }catch(e){}
     if(args.session) window.__seeTestSession = args.session;
+    if(args.storage){
+      Object.keys(args.storage).forEach(function(k){
+        localStorage.setItem(k, String(args.storage[k]));
+      });
+    }
   }, {
-    session: opts.session || null
+    session: opts.session || null,
+    storage: opts.storage || null
   });
   var pagePath = opts.path || '/index.html';
   await page.goto('http://127.0.0.1:' + port + pagePath, { waitUntil: 'domcontentloaded', timeout: 60000 });

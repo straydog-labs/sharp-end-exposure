@@ -2,7 +2,7 @@
    Keep APP_VERSION in sync with `var app_version` in index.html / index-staging.html.
    A new deploy changes this file, so browsers install a fresh worker and drop the
    old versioned cache on activate. */
-var APP_VERSION = 'index324';
+var APP_VERSION = 'index325';
 var CACHE_NAME = 'see-shell-' + APP_VERSION;
 var SEE_VAPID_PUBLIC_KEY = 'BP6DrkZmQspCullBBbaIlg41Z7W_AXFbefEAksCLdkdlkHBUPiJHP5YyKU7BXFBKU0sK1tJUU4v88zZtYJDRmd4';
 
@@ -58,30 +58,95 @@ self.addEventListener('activate', function(event){
   );
 });
 
+var APP_SHELL_TIMEOUT_MS = 3000;
+
+function isAppShellRequest(req, url){
+  if(req.mode === 'navigate') return true;
+  if(!isSameOrigin(url)) return false;
+  var path = url.pathname || '';
+  if(/\/(?:index|index-staging)\.html$/i.test(path)) return true;
+  if(/\/sw\.js$/i.test(path)) return true;
+  if(/\/js\/.+\.js$/i.test(path)) return true;
+  if(/\/(?:version\.(?:json|txt|js)|app_version(?:\.[a-z0-9]+)?)$/i.test(path)) return true;
+  if(path === '/' || /\/$/.test(path)) return true;
+  return false;
+}
+
+function isStaticAsset(url){
+  return /\.(?:png|jpe?g|gif|webp|svg|ico|woff2?|ttf|otf|eot)$/i.test(url.pathname || '');
+}
+
+function putCache(req, res){
+  if(!res || !res.ok) return;
+  var copy;
+  try{ copy = res.clone(); }catch(e){ return; }
+  caches.open(CACHE_NAME).then(function(cache){ return cache.put(req, copy); }).catch(function(){});
+}
+
+function fromCache(req, url){
+  return caches.match(req).then(function(cached){
+    if(cached) return cached;
+    if(isSameOrigin(url) && (url.pathname === '/' || /\/$/.test(url.pathname) || /\/index\.html$/i.test(url.pathname))){
+      return caches.match('./index.html').then(function(shell){ return shell || caches.match('./'); });
+    }
+    return null;
+  });
+}
+
+function networkFirstApp(req, url){
+  var timeoutId;
+  var network = fetch(req, { cache: 'no-cache' }).then(function(res){
+    putCache(req, res);
+    return res;
+  });
+  var timeout = new Promise(function(resolve){
+    timeoutId = setTimeout(function(){ resolve(null); }, APP_SHELL_TIMEOUT_MS);
+  });
+  return Promise.race([
+    network.then(function(res){ return { kind: 'net', res: res }; }).catch(function(){ return { kind: 'err' }; }),
+    timeout.then(function(){ return { kind: 'timeout' }; })
+  ]).then(function(winner){
+    if(timeoutId) clearTimeout(timeoutId);
+    if(winner.kind === 'net' && winner.res) return winner.res;
+    return fromCache(req, url).then(function(cached){
+      if(cached) return cached;
+      if(winner.kind === 'timeout') return network.catch(function(){ return Response.error(); });
+      return Response.error();
+    });
+  });
+}
+
+function cacheFirstStatic(req){
+  return caches.match(req).then(function(cached){
+    var refresh = fetch(req).then(function(res){
+      putCache(req, res);
+      return res;
+    }).catch(function(){ return cached || Response.error(); });
+    return cached || refresh;
+  });
+}
+
 self.addEventListener('fetch', function(event){
   var req = event.request;
   if(req.method !== 'GET') return;
   var url;
   try{ url = new URL(req.url); }catch(e){ return; }
   if(isApiRequest(url)) return; // network-only — do not respondWith, do not cache
-  if(/\/sw\.js$/i.test(url.pathname)) return; // let the browser fetch worker updates itself
-
+  if(isAppShellRequest(req, url)){
+    event.respondWith(networkFirstApp(req, url));
+    return;
+  }
+  if(isStaticAsset(url)){
+    event.respondWith(cacheFirstStatic(req));
+    return;
+  }
+  if(!isSameOrigin(url)) return;
   event.respondWith(
-    fetch(req).then(function(res){
-      if(res && res.ok && (isSameOrigin(url) || res.type === 'basic' || res.type === 'cors')){
-        var copy = res.clone();
-        caches.open(CACHE_NAME).then(function(cache){ cache.put(req, copy); }).catch(function(){});
-      }
+    fetch(req, { cache: 'no-cache' }).then(function(res){
+      putCache(req, res);
       return res;
     }).catch(function(){
-      return caches.match(req).then(function(cached){
-        if(cached) return cached;
-        // Directory URL and index.html are the same shell.
-        if(isSameOrigin(url) && (url.pathname === '/' || /\/$/.test(url.pathname) || /\/index\.html$/i.test(url.pathname))){
-          return caches.match('./index.html').then(function(shell){ return shell || caches.match('./'); });
-        }
-        return cached;
-      });
+      return fromCache(req, url).then(function(cached){ return cached || Response.error(); });
     })
   );
 });

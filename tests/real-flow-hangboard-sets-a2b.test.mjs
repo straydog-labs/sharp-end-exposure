@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import assert from 'assert';
@@ -12,9 +12,10 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index324'/.test(index));
-assert.ok(/APP_VERSION = 'index324'/.test(sw));
-assert.ok(/WK_DEFAULT_ON = false/.test(index));
+assert.ok(/var app_version = 'index325'/.test(index));
+assert.ok(/APP_VERSION = 'index325'/.test(sw));
+assert.ok(!/WK_DEFAULT_ON/.test(index));
+assert.ok(!/_hangLoadSrc/.test(index));
 const sql = readFileSync(join(root, 'sql/training-sessions-assignment-id.sql'), 'utf8');
 assert.strictEqual(sql.trim(), [
   'alter table public.training_sessions add column if not exists assignment_id uuid null references public.assignments(id) on delete set null;',
@@ -329,7 +330,7 @@ try{
     var fill2 = await page.evaluate(function(){
       return trainSessionState.blocks[0].sets.map(function(s){ return s.load; });
     });
-    assert.deepStrictEqual(fill2, ['40 lb assist', '30 lb assist', '40 lb assist', '', '', ''], 'hand-entered later load is kept');
+    assert.deepStrictEqual(fill2, ['40 lb assist', '30 lb assist', '30 lb assist', '', '', ''], '40 / 30 / 30; different grip untouched');
 
     await page.locator('[data-hang-set="1"] [onclick="trainHangSameSet(\'' + hbId + '\',0)"]').click();
     var same = await page.evaluate(function(){
@@ -405,12 +406,13 @@ try{
   });
 
   await withPage(browser, port, {
-    path: '/index.html?wk=1',
+    path: '/index.html',
     viewport: { width: 390, height: 1200 },
     session: { access_token: 'test-token', user: { id: USER_ID } },
     stub: stub()
   }, async function(page, recorded){
     await openBuilder(page);
+    assert.strictEqual(await page.evaluate(function(){ return localStorage.getItem('see_wk'); }), null, 'coach-shaped assignment needs no stored flag');
     await page.evaluate(function(asg){
       seedTrainSessionFromItem(asg, { source_assignment_id: 'asg-hang', custom_workout_item_id: asg.id });
     }, coachAssignmentWorkout());
@@ -434,9 +436,10 @@ try{
 
   for(const flag of ['1', '0']){
     await withPage(browser, port, {
-      path: '/index.html?wk=' + flag,
+      path: '/index.html?wk=' + flag + '&aw=1',
       viewport: { width: 390, height: 1200 },
       session: { access_token: 'test-token', user: { id: USER_ID } },
+      storage: flag === '0' ? { see_wk: '0' } : null,
       stub: stub()
     }, async function(page){
       await boot(page, USER_ID);
@@ -489,9 +492,10 @@ try{
   const coachWorkout = coachAssignmentWorkout();
   for(const flag of ['1', '0']){
     await withPage(browser, port, {
-      path: '/index.html?wk=' + flag,
+      path: '/index.html?wk=' + flag + '&aw=1',
       viewport: { width: 390, height: 1600 },
       session: { access_token: 'test-token', user: { id: USER_ID } },
+      storage: flag === '0' ? { see_wk: '0' } : null,
       stub: stub({ customWorkouts: [coachWorkout] })
     }, async function(page, recorded){
       await boot(page, USER_ID);
@@ -666,11 +670,78 @@ try{
     assert.strictEqual(queued.assignment_id, 'asg-offline');
   });
 
+  await withPage(browser, port, {
+    path: '/index.html',
+    viewport: { width: 390, height: 1400 },
+    session: { access_token: 'test-token', user: { id: USER_ID } },
+    stub: stub()
+  }, async function(page, recorded){
+    await openBuilder(page);
+    await page.evaluate(function(){ trainAddBlock('rep_pass_fail'); });
+    var hbId = await page.evaluate(function(){ return trainSessionState.blocks[0].id; });
+    await page.click('[data-hang-preset="repeaters_2_grips"]');
+    await page.fill('#tb-' + hbId + '-s0-load', '35 lb assist');
+    assert.deepStrictEqual(await page.evaluate(function(){
+      return trainSessionState.blocks[0].sets.map(function(s){ return s.load; });
+    }), ['35 lb assist', '35 lb assist', '35 lb assist', '', '', '']);
+    await page.fill('#tb-' + hbId + '-s1-load', '30 lb assist');
+    assert.deepStrictEqual(await page.evaluate(function(){
+      return trainSessionState.blocks[0].sets.map(function(s){ return s.load; });
+    }), ['35 lb assist', '30 lb assist', '30 lb assist', '', '', '']);
+    await page.fill('#tb-' + hbId + '-s0-load', '40 lb assist');
+    var before = await page.evaluate(function(){
+      var sets = trainSessionState.blocks[0].sets;
+      return {
+        loads: sets.map(function(s){ return s.load; }),
+        hidden: sets.some(function(s){ return s && s._hangLoadSrc != null; })
+      };
+    });
+    assert.deepStrictEqual(before.loads, ['40 lb assist', '30 lb assist', '30 lb assist', '', '', '']);
+    assert.strictEqual(before.hidden, false);
+    await page.click('#train-sess-save-workout');
+    await page.waitForTimeout(400);
+    var saved = firstBody(postsTo(recorded, 'custom_workouts', 'POST'));
+    var savedHb = saved.sections.find(function(b){ return b.shape === 'rep_pass_fail'; });
+    assert.deepStrictEqual(savedHb.sets.map(function(s){ return s.load; }), before.loads);
+    await page.click('#train-sess-saved-start-now');
+    await waitForScreen(page, 'screen-train-session');
+    var reopened = await page.evaluate(function(){
+      var b = trainSessionState.blocks.find(function(x){ return x.shape === 'rep_pass_fail'; });
+      return {
+        loads: b.sets.map(function(s){ return s.load; }),
+        hidden: b.sets.some(function(s){ return s && s._hangLoadSrc != null; })
+      };
+    });
+    assert.deepStrictEqual(reopened.loads, before.loads, 'save and reopen keeps 40 / 30 / 30');
+    assert.strictEqual(reopened.hidden, false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(function(){
+      document.documentElement.style.scrollBehavior = 'auto';
+      var el = document.querySelector('[data-hang-set="1"]');
+      if(!el) return;
+      var node = el.parentElement;
+      while(node && node !== document.body){
+        var s = getComputedStyle(node);
+        var oy = s.overflowY;
+        if((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 2){
+          var top = el.getBoundingClientRect().top - node.getBoundingClientRect().top + node.scrollTop - 8;
+          node.scrollTop = Math.max(0, top);
+          return;
+        }
+        node = node.parentElement;
+      }
+      el.scrollIntoView({ block: 'start', behavior: 'instant' });
+    });
+    var shotDir = '/opt/cursor/artifacts/screenshots';
+    if(!existsSync(shotDir)) mkdirSync(shotDir, { recursive: true });
+    await page.screenshot({ path: join(shotDir, 'load-fill-40-30-30.png'), animations: 'disabled' });
+  });
+
   var saveSrc = index.slice(index.indexOf('async function saveTrainSession()'), index.indexOf('function trainWorkoutFocusForSave'));
   assert.ok(/maybeCompleteLinkedAssignment/.test(saveSrc));
   assert.ok(/trainSessionBlocksAllComplete/.test(saveSrc));
   assert.ok(/source_assignment_id/.test(saveSrc));
-  assert.ok(!/WK_DEFAULT_ON = true/.test(index));
+  assert.ok(!/WK_DEFAULT_ON/.test(index));
 
   if(flagOffDiffs.length){
     console.log('FLAG-OFF DIFFS:\n' + flagOffDiffs.map(function(d){ return '- ' + d; }).join('\n'));
