@@ -13,8 +13,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index323'/.test(index));
-assert.ok(/APP_VERSION = 'index323'/.test(sw));
+assert.ok(/var app_version = 'index324'/.test(index));
+assert.ok(/APP_VERSION = 'index324'/.test(sw));
 
 // Optional screenshot output (outside the repo). Unset in CI.
 const SHOT_OUT = process.env.SEE_SHOT_OUT || '';
@@ -255,6 +255,10 @@ try{
     assert.ok(tickKept, 'ticks survive reorder');
 
     // 3b. reorder with real pointer drag: drag Custom (last) to above Strength (index 1)
+    await page.evaluate(function(){
+      (trainSessionState.blocks || []).forEach(function(b){ if(b && b.id) wkCollapsed[b.id] = true; });
+      renderTrainSessionBuilder();
+    });
     var handle = page.locator('.train-block-card[data-block-id="' + ids[5] + '"] .wk-drag-handle');
     var target = page.locator('.train-block-card[data-block-id="' + ids[1] + '"]');
     await handle.scrollIntoViewIfNeeded();
