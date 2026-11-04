@@ -1496,6 +1496,13 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .see-sys-banner .see-sys-banner-msg{flex:1;font-size:13px;font-weight:600;color:var(--text);line-height:1.35;text-align:left;}
 .see-sys-banner button{background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;padding:8px 10px;cursor:pointer;white-space:nowrap;}
 .see-sys-banner button.see-sys-banner-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text);}
+.see-update-banner{position:fixed;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom, 0px));z-index:80;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.28);}
+.see-update-banner[hidden]{display:none !important;}
+.see-update-banner button{min-height:44px;min-width:44px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.see-update-refresh{flex:1;background:var(--accent);border:none;color:#fff;padding:0 12px;}
+.see-update-later{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:0 12px;}
+html.see-update-open #screen-train-session.active .content{padding-bottom:128px;}
+html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-screen-h) - 76px);max-height:calc(var(--log-flow-screen-h) - 76px);}
 .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface3) 50%,var(--surface) 75%);background-size:200% 100%;animation:skeleton-shimmer 1.4s infinite;border-radius:var(--r-sm);}
 @keyframes skeleton-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 .save-ind{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;min-height:16px;}
@@ -1644,6 +1651,10 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
     <div id="project-pick-route-list"></div>
     <button type="button" id="project-pick-route-cancel" class="project-pick-route-cancel" onclick="hideProjectPickRoute()">Cancel</button>
   </div>
+</div>
+<div id="see-update-banner" class="see-update-banner" hidden>
+  <button type="button" id="see-update-refresh" class="see-update-refresh" onclick="seeReloadForUpdate()">Update ready · Refresh</button>
+  <button type="button" id="see-update-later" class="see-update-later" onclick="dismissSeeUpdateLater()">Later</button>
 </div>
 <div id="sync-banner" class="see-sys-banner" hidden>
   <button type="button" id="sync-banner-msg" class="see-sys-banner-msg" onclick="retryOfflineQueue()" style="background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;">Climbs pending sync. Tap to retry.</button>
@@ -6133,18 +6144,15 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index324'; // keep in sync with APP_VERSION in sw.js
-var WK_DEFAULT_ON = false;
+var app_version = 'index325'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
+  // Everyone gets the new builder and the awareness prompt. URL params are ignored.
+  // localStorage see_wk === '0' is a test-only hatch for the legacy path. No UI writes it.
   try{
-    var q = new URLSearchParams((typeof location !== 'undefined' && location.search) || '');
-    var v = q.get('wk');
-    if(v === '1'){ localStorage.setItem(WK_LS_KEY, '1'); return true; }
-    if(v === '0'){ localStorage.removeItem(WK_LS_KEY); return false; }
-    if(localStorage.getItem(WK_LS_KEY) === '1') return true;
+    if(localStorage.getItem(WK_LS_KEY) === '0') return false;
   }catch(e){}
-  return !!WK_DEFAULT_ON;
+  return true;
 }
 const SB_URL = 'https://kwtbqgoqtewrlsjgepwq.supabase.co';
 const SB_KEY = 'sb_publishable_cPznnRs3-ega2M1aYoEpDw_bJVQFS1t';
@@ -17764,7 +17772,6 @@ function trainHangOnSetLoad(blockId, si){
   var oldLoad = set.load != null ? String(set.load) : '';
   var newLoad = el ? String(el.value) : '';
   set.load = newLoad;
-  set._hangLoadSrc = si;
   var grip = trainHangEffectiveGrip(b, set);
   var j;
   for(j = si + 1; j < sets.length; j++){
@@ -17773,9 +17780,7 @@ function trainHangOnSetLoad(blockId, si){
     if(trainHangEffectiveGrip(b, later) !== grip) continue;
     var laterLoad = later.load != null ? String(later.load) : '';
     if(laterLoad !== '' && laterLoad !== oldLoad) continue;
-    if(laterLoad !== '' && later._hangLoadSrc != null && later._hangLoadSrc !== si) continue;
     later.load = newLoad;
-    later._hangLoadSrc = si;
     var laterEl = document.getElementById('tb-'+blockId+'-s'+j+'-load');
     if(laterEl) laterEl.value = newLoad;
   }
@@ -26924,80 +26929,71 @@ async function runSEETests(){
   }catch(e){ fail('Offline queue distinguishes network vs HTTP, retries, never silently deletes', e.message); }
 
   try{
+    var updateBanner = document.getElementById('see-update-banner');
     var srcOk = typeof markSeeUpdatePending === 'function'
-      && typeof shouldSeeUpdateReloadNow === 'function'
-      && typeof applySeeUpdateReload === 'function'
+      && typeof handleSeeControllerChange === 'function'
+      && typeof seeOnCleanHub === 'function'
+      && typeof seeReloadForUpdate === 'function'
+      && typeof showSeeUpdateBanner === 'function'
       && typeof toastSeeUpdateIfReloaded === 'function'
-      && typeof isSeeUpdateReloadUnsafe === 'function'
       && !document.getElementById('update-banner')
-      && typeof showUpdateBanner === 'undefined'
-      && typeof applySeeUpdate === 'undefined'
+      && !!updateBanner
       && /visibilitychange/.test(String(startSeeUpdateWatchers))
-      && /keydown/.test(String(startSeeUpdateWatchers))
-      && /pointerdown/.test(String(startSeeUpdateWatchers))
-      && /touchstart/.test(String(startSeeUpdateWatchers))
-      && /reg\.waiting/.test(String(registerSEEServiceWorker))
+      && /seeRequestSwUpdate/.test(String(startSeeUpdateWatchers))
       && /updatefound/.test(String(registerSEEServiceWorker))
       && /controllerchange/.test(String(registerSEEServiceWorker))
       && /markSeeUpdatePending/.test(String(registerSEEServiceWorker))
       && /_seeHadController/.test(String(registerSEEServiceWorker))
+      && /updateViaCache:\s*'none'/.test(String(registerSEEServiceWorker))
       && SEE_UPDATE_TOAST_MSG === 'Updated to the latest version'
-      && SEE_UPDATE_IDLE_MS === 60000
-      && SEE_UPDATE_FOREGROUND_MS === 120000
+      && SEE_SW_UPDATE_MIN_MS === 600000
       && !!document.getElementById('sync-banner');
-    var prevPending = _seeUpdatePending;
     var prevReloading = _seeUpdateReloading;
-    var prevBusy = _logFlowSaveBusy;
-    var prevFlush = window._flushOfflineQueueBusy;
-    var prevInput = _seeUpdateLastInputAt;
-    var prevAt = _seeUpdatePendingAt;
-    var origApply = applySeeUpdateReload;
+    var prevHad = _seeHadController;
+    var prevTrain = trainSessionState;
+    var prevScreen = (document.querySelector('.screen.active') || {}).id || 'screen-home';
+    var origReload = seeReloadForUpdate;
     var applied = 0;
-    applySeeUpdateReload = function(){ applied++; };
-    _seeUpdatePending = true;
+    seeReloadForUpdate = function(){ applied++; };
+    showScreen('screen-home');
+    trainSessionState = null;
+    var sheet = document.getElementById('edit-sheet');
+    if(sheet) sheet.style.display = 'none';
+    _seeHadController = true;
     _seeUpdateReloading = false;
-    _logFlowSaveBusy = true;
-    window._flushOfflineQueueBusy = false;
-    var unsafeOk = isSeeUpdateReloadUnsafe() === true && shouldSeeUpdateReloadNow() === false;
-    _logFlowSaveBusy = false;
-    window._flushOfflineQueueBusy = true;
-    var flushUnsafeOk = isSeeUpdateReloadUnsafe() === true && shouldSeeUpdateReloadNow() === false;
-    window._flushOfflineQueueBusy = false;
-    _seeUpdateLastInputAt = Date.now() - 200000;
-    _seeUpdatePendingAt = Date.now() - 200000;
-    var idleOk = shouldSeeUpdateReloadNow() === true;
-    _seeUpdateReloading = true;
-    var noDouble = shouldSeeUpdateReloadNow() === false;
-    _seeUpdateReloading = false;
-    _seeUpdatePending = false;
-    var notPending = shouldSeeUpdateReloadNow() === false;
+    try{ sessionStorage.removeItem('see_update_later'); }catch(e){}
+    var hubOk = seeOnCleanHub() === true;
     applied = 0;
     markSeeUpdatePending();
-    var pendingSet = _seeUpdatePending === true && applied >= 0;
-    _seeUpdatePending = prevPending;
+    var hubReloads = applied === 1;
+    _seeUpdateReloading = false;
+    applied = 0;
+    showScreen('screen-train-session');
+    trainSessionState = { id: 'audit-update', blocks: [] };
+    markSeeUpdatePending();
+    var midOk = applied === 0 && updateBanner.hidden === false;
+    hideSeeUpdateBanner();
+    seeReloadForUpdate = origReload;
     _seeUpdateReloading = prevReloading;
-    _logFlowSaveBusy = prevBusy;
-    window._flushOfflineQueueBusy = prevFlush;
-    _seeUpdateLastInputAt = prevInput;
-    _seeUpdatePendingAt = prevAt;
-    applySeeUpdateReload = origApply;
+    _seeHadController = prevHad;
+    trainSessionState = prevTrain;
+    if(sheet) sheet.style.display = 'none';
+    showScreen(prevScreen);
     try{ sessionStorage.setItem(SEE_UPDATE_RELOAD_KEY, '1'); }catch(e){}
     toastSeeUpdateIfReloaded();
     var toastEl = document.getElementById('toast-el');
     var toasted = !!(toastEl && /Updated to the latest version/.test(toastEl.textContent || ''));
     var flagCleared = false;
     try{ flagCleared = sessionStorage.getItem(SEE_UPDATE_RELOAD_KEY) == null; }catch(e){ flagCleared = true; }
-    if(srcOk && unsafeOk && flushUnsafeOk && idleOk && noDouble && notPending && pendingSet && toasted && flagCleared){
-      pass('App updates auto-reload on hide or idle with a confirmation toast');
+    if(srcOk && hubOk && hubReloads && midOk && toasted && flagCleared){
+      pass('App updates reload a clean hub once and banner mid-flow');
     } else {
-      fail('App updates auto-reload on hide or idle with a confirmation toast',
-        'src=' + srcOk + ' unsafe=' + unsafeOk + ' flush=' + flushUnsafeOk + ' idle=' + idleOk
-        + ' noDouble=' + noDouble + ' notPending=' + notPending + ' pendingSet=' + pendingSet
-        + ' toast=' + toasted + ' flag=' + flagCleared + ' vis=' + document.visibilityState);
+      fail('App updates reload a clean hub once and banner mid-flow',
+        'src=' + srcOk + ' hub=' + hubOk + ' hubReloads=' + hubReloads + ' mid=' + midOk
+        + ' toast=' + toasted + ' flag=' + flagCleared);
     }
   }catch(e){
-    try{ applySeeUpdateReload = origApply; }catch(e2){}
-    fail('App updates auto-reload on hide or idle with a confirmation toast', e.message);
+    fail('App updates reload a clean hub once and banner mid-flow', e.message);
   }
 
   try{
@@ -31022,19 +31018,49 @@ function consumeTrainChatDeepLink(){
 }
 
 var SEE_UPDATE_RELOAD_KEY = 'see_auto_reloaded';
+var SEE_UPDATE_LATER_KEY = 'see_update_later';
 var SEE_UPDATE_TOAST_MSG = 'Updated to the latest version';
-var SEE_UPDATE_IDLE_MS = 60000;
-var SEE_UPDATE_FOREGROUND_MS = 120000;
-var _seeUpdatePending = false;
-var _seeUpdatePendingAt = 0;
-var _seeUpdateLastInputAt = Date.now();
+var SEE_SW_UPDATE_MIN_MS = 600000;
+var SEE_HUB_SCREENS = { 'screen-home': 1, 'screen-sessions': 1, 'screen-train': 1, 'screen-drill': 1 };
 var _seeUpdateReloading = false;
 var _seeUpdateWatchersBound = false;
+var _seeSwReg = null;
+var _seeSwUpdateAt = 0;
 var _seeHadController = (typeof navigator !== 'undefined' && navigator.serviceWorker)
   ? !!navigator.serviceWorker.controller
   : false;
 
-function isSeeUpdateReloadUnsafe(){
+function seeRequestSwUpdate(reg){
+  reg = reg || _seeSwReg;
+  if(!reg || typeof reg.update !== 'function') return;
+  var now = Date.now();
+  if(_seeSwUpdateAt && (now - _seeSwUpdateAt) < SEE_SW_UPDATE_MIN_MS) return;
+  _seeSwUpdateAt = now;
+  reg.update().catch(function(){});
+}
+
+function seeActiveScreenId(){
+  var el = document.querySelector('.screen.active');
+  return el ? el.id : '';
+}
+
+function seeEditSheetOpen(){
+  var sheet = document.getElementById('edit-sheet');
+  if(!sheet) return false;
+  return sheet.style.display !== 'none' && sheet.style.display !== '';
+}
+
+function seeMidFlowScreen(id){
+  id = id || seeActiveScreenId();
+  if(!id) return false;
+  if(id.indexOf('screen-log-') === 0) return true;
+  if(id === 'screen-deeper' || id === 'screen-q1' || id === 'screen-q2' || id === 'screen-q3' || id === 'screen-q4') return true;
+  if(id === 'screen-train-session' || id === 'screen-train-done') return true;
+  if(id === 'screen-coach-zone-confirm' || id === 'screen-zone-arc-detail' || id === 'screen-zone-confirmed') return true;
+  return false;
+}
+
+function seeSaveBusy(){
   if(window._flushOfflineQueueBusy) return true;
   if(typeof _logFlowSaveBusy !== 'undefined' && _logFlowSaveBusy) return true;
   if(typeof _logClimbSaveBusy !== 'undefined' && _logClimbSaveBusy) return true;
@@ -31042,47 +31068,67 @@ function isSeeUpdateReloadUnsafe(){
   return false;
 }
 
-function shouldSeeUpdateReloadNow(){
-  if(!_seeUpdatePending || _seeUpdateReloading) return false;
-  if(isSeeUpdateReloadUnsafe()) return false;
-  if(document.visibilityState === 'hidden') return true;
-  var now = Date.now();
-  return (now - _seeUpdateLastInputAt) >= SEE_UPDATE_IDLE_MS
-    && (now - _seeUpdatePendingAt) >= SEE_UPDATE_FOREGROUND_MS;
+function seeOnCleanHub(){
+  var id = seeActiveScreenId();
+  if(!SEE_HUB_SCREENS[id]) return false;
+  if(seeMidFlowScreen(id)) return false;
+  if(seeEditSheetOpen()) return false;
+  if(seeSaveBusy()) return false;
+  if(typeof trainSessionState !== 'undefined' && trainSessionState) return false;
+  return true;
 }
 
-function applySeeUpdateReload(){
-  if(!shouldSeeUpdateReloadNow()) return;
+function hideSeeUpdateBanner(){
+  var el = document.getElementById('see-update-banner');
+  if(el) el.hidden = true;
+  document.documentElement.classList.remove('see-update-open');
+}
+
+function showSeeUpdateBanner(){
+  try{
+    if(sessionStorage.getItem(SEE_UPDATE_LATER_KEY) === '1') return;
+  }catch(e){}
+  var el = document.getElementById('see-update-banner');
+  if(!el) return;
+  el.hidden = false;
+  document.documentElement.classList.add('see-update-open');
+  if(typeof syncLogFlowChrome === 'function') syncLogFlowChrome();
+}
+
+function dismissSeeUpdateLater(){
+  try{ sessionStorage.setItem(SEE_UPDATE_LATER_KEY, '1'); }catch(e){}
+  hideSeeUpdateBanner();
+  if(typeof syncLogFlowChrome === 'function') syncLogFlowChrome();
+}
+
+function seeReloadForUpdate(){
   _seeUpdateReloading = true;
   try{ sessionStorage.setItem(SEE_UPDATE_RELOAD_KEY, '1'); }catch(e){}
   location.reload();
 }
 
-function maybeApplySeeUpdate(){
-  if(shouldSeeUpdateReloadNow()) applySeeUpdateReload();
+function handleSeeControllerChange(){
+  if(!_seeHadController){
+    _seeHadController = true;
+    return;
+  }
+  _seeHadController = true;
+  if(seeOnCleanHub()){
+    if(_seeUpdateReloading) return;
+    seeReloadForUpdate();
+  } else showSeeUpdateBanner();
 }
 
 function markSeeUpdatePending(){
-  if(!_seeUpdatePending) _seeUpdatePendingAt = Date.now();
-  _seeUpdatePending = true;
-  startSeeUpdateWatchers();
-  maybeApplySeeUpdate();
+  handleSeeControllerChange();
 }
 
 function startSeeUpdateWatchers(){
   if(_seeUpdateWatchersBound) return;
   _seeUpdateWatchersBound = true;
   document.addEventListener('visibilitychange', function(){
-    if(!_seeUpdatePending) return;
-    if(document.visibilityState === 'hidden') maybeApplySeeUpdate();
+    if(document.visibilityState === 'visible') seeRequestSwUpdate(_seeSwReg);
   });
-  function bumpSeeUpdateIdle(){ _seeUpdateLastInputAt = Date.now(); }
-  window.addEventListener('keydown', bumpSeeUpdateIdle, true);
-  window.addEventListener('pointerdown', bumpSeeUpdateIdle, true);
-  window.addEventListener('touchstart', bumpSeeUpdateIdle, true);
-  setInterval(function(){
-    if(_seeUpdatePending) maybeApplySeeUpdate();
-  }, 15000);
 }
 
 function toastSeeUpdateIfReloaded(){
@@ -31101,20 +31147,23 @@ function registerSEEServiceWorker(){
   startSeeUpdateWatchers();
   var swUrl = 'sw.js?v=' + encodeURIComponent(app_version);
   navigator.serviceWorker.register(swUrl, { scope: './', updateViaCache: 'none' }).then(function(reg){
-    if(reg.waiting) markSeeUpdatePending();
+    _seeSwReg = reg;
+    seeRequestSwUpdate(reg);
     reg.addEventListener('updatefound', function(){
       var w = reg.installing;
       if(!w) return;
       w.addEventListener('statechange', function(){
-        if(w.state === 'installed' && navigator.serviceWorker.controller) markSeeUpdatePending();
+        if(w.state === 'installed' && navigator.serviceWorker.controller){
+          // skipWaiting in sw.js activates the worker; controllerchange applies it.
+        }
       });
     });
   }).catch(function(){});
   if(!window._seeControllerChangeBound && navigator.serviceWorker.addEventListener){
     window._seeControllerChangeBound = true;
     navigator.serviceWorker.addEventListener('controllerchange', function(){
-      if(_seeHadController) markSeeUpdatePending();
-      _seeHadController = true;
+      // markSeeUpdatePending reads _seeHadController and skips the first claim.
+      markSeeUpdatePending();
     });
   }
   if(!window._seePushSwMsgBound){

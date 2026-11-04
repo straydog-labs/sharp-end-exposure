@@ -18,12 +18,13 @@ const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 const REPO_SHOTS = join(root, 'shots');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index324'/.test(index));
-assert.ok(/APP_VERSION = 'index324'/.test(sw));
-assert.ok(/var WK_DEFAULT_ON = false/.test(index));
+assert.ok(/var app_version = 'index325'/.test(index));
+assert.ok(/APP_VERSION = 'index325'/.test(sw));
+assert.ok(!/WK_DEFAULT_ON/.test(index));
 assert.ok(/function isWkOn\(/.test(index));
 assert.ok(/see_wk/.test(index));
-assert.ok(/q\.get\('wk'\)/.test(index) && /v === '1'/.test(index) && /v === '0'/.test(index));
+assert.ok(/localStorage\.getItem\(WK_LS_KEY\) === '0'/.test(index));
+assert.ok(!/q\.get\('wk'\)/.test(index));
 assert.ok(/Checked = sent \/ completed successfully\. Unchecked = not sent\./.test(index));
 assert.ok(/function normalizeWkBlock\(/.test(index));
 assert.ok(/function seedTrainBlocksFromSections\(/.test(index) && /normalizeWkBlock\(cloned/.test(index));
@@ -46,7 +47,7 @@ assert.ok(/custom_workouts_select/.test(sql));
 assert.ok(/custom_workouts_update/.test(sql));
 assert.ok(/custom_workouts_delete/.test(sql));
 assert.ok(!/workout-sessions|isWkOn|WK_DEFAULT_ON/.test(coach), 'coach-dashboard must not use the athlete WK flag');
-assert.ok(!/index324/.test(coach) || true);
+assert.ok(!/index325/.test(coach) || true);
 
 function extractBetween(src, startNeedle, endNeedle){
   var start = src.indexOf(startNeedle);
@@ -447,7 +448,8 @@ try{
 
   await withPage(browser, port, {
     path: '/index.html',
-    viewport: { width: 390, height: 844 }
+    viewport: { width: 390, height: 844 },
+    storage: { see_wk: '0' }
   }, async function(page){
     await authTrain(page);
     var opened = await page.evaluate(function(){
@@ -469,7 +471,7 @@ try{
         boulderKeys: Object.keys(trainSessionState.blocks[0].rounds[0].boulders[0] || {}).sort()
       };
     });
-    assert.strictEqual(opened.flag, false, 'flag off by default');
+    assert.strictEqual(opened.flag, false, 'see_wk=0 legacy hatch');
     assert.ok(!opened.hasWkBoulder, 'legacy UI has no WK boulder checkboxes');
     assert.ok(!opened.hasHint, 'legacy UI has no sent hint');
     assert.ok(opened.htmlHasV3);
@@ -584,16 +586,20 @@ try{
   });
 
   await withPage(browser, port, {
-    path: '/index.html?wk=0',
+    path: '/index.html?wk=0&aw=1',
     viewport: { width: 390, height: 844 }
   }, async function(page){
     await authTrain(page);
     var off = await page.evaluate(function(){
+      var before = isWkOn();
       try{ localStorage.setItem('see_wk', '1'); }catch(e){}
-      return { fromUrl: isWkOn(), stored: (function(){ try{ return localStorage.getItem('see_wk'); }catch(e){ return 'err'; } })() };
+      var storedOn = isWkOn();
+      try{ localStorage.setItem('see_wk', '0'); }catch(e){}
+      return { before: before, storedOn: storedOn, hatch: isWkOn() };
     });
-    assert.strictEqual(off.fromUrl, false, '?wk=0 clears flag');
-    assert.ok(off.stored !== '1', '?wk=0 clears localStorage');
+    assert.strictEqual(off.before, true, '?wk=0 and ?aw=1 do not turn the builder off');
+    assert.strictEqual(off.storedOn, true, 'see_wk=1 is not a URL and stays on');
+    assert.strictEqual(off.hatch, false, 'see_wk=0 is the only legacy hatch');
   });
 
   console.log('real-flow-workout-runner: ok');

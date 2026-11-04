@@ -13,8 +13,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index324'/.test(index));
-assert.ok(/APP_VERSION = 'index324'/.test(sw));
+assert.ok(/var app_version = 'index325'/.test(index));
+assert.ok(/APP_VERSION = 'index325'/.test(sw));
 
 // Optional screenshot output (outside the repo). Unset in CI.
 const SHOT_OUT = process.env.SEE_SHOT_OUT || '';
@@ -370,9 +370,10 @@ try{
 
   // ---------- flag OFF: legacy ----------
   await withPage(browser, port, {
-    path: '/index.html?wk=0',
+    path: '/index.html?wk=0&aw=1',
     viewport: { width: 390, height: 844 },
     session: { access_token: 'test-token', user: { id: USER_ID } },
+    storage: { see_wk: '0' },
     stub: stub()
   }, async function(page){
     assert.strictEqual(await page.evaluate(function(){ return isWkOn(); }), false);
