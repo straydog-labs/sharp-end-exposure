@@ -1502,6 +1502,22 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .see-update-refresh{flex:1;background:var(--accent);border:none;color:#fff;padding:0 12px;}
 .see-update-later{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:0 12px;}
 html.see-update-open #screen-train-session.active .content{padding-bottom:128px;}
+.train-draft-card{margin:0 0 12px;background:var(--surface);border:1px solid var(--accent);border-radius:var(--r-xl);padding:14px 16px;}
+.train-draft-card[hidden]{display:none !important;}
+.train-draft-kicker{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;}
+.train-draft-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;line-height:1.25;}
+.train-draft-started{font-size:13px;color:var(--muted);margin:4px 0 10px;}
+.train-draft-actions{display:flex;gap:8px;}
+.train-draft-actions button,.train-draft-confirm button{min-height:44px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+.train-draft-resume{flex:1;background:var(--accent);border:none;color:#fff;padding:0 12px;}
+.train-draft-discard{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:0 12px;}
+.train-draft-confirm{margin-top:10px;font-size:13px;color:var(--text);}
+.train-draft-confirm[hidden]{display:none !important;}
+.train-draft-confirm .train-draft-resume,.train-draft-confirm .train-draft-discard{margin:8px 8px 0 0;}
+.train-draft-choice{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px;}
+.train-draft-choice[hidden]{display:none !important;}
+.train-draft-choice-panel{width:min(440px,100%);background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;}
+.train-draft-choice-panel button{width:100%;min-height:44px;margin-top:8px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
 html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-screen-h) - 76px);max-height:calc(var(--log-flow-screen-h) - 76px);}
 .skeleton{background:linear-gradient(90deg,var(--surface) 25%,var(--surface3) 50%,var(--surface) 75%);background-size:200% 100%;animation:skeleton-shimmer 1.4s infinite;border-radius:var(--r-sm);}
 @keyframes skeleton-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
@@ -1803,6 +1819,20 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
   </div>
   <div class="content">
     <div class="screen-title" id="home-greeting">Home</div>
+    <div id="home-train-draft-card" class="train-draft-card" hidden>
+      <div class="train-draft-kicker">Session in progress</div>
+      <div class="train-draft-title" id="home-train-draft-title"></div>
+      <div class="train-draft-started" id="home-train-draft-started"></div>
+      <div class="train-draft-actions">
+        <button type="button" class="train-draft-resume" onclick="resumeTrainDraft()">Resume</button>
+        <button type="button" class="train-draft-discard" onclick="askDiscardTrainDraft()">Discard</button>
+      </div>
+      <div class="train-draft-confirm" id="home-train-draft-confirm" hidden>
+        <div>Discard this session?</div>
+        <button type="button" class="train-draft-discard" onclick="confirmDiscardTrainDraft()">Discard</button>
+        <button type="button" class="train-draft-resume" onclick="cancelDiscardTrainDraft()">Keep</button>
+      </div>
+    </div>
     <div id="home-compact">
       <div id="home-today-card" class="home-today-card" hidden data-state="">
         <div class="home-today-kicker" id="home-today-kicker">UP NEXT</div>
@@ -4618,6 +4648,20 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
     <div style="font-size:14px;color:var(--muted);line-height:1.6;">Sign in to track your training.</div>
   </div>
   <div id="train-signed-in-content" style="display:none;">
+    <div id="train-hub-draft-card" class="train-draft-card" hidden style="margin:12px 16px 0;">
+      <div class="train-draft-kicker">Session in progress</div>
+      <div class="train-draft-title" id="train-hub-draft-title"></div>
+      <div class="train-draft-started" id="train-hub-draft-started"></div>
+      <div class="train-draft-actions">
+        <button type="button" class="train-draft-resume" onclick="resumeTrainDraft()">Resume</button>
+        <button type="button" class="train-draft-discard" onclick="askDiscardTrainDraft()">Discard</button>
+      </div>
+      <div class="train-draft-confirm" id="train-hub-draft-confirm" hidden>
+        <div>Discard this session?</div>
+        <button type="button" class="train-draft-discard" onclick="confirmDiscardTrainDraft()">Discard</button>
+        <button type="button" class="train-draft-resume" onclick="cancelDiscardTrainDraft()">Keep</button>
+      </div>
+    </div>
     <div style="padding:12px 16px 0;">
       <button type="button" id="train-hub-card-start" onclick="showScreen('screen-train-start')"
         style="width:100%;background:var(--accent);border:none;border-radius:var(--r-lg);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;padding:18px;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;gap:8px;">
@@ -4899,6 +4943,14 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 <!-- ═══════════════════════════════════════
      TRAIN SESSION BUILDER (build 198)
 ═══════════════════════════════════════ -->
+<div id="train-draft-choice" class="train-draft-choice" hidden>
+  <div class="train-draft-choice-panel" role="dialog" aria-label="Session in progress">
+    <div class="train-draft-kicker">Session in progress</div>
+    <div id="train-draft-choice-title" class="train-draft-title"></div>
+    <button type="button" class="train-draft-resume" onclick="trainDraftChoiceResume()">Resume session in progress</button>
+    <button type="button" class="train-draft-discard" onclick="trainDraftChoiceNew()">Start new (discards the old one)</button>
+  </div>
+</div>
 <div class="screen" id="screen-train-session">
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
@@ -6144,7 +6196,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index326'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index327'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -7133,6 +7185,7 @@ var _prevScreen='screen-sessions';
 // showScreen('screen-home') already loads Home. Both signed-in boot
 // routes can fire; skip a second navigation if Home is already up.
 function routeSignedInHome(){
+  try{ paintTrainDraftCards(); }catch(e){}
   var active = (document.querySelector('.screen.active')||{}).id;
   if(active === 'screen-home'){
     if(_homeDataReady) paintHomePrimaryCard();
@@ -7196,8 +7249,12 @@ function showScreen(id){
   var navMap={'screen-home':'fnav-home','screen-sessions':'fnav-sessions','screen-drill':'fnav-mental','screen-drill-reveal':'fnav-mental','screen-drill-hold':'fnav-mental','screen-psyche-bee':'fnav-mental','screen-psyche-sigh':'fnav-mental','screen-psyche-pmr':'fnav-mental','screen-psyche-viz':'fnav-mental','screen-psyche-talk':'fnav-mental','screen-psyche-recent':'fnav-mental','screen-prepare-climb':'fnav-mental','screen-prepare-result':'fnav-mental','screen-zone-predict':'fnav-mental','screen-prepare':'fnav-mental','screen-prepare-pause':'fnav-mental','screen-research':'fnav-home','screen-profile':'fnav-home','screen-profile-journal':'fnav-home','screen-profile-account':'fnav-home','screen-profile-data':'fnav-home','screen-profile-install':'fnav-home','screen-profile-help':'fnav-home','screen-profile-beta':'fnav-home','screen-profile-feedback':'fnav-home','screen-profile-notifications':'fnav-home','screen-profile-notes':'fnav-home','screen-journal-entry':'fnav-home','screen-train':'fnav-train','screen-self-assign':'fnav-train','screen-train-picker':'fnav-train','screen-train-session':'fnav-train','screen-train-history':'fnav-train','screen-train-start':'fnav-train','screen-train-recent':'fnav-train','screen-train-session-detail':'fnav-train','screen-train-assignments':'fnav-train','screen-train-goals':'fnav-train','screen-train-blocks':'fnav-train','screen-train-block-detail':'fnav-train','screen-train-chat':'fnav-train','screen-train-done':'fnav-train','screen-workout-library':'fnav-train','screen-workout-library-detail':'fnav-train','screen-workout-library-add':'fnav-train','screen-log-details':'fnav-sessions','screen-log-catalog':'fnav-sessions','screen-coach-zone-confirm':'fnav-sessions'};
   if(navMap[id]){var nb=document.getElementById(navMap[id]);if(nb)nb.classList.add('active');}
   if(_prevScreen==='screen-train-session' && id!=='screen-train-session'){
+    try{ onTrainDraftHide(); }catch(e){}
     clearAllTrainBlockTimerIntervals();
     releaseTrainWakeLock();
+  }
+  if(id==='screen-home' || id==='screen-train'){
+    try{ paintTrainDraftCards(); }catch(e){}
   }
   // Load screen data
   if(id==='screen-home'){ loadHomeScreen(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
@@ -11440,6 +11497,7 @@ async function loadTrainAssignments(){
   }
   if(anonEl) anonEl.style.display = 'none';
   if(contentEl) contentEl.style.display = 'block';
+  try{ paintTrainDraftCards(); }catch(e){}
   var rows = await fetchTrainAssignmentsForAthlete();
   _trainAssignmentsCache = rows;
   paintTrainHubBadges();
@@ -12613,6 +12671,7 @@ async function applyHomeGreeting(){
   }
 }
 function paintHomeAfterLoad(){
+  try{ paintTrainDraftCards(); }catch(e){}
   failOpenHomeCaches();
   paintHomePrimaryCard();
   paintHomeProjectsStrip();
@@ -15349,6 +15408,14 @@ var _wlDetailBackScreen = 'screen-workout-library';
 var _justCreatedWorkout = null;
 var _isCoachUser = false;
 var trainSessionState = null;
+var _trainDraftDirty = false;
+var _trainDraftTimer = null;
+var _trainDraftBaseline = '';
+var _trainDraftBaselineId = null;
+var _trainDraftScreen = 'screen-train-session';
+var _trainDraftPendingStart = null;
+var _trainDraftStartBypass = false;
+var _trainDraftConfirm = false;
 var _lastTrainSessionId = null;
 var _trainDoneSnapshot = null;
 // Per-block stopwatch ticks. Keyed by block id; never stored on the block
@@ -16777,6 +16844,10 @@ function trainCloneBlockForDuplicate(b){
 }
 
 function trainStartDuplicatedSession(row){
+  if(!_trainDraftStartBypass && trainDraftPending()){
+    offerTrainDraftOrRun(function(){ trainStartDuplicatedSession(row); });
+    return;
+  }
   var srcBlocks = parseTrainSessionBlocks(row);
   var state = newTrainSessionState(row.energy_type, trainSessionWorkoutName(row));
   state.blocks = srcBlocks.map(trainCloneBlockForDuplicate).filter(Boolean);
@@ -17273,13 +17344,23 @@ function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
 }
 
 function startBlankTrainSession(){
+  if(!_trainDraftStartBypass && trainDraftPending()){
+    offerTrainDraftOrRun(function(){ startBlankTrainSession(); });
+    return;
+  }
   trainSessionState = newTrainSessionState(_trainPickerType);
+  _trainDraftBaselineId = null;
   showScreen('screen-train-session');
 }
 
 function startSessionNoCategory(){
+  if(!_trainDraftStartBypass && trainDraftPending()){
+    offerTrainDraftOrRun(function(){ startSessionNoCategory(); });
+    return;
+  }
   _trainPickerType = '';
   trainSessionState = newTrainSessionState('');
+  _trainDraftBaselineId = null;
   showScreen('screen-train-session');
 }
 
@@ -17359,6 +17440,10 @@ function seedWarmupBlocksFromItem(warmupItem){
 
 function seedTrainSessionFromItem(item, sourceMeta, warmupItem){
   if(!item) return;
+  if(!_trainDraftStartBypass && trainDraftPending()){
+    offerTrainDraftOrRun(function(){ seedTrainSessionFromItem(item, sourceMeta, warmupItem); });
+    return;
+  }
   sourceMeta = sourceMeta || {};
   var energyType = itemTrainingFocus(item) || _trainPickerType || 'Hangboard';
   _trainPickerType = energyType;
@@ -17941,22 +18026,315 @@ function saveTrainSessionDraft(){
 }
 function clearTrainSessionDraft(){
   try{ localStorage.removeItem('see_train_session_draft'); }catch(e){}
+  try{
+    var id = window._authUser && window._authUser.id;
+    if(id) localStorage.removeItem('see_train_draft_' + id);
+  }catch(e){}
+  try{
+    if(_trainDraftTimer){ clearTimeout(_trainDraftTimer); _trainDraftTimer = null; }
+  }catch(e){}
+  _trainDraftDirty = false;
+  _trainDraftConfirm = false;
+  _trainDraftBaseline = '';
+  _trainDraftBaselineId = null;
 }
 function maybeResumeTrainSessionDraft(){
-  if(window._seeTestsRunning) return;
-  var active = (document.querySelector('.screen.active') || {}).id;
-  if(active !== 'screen-train') return;
-  if(trainSessionState) return;
-  if(loadTrainSessionDraft()) showScreen('screen-train-session');
+  try{ paintTrainDraftCards(); }catch(e){}
 }
+
+var TRAIN_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function readTrainDraftForUser(userId){
+  if(!userId) return null;
+  var own = 'see_train_draft_' + userId;
+  try{
+    var keys = [];
+    var i;
+    for(i = 0; i < localStorage.length; i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf('see_train_draft_') === 0) keys.push(k);
+    }
+    for(i = 0; i < keys.length; i++){
+      if(keys[i] !== own){
+        try{ localStorage.removeItem(keys[i]); }catch(e){}
+      }
+    }
+  }catch(e){}
+  var raw = null;
+  try{ raw = localStorage.getItem(own); }catch(e){ return null; }
+  if(!raw) return null;
+  var parsed = null;
+  try{ parsed = JSON.parse(raw); }catch(e){
+    try{ localStorage.removeItem(own); }catch(e2){}
+    return null;
+  }
+  var bad = !parsed || parsed.v !== 1 || !parsed.state || String(parsed.user_id) !== String(userId);
+  if(!bad){
+    var t = new Date(parsed.saved_at).getTime();
+    if(isNaN(t) || (Date.now() - t) >= TRAIN_DRAFT_MAX_AGE_MS) bad = true;
+  }
+  if(bad){
+    try{ localStorage.removeItem(own); }catch(e){}
+    return null;
+  }
+  return parsed;
+}
+
+function trainDraftPending(){
+  try{
+    var id = window._authUser && window._authUser.id;
+    if(!id) return false;
+    return !!readTrainDraftForUser(id);
+  }catch(e){ return false; }
+}
+
+function trainDraftUserId(){
+  try{ return window._authUser && window._authUser.id ? String(window._authUser.id) : ''; }catch(e){ return ''; }
+}
+
+function clearTrainSessionDomFields(){
+  ['train-sess-start', 'train-sess-end', 'train-sess-warmup', 'train-sess-cooldown'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+}
+
+function formatTrainDraftStarted(iso){
+  var d = new Date(iso);
+  if(isNaN(d.getTime())) return 'Started';
+  try{
+    return 'Started ' + d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }catch(e){ return 'Started'; }
+}
+
+function paintTrainDraftCards(){
+  var env = null;
+  try{
+    var id = trainDraftUserId();
+    env = id ? readTrainDraftForUser(id) : null;
+  }catch(e){ env = null; }
+  var cards = [
+    ['home-train-draft-card', 'home-train-draft-title', 'home-train-draft-started', 'home-train-draft-confirm'],
+    ['train-hub-draft-card', 'train-hub-draft-title', 'train-hub-draft-started', 'train-hub-draft-confirm']
+  ];
+  cards.forEach(function(c){
+    var root = document.getElementById(c[0]);
+    if(!root) return;
+    if(!env){ root.hidden = true; return; }
+    root.hidden = false;
+    var title = document.getElementById(c[1]);
+    var started = document.getElementById(c[2]);
+    var confirm = document.getElementById(c[3]);
+    if(title) title.textContent = (env.state && env.state.title) || 'Session';
+    if(started) started.textContent = formatTrainDraftStarted(env.state && env.state.started_at);
+    if(confirm) confirm.hidden = !_trainDraftConfirm;
+  });
+}
+
+function askDiscardTrainDraft(){
+  _trainDraftConfirm = true;
+  paintTrainDraftCards();
+}
+function cancelDiscardTrainDraft(){
+  _trainDraftConfirm = false;
+  paintTrainDraftCards();
+}
+function confirmDiscardTrainDraft(){
+  _trainDraftConfirm = false;
+  try{ clearTrainSessionDraft(); }catch(e){}
+  trainSessionState = null;
+  paintTrainDraftCards();
+}
+
+function resumeTrainDraft(){
+  var env = null;
+  try{
+    var id = trainDraftUserId();
+    env = id ? readTrainDraftForUser(id) : null;
+  }catch(e){ env = null; }
+  if(!env || !env.state){
+    paintTrainDraftCards();
+    return;
+  }
+  trainSessionState = env.state;
+  _trainDraftBaselineId = null;
+  _trainDraftDirty = false;
+  _trainDraftConfirm = false;
+  _trainDraftScreen = env.screen || 'screen-train-session';
+  clearTrainSessionDomFields();
+  var screen = _trainDraftScreen;
+  if(!document.getElementById(screen)) screen = 'screen-train-session';
+  var choice = document.getElementById('train-draft-choice');
+  if(choice) choice.hidden = true;
+  showScreen(screen);
+  paintTrainDraftCards();
+}
+
+function adoptOpenTrainDraft(){
+  var id = trainDraftUserId();
+  if(!id) return false;
+  var env = readTrainDraftForUser(id);
+  if(!env || !env.state) return false;
+  trainSessionState = env.state;
+  _trainDraftBaselineId = null;
+  _trainDraftDirty = false;
+  _trainDraftScreen = env.screen || 'screen-train-session';
+  clearTrainSessionDomFields();
+  return true;
+}
+
+function markTrainDraftIfChanged(){
+  if(!trainSessionState) return;
+  if(_trainDraftBaselineId !== trainSessionState.id) return;
+  var snap = '';
+  try{ snap = JSON.stringify(trainSessionState); }catch(e){ return; }
+  if(!snap || snap === _trainDraftBaseline) return;
+  _trainDraftDirty = true;
+  try{
+    var active = (document.querySelector('.screen.active') || {}).id;
+    if(active === 'screen-train-session' || active === 'screen-train-run') _trainDraftScreen = active;
+  }catch(e){}
+}
+
+function captureTrainDraftBaseline(){
+  if(!trainSessionState) return;
+  try{ syncTrainSessionFieldsFromDom(); }catch(e){}
+  try{ collectTrainBlockFields(); }catch(e){}
+  try{ _trainDraftBaseline = JSON.stringify(trainSessionState); }catch(e){ _trainDraftBaseline = ''; }
+  _trainDraftBaselineId = trainSessionState.id;
+  _trainDraftDirty = false;
+}
+
+function flushTrainUserDraft(){
+  if(!_trainDraftDirty || !trainSessionState) return;
+  var userId = trainDraftUserId();
+  if(!userId) return;
+  var snap = null;
+  try{ snap = JSON.parse(JSON.stringify(trainSessionState)); }catch(e){ return; }
+  var screen = _trainDraftScreen || 'screen-train-session';
+  try{
+    var active = (document.querySelector('.screen.active') || {}).id;
+    if(active === 'screen-train-session' || active === 'screen-train-run') screen = active;
+  }catch(e){}
+  var envelope = {
+    v: 1,
+    saved_at: new Date().toISOString(),
+    user_id: userId,
+    screen: screen,
+    state: snap
+  };
+  try{ localStorage.setItem('see_train_draft_' + userId, JSON.stringify(envelope)); }
+  catch(e){ return; }
+  try{ _trainDraftBaseline = JSON.stringify(trainSessionState); }catch(e){}
+  _trainDraftBaselineId = trainSessionState.id;
+  _trainDraftDirty = false;
+}
+
+function scheduleTrainDraftSave(){
+  if(!_trainDraftDirty || !trainSessionState) return;
+  try{ if(_trainDraftTimer) clearTimeout(_trainDraftTimer); }catch(e){}
+  _trainDraftTimer = setTimeout(function(){
+    _trainDraftTimer = null;
+    try{ saveTrainSessionDraft(); }catch(e){}
+    try{ flushTrainUserDraft(); }catch(e){}
+  }, 500);
+}
+
+function finishTrainDraftRender(){
+  if(!trainSessionState) return;
+  if(_trainDraftBaselineId !== trainSessionState.id){
+    captureTrainDraftBaseline();
+    return;
+  }
+  markTrainDraftIfChanged();
+  scheduleTrainDraftSave();
+}
+
+function onTrainDraftHide(){
+  if(!trainSessionState) return;
+  try{ syncTrainSessionFieldsFromDom(); }catch(e){}
+  try{ collectTrainBlockFields(); }catch(e){}
+  markTrainDraftIfChanged();
+  if(!_trainDraftDirty) return;
+  try{ if(_trainDraftTimer){ clearTimeout(_trainDraftTimer); _trainDraftTimer = null; } }catch(e){}
+  try{ saveTrainSessionDraft(); }catch(e){}
+  try{ flushTrainUserDraft(); }catch(e){}
+}
+
+function onTrainDraftDomEdit(ev){
+  var sess = document.getElementById('screen-train-session');
+  if(!sess || !sess.classList.contains('active') || !ev || !sess.contains(ev.target)) return;
+  if(!trainSessionState) return;
+  try{ syncTrainSessionFieldsFromDom(); }catch(e){}
+  try{ collectTrainBlockFields(); }catch(e){}
+  markTrainDraftIfChanged();
+  scheduleTrainDraftSave();
+}
+
+function trainDraftSessionIsOpen(){
+  try{
+    var el = document.querySelector('.screen.active');
+    var id = el ? el.id : '';
+    if(id !== 'screen-train-session' && id !== 'screen-train-run') return false;
+    return !!trainSessionState;
+  }catch(e){ return false; }
+}
+
+function offerTrainDraftOrRun(begin){
+  _trainDraftPendingStart = begin;
+  var env = null;
+  try{
+    var id = trainDraftUserId();
+    env = id ? readTrainDraftForUser(id) : null;
+  }catch(e){}
+  var title = document.getElementById('train-draft-choice-title');
+  if(title) title.textContent = (env && env.state && env.state.title) || 'Session';
+  var el = document.getElementById('train-draft-choice');
+  if(el) el.hidden = false;
+}
+
+function trainDraftChoiceResume(){
+  var el = document.getElementById('train-draft-choice');
+  if(el) el.hidden = true;
+  _trainDraftPendingStart = null;
+  resumeTrainDraft();
+}
+
+function trainDraftChoiceNew(){
+  var el = document.getElementById('train-draft-choice');
+  if(el) el.hidden = true;
+  var begin = _trainDraftPendingStart;
+  _trainDraftPendingStart = null;
+  try{ clearTrainSessionDraft(); }catch(e){}
+  trainSessionState = null;
+  _trainDraftBaselineId = null;
+  _trainDraftStartBypass = true;
+  try{ if(typeof begin === 'function') begin(); }
+  finally{ _trainDraftStartBypass = false; }
+}
+
+function bindTrainDraftListeners(){
+  if(window._trainDraftListenersBound) return;
+  window._trainDraftListenersBound = true;
+  document.addEventListener('input', onTrainDraftDomEdit);
+  document.addEventListener('change', onTrainDraftDomEdit);
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden') onTrainDraftHide();
+  });
+  window.addEventListener('pagehide', onTrainDraftHide);
+}
+bindTrainDraftListeners();
 
 function renderTrainSessionBuilder(){
   if(!trainSessionState){
     if(!loadTrainSessionDraft()){
-      trainSessionState = newTrainSessionState(_trainPickerType || 'strength');
+      var adopted = false;
+      try{ adopted = adoptOpenTrainDraft(); }catch(e){ adopted = false; }
+      if(!adopted){
+        trainSessionState = newTrainSessionState(_trainPickerType || 'strength');
+      }
     }
   }
-  saveTrainSessionDraft();
   wkAdaptSessionBlocks();
   wkEnsureTrainMenu();
   var title = document.getElementById('train-sess-title');
@@ -17985,11 +18363,12 @@ function renderTrainSessionBuilder(){
     }).join('');
   }
   var wrap = document.getElementById('train-blocks-wrap');
-  if(!wrap) return;
+  if(!wrap){ finishTrainDraftRender(); return; }
   if(!split.main.length){
     wrap.innerHTML = '<div style="font-size:13px;color:var(--muted);padding:8px 0;">' + (wkBuilderOn() ? 'No blocks yet. Tap + Add block.' : 'No blocks yet. Add a section, interval, circuit, or pass/fail block.') + '</div>';
     if(!allBlocks.length){
       clearAllTrainBlockTimerIntervals();
+      finishTrainDraftRender();
       return;
     }
   } else {
@@ -17998,6 +18377,7 @@ function renderTrainSessionBuilder(){
     }).join('');
   }
   syncTrainBlockTimerIntervals();
+  finishTrainDraftRender();
 }
 
 function formatTrainBlockTimerElapsed(ms){
@@ -28774,7 +29154,9 @@ async function runSEETests(){
       && seedLive[0].rounds[0].boulders[0].text === 'V3';
     var draftSrc = String(saveTrainSessionDraft) + String(loadTrainSessionDraft) + String(clearTrainSessionDraft) + String(renderTrainSessionBuilder);
     var draftOk = /see_train_session_draft/.test(draftSrc)
-      && /saveTrainSessionDraft\(\)/.test(String(renderTrainSessionBuilder))
+      && /see_train_draft_/.test(String(flushTrainUserDraft) + String(readTrainDraftForUser))
+      && /scheduleTrainDraftSave\(\)/.test(String(finishTrainDraftRender))
+      && /saveTrainSessionDraft\(\)/.test(String(scheduleTrainDraftSave))
       && /clearTrainSessionDraft\(\)/.test(String(saveTrainSession))
       && /clearTrainSessionDraft\(\)/.test(String(cancelTrainSession));
     var saveSrc = String(saveTrainSession);
@@ -31117,6 +31499,7 @@ function seeOnCleanHub(){
   if(seeEditSheetOpen()) return false;
   if(seeSaveBusy()) return false;
   if(typeof trainSessionState !== 'undefined' && trainSessionState) return false;
+  if(typeof trainDraftSessionIsOpen === 'function' && trainDraftSessionIsOpen()) return false;
   return true;
 }
 
@@ -31307,8 +31690,13 @@ if(window.visualViewport){
         indicator.style.transition = 'transform .15s ease';
         indicator.style.transform = 'translateY(8px)';
       }
-      if(typeof showToast === 'function') showToast('Refreshing…');
-      setTimeout(function(){ location.reload(); }, 200);
+      if(typeof trainDraftSessionIsOpen === 'function' && trainDraftSessionIsOpen()){
+        if(typeof showToast === 'function') showToast('Session in progress');
+        resetIndicator();
+      } else {
+        if(typeof showToast === 'function') showToast('Refreshing…');
+        setTimeout(function(){ location.reload(); }, 200);
+      }
     } else {
       resetIndicator();
     }
