@@ -39,7 +39,6 @@ async function run(){
       await page.waitForSelector('#cwb-root', { timeout: 8000 });
 
       // type + name
-      await tap(page, '#new-a-focus-chips .aw-chip');
       await page.fill('#new-a-name', 'Emom + Repeaters');
 
       // add EMOM, Hangboard, Mental, Rest, Custom
