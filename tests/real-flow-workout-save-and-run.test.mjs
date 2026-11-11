@@ -100,6 +100,10 @@ try{
 
     // run it later: Start now opens the saved workout fresh, boulders tickable with fixed labels
     await page.click('#train-sess-saved-start-now');
+    await page.evaluate(function(){
+      var choice = document.getElementById('train-draft-choice');
+      if(choice && !choice.hidden) trainDraftChoiceNew();
+    });
     await waitForScreen(page, 'screen-train-session');
     const seeded = await page.evaluate(function(){
       var b = trainSessionState.blocks[0];

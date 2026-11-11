@@ -17,8 +17,8 @@ const coach = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index326'/.test(index));
-assert.ok(/APP_VERSION = 'index326'/.test(sw));
+assert.ok(/var app_version = 'index327'/.test(index));
+assert.ok(/APP_VERSION = 'index327'/.test(sw));
 assert.ok(/add column if not exists enjoyment smallint/.test(sql));
 assert.ok(/drop constraint if exists sessions_enjoyment_check/.test(sql));
 assert.ok(/enjoyment is null or enjoyment between 1 and 5/.test(sql));

@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index326'/.test(index));
-assert.ok(/APP_VERSION = 'index326'/.test(sw));
+assert.ok(/var app_version = 'index327'/.test(index));
+assert.ok(/APP_VERSION = 'index327'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -82,8 +82,9 @@ assert.ok(/mode === 'repeat'/.test(addRound));
 assert.ok(/boulders: \[\]/.test(addRound));
 
 const builder = extractFn(index, 'renderTrainSessionBuilder');
-assert.ok(/saveTrainSessionDraft\(\)/.test(builder));
+assert.ok(/finishTrainDraftRender\(\)/.test(builder));
 assert.ok(/loadTrainSessionDraft\(\)/.test(builder));
+assert.ok(/saveTrainSessionDraft\(\)/.test(extractFn(index, 'scheduleTrainDraftSave')));
 
 const saveSess = extractFn(index, 'saveTrainSession');
 assert.ok(/isSbNetworkFail/.test(saveSess));
