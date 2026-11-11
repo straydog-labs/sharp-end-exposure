@@ -151,22 +151,27 @@ async function run(){
             border: cs.borderTopWidth
           };
         }
+        var assign = box('athlete-header-assign');
         var climb = box('coach-log-launch');
         var train = box('coach-train-log-launch');
         var hub = document.getElementById('athlete-hub-cards');
         return {
+          assign: assign,
           climb: climb,
           train: train,
-          sameHub: !!(hub && climb && train && hub.contains(document.getElementById('coach-log-launch')) && hub.contains(document.getElementById('coach-train-log-launch')))
+          sameHub: !!(hub && assign && climb && train && hub.contains(document.getElementById('athlete-header-assign')) && hub.contains(document.getElementById('coach-log-launch')) && hub.contains(document.getElementById('coach-train-log-launch')))
         };
       });
+      assert.strictEqual(place.assign.text, 'Assign');
       assert.strictEqual(place.climb.text, 'Log a climb');
-      assert.strictEqual(place.train.text, 'Log a training session');
-      assert.ok(place.sameHub, 'both buttons live in the athlete header');
+      assert.strictEqual(place.train.text, 'Log training');
+      assert.ok(place.sameHub, 'three buttons live in the athlete header');
       assert.ok(Math.abs(place.climb.height - place.train.height) <= 4, 'same size family');
       assert.strictEqual(place.climb.fontSize, place.train.fontSize);
-      assert.ok(place.train.left >= place.climb.right - 2, 'training button sits beside Log a climb');
-      assert.notStrictEqual(place.climb.bg, place.train.bg, 'Log a climb stays primary; training log is secondary');
+      assert.ok(place.assign.right <= place.climb.left + 2, 'Assign sits before Log a climb');
+      assert.ok(place.train.left >= place.climb.right - 2, 'Log training sits after Log a climb');
+      assert.strictEqual(place.assign.bg, place.climb.bg, 'Assign uses the same orange as Log a climb');
+      assert.strictEqual(place.climb.bg, place.train.bg, 'Log training uses the same orange');
 
       await openTrainLog(page);
       const blank = await page.evaluate(function(){

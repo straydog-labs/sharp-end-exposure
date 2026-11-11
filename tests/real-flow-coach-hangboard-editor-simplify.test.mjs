@@ -39,7 +39,6 @@ async function openBuilder(page){
   await page.waitForSelector('#wiz-create-custom', { timeout: 8000 });
   await tap(page, '#wiz-create-custom');
   await page.waitForSelector('#cwb-root .cwb-menu', { timeout: 8000 });
-  await tap(page, '#new-a-focus-chips .aw-chip');
   await page.fill('#new-a-name', 'Compact hangs');
 }
 

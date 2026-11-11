@@ -26,8 +26,8 @@ assert.ok(!/library_item_id/.test(quickFn[0]), 'omits library_item_id');
 assert.ok(!/custom_workout_item_id/.test(quickFn[0]), 'omits custom_workout_item_id');
 assert.ok(!/createCoachCustomWorkout/.test(quickFn[0]), 'does not insert a custom workout');
 assert.ok(/https\?:\\\/\\\//.test(quickFn[0]) || /https\?:\/\//.test(quickFn[0]));
-assert.ok(/loadAssignments\(token, coachUser, athleteId\)/.test(quickFn[0]));
-assert.ok(/showAssignSavedBanner\('Assignment saved\.'\)/.test(quickFn[0]));
+assert.ok(/revealWizardAthlete\(ctx, \{ pane: 'assignments', message: 'Assignment saved\.' \}/.test(quickFn[0]));
+assert.ok(/showAssignSavedBanner\(opts\.message\)/.test(dash));
 assert.ok(/Title is required/.test(quickFn[0]));
 assert.ok(/Create task assignment/.test(quickFn[0]));
 

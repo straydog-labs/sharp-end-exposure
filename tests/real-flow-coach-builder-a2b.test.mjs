@@ -352,7 +352,6 @@ async function run(){
 
       await tap(page, '#wiz-create-custom');
       await page.waitForSelector('#cwb-root .cwb-menu', { timeout: 8000 });
-      await tap(page, '#new-a-focus-chips .aw-chip');
       await page.fill('#new-a-name', 'A2B warmup');
 
       const chips = await page.locator('#cwb-root .cwb-chip').allTextContents();

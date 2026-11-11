@@ -245,7 +245,6 @@ async function run(){
       await tap(page, '#wiz-create-custom');
       await page.waitForSelector('#cwb-root', { timeout: 8000 });
       assert.strictEqual(await page.locator('#cwb-root [data-act="collapse-all"]').count(), 0, 'Collapse all hidden under 2 blocks');
-      await tap(page, '#new-a-focus-chips .aw-chip');
       await page.fill('#new-a-name', 'Reorder me');
       await tap(page, '#cwb-root [data-act="add"][data-shape="rest"]');
       await tap(page, '#cwb-root [data-act="add"][data-shape="mental"]');

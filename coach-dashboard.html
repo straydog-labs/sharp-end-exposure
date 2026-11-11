@@ -2058,6 +2058,11 @@
   // (not just dim in place) — open ones render normally, completed ones drop
   // into a collapsed <details> group below, most-recently-completed first.
   function compareAssignmentsNewest(a, b){
+    if(_pinAssignmentId){
+      var ap = a && a.id === _pinAssignmentId;
+      var bp = b && b.id === _pinAssignmentId;
+      if(ap !== bp) return ap ? -1 : 1;
+    }
     function day(row){
       var t = row && row.created_at ? new Date(row.created_at).getTime() : 0;
       if(!t || isNaN(t)) return '';
@@ -3499,8 +3504,9 @@
             '</button>' +
           '</div>' +
           '<div class="athlete-path-logs">' +
+            '<button type="button" class="assign-launch athlete-path-log" id="athlete-header-assign">Assign</button>' +
             '<button type="button" class="assign-launch athlete-path-log" id="coach-log-launch">Log a climb</button>' +
-            '<button type="button" class="assign-launch athlete-path-log assign-launch-secondary" id="coach-train-log-launch">Log a training session</button>' +
+            '<button type="button" class="assign-launch athlete-path-log" id="coach-train-log-launch">Log training</button>' +
           '</div>' +
           '<div class="athlete-path-subs" id="athlete-path-subs" hidden>' +
           '<div class="athlete-path-sub-row" data-path-subs="plan" hidden>' +
@@ -3583,6 +3589,10 @@
     paintAthleteSnapshotStamp();
 
     document.getElementById('athlete-subview-back').addEventListener('click', showAthleteLanding);
+    var headerAssign = document.getElementById('athlete-header-assign');
+    if(headerAssign){
+      headerAssign.addEventListener('click', function(){ startAssign(); });
+    }
     var logLaunch = document.getElementById('coach-log-launch');
     if(logLaunch){
       logLaunch.addEventListener('click', function(){
@@ -7019,6 +7029,7 @@
 
   var _assignWizard = null;
   var _assignWizardCtx = null;
+  var _pinAssignmentId = null;
   var _coachPinnedWorkoutsCache = [];
   var _editingPinNoteKey = null;
 
@@ -8281,6 +8292,9 @@
   window.__cwbTest = {
     clean: function(){ return cwbCleanBlocks(); }
   };
+  window.__assignFlowTest = {
+    derive: derivedTrainingFocus
+  };
 
   function cleanedAssignWizardSections(){
     var clean = (_assignWizard.sections || []).map(function(s){
@@ -9183,6 +9197,99 @@
     return '';
   }
 
+  function blockIsWarmCoolCheck(b){
+    if(!b || b.shape !== 'check') return false;
+    var t = String(b.title || '').trim().toLowerCase().replace(/-/g, ' ');
+    return t === 'warm up' || t === 'cool down';
+  }
+  function focusForBlockShape(shape){
+    if(shape === 'emom') return 'Boulders';
+    if(shape === 'rep_pass_fail') return 'Hangboard';
+    if(shape === 'circuit') return 'Strength & Weights';
+    return 'Mental/Other';
+  }
+  // CREATE only. Most common block type, excluding warm-up/cool-down checks
+  // and rest. Ties use the earliest block. Result is always a CHECK value.
+  function derivedTrainingFocus(blocks){
+    var list = Array.isArray(blocks) ? blocks.filter(Boolean) : [];
+    var counted = [];
+    var warm = 0;
+    list.forEach(function(b){
+      if(b.shape === 'rest') return;
+      if(blockIsWarmCoolCheck(b)){ warm += 1; return; }
+      counted.push(b);
+    });
+    var focus;
+    if(!counted.length) focus = warm ? 'Warm-Ups' : 'Mental/Other';
+    else {
+      var counts = {};
+      var firstAt = {};
+      counted.forEach(function(b, i){
+        var key = b.shape || 'other';
+        counts[key] = (counts[key] || 0) + 1;
+        if(firstAt[key] == null) firstAt[key] = i;
+      });
+      var best = null;
+      Object.keys(counts).forEach(function(key){
+        if(!best) best = key;
+        else if(counts[key] > counts[best]) best = key;
+        else if(counts[key] === counts[best] && firstAt[key] < firstAt[best]) best = key;
+      });
+      focus = focusForBlockShape(best);
+    }
+    return normalizeTrainingFocus(focus) || 'Mental/Other';
+  }
+  function recentAssignmentKey(row){
+    if(row && row.custom_workout_item_id) return 'custom:' + row.custom_workout_item_id;
+    if(row && row.library_item_id) return 'library:' + row.library_item_id;
+    return '';
+  }
+  // assignments.created_at, newest first. Distinct library_item_id or
+  // custom_workout_item_id. Rows with neither are Tasks and are skipped.
+  function coachRecentWorkoutPicks(rows){
+    var seen = {};
+    var out = [];
+    (Array.isArray(rows) ? rows.slice() : []).sort(function(a, b){
+      return new Date((b && b.created_at) || 0) - new Date((a && a.created_at) || 0);
+    }).forEach(function(row){
+      var key = recentAssignmentKey(row);
+      if(!key || seen[key]) return;
+      seen[key] = true;
+      out.push(row);
+    });
+    return out.slice(0, 5);
+  }
+  function loadCoachRecentAssignments(token, coachId){
+    if(!token || !coachId) return Promise.resolve([]);
+    return sbSelect(
+      token,
+      'assignments',
+      'select=id,title,created_at,library_item_id,custom_workout_item_id' +
+        '&coach_id=eq.' + encodeURIComponent(coachId) +
+        '&deleted_at=is.null&order=created_at.desc&limit=100'
+    ).then(function(rows){
+      return Array.isArray(rows) ? rows : [];
+    }).catch(function(){ return []; });
+  }
+  function wizardRecentHtml(){
+    var rows = (_assignWizard && _assignWizard.recentRows) || [];
+    var html = '';
+    rows.forEach(function(row){
+      var src = row.custom_workout_item_id ? 'custom' : 'foundational';
+      var id = row.custom_workout_item_id || row.library_item_id;
+      var item = findWizardLibItem(id, src);
+      if(!item) return;
+      html += '<button type="button" class="aw-chip wiz-recent-row" data-recent-id="' + escapeHtml(id) +
+        '" data-recent-source="' + src + '">' +
+        escapeHtml(item.name || row.title || 'Workout') +
+        '<span class="aw-chip-meta">Assigned ' + escapeHtml(fmtDate(row.created_at)) + '</span>' +
+        '</button>';
+    });
+    if(!html) return '';
+    return '<div class="aw-section-label" id="wiz-recent-label">Recent</div>' +
+      '<div class="aw-choices" id="wiz-recent-list">' + html + '</div>';
+  }
+
   function wizardPathSummaryHtml(){
     var parts = [];
     if(_assignWizard.trainingFocus) parts.push('<b>' + escapeHtml(coachLibFocusLabel(_assignWizard.trainingFocus)) + '</b>');
@@ -9300,6 +9407,23 @@
     paintAssignWizardAthleteSide();
   }
 
+  function revealWizardAthlete(ctx, opts){
+    opts = opts || {};
+    if(!ctx) return;
+    var listEl = document.getElementById('roster-list');
+    var email = '';
+    if(listEl){
+      Array.prototype.forEach.call(listEl.querySelectorAll('.roster-row'), function(r){
+        var on = r.getAttribute('data-athlete-id') === ctx.athleteId;
+        r.classList.toggle('active', on);
+        if(on) email = r.getAttribute('data-athlete-email') || '';
+      });
+    }
+    renderAthleteDetail(ctx.token, ctx.coachUser, ctx.athleteId, ctx.athleteLabel || '', email);
+    if(opts.pane) openAthletePane(opts.pane);
+    if(opts.message) showAssignSavedBanner(opts.message);
+  }
+
   function closeAssignWizardOverlay(){
     var overlay = document.getElementById('assign-wizard-overlay');
     if(!overlay) return;
@@ -9405,19 +9529,21 @@
     if(step === 1){
       setAssignWizardChrome(
         'Find a workout',
-        'Browse the full catalog, search by name, create a custom workout, or pick a training focus.'
+        'Create a custom workout, pick a recent one, or browse the catalog.'
       );
+      var recentHtml = wizardRecentHtml();
       body.innerHTML =
+        '<button type="button" class="aw-create-chip" id="wiz-create-custom">' +
+          'Create custom workout' +
+          '<span class="aw-chip-meta">Add your own workout, then assign it</span>' +
+        '</button>' +
+        recentHtml +
         '<div class="aw-field"><label for="new-a-lib-search">Search all workouts by name</label>' +
           '<input id="new-a-lib-search" type="text" placeholder="e.g. EMOM, Repeaters, Campus" autocomplete="off"></div>' +
         '<div id="new-a-lib-wrap">' +
           '<div id="new-a-lib-pinned"></div>' +
           '<div id="new-a-lib-results" class="aw-lib-results"></div>' +
         '</div>' +
-        '<button type="button" class="aw-create-chip" id="wiz-create-custom">' +
-          'Create a custom workout' +
-          '<span class="aw-chip-meta">Add your own workout, then assign it</span>' +
-        '</button>' +
         '<div class="aw-section-label">Or browse by training focus</div>' +
         '<div class="aw-choices">' +
           sessionAssignableFocusValues().map(function(c){
@@ -9434,6 +9560,12 @@
       wireWizardSearchResults('all');
       document.getElementById('wiz-create-custom').addEventListener('click', function(){
         enterCreateCustomWorkout(1);
+      });
+      Array.prototype.forEach.call(body.querySelectorAll('.wiz-recent-row'), function(btn){
+        btn.addEventListener('click', function(){
+          var item = findWizardLibItem(btn.getAttribute('data-recent-id'), btn.getAttribute('data-recent-source'));
+          if(item) applyWizardLibraryPick(item);
+        });
       });
       Array.prototype.forEach.call(body.querySelectorAll('.aw-choices .aw-chip'), function(btn){
         btn.addEventListener('click', function(){
@@ -9504,18 +9636,7 @@
           'Create a custom workout',
           'Saves to your custom workouts (not the foundational catalog), then assigns it. Visibility is set automatically.'
         );
-        var focusPicker = !_assignWizard.trainingFocus
-          ? ('<div class="aw-field"><label>Training focus *</label>' +
-              '<div class="aw-choices" id="new-a-focus-chips">' +
-                LOCKED_WORKOUT_CATEGORIES.map(function(c){
-                  return '<button type="button" class="aw-chip" data-focus="' + escapeHtml(c) + '">' +
-                    escapeHtml(c) + '</button>';
-                }).join('') +
-              '</div></div>')
-          : '';
         body.innerHTML =
-          wizardPathSummaryHtml() +
-          focusPicker +
           '<div class="aw-field"><label for="new-a-name">Name *</label>' +
             '<input id="new-a-name" type="text" placeholder="e.g. Repeaters" value="' +
             escapeHtml(_assignWizard.drillName) + '"></div>' +
@@ -9526,24 +9647,6 @@
             '<div class="form-note" style="margin:0 0 8px;">Build the session the athlete will run, with the same blocks as the athlete workout builder. Reorder with the arrows, collapse a block to see the whole session, and remove rounds or blocks you do not need.</div>' +
             '<div id="cwb-root"></div>' +
           '</div>';
-        Array.prototype.forEach.call(body.querySelectorAll('#new-a-focus-chips .aw-chip'), function(btn){
-          btn.addEventListener('click', function(){
-            var focus = normalizeTrainingFocus(btn.getAttribute('data-focus'));
-            if(!focus) return;
-            _assignWizard.trainingFocus = focus;
-            Array.prototype.forEach.call(body.querySelectorAll('#new-a-focus-chips .aw-chip'), function(b){
-              b.classList.toggle('selected', b === btn);
-            });
-            var pathEl = body.querySelector('.aw-path-wrap') || body.querySelector('.aw-path');
-            if(pathEl){
-              var tmp = document.createElement('div');
-              tmp.innerHTML = wizardPathSummaryHtml();
-              pathEl.replaceWith(tmp.firstChild || tmp);
-            } else {
-              body.insertAdjacentHTML('afterbegin', wizardPathSummaryHtml());
-            }
-          });
-        });
         renderCwb();
         setAssignWizardFooter(
           '<button type="button" class="aw-next" id="wiz-next">Next →</button>' +
@@ -9556,14 +9659,8 @@
           goAssignWizardStep(entry === 2 ? 2 : 1);
         });
         document.getElementById('wiz-next').addEventListener('click', function(){
-          var focus = normalizeTrainingFocus(_assignWizard.trainingFocus);
           var name = (document.getElementById('new-a-name').value || '').trim();
           var libDesc = (document.getElementById('new-a-lib-desc').value || '').trim();
-          if(!focus){
-            document.getElementById('new-a-msg').innerHTML =
-              '<div class="form-error">Pick a training focus.</div>';
-            return;
-          }
           if(!name){
             document.getElementById('new-a-msg').innerHTML =
               '<div class="form-error">Name is required.</div>';
@@ -9573,7 +9670,7 @@
           _assignWizard.customWorkoutItemId = null;
           _assignWizard.itemSource = null;
           _coachLibSelectedId = null;
-          _assignWizard.trainingFocus = focus;
+          _assignWizard.trainingFocus = derivedTrainingFocus(cwbBlocks());
           _assignWizard.drillName = name;
           _assignWizard.libraryDescription = libDesc;
           goAssignWizardStep(3);
@@ -9707,14 +9804,10 @@
       return;
     }
     // Library/custom picks do not write taxonomy on the assignment row.
-    // Only validate training_focus when creating a custom workout.
+    // A new custom workout gets a focus derived from its blocks. Edits keep
+    // the stored training_focus (saveEditCustomWorkout does not send it).
     if(_assignWizard.createMode){
-      var createFocus = normalizeTrainingFocus(_assignWizard.trainingFocus);
-      if(!createFocus){
-        msgEl.innerHTML = '<div class="form-error">Training focus must be one of the locked taxonomy values.</div>';
-        return;
-      }
-      _assignWizard.trainingFocus = createFocus;
+      _assignWizard.trainingFocus = derivedTrainingFocus(cwbSectionsForSave());
     }
     if(link && !/^https?:\/\//i.test(link)){
       msgEl.innerHTML = '<div class="form-error">Resource link must start with http:// or https://</div>';
@@ -9724,21 +9817,22 @@
     var assignDescription = (_assignWizard.assignDescription || '').trim() || null;
     var doneMsg = isEdit ? 'Assignment updated.' : 'Assignment saved.';
 
-    function finishSuccess(){
+    function finishSuccess(savedRow){
       if(btn){
         btn.disabled = false;
         btn.textContent = wizardSubmitLabel();
       }
-      if(_detailCtx && _detailCtx.athleteId === athleteId){
-        loadAssignments(token, coachUser, athleteId);
-      }
+      var ctx = _assignWizardCtx;
+      var savedId = savedRow && savedRow.id;
       loadCoachWorkoutLibrary(token).then(function(rows){
         _coachLibCache = Array.isArray(rows) ? rows : [];
       }).catch(function(){ /* non-blocking */ });
       closeAssignWizardOverlay();
       resetAssignWizard();
       syncWizardShellMode();
-      showAssignSavedBanner(doneMsg);
+      _pinAssignmentId = savedId || null;
+      if(ctx) revealWizardAthlete(ctx, { pane: 'assignments', message: doneMsg });
+      else showAssignSavedBanner(doneMsg);
     }
 
     function failCreate(err){
@@ -9790,10 +9884,6 @@
       }
 
       if(_assignWizard.createMode){
-        if(!normalizeTrainingFocus(_assignWizard.trainingFocus)){
-          failCreate({ message: 'Pick a training focus for the custom workout.' });
-          return;
-        }
         createCoachCustomWorkout(token, coachUser, {
           trainingFocus: _assignWizard.trainingFocus,
           name: _assignWizard.drillName,
@@ -9977,15 +10067,15 @@
       due_date: due || null,
       resource_link: link || null
     };
-    function finishSuccess(){
+    function finishSuccess(savedRow){
       if(btn){ btn.disabled = false; btn.textContent = 'Create task assignment'; }
-      if(_detailCtx && _detailCtx.athleteId === athleteId){
-        loadAssignments(token, coachUser, athleteId);
-      }
+      var ctx = _assignWizardCtx;
       closeAssignWizardOverlay();
       resetAssignWizard();
       syncWizardShellMode();
-      showAssignSavedBanner('Assignment saved.');
+      _pinAssignmentId = savedRow && savedRow.id ? savedRow.id : null;
+      if(ctx) revealWizardAthlete(ctx, { pane: 'assignments', message: 'Assignment saved.' });
+      else showAssignSavedBanner('Assignment saved.');
     }
     function failCreate(err){
       if(btn){ btn.disabled = false; btn.textContent = 'Create task assignment'; }
@@ -10018,9 +10108,11 @@
     setAssignWizardFooter('');
     Promise.all([
       loadCoachWorkoutLibrary(ctx.token),
-      loadCoachPinnedWorkouts()
+      loadCoachPinnedWorkouts(),
+      loadCoachRecentAssignments(ctx.token, ctx.coachUser && ctx.coachUser.id)
     ]).then(function(parts){
       _coachLibCache = Array.isArray(parts[0]) ? parts[0] : [];
+      _assignWizard.recentRows = coachRecentWorkoutPicks(parts[2]);
       renderAssignWizardBody();
     }).catch(function(err){
       _assignWizard.libLoadError = (err && err.message) || 'unknown error';
@@ -10110,9 +10202,12 @@
 
   // Cancel closes the overlay without saving.
   document.getElementById('aw-cancel').addEventListener('click', function(){
+    var ctx = _assignWizardCtx;
+    var same = _detailCtx && ctx && _detailCtx.athleteId === ctx.athleteId;
     closeAssignWizardOverlay();
     resetAssignWizard();
     syncWizardShellMode();
+    if(ctx && !same) revealWizardAthlete(ctx);
   });
   document.getElementById('clog-back').addEventListener('click', closeCoachLogOverlay);
   document.getElementById('clog-save').addEventListener('click', function(){
