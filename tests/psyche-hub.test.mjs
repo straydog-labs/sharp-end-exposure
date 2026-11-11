@@ -12,8 +12,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const dash = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index325'/.test(index));
-assert.ok(/APP_VERSION = 'index325'/.test(sw));
+assert.ok(/var app_version = 'index326'/.test(index));
+assert.ok(/APP_VERSION = 'index326'/.test(sw));
 assert.ok(!/id="psyche-landing-col"/.test(dash), 'coach-dashboard untouched');
 
 function extractFn(src, name){
@@ -72,8 +72,14 @@ assert.ok(!/psyche_drills/.test(extractFn(index, 'startPrepareClimb')));
 assert.ok(!/psyche_drills/.test(extractFn(index, 'startExposureDrill')));
 
 const helpers = [
+  extractFn(index, 'isAthleteStreakClimb'),
   extractFn(index, 'isAthleteStreakPsyche'),
   extractFn(index, 'isAthleteStreakPsycheDrill'),
+  extractFn(index, 'psycheParseMetadata'),
+  extractFn(index, 'goDeeperAnswered'),
+  extractFn(index, 'climbGoDeeperComplete'),
+  extractFn(index, 'goDeeperCreditClimbs'),
+  extractFn(index, 'climbSourcedAwarenessDrill'),
   extractFn(index, 'athleteLocalDayKeyFromDate'),
   extractFn(index, 'athleteLocalDayKeyFromIso'),
   extractFn(index, 'athleteWeekBounds'),
