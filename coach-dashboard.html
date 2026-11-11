@@ -642,6 +642,17 @@
     padding:16px 16px;margin-bottom:12px;
   }
   .journal-entry:last-child{margin-bottom:0;}
+  .coach-activity{margin-top:22px;}
+  .coach-activity-head{font-size:15px;font-weight:650;margin-bottom:8px;}
+  .coach-activity-row{display:flex;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--border);padding:10px 2px;color:inherit;cursor:pointer;align-items:flex-start;}
+  .coach-activity-row:hover{background:rgba(255,255,255,.03);}
+  .coach-activity-new{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:6px;flex:0 0 8px;}
+  .coach-activity-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .coach-activity-who{font-size:13px;font-weight:600;}
+  .coach-activity-when{font-size:11px;color:var(--text-secondary);margin-left:8px;font-weight:500;}
+  .coach-activity-summary{font-size:13px;margin-top:2px;}
+  .coach-activity-tag{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+  #coach-activity-more{margin-top:12px;}
   .journal-head{
     display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;
     margin-bottom:10px;
@@ -2266,11 +2277,13 @@
 
   function closeCoachDetailToRoster(){
     _athletePane = null;
+    _detailCtx = null;
     if(window.CoachStackNav) window.CoachStackNav.closeDetail(coachStackState());
     var listEl = document.getElementById('roster-list');
     if(listEl){
       Array.prototype.forEach.call(listEl.querySelectorAll('.roster-row'), function(r){ r.classList.remove('active'); });
     }
+    restoreRosterHomePanel();
     syncCoachStackBack();
   }
 
@@ -2282,7 +2295,335 @@
     closeCoachDetailToRoster();
   }
 
+  var _coachHomeCtx = null;
+  var _coachActivityRows = [];
+  var _coachActivityShown = 15;
+  var _coachActivitySkipped = [];
+
+  function emptyDetailInnerHtml(){
+    return '<div class="see-card-grid" id="empty-landing-actions">' +
+      '<button type="button" class="see-card" id="empty-landing-add-athlete">' +
+        '<div class="te-label">Roster</div>' +
+        '<div class="te-title">Add athlete</div>' +
+        '<div class="te-sub">Invite a new athlete or link by email</div>' +
+      '</button>' +
+      '<button type="button" class="see-card" id="empty-landing-gym-climbs">' +
+        '<div class="te-label">Catalog</div>' +
+        '<div class="te-title">Gym climb catalog</div>' +
+        '<div class="te-sub">Climbs you author</div>' +
+      '</button>' +
+    '</div>' +
+    '<div id="coach-activity" class="coach-activity">' +
+      '<div class="coach-activity-head">Recent activity</div>' +
+      '<div id="coach-activity-list"></div>' +
+    '</div>';
+  }
+
+  function wireEmptyLanding(token, user){
+    var emptyAdd = document.getElementById('empty-landing-add-athlete');
+    if(emptyAdd){
+      emptyAdd.addEventListener('click', function(){
+        var section = document.getElementById('add-athlete-section');
+        if(section && section.scrollIntoView){
+          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        var inviteBtn = document.getElementById('invite-athlete-open');
+        if(inviteBtn) inviteBtn.focus();
+      });
+    }
+    var emptyGym = document.getElementById('empty-landing-gym-climbs');
+    if(emptyGym){
+      emptyGym.addEventListener('click', function(){
+        openGymClimbsCatalog(token, user);
+      });
+    }
+  }
+
+  function restoreRosterHomePanel(){
+    var panel = document.getElementById('detail-panel');
+    if(!panel) return;
+    panel.innerHTML = emptyDetailInnerHtml();
+    if(!_coachHomeCtx) return;
+    wireEmptyLanding(_coachHomeCtx.token, _coachHomeCtx.user);
+    loadCoachRecentActivity(_coachHomeCtx.token, _coachHomeCtx.user, _coachRoster || []);
+  }
+
+  function coachActivitySinceMs(){
+    return Date.now() - 7 * 24 * 60 * 60 * 1000;
+  }
+
+  function coachActivityFresh(iso){
+    var t = new Date(iso).getTime();
+    return !!t && !isNaN(t) && t >= coachActivitySinceMs();
+  }
+
+  function coachActivityErrorText(err){
+    if(!err) return 'unavailable';
+    if(typeof err === 'string') return err;
+    if(err.message) return String(err.message);
+    try{ return JSON.stringify(err); }catch(e){ return 'unavailable'; }
+  }
+
+  function coachActivitySeenMs(coachId){
+    try{
+      var raw = localStorage.getItem('see_coach_activity_seen:' + coachId);
+      var t = raw ? new Date(raw).getTime() : 0;
+      return isNaN(t) ? 0 : t;
+    }catch(e){
+      return 0;
+    }
+  }
+
+  function markCoachActivitySeen(coachId){
+    try{
+      localStorage.setItem('see_coach_activity_seen:' + coachId, new Date().toISOString());
+    }catch(e){}
+  }
+
+  function coachActivityWhen(iso){
+    var t = new Date(iso).getTime();
+    if(!t || isNaN(t)) return '';
+    var mins = Math.round((Date.now() - t) / 60000);
+    if(mins < 1) return 'just now';
+    if(mins < 60) return mins + 'm ago';
+    var hrs = Math.round(mins / 60);
+    if(hrs < 48) return hrs + 'h ago';
+    var days = Math.round(hrs / 24);
+    return days + 'd ago';
+  }
+
+  function coachActivityAthlete(roster, id){
+    var row = null;
+    (roster || []).forEach(function(r){
+      if(String(r.athlete_id) === String(id)) row = r;
+    });
+    if(!row) return { label: 'Athlete', email: '' };
+    return {
+      label: athleteDisplayLabel(row),
+      email: String(row.athlete_email || '').trim()
+    };
+  }
+
+  function coachActivityInList(ids){
+    var clean = [];
+    (ids || []).forEach(function(id){
+      var s = String(id || '').trim();
+      if(s && clean.indexOf(s) === -1) clean.push(encodeURIComponent(s));
+    });
+    return clean.length ? ('in.(' + clean.join(',') + ')') : '';
+  }
+
+  function loadActivitySource(token, table, query){
+    return sbSelect(token, table, query).then(function(rows){
+      return Array.isArray(rows) ? rows : [];
+    }).catch(function(err){
+      _coachActivitySkipped.push({ table: table, error: coachActivityErrorText(err) });
+      return [];
+    });
+  }
+
+  function coachActivityTrainTitle(row){
+    var notes = String(row.notes || '').trim();
+    var line = notes ? notes.split('\n')[0].trim() : '';
+    if(line) return line;
+    if(row.energy_type) return String(row.energy_type);
+    return 'Training session';
+  }
+
+  function coachActivityDuration(row){
+    var a = new Date(row.started_at).getTime();
+    var b = new Date(row.ended_at).getTime();
+    if(!a || !b || isNaN(a) || isNaN(b) || b <= a) return '';
+    var mins = Math.round((b - a) / 60000);
+    if(mins < 1) return '';
+    return mins + ' min';
+  }
+
+  function coachActivityBlockLine(raw){
+    var b = raw;
+    if(typeof b === 'string'){
+      try{ b = JSON.parse(b); }catch(e){ return ''; }
+    }
+    if(!Array.isArray(b) || !b.length) return '';
+    var done = 0;
+    b.forEach(function(block){ if(block && block.complete) done++; });
+    return done + ' of ' + b.length + ' blocks done';
+  }
+
+  function coachActivityRowHtml(item){
+    var who = escapeHtml(item.label || 'Athlete');
+    if(item.email && item.email !== item.label) who += ' · ' + escapeHtml(item.email);
+    return '<button type="button" class="coach-activity-row" data-entry-id="' + escapeHtml(item.entryId) +
+      '" data-athlete-id="' + escapeHtml(item.athleteId) + '" data-kind="' + escapeHtml(item.kind) + '">' +
+      (item.isNew ? '<span class="coach-activity-new" aria-label="New"></span>' : '') +
+      '<span class="coach-activity-main">' +
+        '<span class="coach-activity-who">' + who +
+          '<span class="coach-activity-when">' + escapeHtml(coachActivityWhen(item.at)) + '</span>' +
+        '</span>' +
+        '<span class="coach-activity-summary">' + escapeHtml(item.summary) + '</span>' +
+        '<span class="coach-activity-tag">' + escapeHtml(item.tag) + '</span>' +
+      '</span>' +
+    '</button>';
+  }
+
+  function paintCoachActivity(){
+    var list = document.getElementById('coach-activity-list');
+    if(!list) return;
+    if(!_coachActivityRows.length){
+      list.innerHTML = '<div class="empty-state">No activity in the last 7 days</div>';
+      return;
+    }
+    var slice = _coachActivityRows.slice(0, _coachActivityShown);
+    var html = slice.map(coachActivityRowHtml).join('');
+    if(_coachActivityShown < _coachActivityRows.length){
+      html += '<button type="button" id="coach-activity-more">Show 15 more</button>';
+    }
+    list.innerHTML = html;
+    var more = document.getElementById('coach-activity-more');
+    if(more){
+      more.addEventListener('click', function(){
+        _coachActivityShown += 15;
+        paintCoachActivity();
+      });
+    }
+    Array.prototype.forEach.call(list.querySelectorAll('.coach-activity-row'), function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-entry-id');
+        var item = null;
+        _coachActivityRows.forEach(function(row){
+          if(String(row.entryId) === String(id)) item = row;
+        });
+        if(item) openCoachActivityRow(item);
+      });
+    });
+  }
+
+  function scrollCoachActivityEntry(id, tries){
+    if(!id) return;
+    var el = document.querySelector('.journal-entry[data-session-id="' + String(id).replace(/"/g, '') + '"]');
+    if(el){
+      if(el.scrollIntoView) el.scrollIntoView({ block: 'center' });
+      el.classList.add('coach-activity-target');
+      return;
+    }
+    if(tries < 8) setTimeout(function(){ scrollCoachActivityEntry(id, tries + 1); }, 200);
+  }
+
+  function openCoachActivityRow(item){
+    if(!_coachHomeCtx || !item) return;
+    var row = null;
+    (_coachRoster || []).forEach(function(r){
+      if(String(r.athlete_id) === String(item.athleteId)) row = r;
+    });
+    if(!row) return;
+    renderAthleteDetail(
+      _coachHomeCtx.token, _coachHomeCtx.user, row.athlete_id,
+      athleteDisplayLabel(row), String(row.athlete_email || '')
+    );
+    if(item.kind === 'climb' || item.kind === 'training'){
+      openAthletePane('journal');
+      scrollCoachActivityEntry(item.entryId, 0);
+    }
+  }
+
+  function loadCoachRecentActivity(token, user, roster){
+    var list = document.getElementById('coach-activity-list');
+    if(!list || !token || !user) return;
+    roster = roster || [];
+    var ids = roster.map(function(r){ return r.athlete_id; }).filter(Boolean);
+    var since = new Date(coachActivitySinceMs()).toISOString();
+    var seenMs = coachActivitySeenMs(user.id);
+    markCoachActivitySeen(user.id);
+    _coachActivitySkipped = [];
+    _coachActivityRows = [];
+    _coachActivityShown = 15;
+    if(!ids.length){
+      paintCoachActivity();
+      return;
+    }
+    var inList = coachActivityInList(ids);
+    var sinceQ = encodeURIComponent(since);
+    var sessionsQ = 'select=id,user_id,created_at,grade_value,baseline_zone,logged_by_coach,is_checkin' +
+      '&user_id=' + inList + '&deleted_at=is.null&created_at=gte.' + sinceQ +
+      '&order=created_at.desc&limit=40';
+    var trainQ = 'select=id,user_id,created_at,started_at,ended_at,energy_type,notes,blocks,logged_by_coach' +
+      '&user_id=' + inList + '&deleted_at=is.null&created_at=gte.' + sinceQ +
+      '&order=created_at.desc&limit=40';
+    var psycheQ = 'select=id,user_id,created_at,drill_key,deleted_at' +
+      '&user_id=' + inList + '&deleted_at=is.null&created_at=gte.' + sinceQ +
+      '&order=created_at.desc&limit=40';
+    var asgQ = 'select=id,athlete_id,title,completed_at,created_at' +
+      '&coach_id=eq.' + encodeURIComponent(user.id) +
+      '&deleted_at=is.null&completed_at=gte.' + sinceQ +
+      '&order=completed_at.desc&limit=40';
+    Promise.all([
+      loadActivitySource(token, 'sessions', sessionsQ),
+      loadActivitySource(token, 'training_sessions', trainQ),
+      loadActivitySource(token, 'psyche_drills', psycheQ),
+      loadActivitySource(token, 'assignments', asgQ)
+    ]).then(function(parts){
+      if(!document.getElementById('coach-activity-list')) return;
+      var out = [];
+      (parts[0] || []).forEach(function(row){
+        if(!row || row.deleted_at || row.is_checkin === true || row.is_checkin === 'true') return;
+        if(!coachActivityFresh(row.created_at)) return;
+        var who = coachActivityAthlete(roster, row.user_id);
+        var bits = [String(row.grade_value || '').trim(), String(row.baseline_zone || '').trim()].filter(Boolean);
+        out.push({
+          entryId: row.id, athleteId: row.user_id, kind: 'climb', at: row.created_at,
+          label: who.label, email: who.email,
+          summary: bits.join(' ') || 'Climb',
+          tag: row.logged_by_coach ? 'by coach' : 'by athlete',
+          isNew: !!(seenMs && new Date(row.created_at).getTime() > seenMs)
+        });
+      });
+      (parts[1] || []).forEach(function(row){
+        if(!row || row.deleted_at || !coachActivityFresh(row.created_at)) return;
+        var who = coachActivityAthlete(roster, row.user_id);
+        var bits = [coachActivityTrainTitle(row), coachActivityDuration(row), coachActivityBlockLine(row.blocks)].filter(Boolean);
+        out.push({
+          entryId: row.id, athleteId: row.user_id, kind: 'training', at: row.created_at,
+          label: who.label, email: who.email,
+          summary: bits.join(' · '),
+          tag: row.logged_by_coach ? 'by coach' : 'by athlete',
+          isNew: !!(seenMs && new Date(row.created_at).getTime() > seenMs)
+        });
+      });
+      (parts[2] || []).forEach(function(row){
+        if(!row || row.deleted_at || !row.drill_key || !coachActivityFresh(row.created_at)) return;
+        var who = coachActivityAthlete(roster, row.user_id);
+        out.push({
+          entryId: row.id, athleteId: row.user_id, kind: 'psyche', at: row.created_at,
+          label: who.label, email: who.email,
+          summary: String(row.drill_key),
+          tag: 'by athlete',
+          isNew: !!(seenMs && new Date(row.created_at).getTime() > seenMs)
+        });
+      });
+      (parts[3] || []).forEach(function(row){
+        if(!row || row.deleted_at || !row.completed_at || !coachActivityFresh(row.completed_at)) return;
+        if(ids.map(String).indexOf(String(row.athlete_id)) === -1) return;
+        var who = coachActivityAthlete(roster, row.athlete_id);
+        out.push({
+          entryId: row.id, athleteId: row.athlete_id, kind: 'assignment', at: row.completed_at,
+          label: who.label, email: who.email,
+          summary: (String(row.title || 'Assignment').trim() || 'Assignment') + ' completed',
+          tag: 'by athlete',
+          isNew: !!(seenMs && new Date(row.completed_at).getTime() > seenMs)
+        });
+      });
+      out.sort(function(a, b){ return new Date(b.at).getTime() - new Date(a.at).getTime(); });
+      _coachActivityRows = out;
+      paintCoachActivity();
+    });
+  }
+
+  window.__coachActivityTest = {
+    skipped: function(){ return _coachActivitySkipped.slice(); }
+  };
+
   function renderCoachView(token, user){
+    _coachHomeCtx = { token: token, user: user };
     mainEl.innerHTML =
       '<div class="page-title">Roster</div>' +
       '<div class="page-sub">Athletes linked to you. Tap an athlete for assignments, session notes, and chat.</div>' +
@@ -2357,18 +2698,7 @@
           '</div>' +
         '</div>' +
         '<div class="panel" id="detail-panel">' +
-          '<div class="see-card-grid" id="empty-landing-actions">' +
-            '<button type="button" class="see-card" id="empty-landing-add-athlete">' +
-              '<div class="te-label">Roster</div>' +
-              '<div class="te-title">Add athlete</div>' +
-              '<div class="te-sub">Invite a new athlete or link by email</div>' +
-            '</button>' +
-            '<button type="button" class="see-card" id="empty-landing-gym-climbs">' +
-              '<div class="te-label">Catalog</div>' +
-              '<div class="te-title">Gym climb catalog</div>' +
-              '<div class="te-sub">Climbs you author</div>' +
-            '</button>' +
-          '</div>' +
+          emptyDetailInnerHtml() +
         '</div>' +
       '</div>';
 
@@ -2400,23 +2730,7 @@
     document.getElementById('open-gym-climbs').addEventListener('click', function(){
       openGymClimbsCatalog(token, user);
     });
-    var emptyAdd = document.getElementById('empty-landing-add-athlete');
-    if(emptyAdd){
-      emptyAdd.addEventListener('click', function(){
-        var section = document.getElementById('add-athlete-section');
-        if(section && section.scrollIntoView){
-          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        var inviteBtn = document.getElementById('invite-athlete-open');
-        if(inviteBtn) inviteBtn.focus();
-      });
-    }
-    var emptyGym = document.getElementById('empty-landing-gym-climbs');
-    if(emptyGym){
-      emptyGym.addEventListener('click', function(){
-        openGymClimbsCatalog(token, user);
-      });
-    }
+    wireEmptyLanding(token, user);
 
     document.getElementById('link-athlete-submit').addEventListener('click', function(){
       var input = document.getElementById('link-athlete-email');
@@ -2894,6 +3208,7 @@
       refreshRosterChatUnread(token, user, _coachRoster);
       loadRosterInsights(token, _coachRoster);
       refreshCoachInviteUi(token, user, _coachRoster);
+      loadCoachRecentActivity(token, user, _coachRoster);
     }).catch(function(err){
       _openInviteDeepLink = false;
       var isMissingFn = err && (err.code === 'PGRST202' || err.code === '42883');
@@ -2905,6 +3220,7 @@
         '</div>';
       updateRosterStats(token, []);
       clearRosterInsights();
+      loadCoachRecentActivity(token, user, []);
     });
   }
 

@@ -197,9 +197,14 @@ export async function withPage(browser, port, opts, fn){
         localStorage.setItem(k, String(args.storage[k]));
       });
     }
+    if(args.breakStorage){
+      localStorage.getItem = function(){ throw new Error('storage unavailable'); };
+      localStorage.setItem = function(){ throw new Error('storage unavailable'); };
+    }
   }, {
     session: opts.session || null,
-    storage: opts.storage || null
+    storage: opts.storage || null,
+    breakStorage: !!opts.breakStorage
   });
   var pagePath = opts.path || '/index.html';
   await page.goto('http://127.0.0.1:' + port + pagePath, { waitUntil: 'domcontentloaded', timeout: 60000 });
