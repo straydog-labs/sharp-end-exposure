@@ -13,8 +13,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index325'/.test(index));
-assert.ok(/APP_VERSION = 'index325'/.test(sw));
+assert.ok(/var app_version = 'index326'/.test(index));
+assert.ok(/APP_VERSION = 'index326'/.test(sw));
 
 // Optional screenshot output (outside the repo). Unset in CI.
 const SHOT_OUT = process.env.SEE_SHOT_OUT || '';
@@ -110,7 +110,7 @@ try{
     // 1. menu names + order, top and bottom
     await page.click('#screen-train-session button[onclick="trainAddBlockMenu()"]');
     var topNames = await page.$$eval('#train-block-menu button', function(bs){ return bs.map(function(b){ return b.textContent.trim(); }); });
-    assert.deepStrictEqual(topNames, ['Climbing (EMOM)', 'Strength', 'Hangboard / repeaters', 'Mental', 'Rest', 'Custom']);
+    assert.deepStrictEqual(topNames, ['Climbing (EMOM)', 'Strength', 'Hangboard / repeaters', 'Psyche', 'Rest', 'Custom']);
     await shot(page, 'a2a-1-menu.png', '#train-block-menu');
     await page.click('#screen-train-session button[onclick="trainAddBlockMenu()"]');
     var bottomVisible = await page.isVisible('#train-add-block-bottom');
@@ -125,19 +125,19 @@ try{
     // add the other block types through the menu
     await addViaMenu(page, 'Strength', 'top');
     await addViaMenu(page, 'Hangboard / repeaters', 'bottom');
-    await addViaMenu(page, 'Mental', 'top');
+    await addViaMenu(page, 'Psyche', 'top');
     await addViaMenu(page, 'Rest', 'bottom');
     await addViaMenu(page, 'Custom', 'top');
     var shapes = await page.evaluate(function(){ return trainSessionState.blocks.map(function(b){ return b.shape + ':' + (b.title || ''); }); });
-    assert.deepStrictEqual(shapes, ['emom:', 'circuit:', 'rep_pass_fail:', 'section:Mental', 'rest:Rest', 'section:']);
+    assert.deepStrictEqual(shapes, ['emom:', 'circuit:', 'rep_pass_fail:', 'section:Psyche', 'rest:Rest', 'section:']);
     var titles = await cardTitles(page);
-    assert.deepStrictEqual(titles, ['Climbing (EMOM)', 'Strength', 'Hangboard / repeaters', 'Mental', 'Rest', 'Custom']);
+    assert.deepStrictEqual(titles, ['Climbing (EMOM)', 'Strength', 'Hangboard / repeaters', 'Psyche', 'Rest', 'Custom']);
     var kickers = await page.$$eval('#train-blocks-wrap .train-block-kicker', function(ns){ return ns.map(function(n){ return n.textContent; }); });
     assert.strictEqual(kickers[0].indexOf('Block 1'), 0);
     assert.strictEqual(kickers[5].indexOf('Block 6'), 0);
     await shot(page, 'a2a-2-all-blocks.png');
 
-    // Mental block takes typed notes
+    // Psyche block takes typed notes
     await page.evaluate(function(){
       var m = trainSessionState.blocks[3];
       var btn = document.getElementById('tb-' + m.id + '-secnotes-add');
@@ -236,11 +236,11 @@ try{
 
     // 3. reorder with buttons: move Rest (index 4) up twice
     var before = await order(page);
-    assert.deepStrictEqual(before, ['emom', 'circuit', 'rep_pass_fail', 'Mental', 'Rest', 'section']);
+    assert.deepStrictEqual(before, ['emom', 'circuit', 'rep_pass_fail', 'Psyche', 'Rest', 'section']);
     var restId = ids[4];
     await page.click('.train-block-card[data-block-id="' + restId + '"] [data-wk-move="up"]');
     await page.click('.train-block-card[data-block-id="' + restId + '"] [data-wk-move="up"]');
-    assert.deepStrictEqual(await order(page), ['emom', 'circuit', 'Rest', 'rep_pass_fail', 'Mental', 'section']);
+    assert.deepStrictEqual(await order(page), ['emom', 'circuit', 'Rest', 'rep_pass_fail', 'Psyche', 'section']);
     var upDisabled = await page.evaluate(function(){
       var first = document.querySelector('#train-blocks-wrap .train-block-card [data-wk-move="up"]');
       var cards = document.querySelectorAll('#train-blocks-wrap .train-block-card');
@@ -248,7 +248,7 @@ try{
       return [first.disabled, last.disabled];
     });
     assert.deepStrictEqual(upDisabled, [true, true], 'first has no up, last has no down');
-    assert.deepStrictEqual(await cardTitles(page), ['Climbing (EMOM)', 'Strength', 'Rest', 'Hangboard / repeaters', 'Mental', 'Custom']);
+    assert.deepStrictEqual(await cardTitles(page), ['Climbing (EMOM)', 'Strength', 'Rest', 'Hangboard / repeaters', 'Psyche', 'Custom']);
     var kicks = await page.$$eval('#train-blocks-wrap .train-block-kicker', function(ns){ return ns.map(function(n){ return n.textContent; }); });
     assert.ok(kicks[2].indexOf('Block 3') === 0, 'Block N renumbers live');
     var tickKept = await page.evaluate(function(){ return trainSessionState.blocks[0].rounds[0].boulders[0].complete === true; });
@@ -280,7 +280,7 @@ try{
     await page.mouse.move(tb.x + tb.width / 2, tb.y + 4, { steps: 3 });
     await page.waitForSelector('.train-block-card[data-block-id="' + ids[1] + '"].wk-drop-before', { timeout: 3000 });
     await page.mouse.up();
-    assert.deepStrictEqual(await order(page), ['emom', 'section', 'circuit', 'Rest', 'rep_pass_fail', 'Mental'], 'drag drops Custom before Strength');
+    assert.deepStrictEqual(await order(page), ['emom', 'section', 'circuit', 'Rest', 'rep_pass_fail', 'Psyche'], 'drag drops Custom before Strength');
     await page.setViewportSize({ width: 390, height: 844 });
 
     // order is what gets saved

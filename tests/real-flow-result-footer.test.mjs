@@ -19,8 +19,8 @@ const SIZES = [
 ];
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index325'/.test(index));
-assert.ok(/APP_VERSION = 'index325'/.test(sw));
+assert.ok(/var app_version = 'index326'/.test(index));
+assert.ok(/APP_VERSION = 'index326'/.test(sw));
 assert.ok(/id="log-send-group"/.test(index));
 assert.ok(/id="log-take-group"/.test(index));
 assert.ok(/id="log-result-continue"/.test(index));

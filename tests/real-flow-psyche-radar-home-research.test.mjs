@@ -14,8 +14,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index325'/.test(index));
-assert.ok(/APP_VERSION = 'index325'/.test(sw));
+assert.ok(/var app_version = 'index326'/.test(index));
+assert.ok(/APP_VERSION = 'index326'/.test(sw));
 assert.ok(/Math\.max\(max,\s*4\)/.test(index));
 assert.ok(!/Math\.max\(0\.06/.test(index.slice(index.indexOf('function buildPsycheRadar'), index.indexOf('function psycheDrillLabel'))));
 assert.ok(/filter\(function\(d\)\{\s*return d\.n > 0/.test(index) || /d\.n > 0/.test(index.slice(index.indexOf('function buildPsycheRadar'), index.indexOf('function psycheDrillLabel'))));

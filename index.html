@@ -6144,7 +6144,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index325'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index326'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -16137,7 +16137,7 @@ var WK_MENU_ITEMS = [
   { shape: 'emom', label: 'Climbing (EMOM)' },
   { shape: 'circuit', label: 'Strength' },
   { shape: 'rep_pass_fail', label: 'Hangboard / repeaters' },
-  { shape: 'mental', label: 'Mental' },
+  { shape: 'mental', label: 'Psyche' },
   { shape: 'rest', label: 'Rest' },
   { shape: 'section', label: 'Custom' }
 ];
@@ -17849,7 +17849,7 @@ function trainAddBlock(shape){
   var nb;
   if(shape === 'mental'){
     nb = newTrainBlock('section');
-    nb.title = 'Mental';
+    nb.title = 'Psyche';
   } else {
     nb = newTrainBlock(shape);
   }
@@ -21685,7 +21685,35 @@ function psycheActivityInWindow(iso, fromDate, days){
   return t >= start && t <= end;
 }
 
-function psycheRadarCounts(checkins, drills, days, fromDate){
+function goDeeperAnswered(v){
+  return String(v == null ? '' : v).trim() !== '';
+}
+function climbGoDeeperComplete(s){
+  if(!isAthleteStreakClimb(s)) return false;
+  return goDeeperAnswered(s.breathing_post)
+    && goDeeperAnswered(s.gut_post)
+    && goDeeperAnswered(s.crux_response)
+    && goDeeperAnswered(s.body_state);
+}
+function goDeeperCreditClimbs(climbs){
+  var seen = {};
+  var out = [];
+  (climbs || []).forEach(function(s){
+    if(!climbGoDeeperComplete(s)) return;
+    var id = s.id == null ? '' : String(s.id);
+    if(id){
+      if(seen[id]) return;
+      seen[id] = 1;
+    }
+    out.push(s);
+  });
+  return out;
+}
+function climbSourcedAwarenessDrill(d){
+  if(!d || d.drill_key !== 'awareness') return false;
+  return psycheParseMetadata(d).source === 'climb';
+}
+function psycheRadarCounts(checkins, drills, days, fromDate, climbs){
   var counts = { checkin: 0, breath: 0, exposure: 0, viz: 0, relax: 0, talk: 0, awareness: 0 };
   (checkins || []).forEach(function(s){
     if(!s || s.deleted_at || s.is_baseline || !s.is_checkin) return;
@@ -21695,7 +21723,7 @@ function psycheRadarCounts(checkins, drills, days, fromDate){
     counts.checkin++;
   });
   (drills || []).forEach(function(d){
-    if(!isAthleteStreakPsycheDrill(d)) return;
+    if(!isAthleteStreakPsycheDrill(d) || climbSourcedAwarenessDrill(d)) return;
     if(!psycheActivityInWindow(d.created_at, fromDate, days)) return;
     var k = d.drill_key;
     if(k === 'bee_humming' || k === 'cyclic_sighing') counts.breath++;
@@ -21703,6 +21731,10 @@ function psycheRadarCounts(checkins, drills, days, fromDate){
     else if(k === 'pmr') counts.relax++;
     else if(k === 'self_talk') counts.talk++;
     else if(k === 'awareness') counts.awareness++;
+  });
+  goDeeperCreditClimbs(climbs).forEach(function(s){
+    if(!psycheActivityInWindow(s.created_at, fromDate, days)) return;
+    counts.awareness++;
   });
   return counts;
 }
@@ -21774,6 +21806,7 @@ function buildPsycheRadar(counts){
 
 var _psycheCheckinsCache = [];
 var _psycheDrillsCache = [];
+var _psycheDeeperClimbs = [];
 
 function psycheDrillLabel(key){
   if(key === 'bee_humming') return 'Bee Humming';
@@ -21846,13 +21879,20 @@ function psycheZoneLabel(zone){
   if(z === 'panic') return 'Panic';
   return '';
 }
-function computePsycheHubStats(checkins, drills, fromDate){
+function computePsycheHubStats(checkins, drills, fromDate, climbs){
   fromDate = fromDate || new Date();
   checkins = (checkins || []).filter(isAthleteStreakPsyche);
-  drills = (drills || []).filter(isAthleteStreakPsycheDrill);
-  var allActs = checkins.concat(drills);
+  drills = (drills || []).filter(function(d){
+    return isAthleteStreakPsycheDrill(d) && !climbSourcedAwarenessDrill(d);
+  });
+  var deeper = goDeeperCreditClimbs(climbs);
+  var allActs = checkins.concat(drills).concat(deeper);
   var dash = allActs.length < 3;
   var days = collectAthleteStreakDays([], [], checkins, drills);
+  deeper.forEach(function(s){
+    var k = athleteLocalDayKeyFromIso(s.created_at);
+    if(k) days[k] = true;
+  });
   var week = athleteWeekBounds(fromDate);
   var weekN = allActs.filter(function(r){
     var t = new Date(r.created_at);
@@ -21973,7 +22013,7 @@ function renderPsycheHistoryList(){
   el.innerHTML = rows.map(psycheHistoryRowHtml).join('');
 }
 function renderPsycheHubStats(){
-  var stats = computePsycheHubStats(_psycheCheckinsCache, _psycheDrillsCache, new Date());
+  var stats = computePsycheHubStats(_psycheCheckinsCache, _psycheDrillsCache, new Date(), _psycheDeeperClimbs);
   var streakEl = document.getElementById('psyche-stat-streak');
   var weekEl = document.getElementById('psyche-stat-week');
   var zoneEl = document.getElementById('psyche-stat-last-zone');
@@ -21992,7 +22032,7 @@ async function loadPsycheLog(){
     var uid = window._authUser.id;
     var sessRows = await sbS(
       'sessions',
-      'select=id,created_at,is_checkin,is_baseline,deleted_at,prepare_type,zone&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=200'
+      'select=id,created_at,is_checkin,is_baseline,deleted_at,prepare_type,zone,breathing_post,gut_post,crux_response,body_state&user_id=eq.' + uid + '&deleted_at=is.null&order=created_at.desc&limit=200'
     );
     var drillRows = await sbS(
       'psyche_drills',
@@ -22002,9 +22042,11 @@ async function loadPsycheLog(){
     drillRows = Array.isArray(drillRows) ? drillRows : [];
     checkins = sessRows.filter(isAthleteStreakPsyche);
     drills = drillRows.filter(isAthleteStreakPsycheDrill);
+    _psycheDeeperClimbs = goDeeperCreditClimbs(sessRows);
   } else {
     checkins = [];
     drills = [];
+    _psycheDeeperClimbs = [];
   }
   _psycheCheckinsCache = checkins;
   _psycheDrillsCache = drills;
@@ -22013,7 +22055,7 @@ async function loadPsycheLog(){
   renderPsycheHistoryMini();
   renderPsycheHistoryList();
   var rangeDays = _psycheRadarDays || 30;
-  _psycheRadarCounts = psycheRadarCounts(checkins, drills, rangeDays, now);
+  _psycheRadarCounts = psycheRadarCounts(checkins, drills, rangeDays, now, _psycheDeeperClimbs);
   var statsBody = document.getElementById('psyche-log-stats');
   var statsOpen = statsBody && statsBody.style.display !== 'none';
   if(statsOpen){
