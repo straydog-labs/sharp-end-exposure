@@ -6197,7 +6197,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index327'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index328'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -16850,7 +16850,9 @@ function trainStartDuplicatedSession(row){
     return;
   }
   var srcBlocks = parseTrainSessionBlocks(row);
-  var state = newTrainSessionState(row.energy_type, trainSessionWorkoutName(row));
+  var state = newTrainSessionState(row.energy_type, trainSessionWorkoutName(row), '', {
+    source_assignment_id: (row && row.assignment_id) || null
+  });
   state.blocks = srcBlocks.map(trainCloneBlockForDuplicate).filter(Boolean);
   state.warm_up = row.warm_up || '';
   state.cool_down = row.cool_down || '';
@@ -17485,7 +17487,7 @@ function startTrainSessionFromPicker(idx){
 }
 
 async function startTrainSessionFromAssignment(assignmentId){
-  var a = _trainAssignmentsCache.find(function(x){ return x.id === assignmentId; });
+  var a = _trainAssignmentsCache.find(function(x){ return x && String(x.id) === String(assignmentId); });
   if(!a){
     showToast('Could not find that training entry', true);
     return;
@@ -19601,6 +19603,9 @@ async function saveTrainSession(){
   var msg = document.getElementById('train-sess-msg');
   var btn = document.getElementById('train-sess-save');
   if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+  if(!trainSessionState.source_assignment_id && trainSessionState.assignment_id){
+    trainSessionState.source_assignment_id = trainSessionState.assignment_id;
+  }
   var payload = {
     id: trainSessionState.id,
     user_id: window._authUser.id,
