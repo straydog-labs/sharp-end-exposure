@@ -76,8 +76,9 @@ async function run(){
       assert.strictEqual(await hb.locator('[data-f="assistance"]').count(), 0, 'no block load input');
 
       await hb.locator('[data-act="preset"][data-preset="repeaters"]').click();
-      assert.deepStrictEqual(await hb.locator('[data-f="setGrip"]').evaluateAll(function(els){ return els.map(function(el){ return el.value; }); }), ['Half crimp', 'Half crimp', 'Half crimp']);
-      assert.deepStrictEqual(await hb.locator('[data-f="setLoad"]').evaluateAll(function(els){ return els.map(function(el){ return el.value; }); }), ['', '', '']);
+      assert.deepStrictEqual(await hb.locator('[data-f="rowGrip"]').evaluateAll(function(els){ return els.map(function(el){ return el.value; }); }), ['Half crimp']);
+      assert.strictEqual(await hb.locator('.cwb-gripcount').innerText(), '3');
+      assert.strictEqual(await hb.locator('[data-f="rowLoad"]').inputValue(), '');
       assert.strictEqual(await hb.locator('[data-f="on_sec"]').inputValue(), '7');
       assert.strictEqual(await hb.locator('[data-f="off_sec"]').inputValue(), '3');
       assert.strictEqual(await hb.locator('[data-f="allReps"]').inputValue(), '6');
@@ -85,14 +86,16 @@ async function run(){
       await hb.locator('[data-act="preset"][data-preset="max_hang"]').click();
       assert.strictEqual(await hb.locator('[data-f="on_sec"]').inputValue(), '10');
       assert.strictEqual(await hb.locator('[data-f="off_sec"]').inputValue(), '');
-      assert.strictEqual(await hb.locator('.cwb-setrow').count(), 3);
+      assert.strictEqual(await hb.locator('.cwb-griprow').count(), 1);
+      assert.strictEqual(await hb.locator('.cwb-gripcount').innerText(), '3');
       assert.strictEqual(await hb.locator('[data-f="allReps"]').inputValue(), '5');
-      assert.deepStrictEqual(await hb.locator('[data-f="setGrip"]').evaluateAll(function(els){ return els.map(function(el){ return el.value; }); }), ['', '', '']);
+      assert.deepStrictEqual(await hb.locator('[data-f="rowGrip"]').evaluateAll(function(els){ return els.map(function(el){ return el.value; }); }), ['']);
 
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
-      assert.deepStrictEqual(await hb.locator('[data-f="setGrip"]').evaluateAll(function(els){ return els.map(function(el){ return el.value; }); }), [
-        'Half crimp', 'Half crimp', 'Half crimp', '3-finger drag', '3-finger drag', '3-finger drag'
+      assert.deepStrictEqual(await hb.locator('[data-f="rowGrip"]').evaluateAll(function(els){ return els.map(function(el){ return el.value; }); }), [
+        'Half crimp', '3-finger drag'
       ]);
+      await hb.locator('[data-act="customize-sets"]').click();
       const loads = hb.locator('[data-f="setLoad"]');
       await loads.nth(0).fill('35 lb assist');
       assert.deepStrictEqual(await loads.evaluateAll(function(els){ return els.map(function(el){ return el.value; }); }), [
@@ -177,11 +180,11 @@ async function run(){
       await tap(page, '#wiz-edit-blocks');
       await page.waitForSelector('#cwb-root .cwb-card', { timeout: 8000 });
       const hb = page.locator('#cwb-root .cwb-card').nth(0);
-      assert.strictEqual(await hb.locator('[data-f="setLoad"]').first().inputValue(), '35 lb assist');
-      assert.strictEqual(await hb.locator('[data-f="setLoad"]').nth(3).inputValue(), '45 lb assist');
+      assert.strictEqual(await hb.locator('[data-f="rowLoad"]').nth(0).inputValue(), '35 lb assist');
+      assert.strictEqual(await hb.locator('[data-f="rowLoad"]').nth(1).inputValue(), '45 lb assist');
       const legacy = page.locator('#cwb-root .cwb-card').nth(1);
-      assert.strictEqual(await legacy.locator('[data-f="setGrip"]').inputValue(), 'half crimp');
-      assert.strictEqual(await legacy.locator('[data-f="setLoad"]').inputValue(), '+35 lb');
+      assert.strictEqual(await legacy.locator('[data-f="rowGrip"]').inputValue(), 'half crimp');
+      assert.strictEqual(await legacy.locator('[data-f="rowLoad"]').inputValue(), '+35 lb');
       await legacy.locator('[data-f="title"]').fill('Repeaters.');
       await tap(page, '#edit-cw-save');
       await page.waitForTimeout(500);

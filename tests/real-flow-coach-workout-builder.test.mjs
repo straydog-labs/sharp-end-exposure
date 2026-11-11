@@ -84,6 +84,7 @@ async function run(){
       // Hangboard: grip, load, +1 set, +1 rep
       const hb = page.locator('#cwb-root .cwb-card').nth(1);
       await hb.locator('[data-f="title"]').fill('Repeaters');
+      await hb.locator('[data-act="customize-sets"]').click();
       await hb.locator('[data-f="setGrip"]').fill('half crimp');
       await hb.locator('[data-f="setLoad"]').fill('+35 lb');
       await hb.locator('[data-act="set-plus"]').click();
