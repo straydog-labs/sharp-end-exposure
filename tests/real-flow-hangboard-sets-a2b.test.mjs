@@ -12,8 +12,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index328'/.test(index));
-assert.ok(/APP_VERSION = 'index328'/.test(sw));
+assert.ok(/var app_version = 'index329'/.test(index));
+assert.ok(/APP_VERSION = 'index329'/.test(sw));
 assert.ok(!/WK_DEFAULT_ON/.test(index));
 assert.ok(!/_hangLoadSrc/.test(index));
 const sql = readFileSync(join(root, 'sql/training-sessions-assignment-id.sql'), 'utf8');
@@ -382,7 +382,8 @@ try{
     await page.evaluate(function(){ collectTrainBlockFields(); });
     assert.strictEqual(await page.evaluate(function(){ return trainSessionState.blocks[0].sets[0].rest_after_sec; }), 180);
 
-    await page.click('#train-sess-save-workout');
+    await page.click('#train-sess-more');
+    await page.click('#train-sess-save-as');
     await page.waitForTimeout(400);
     var savedWorkout = firstBody(postsTo(recorded, 'custom_workouts', 'POST'));
     assert.ok(savedWorkout);
@@ -698,7 +699,8 @@ try{
     });
     assert.deepStrictEqual(before.loads, ['40 lb assist', '30 lb assist', '30 lb assist', '', '', '']);
     assert.strictEqual(before.hidden, false);
-    await page.click('#train-sess-save-workout');
+    await page.click('#train-sess-more');
+    await page.click('#train-sess-save-as');
     await page.waitForTimeout(400);
     var saved = firstBody(postsTo(recorded, 'custom_workouts', 'POST'));
     var savedHb = saved.sections.find(function(b){ return b.shape === 'rep_pass_fail'; });

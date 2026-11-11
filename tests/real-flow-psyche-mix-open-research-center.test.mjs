@@ -15,8 +15,8 @@ const coach = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index328'/.test(index));
-assert.ok(/APP_VERSION = 'index328'/.test(sw));
+assert.ok(/var app_version = 'index329'/.test(index));
+assert.ok(/APP_VERSION = 'index329'/.test(sw));
 assert.ok(/function paintPsycheStatsOpen\(/.test(index));
 assert.ok(/id==='screen-drill'\)\{ paintPsycheStatsOpen\(\); loadDrillRouteOptions\(\); loadPsycheLog\(\); \}/.test(index));
 assert.ok(/id="psyche-stats-toggle-label">Hide practice mix</.test(index));
