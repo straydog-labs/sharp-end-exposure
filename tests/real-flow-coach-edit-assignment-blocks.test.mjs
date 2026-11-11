@@ -57,7 +57,7 @@ async function run(){
       await tap(page, '#wiz-edit-blocks');
       await page.waitForSelector('#cwb-root .cwb-card', { timeout: 8000 });
       assert.strictEqual(await page.locator('#cwb-root .cwb-card').count(), 2, 'both blocks load');
-      await page.locator('#cwb-root .cwb-card').nth(0).locator('[data-f="setLoad"]').fill('+45 lb');
+      await page.locator('#cwb-root .cwb-card').nth(0).locator('[data-f="rowLoad"]').fill('+45 lb');
       await tap(page, '#edit-cw-save');
 
       // back on Customize with the assignment title kept

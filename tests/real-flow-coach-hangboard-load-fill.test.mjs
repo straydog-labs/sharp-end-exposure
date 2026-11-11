@@ -105,6 +105,7 @@ async function openBuilder(page){
   await tap(page, '#cwb-root [data-act="add"][data-shape="rep_pass_fail"]');
   const hb = page.locator('#cwb-root .cwb-card').nth(0);
   await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
+  await hb.locator('[data-act="customize-sets"]').click();
   return hb;
 }
 
@@ -148,6 +149,7 @@ async function run(){
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
       assert.match(await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').innerText(), /Replace sets/);
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
+      await hb.locator('[data-act="customize-sets"]').click();
       assert.deepStrictEqual(await loadValues(hb), ['', '', '', '', '', '']);
       await runFillSequence(hb);
 
@@ -227,6 +229,7 @@ async function run(){
       assert.ok(opened[0].sets.every(function(s){ return !Object.prototype.hasOwnProperty.call(s, '_hangLoadSrc'); }));
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
+      await hb.locator('[data-act="customize-sets"]').click();
       await runFillSequence(hb);
       await hb.locator('[data-f="title"]').fill('Hangboard repeaters.');
       await tap(page, '#edit-cw-save');

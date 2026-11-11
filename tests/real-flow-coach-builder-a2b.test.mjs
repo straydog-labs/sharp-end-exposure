@@ -365,13 +365,14 @@ async function run(){
 
       await tap(page, '#cwb-root [data-act="add"][data-shape="rep_pass_fail"]');
       const hb = page.locator('#cwb-root .cwb-card').nth(0);
-      assert.strictEqual(await hb.locator('[data-f="setGrip"]').first().getAttribute('aria-label'), 'Grip');
-      assert.strictEqual(await hb.locator('[data-f="setLoad"]').first().getAttribute('aria-label'), 'Load or assistance');
+      assert.strictEqual(await hb.locator('[data-f="rowGrip"]').first().getAttribute('aria-label'), 'Grip');
+      assert.strictEqual(await hb.locator('[data-f="rowLoad"]').first().getAttribute('aria-label'), 'Load');
       assert.ok((await hb.locator('.cwb-lab').allTextContents()).some(function(t){ return /Rest between sets/.test(t); }));
       assert.strictEqual(await hb.locator('[data-f="grip"]').count(), 0);
       assert.strictEqual(await hb.locator('[data-f="assistance"]').count(), 0);
-      assert.strictEqual(await hb.locator('[data-f="setLoad"]').first().getAttribute('placeholder'), 'e.g. 35 lb assist or +20 lb');
+      assert.strictEqual(await hb.locator('[data-f="rowLoad"]').first().getAttribute('placeholder'), '35 lb assist');
 
+      await hb.locator('[data-act="customize-sets"]').click();
       await hb.locator('[data-act="set-menu"]').first().click();
       for(var i = 0; i < 5; i++) await hb.locator('[data-act="rep-plus"]').first().click();
       assert.strictEqual(await hb.locator('[data-act="rep-plus"]').first().isDisabled(), true, '+ Rep stops at 10');
@@ -403,7 +404,7 @@ async function run(){
       assert.strictEqual(await hb.locator('[data-f="on_sec"]').inputValue(), '10');
       assert.strictEqual(await hb.locator('[data-f="off_sec"]').inputValue(), '');
       await hb.locator('[data-act="preset"][data-preset="custom"]').click();
-      assert.strictEqual(await hb.locator('.cwb-setrow').count(), 1);
+      assert.strictEqual(await hb.locator('.cwb-griprow').count(), 1);
       await hb.locator('[data-act="preset"][data-preset="repeaters_2_grips"]').click();
       const got = await page.evaluate(function(){
         var blocks = window.__cwbTest.clean();
@@ -413,6 +414,7 @@ async function run(){
       });
       assert.deepStrictEqual(got, CONTRACT);
 
+      await hb.locator('[data-act="customize-sets"]').click();
       const loads = hb.locator('[data-f="setLoad"]');
       for(var a = 0; a < 3; a++) await loads.nth(a).fill('35 lb assist');
       for(var c = 3; c < 6; c++) await loads.nth(c).fill('45 lb assist');
@@ -517,23 +519,23 @@ async function run(){
       await tap(page, '#wiz-edit-blocks');
       await page.waitForSelector('#cwb-root .cwb-card', { timeout: 8000 });
       const hbEdit = page.locator('#cwb-root .cwb-card').nth(0);
-      assert.strictEqual(await hbEdit.locator('[data-f="setGrip"]').first().inputValue(), 'Half crimp');
-      assert.strictEqual(await hbEdit.locator('[data-f="setLoad"]').first().inputValue(), '35 lb assist');
+      assert.strictEqual(await hbEdit.locator('[data-f="rowGrip"]').first().inputValue(), 'Half crimp');
+      assert.strictEqual(await hbEdit.locator('[data-f="rowLoad"]').first().inputValue(), '35 lb assist');
       assert.strictEqual(await hbEdit.locator('[data-f="allRest"]').inputValue(), '3');
       assert.strictEqual(await hbEdit.locator('[data-f="allRestU"]').inputValue(), 'min');
       assert.strictEqual(await hbEdit.locator('[data-f="on_sec"]').inputValue(), '7');
       const warmEdit = page.locator('#cwb-root .cwb-card').nth(1);
       assert.strictEqual(await warmEdit.locator('[data-f="item"]').inputValue(), 'Shoulder rolls');
       const legacy = page.locator('#cwb-root .cwb-card').nth(2);
-      assert.strictEqual(await legacy.locator('[data-f="setGrip"]').inputValue(), 'half crimp');
-      assert.strictEqual(await legacy.locator('[data-f="setLoad"]').inputValue(), '+35 lb');
+      assert.strictEqual(await legacy.locator('[data-f="rowGrip"]').inputValue(), 'half crimp');
+      assert.strictEqual(await legacy.locator('[data-f="rowLoad"]').inputValue(), '+35 lb');
       const opened = await page.evaluate(function(){ return window.__cwbTest.clean(); });
       const oldOpened = opened.find(function(b){ return b.id === 'old-hb'; });
       assert.strictEqual(oldOpened.grip, 'half crimp');
       assert.strictEqual(oldOpened.assistance, '+35 lb');
       assert.strictEqual(oldOpened.sets[0].grip, 'half crimp');
       assert.strictEqual(oldOpened.sets[0].load, '+35 lb');
-      await hbEdit.locator('[data-f="setLoad"]').first().fill('40 lb assist');
+      await hbEdit.locator('[data-f="rowLoad"]').first().fill('40 lb assist');
       await tap(page, '#edit-cw-save');
       await page.waitForTimeout(500);
       const patched = recorded.filter(function(r){ return r.method === 'PATCH' && r.url.indexOf('custom_workouts') !== -1; }).pop();

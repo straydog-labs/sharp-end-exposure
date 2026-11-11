@@ -1046,8 +1046,10 @@
   .cwb-onoff label{display:flex;flex-direction:column;gap:4px;}
   .cwb-onoff input{width:88px;}
   .cwb-set{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);}
-  .cwb-setrow{display:flex;align-items:center;gap:8px;margin-top:6px;}
-  .cwb-setnum{width:18px;flex:0 0 18px;font-size:13px;font-weight:700;color:var(--text-secondary);}
+  .cwb-setrow,.cwb-griprow{display:flex;align-items:center;gap:8px;margin-top:6px;}
+  .cwb-setnum{flex:0 0 auto;font-size:13px;font-weight:700;color:var(--text-secondary);}
+  .cwb-gripcount{min-width:1.2em;text-align:center;font-weight:700;}
+  .cwb-hang-preview{margin-top:8px;font-size:13px;line-height:1.45;color:var(--text-secondary);}
   .cwb-setrow .cwb-in{min-width:0;}
   .cwb-setrow [data-f="setGrip"]{flex:1.1;}
   .cwb-setrow [data-f="setLoad"]{flex:1;}
@@ -7193,6 +7195,8 @@
   var _cwbArm = null;
   var _cwbArmTimer = null;
   var _cwbSetMenu = null;
+  var _cwbGripRows = {};
+  var _cwbHangCustom = {};
   var _cwbMenuFlashTimer = null;
 
   function cwbUid(){
@@ -7384,6 +7388,8 @@
     _assignWizard.blocks = cwbEnsureIds(JSON.parse(JSON.stringify(blocks || [])));
     _cwbCollapsed = {};
     _cwbArm = null;
+    _cwbGripRows = {};
+    _cwbHangCustom = {};
   }
 
   // Blocks as saved: trimmed text, no empty circuit rows, no leftover run state.
@@ -7526,6 +7532,122 @@
     if(!b || b.shape !== 'rep_pass_fail') return false;
     return cwbHangSig(b) !== cwbHangSig(cwbHangPreset(b.preset || 'custom', b.id));
   }
+  function cwbSetRepsN(set){
+    return (set && set.reps) ? set.reps.length : 0;
+  }
+  function cwbSetRestN(set){
+    if(!set || set.rest_after_sec == null || set.rest_after_sec === '') return null;
+    var n = Number(set.rest_after_sec);
+    return isNaN(n) ? null : n;
+  }
+  function cwbDeriveGripRows(block){
+    var sets = (block && block.sets && block.sets.length) ? block.sets : [];
+    var rows = [];
+    sets.forEach(function(set, si){
+      var grip = cwbShown(set && set.grip, block.grip);
+      var load = cwbShown(set && set.load, block.assistance);
+      var key = grip + '\0' + load + '\0' + cwbSetRepsN(set) + '\0' + cwbSetRestN(set);
+      var last = rows[rows.length - 1];
+      if(last && last.key === key) last.count += 1;
+      else rows.push({ key: key, grip: grip, load: load, start: si, count: 1 });
+    });
+    return rows;
+  }
+  function cwbGripRowsFor(block){
+    var rows = _cwbGripRows[block.id];
+    var n = (block.sets && block.sets.length) || 0;
+    var sum = 0;
+    if(rows) rows.forEach(function(r){ sum += r.count; });
+    if(!rows || sum !== n){
+      rows = cwbDeriveGripRows(block);
+      _cwbGripRows[block.id] = rows;
+    }
+    return rows;
+  }
+  function cwbHangMixedGrip(block){
+    var seen = {};
+    var mixed = false;
+    ((block && block.sets) || []).forEach(function(set){
+      var grip = cwbShown(set && set.grip, block.grip).trim();
+      var sig = cwbShown(set && set.load, block.assistance).trim() + '\0' + cwbSetRepsN(set) + '\0' + cwbSetRestN(set);
+      if(!Object.prototype.hasOwnProperty.call(seen, grip)) seen[grip] = sig;
+      else if(seen[grip] !== sig) mixed = true;
+    });
+    return mixed;
+  }
+  function cwbHangPerSet(block){
+    return !!(_cwbLogMode || _cwbHangCustom[block.id] || cwbHangMixedGrip(block));
+  }
+  function cwbApplyGripField(block, gi, field, value){
+    var rows = cwbGripRowsFor(block);
+    var row = rows[gi];
+    if(!row) return;
+    row[field] = value;
+    var key = field === 'grip' ? 'grip' : 'load';
+    var i;
+    for(i = 0; i < row.count; i++){
+      var set = block.sets[row.start + i];
+      if(set) set[key] = value;
+    }
+  }
+  function cwbShiftGripRows(rows, after, delta){
+    rows.forEach(function(r){
+      if(r.start > after) r.start += delta;
+    });
+  }
+  function cwbHangPreviewText(block){
+    var sets = (block && block.sets) || [];
+    var groups = [];
+    sets.forEach(function(set){
+      var grip = cwbShown(set && set.grip, block.grip).trim();
+      var load = cwbShown(set && set.load, block.assistance).trim();
+      var reps = cwbSetRepsN(set);
+      var key = grip + '\0' + load + '\0' + reps;
+      var last = groups[groups.length - 1];
+      if(last && last.key === key){ last.n += 1; last.hangs += reps; }
+      else groups.push({ key: key, grip: grip, load: load, reps: reps, n: 1, hangs: reps });
+    });
+    var lines = groups.map(function(g){
+      var head = [];
+      if(g.grip) head.push(g.grip);
+      if(g.load) head.push(g.load);
+      var setWord = g.n === 1 ? 'set' : 'sets';
+      var eachWord = g.reps === 1 ? 'hang' : 'hangs';
+      var totWord = g.hangs === 1 ? 'hang' : 'hangs';
+      head.push(g.n + ' ' + setWord + ' × ' + g.reps + ' ' + eachWord + ' = ' + g.hangs + ' ' + totWord);
+      return head.join(' · ');
+    });
+    var totalSets = sets.length;
+    var totalHangs = 0;
+    sets.forEach(function(s){ totalHangs += cwbSetRepsN(s); });
+    var bits = [];
+    var timing = '';
+    if(block.on_sec != null && block.on_sec !== '') timing = block.on_sec + ' s on';
+    if(block.off_sec != null && block.off_sec !== ''){
+      timing = timing ? (timing + ' / ' + block.off_sec + ' s off') : (block.off_sec + ' s off');
+    }
+    if(timing) bits.push(timing);
+    var rest = cwbCommonRest(sets);
+    if(rest){
+      bits.push((rest % 60 === 0 ? (rest / 60) + ' min' : rest + ' sec') + ' rest between sets');
+    }
+    bits.push(totalSets + (totalSets === 1 ? ' set' : ' sets') + ', ' + totalHangs + (totalHangs === 1 ? ' hang' : ' hangs') + ' total');
+    lines.push(bits.join(' · '));
+    return lines.join('\n');
+  }
+  function cwbRefreshHangPreview(block, card){
+    if(!card || !block || block.shape !== 'rep_pass_fail') return;
+    var preview = card.querySelector('.cwb-hang-preview');
+    if(!preview) return;
+    preview.innerHTML = cwbHangPreviewText(block).split('\n').map(function(line){
+      return '<div>' + escapeHtml(line) + '</div>';
+    }).join('');
+  }
+  function cwbHangPreviewHtml(block){
+    return '<div class="cwb-hang-preview">' + cwbHangPreviewText(block).split('\n').map(function(line){
+      return '<div>' + escapeHtml(line) + '</div>';
+    }).join('') + '</div>';
+  }
 
   function cwbRenderBlock(b, i, n){
     var collapsed = !!_cwbCollapsed[b.id];
@@ -7611,6 +7733,7 @@
         return '<button type="button" class="cwb-btn' + (on ? ' is-on' : '') + '" data-act="preset" data-preset="' + key + '">' +
           (armedPre ? 'Replace sets?' : label) + '</button>';
       }
+      var perSet = cwbHangPerSet(b);
       h += '<div class="cwb-presets" role="group" aria-label="Hangboard preset">' +
         presetBtn('repeaters', 'Repeaters') +
         presetBtn('repeaters_2_grips', 'Repeaters - 2 grips') +
@@ -7618,20 +7741,37 @@
         presetBtn('custom', 'Custom') +
         '</div>' +
         '<div class="cwb-onoff">' +
-          '<label class="cwb-lab">On<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="on_sec" aria-label="On seconds" value="' + (b.on_sec == null || b.on_sec === '' ? '' : escapeHtml(String(b.on_sec))) + '"></label>' +
-          '<label class="cwb-lab">Off<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="off_sec" aria-label="Off seconds" value="' + (b.off_sec == null || b.off_sec === '' ? '' : escapeHtml(String(b.off_sec))) + '"></label>' +
-          '<label class="cwb-lab">Reps<input class="cwb-in cwb-num" inputmode="numeric" data-f="allReps" aria-label="Reps for every set" value="' + escapeHtml(cwbCommonReps(sets)) + '"></label>' +
+          '<label class="cwb-lab">On (sec)<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="on_sec" aria-label="On (sec)" value="' + (b.on_sec == null || b.on_sec === '' ? '' : escapeHtml(String(b.on_sec))) + '"></label>' +
+          '<label class="cwb-lab">Off (sec)<input class="cwb-in cwb-num" type="number" min="0" step="1" inputmode="numeric" data-f="off_sec" aria-label="Off (sec)" value="' + (b.off_sec == null || b.off_sec === '' ? '' : escapeHtml(String(b.off_sec))) + '"></label>' +
+          '<label class="cwb-lab">Reps per set<input class="cwb-in cwb-num" inputmode="numeric" data-f="allReps" aria-label="Reps per set" value="' + escapeHtml(cwbCommonReps(sets)) + '"></label>' +
           '<label class="cwb-lab">Rest between sets' +
           cwbRestFieldHtml(0, cwbCommonRest(sets), { num: 'allRest', unit: 'allRestU', attr: 'data-all' }) +
           '</label></div>';
-      sets.forEach(function(set, si){
+      if(!perSet){
+        cwbGripRowsFor(b).forEach(function(row, gi){
+          h += '<div class="cwb-griprow">' +
+            '<input class="cwb-in" data-f="rowGrip" data-gi="' + gi + '" aria-label="Grip" placeholder="Grip" value="' + escapeHtml(row.grip || '') + '">' +
+            '<input class="cwb-in" data-f="rowLoad" data-gi="' + gi + '" aria-label="Load" placeholder="35 lb assist" value="' + escapeHtml(row.load || '') + '">' +
+            '<span class="cwb-lab">Sets</span>' +
+            '<button type="button" class="cwb-btn" data-act="grip-minus" data-gi="' + gi + '"' + (row.count <= 1 ? ' disabled' : '') + ' aria-label="Fewer sets">&minus;</button>' +
+            '<span class="cwb-gripcount">' + row.count + '</span>' +
+            '<button type="button" class="cwb-btn" data-act="grip-plus" data-gi="' + gi + '"' + (sets.length >= 8 ? ' disabled' : '') + ' aria-label="More sets">+</button>' +
+            '</div>';
+        });
+        h += cwbHangPreviewHtml(b) +
+          '<div class="cwb-row">' +
+          '<button type="button" class="cwb-btn" data-act="add-grip"' + (sets.length >= 8 ? ' disabled' : '') + '>+ Grip</button>' +
+          '<button type="button" class="cwb-btn" data-act="customize-sets">Customize sets</button>' +
+          '</div>';
+      }
+      if(perSet){ sets.forEach(function(set, si){
         var reps = (set && set.reps) || [];
         var nrep = reps.length || 1;
         var menuOpen = _cwbSetMenu === (b.id + ':' + si);
         h += '<div class="cwb-setrow">' +
-          '<span class="cwb-setnum">' + (si + 1) + '</span>' +
+          '<span class="cwb-setnum">Set ' + (si + 1) + '</span>' +
           '<input class="cwb-in" data-f="setGrip" data-si="' + si + '" aria-label="Grip" placeholder="Grip" value="' + escapeHtml(cwbShown(set && set.grip, b.grip)) + '">' +
-          '<input class="cwb-in" data-f="setLoad" data-si="' + si + '" aria-label="Load or assistance" placeholder="e.g. 35 lb assist or +20 lb" value="' + escapeHtml(cwbShown(set && set.load, b.assistance)) + '">' +
+          '<input class="cwb-in" data-f="setLoad" data-si="' + si + '" aria-label="Load or assistance" placeholder="35 lb assist" value="' + escapeHtml(cwbShown(set && set.load, b.assistance)) + '">' +
           '<button type="button" class="cwb-btn" data-act="set-menu" data-si="' + si + '" aria-label="Set options" aria-expanded="' + (menuOpen ? 'true' : 'false') + '">⋯</button>' +
           '</div>';
         if(_cwbLogMode){
@@ -7656,8 +7796,10 @@
             '</div></div>';
         }
       });
-      h += '<div class="cwb-row"><button type="button" class="cwb-btn" data-act="set-plus"' + (sets.length >= 8 ? ' disabled' : '') + '>+ Set</button></div>' +
-        '<textarea class="cwb-in" data-f="progression_note" placeholder="Progression note (optional)">' + escapeHtml(b.progression_note || '') + '</textarea>';
+        h += '<div class="cwb-row"><button type="button" class="cwb-btn" data-act="set-plus"' + (sets.length >= 8 ? ' disabled' : '') + '>+ Set</button></div>';
+      }
+      if(perSet) h += cwbHangPreviewHtml(b);
+      h += '<textarea class="cwb-in" data-f="progression_note" placeholder="Progression note (optional)">' + escapeHtml(b.progression_note || '') + '</textarea>';
     } else if(b.shape === 'rest'){
       h += '<label class="cwb-lab">Rest (minutes)</label>' +
         '<input class="cwb-in cwb-num" type="number" min="1" max="60" data-f="restMin" value="' + escapeHtml(String(Math.round((Number(b.duration_sec != null ? b.duration_sec : b.rest_after_sec) || 600) / 60))) + '">';
@@ -7841,7 +7983,35 @@
         } else {
           cwbDisarm();
           _cwbSetMenu = null;
+          delete _cwbGripRows[b.id];
+          delete _cwbHangCustom[b.id];
           if(idx >= 0) blocks[idx] = cwbHangPreset(nextPreset, b.id);
+        }
+      } else if(act === 'customize-sets'){
+        _cwbHangCustom[b.id] = true;
+        delete _cwbGripRows[b.id];
+      } else if(act === 'add-grip' && b.sets.length < 8){
+        var rowsAdd = cwbGripRowsFor(b);
+        var lastSet = b.sets[b.sets.length - 1];
+        var addN = cwbSetRepsN(lastSet) || 5;
+        var added = cwbNewSet(addN);
+        added.grip = '';
+        added.load = '';
+        if(lastSet && lastSet.rest_after_sec != null && lastSet.rest_after_sec !== '') added.rest_after_sec = lastSet.rest_after_sec;
+        b.sets.push(added);
+        rowsAdd.push({ grip: '', load: '', start: b.sets.length - 1, count: 1, key: '\0\0' });
+      } else if(act === 'grip-plus' || act === 'grip-minus'){
+        var gi = parseInt(btn.getAttribute('data-gi'), 10);
+        var grow = cwbGripRowsFor(b);
+        var growRow = grow[gi];
+        if(growRow && act === 'grip-plus' && b.sets.length < 8){
+          b.sets.splice(growRow.start + growRow.count, 0, cwbCopySet(b.sets[growRow.start]));
+          growRow.count += 1;
+          cwbShiftGripRows(grow, growRow.start, 1);
+        } else if(growRow && act === 'grip-minus' && growRow.count > 1){
+          b.sets.splice(growRow.start + growRow.count - 1, 1);
+          growRow.count -= 1;
+          cwbShiftGripRows(grow, growRow.start, -1);
         }
       } else if(act === 'set-menu' && !isNaN(si)){
         var menuKey = b.id + ':' + si;
@@ -7849,6 +8019,7 @@
       } else if((act === 'set-plus' || act === 'new-set') && b.sets.length < 8){
         var lastN = (b.sets[b.sets.length - 1] && b.sets[b.sets.length - 1].reps && b.sets[b.sets.length - 1].reps.length) || 5;
         b.sets.push(cwbNewSet(lastN));
+        delete _cwbGripRows[b.id];
       } else if(act === 'set-minus' && b.sets.length > 1){
         b.sets.pop();
       } else if(act === 'rep-plus' && !isNaN(si) && b.sets[si] && b.sets[si].reps.length < 10){
@@ -7863,8 +8034,10 @@
         if(nreps2 > 1) b.sets.forEach(function(s){ if(s && s.reps && s.reps.length > 1) s.reps.pop(); });
       } else if(act === 'same-set' && !isNaN(si) && b.sets[si] && b.sets.length < 8){
         b.sets.splice(si + 1, 0, cwbCopySet(b.sets[si]));
+        delete _cwbGripRows[b.id];
       } else if(act === 'del-set' && !isNaN(si) && b.sets.length > 1){
         b.sets.splice(si, 1);
+        delete _cwbGripRows[b.id];
       }
     }
     renderCwb();
@@ -7989,6 +8162,11 @@
     else if(f === 'grip') b.grip = v;
     else if(f === 'assistance') b.assistance = v;
     else if(f === 'progression_note') b.progression_note = v;
+    else if((f === 'rowGrip' || f === 'rowLoad') && b.sets){
+      var giIn = parseInt(el.getAttribute('data-gi'), 10);
+      cwbApplyGripField(b, giIn, f === 'rowGrip' ? 'grip' : 'load', v);
+      cwbRefreshHangPreview(b, card);
+    }
     else if(f === 'setGrip' && b.sets && b.sets[siIn]) b.sets[siIn].grip = v;
     else if(f === 'setLoad' && b.sets && b.sets[siIn]){
       var prevLoad = b.sets[siIn].load;
