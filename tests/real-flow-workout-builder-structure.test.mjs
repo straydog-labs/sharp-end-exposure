@@ -13,8 +13,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index328'/.test(index));
-assert.ok(/APP_VERSION = 'index328'/.test(sw));
+assert.ok(/var app_version = 'index329'/.test(index));
+assert.ok(/APP_VERSION = 'index329'/.test(sw));
 
 // Optional screenshot output (outside the repo). Unset in CI.
 const SHOT_OUT = process.env.SEE_SHOT_OUT || '';
@@ -362,7 +362,7 @@ try{
 
     // button label
     assert.strictEqual((await page.textContent('#train-sess-save-workout')).trim(), 'Save workout');
-    assert.strictEqual((await page.textContent('#train-sess-save')).trim(), 'Save session');
+    assert.strictEqual((await page.textContent('#train-sess-save')).trim(), 'Finish session');
     await shot(page, 'a2a-4-dates-and-emom.png');
     await page.evaluate(function(){ window.scrollTo(0, 0); });
     await shot(page, 'a2a-5-top.png');

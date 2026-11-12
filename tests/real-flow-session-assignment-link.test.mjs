@@ -350,7 +350,7 @@ try{
     await waitForScreen(page, 'screen-home');
     await page.evaluate(function(){ return loadHomeDueList(); });
     await page.evaluate(function(){
-      openHomeDaySheet(athleteLocalDayKeyFromDate(new Date()));
+      openHomeDaySheet('2026-11-11');
     });
     await page.waitForFunction(function(){
       var sheet = document.getElementById('home-day-sheet');

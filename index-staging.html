@@ -386,6 +386,33 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   margin-bottom:10px;
   -webkit-tap-highlight-color:transparent;
 }
+.train-sess-elapsed{
+  font-variant-numeric:tabular-nums;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.04em;
+  color:var(--muted);
+  margin:0 0 10px;
+}
+.train-sess-more{position:relative;display:flex;justify-content:flex-end;margin:0 0 8px;}
+.train-sess-more > button{
+  background:none;border:1px solid var(--border);border-radius:var(--r-md);
+  color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;
+  padding:4px 12px;cursor:pointer;line-height:1;
+}
+.train-sess-more-menu{
+  position:absolute;right:0;top:100%;z-index:5;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-md);padding:4px;min-width:180px;
+}
+.train-sess-more-menu button{
+  display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);
+  font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:8px 10px;cursor:pointer;
+}
+.train-done-notice{margin-top:14px;}
+.train-done-notice-skip{
+  background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;
+  font-size:13px;font-weight:600;padding:8px 0 0;cursor:pointer;
+}
 .train-emom-round{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:10px;}
 .train-emom-round.is-complete{border-color:rgba(126,200,122,.45);}
 .train-emom-round.is-locked{opacity:.5;}
@@ -4669,7 +4696,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
         Start training
       </button>
       <div class="train-landing-tiles">
-        <button type="button" class="hub-compact-row" id="train-hub-card-build" onclick="startSessionNoCategory()">
+        <button type="button" class="hub-compact-row" id="train-hub-card-build" onclick="startSessionNoCategory(false)">
           <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg></div>
           <div class="te-title">Build session</div>
         </button>
@@ -4965,10 +4992,11 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
       <button type="button" onclick="dismissTrainNoticeHint()">Got it</button>
     </div>
 
-    <div class="insight-card" style="margin-bottom:12px;">
+    <div id="train-sess-elapsed" class="train-sess-elapsed" hidden>Elapsed 00:00:00</div>
+    <div class="insight-card" id="train-sess-dates-card" style="margin-bottom:12px;">
       <div id="train-sess-dates" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="saw-field" style="margin:0;min-width:0;"><label for="train-sess-start">Start</label><input id="train-sess-start" type="datetime-local"></div>
-        <div class="saw-field" style="margin:0;min-width:0;"><label for="train-sess-end">End</label><input id="train-sess-end" type="datetime-local"></div>
+        <div class="saw-field" style="margin:0;min-width:0;"><label for="train-sess-start">Start</label><input id="train-sess-start" type="datetime-local" oninput="if(trainSessionState) trainSessionState.started_edited = true;"></div>
+        <div class="saw-field" style="margin:0;min-width:0;"><label for="train-sess-end">End</label><input id="train-sess-end" type="datetime-local" oninput="if(trainSessionState) trainSessionState.ended_edited = true;"></div>
       </div>
     </div>
 
@@ -5016,13 +5044,23 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
     </div>
 
     <div id="train-sess-msg" style="font-size:13px;color:var(--panic);min-height:18px;margin-bottom:8px;"></div>
+    <div id="train-sess-workout-name-row" hidden style="margin:0 0 10px;">
+      <label for="train-sess-workout-name" style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Workout name</label>
+      <input id="train-sess-workout-name" type="text" placeholder="Name this workout" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;padding:12px;box-sizing:border-box;">
+    </div>
+    <div id="train-sess-more-wrap" class="train-sess-more" hidden>
+      <button type="button" id="train-sess-more" onclick="toggleTrainSessionMore()" aria-label="More session actions">...</button>
+      <div id="train-sess-more-menu" class="train-sess-more-menu" hidden>
+        <button type="button" id="train-sess-save-as" onclick="saveTrainSessionAsWorkout()">Save as workout</button>
+      </div>
+    </div>
     <button type="button" id="train-sess-save-workout" onclick="saveTrainSessionAsWorkout()" class="train-save-workout-btn">Save as workout</button>
     <div id="train-sess-saved-workout" style="display:none;margin:0 0 12px;">
       <div id="train-sess-saved-workout-title" style="font-size:14px;font-weight:700;margin-bottom:10px;">Saved.</div>
       <button type="button" id="train-sess-saved-start-now" class="train-btn-primary" onclick="startNowFromJustCreatedWorkout()">Start now</button>
       <button type="button" id="train-sess-saved-done" class="train-btn-secondary" style="margin-top:8px;" onclick="doneFromJustCreatedWorkout()">Done</button>
     </div>
-    <button type="button" id="train-sess-save" onclick="saveTrainSession()" class="saw-next">Save session</button>
+    <button type="button" id="train-sess-save" onclick="saveTrainSession()" class="saw-next">Finish session</button>
   </div>
 </div>
 
@@ -5039,6 +5077,20 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
     <div class="insight-card log-done-summary-card see-celebrate-rise">
       <div class="log-done-summary-grade" id="train-done-title">—</div>
       <div class="log-done-summary-meta" id="train-done-meta">Saved to your history</div>
+      <div id="train-done-notice" class="train-done-notice">
+        <div class="wk-notice-title">What did you notice?</div>
+        <div class="wk-notice-q">How present were you?</div>
+        <div class="wk-notice-wrap" id="train-done-notice-chips">
+          <button type="button" class="wk-notice-chip" data-done-att="1" onclick="selectTrainDoneNotice(1)">1</button>
+          <button type="button" class="wk-notice-chip" data-done-att="2" onclick="selectTrainDoneNotice(2)">2</button>
+          <button type="button" class="wk-notice-chip" data-done-att="3" onclick="selectTrainDoneNotice(3)">3</button>
+          <button type="button" class="wk-notice-chip" data-done-att="4" onclick="selectTrainDoneNotice(4)">4</button>
+          <button type="button" class="wk-notice-chip" data-done-att="5" onclick="selectTrainDoneNotice(5)">5</button>
+        </div>
+        <div class="wk-notice-ends"><span>1 Autopilot</span><span>5 Dialed in</span></div>
+        <textarea id="train-done-notice-note" class="wk-notice-note" placeholder="Optional. Body, effort, attention." rows="3"></textarea>
+        <button type="button" id="train-done-notice-skip" class="train-done-notice-skip" onclick="skipTrainDoneNotice()">Skip</button>
+      </div>
       <button class="log-done-add-note" id="train-done-add-note" type="button" onclick="trainFlowToggleReflection()">+ Add a note</button>
       <div class="log-done-reflection-inline" id="train-reflection-panel" style="display:none;">
       <div class="field-group" id="train-reflection-group">
@@ -6197,7 +6249,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index328'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index329'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -7253,6 +7305,7 @@ function showScreen(id){
     try{ onTrainDraftHide(); }catch(e){}
     clearAllTrainBlockTimerIntervals();
     releaseTrainWakeLock();
+    try{ stopTrainElapsedClock(); }catch(e){}
   }
   if(id==='screen-home' || id==='screen-train'){
     try{ paintTrainDraftCards(); }catch(e){}
@@ -15411,6 +15464,7 @@ var _isCoachUser = false;
 var trainSessionState = null;
 var _trainDraftDirty = false;
 var _trainDraftTimer = null;
+var _trainElapsedTimer = null;
 var _trainDraftBaseline = '';
 var _trainDraftBaselineId = null;
 var _trainDraftScreen = 'screen-train-session';
@@ -15419,6 +15473,8 @@ var _trainDraftStartBypass = false;
 var _trainDraftConfirm = false;
 var _lastTrainSessionId = null;
 var _trainDoneSnapshot = null;
+var _trainDoneNoticeAttention = null;
+var _trainDoneNoticeSkipped = false;
 // Per-block stopwatch ticks. Keyed by block id; never stored on the block
 // object (intervals are not serializable / not part of the blocks jsonb).
 var _trainBlockTimerIntervals = {};
@@ -17342,7 +17398,10 @@ function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
     // Set when launching from an existing assignment card so save does not
     // insert a duplicate assignments row. After a successful save the app
     // may mark that assignment complete, or prompt if any block is still open.
-    source_assignment_id: sourceMeta.source_assignment_id || null
+    source_assignment_id: sourceMeta.source_assignment_id || null,
+    session_running: sourceMeta.session_running !== false,
+    started_edited: false,
+    ended_edited: false
   };
 }
 
@@ -17356,13 +17415,22 @@ function startBlankTrainSession(){
   showScreen('screen-train-session');
 }
 
-function startSessionNoCategory(){
+function startSessionNoCategory(running){
   if(!_trainDraftStartBypass && trainDraftPending()){
-    offerTrainDraftOrRun(function(){ startSessionNoCategory(); });
+    offerTrainDraftOrRun(function(){ startSessionNoCategory(running); });
     return;
   }
   _trainPickerType = '';
   trainSessionState = newTrainSessionState('');
+  // Build session passes false: no clock, no Start/End. Start blank session
+  // calls this with no argument and is a running session stamped at this tap.
+  if(running === false){
+    trainSessionState.session_running = false;
+    trainSessionState.started_at = null;
+  } else {
+    trainSessionState.session_running = true;
+    trainSessionState.started_at = new Date().toISOString();
+  }
   _trainDraftBaselineId = null;
   showScreen('screen-train-session');
 }
@@ -18006,9 +18074,10 @@ function syncTrainSessionFieldsFromDom(){
   var e = document.getElementById('train-sess-end');
   var w = document.getElementById('train-sess-warmup');
   var c = document.getElementById('train-sess-cooldown');
-  if(s && s.value) trainSessionState.started_at = new Date(s.value).toISOString();
-  if(e && e.value) trainSessionState.ended_at = new Date(e.value).toISOString();
-  else trainSessionState.ended_at = null;
+  // Keep the tap-time stamp unless the athlete edited the field. The
+  // datetime-local control is minute precision and would wipe seconds.
+  if(trainSessionState.started_edited && s && s.value) trainSessionState.started_at = new Date(s.value).toISOString();
+  if(trainSessionState.ended_edited && e && e.value) trainSessionState.ended_at = new Date(e.value).toISOString();
   if(w) trainSessionState.warm_up = w.value;
   if(c) trainSessionState.cool_down = c.value;
 }
@@ -18328,6 +18397,115 @@ function bindTrainDraftListeners(){
 }
 bindTrainDraftListeners();
 
+function trainSessionIsBlank(state){
+  if(!state) return false;
+  return !state.source_assignment_id && !state.assignment_id && !state.library_item_id && !state.custom_workout_item_id;
+}
+function trainSessionHasWarmupCheck(state){
+  return ((state && state.blocks) || []).some(function(b){
+    if(!b) return false;
+    if(b.is_warmup && (b.shape === 'check' || b.shape === 'section')) return true;
+    return b.shape === 'check' && /warm[\s-]*up/i.test(String(b.title || ''));
+  });
+}
+function trainSessionHasCooldownCheck(state){
+  return ((state && state.blocks) || []).some(function(b){
+    return !!(b && b.shape === 'check' && /cool[\s-]*down/i.test(String(b.title || '')));
+  });
+}
+function formatTrainElapsedHms(ms){
+  if(!(ms > 0)) ms = 0;
+  var total = Math.floor(ms / 1000);
+  var h = Math.floor(total / 3600);
+  var m = Math.floor((total % 3600) / 60);
+  var s = total % 60;
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  return pad(h) + ':' + pad(m) + ':' + pad(s);
+}
+function stopTrainElapsedClock(){
+  if(_trainElapsedTimer){
+    clearInterval(_trainElapsedTimer);
+    _trainElapsedTimer = null;
+  }
+}
+function tickTrainElapsed(){
+  var el = document.getElementById('train-sess-elapsed');
+  if(!el) return;
+  if(!trainSessionState || trainSessionState.session_running === false || !trainSessionState.started_at){
+    el.hidden = true;
+    return;
+  }
+  var start = new Date(trainSessionState.started_at).getTime();
+  if(isNaN(start)){ el.hidden = true; return; }
+  var ms = Date.now() - start;
+  if(ms < 0) ms = 0;
+  el.hidden = false;
+  el.textContent = 'Elapsed ' + formatTrainElapsedHms(ms);
+}
+function ensureTrainElapsedClock(){
+  var running = !!(trainSessionState && trainSessionState.session_running !== false && trainSessionState.started_at);
+  if(!running){
+    stopTrainElapsedClock();
+    var el = document.getElementById('train-sess-elapsed');
+    if(el) el.hidden = true;
+    return;
+  }
+  tickTrainElapsed();
+  if(_trainElapsedTimer) return;
+  _trainElapsedTimer = setInterval(tickTrainElapsed, 1000);
+}
+function paintTrainLegacyNoteBoxes(){
+  if(!trainSessionState) return;
+  var hasWarm = trainSessionHasWarmupCheck(trainSessionState);
+  var warmEmpty = !String(trainSessionState.warm_up || '').trim();
+  var warmInside = (trainSessionState.blocks || []).some(function(b){ return b && b.is_warmup; });
+  var warmNote = document.getElementById('train-sess-warmup');
+  if(warmNote) warmNote.hidden = !!(hasWarm && warmEmpty);
+  var warmCard = document.getElementById('train-warmup-card');
+  if(warmCard) warmCard.hidden = !!(hasWarm && warmEmpty && !warmInside);
+  var hasCool = trainSessionHasCooldownCheck(trainSessionState);
+  var coolEmpty = !String(trainSessionState.cool_down || '').trim();
+  var coolNote = document.getElementById('train-sess-cooldown');
+  if(coolNote) coolNote.hidden = !!(hasCool && coolEmpty);
+  var coolCard = document.getElementById('train-cooldown-card');
+  if(coolCard) coolCard.hidden = !!(hasCool && coolEmpty);
+}
+function paintTrainSessionChrome(){
+  if(!trainSessionState) return;
+  var running = trainSessionState.session_running !== false;
+  var blank = trainSessionIsBlank(trainSessionState);
+  var dates = document.getElementById('train-sess-dates-card');
+  if(dates) dates.hidden = !running;
+  var finish = document.getElementById('train-sess-save');
+  if(finish && !finish.disabled){
+    finish.hidden = !running;
+    if(running && finish.textContent !== 'Saving...') finish.textContent = 'Finish session';
+  }
+  var buildSave = document.getElementById('train-sess-save-workout');
+  if(buildSave) buildSave.hidden = !!running;
+  var more = document.getElementById('train-sess-more-wrap');
+  if(more){
+    more.hidden = !(running && blank);
+    if(more.hidden){
+      var menu = document.getElementById('train-sess-more-menu');
+      if(menu) menu.hidden = true;
+    }
+  }
+  var nameRow = document.getElementById('train-sess-workout-name-row');
+  var nameEl = document.getElementById('train-sess-workout-name');
+  if(nameRow) nameRow.hidden = !!running;
+  if(!running && nameEl && nameEl.dataset.forId !== trainSessionState.id){
+    nameEl.dataset.forId = trainSessionState.id;
+    nameEl.value = trainSessionState.title || workoutTypeLabel(trainSessionState.energy_type) || 'Workout';
+  }
+  ensureTrainElapsedClock();
+  paintTrainLegacyNoteBoxes();
+}
+function toggleTrainSessionMore(){
+  var menu = document.getElementById('train-sess-more-menu');
+  if(!menu) return;
+  menu.hidden = !menu.hidden;
+}
 function renderTrainSessionBuilder(){
   if(!trainSessionState){
     if(!loadTrainSessionDraft()){
@@ -18349,7 +18527,7 @@ function renderTrainSessionBuilder(){
   var e = document.getElementById('train-sess-end');
   var w = document.getElementById('train-sess-warmup');
   var c = document.getElementById('train-sess-cooldown');
-  if(s && !s.value) s.value = toLocalInputValue(trainSessionState.started_at || new Date());
+  if(s && !s.value && trainSessionState.session_running !== false) s.value = toLocalInputValue(trainSessionState.started_at || new Date());
   if(e && trainSessionState.ended_at && !e.value) e.value = toLocalInputValue(trainSessionState.ended_at);
   if(w) w.value = trainSessionState.warm_up || '';
   if(c) c.value = trainSessionState.cool_down || '';
@@ -18357,6 +18535,7 @@ function renderTrainSessionBuilder(){
   paintTrainSectionComplete('train-cooldown-complete-btn', 'train-cooldown-card', !!trainSessionState.cool_down_complete);
   paintTrainWarmupSection();
   paintTrainCooldownSection();
+  paintTrainSessionChrome();
   var allBlocks = trainSessionState.blocks || [];
   var split = splitTrainBlocksByWarmup(allBlocks);
   var warmupWrap = document.getElementById('train-warmup-blocks-wrap');
@@ -19600,6 +19779,9 @@ async function saveTrainSession(){
   if(!window._authUser){ showToast('Sign in to save training sessions', true); return; }
   syncTrainSessionFieldsFromDom();
   collectTrainBlockFields();
+  if(!trainSessionState.ended_edited){
+    trainSessionState.ended_at = new Date().toISOString();
+  }
   var msg = document.getElementById('train-sess-msg');
   var btn = document.getElementById('train-sess-save');
   if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
@@ -19645,7 +19827,7 @@ async function saveTrainSession(){
     showToast('Saved offline. Will sync when you are back online.');
     queuedOffline = true;
   } else if(sbFailed(saved)){
-    if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
+    if(btn){ btn.disabled = false; btn.textContent = 'Finish session'; }
     if(msg) msg.textContent = 'Could not save. If this is a fresh environment, confirm training_sessions migration is applied.';
     return;
   }
@@ -19683,7 +19865,7 @@ async function saveTrainSession(){
     }
   }
 
-  if(btn){ btn.disabled = false; btn.textContent = 'Save session'; }
+  if(btn){ btn.disabled = false; btn.textContent = 'Finish session'; }
   if(msg) msg.textContent = '';
   var endedAt = payload.ended_at;
   _lastTrainSessionId = trainSessionState.id;
@@ -19731,9 +19913,9 @@ async function saveTrainSessionAsWorkout(){
   syncTrainSessionFieldsFromDom();
   collectTrainBlockFields();
   var defaultName = trainSessionState.title || workoutTypeLabel(trainSessionState.energy_type) || 'Workout';
-  var name = window.prompt('Name this workout', defaultName);
-  if(name == null) return;
-  name = String(name).trim();
+  var nameEl = document.getElementById('train-sess-workout-name');
+  var name = nameEl && String(nameEl.value || '').trim();
+  if(!name) name = String(defaultName || '').trim();
   if(!name){ showToast('Name is required', true); return; }
   var saved = await sbI('custom_workouts', {
     name: name,
@@ -19789,6 +19971,15 @@ function populateTrainDoneScreen(snap, resetReflection){
     metaEl.textContent = bits.join(' · ');
   }
   if(resetReflection){
+    _trainDoneNoticeAttention = null;
+    _trainDoneNoticeSkipped = false;
+    var doneNotice = document.getElementById('train-done-notice');
+    if(doneNotice) doneNotice.hidden = false;
+    var doneNote = document.getElementById('train-done-notice-note');
+    if(doneNote) doneNote.value = '';
+    document.querySelectorAll('#train-done-notice .wk-notice-chip.selected').forEach(function(b){
+      b.classList.remove('selected');
+    });
     if(panel) panel.style.display = 'none';
     if(noteBtn) noteBtn.style.display = '';
     var body = document.getElementById('train-refl-body');
@@ -19841,14 +20032,44 @@ function _trainFlowReflectionFields(){
   };
 }
 
+function selectTrainDoneNotice(n){
+  n = parseInt(n, 10);
+  if(!(n >= 1 && n <= 5)) return;
+  _trainDoneNoticeSkipped = false;
+  _trainDoneNoticeAttention = (_trainDoneNoticeAttention === n) ? null : n;
+  document.querySelectorAll('#train-done-notice .wk-notice-chip').forEach(function(b){
+    b.classList.toggle('selected', parseInt(b.getAttribute('data-done-att'), 10) === _trainDoneNoticeAttention);
+  });
+}
+function skipTrainDoneNotice(){
+  _trainDoneNoticeSkipped = true;
+  _trainDoneNoticeAttention = null;
+  var el = document.getElementById('train-done-notice');
+  if(el) el.hidden = true;
+}
+function trainDoneNoticeForNotes(){
+  if(_trainDoneNoticeSkipped) return null;
+  var noteEl = document.getElementById('train-done-notice-note');
+  var note = noteEl ? String(noteEl.value || '').trim() : '';
+  var att = parseInt(_trainDoneNoticeAttention, 10);
+  var hasAtt = att >= 1 && att <= 5;
+  if(!hasAtt && !note) return null;
+  return { attention: hasAtt ? att : null, note: note, at: new Date().toISOString() };
+}
 async function trainFlowSaveReflectionIfFilled(){
   if(!_lastTrainSessionId) return;
   var refl = _trainFlowReflectionFields();
-  var hasAny = refl.went_well || refl.still_learning || refl.surprised_by;
+  var notice = trainDoneNoticeForNotes();
+  var hasAny = refl.went_well || refl.still_learning || refl.surprised_by || notice;
   if(!hasAny) return;
   var snap = _trainDoneSnapshot || {};
   var title = snap.title || workoutTypeLabel(snap.energy_type) || 'Session';
   var parts = [title];
+  if(notice){
+    parts.push('What did you notice?');
+    if(notice.attention) parts.push('How present were you: ' + notice.attention);
+    if(notice.note) parts.push(notice.note);
+  }
   if(refl.went_well) parts.push('What went well: ' + refl.went_well);
   if(refl.still_learning) parts.push('What to work on: ' + refl.still_learning);
   if(refl.surprised_by) parts.push('Anything surprise you: ' + refl.surprised_by);

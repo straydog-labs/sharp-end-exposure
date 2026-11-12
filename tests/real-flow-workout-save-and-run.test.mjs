@@ -55,7 +55,7 @@ try{
       window.loadHomeScreen = function(){ return Promise.resolve(); };
       window.prompt = function(){ return 'Jess EMOM + Repeaters'; };
       try{ localStorage.removeItem('see_train_session_draft'); }catch(e){}
-      startSessionNoCategory();   // the real "Build session" entry: energy_type is ''
+      startSessionNoCategory(false);   // the real "Build session" entry: energy_type is ''
     }, USER_ID);
     await waitForScreen(page, 'screen-train-session');
     await page.evaluate(function(){ var sk = document.getElementById('route-loading-skeleton'); if(sk) sk.style.display = 'none'; });
@@ -75,6 +75,7 @@ try{
 
     // first failure shows the real reason
     failNext = true;
+    await page.fill('#train-sess-workout-name', 'Jess EMOM + Repeaters');
     await page.click('#train-sess-save-workout');
     await page.waitForFunction(function(){
       var t = document.getElementById('error-toast-el');
