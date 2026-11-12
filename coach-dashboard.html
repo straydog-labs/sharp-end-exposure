@@ -653,6 +653,28 @@
   .coach-activity-summary{font-size:13px;margin-top:2px;}
   .coach-activity-tag{font-size:11px;color:var(--text-secondary);margin-top:2px;}
   #coach-activity-more{margin-top:12px;}
+  .landing-block[hidden]{display:none;}
+  .landing-muted{font-size:13px;color:var(--text-secondary);padding:6px 2px;}
+  .landing-assign-row,
+  .landing-session-row{
+    display:flex;flex-wrap:wrap;gap:6px 10px;width:100%;text-align:left;background:transparent;
+    border:0;border-bottom:1px solid var(--border);padding:10px 2px;color:inherit;
+    font:inherit;align-items:baseline;
+  }
+  button.landing-assign-row,
+  button.landing-session-row{cursor:pointer;}
+  button.landing-assign-row:hover,
+  button.landing-session-row:hover{background:rgba(255,255,255,.03);}
+  div.landing-session-row{cursor:default;}
+  .landing-assign-title,
+  .landing-session-title{font-size:13px;font-weight:600;}
+  .landing-assign-due,
+  .landing-assign-status,
+  .landing-session-date,
+  .landing-session-tag,
+  .landing-session-asg{font-size:12px;color:var(--text-secondary);}
+  .landing-overdue{font-size:11px;font-weight:650;color:#e07070;}
+  #athlete-recent-more{margin-top:12px;}
   .journal-head{
     display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;
     margin-bottom:10px;
@@ -3788,6 +3810,307 @@
     syncCoachStackBack();
   }
 
+  var _landingGen = 0;
+  var _landingOpen = null;
+  var _landingSessions = null;
+  var _landingShown = 10;
+  var _landingOpenError = '';
+  var _landingSessionNote = '';
+  var _landingSkipped = [];
+
+  function compareLandingDue(a, b){
+    var ad = dueDateYmd(a && a.due_date);
+    var bd = dueDateYmd(b && b.due_date);
+    if(ad && bd && ad !== bd) return ad < bd ? -1 : 1;
+    if(ad && !bd) return -1;
+    if(!ad && bd) return 1;
+    return 0;
+  }
+
+  function landingKeepAssignment(row, athleteId, coachId, openOnly){
+    if(!row || row.deleted_at) return false;
+    if(String(row.athlete_id) !== String(athleteId)) return false;
+    if(row.coach_id && coachId && String(row.coach_id) !== String(coachId)) return false;
+    if(openOnly && row.completed_at) return false;
+    return true;
+  }
+
+  function landingKeepClimb(row, athleteId){
+    if(!row || row.deleted_at) return false;
+    if(String(row.user_id) !== String(athleteId)) return false;
+    if(row.is_checkin === true || row.is_checkin === 'true') return false;
+    return true;
+  }
+
+  function landingSelect(token, table, cols, filter, optional){
+    var live = cols.slice();
+    function run(){
+      var q = 'select=' + live.join(',') + '&' + filter;
+      return sbSelect(token, table, q).then(function(rows){
+        return Array.isArray(rows) ? rows : [];
+      }).catch(function(err){
+        var dropped = false;
+        var i;
+        for(i = live.length - 1; i >= 0; i--){
+          if((optional || []).indexOf(live[i]) === -1) continue;
+          if(!isCoachLogMissingColumn(err, live[i])) continue;
+          _landingSkipped.push({ table: table, column: live[i], error: coachActivityErrorText(err) });
+          live.splice(i, 1);
+          dropped = true;
+        }
+        if(dropped) return run();
+        _landingSkipped.push({ table: table, error: coachActivityErrorText(err) });
+        return Promise.reject(err);
+      });
+    }
+    return run();
+  }
+
+  function landingClimbTitle(row){
+    var name = String((row && row.route_name) || '').trim();
+    if(name) return name;
+    var bits = [String((row && row.grade_value) || '').trim(), String((row && row.baseline_zone) || '').trim()].filter(Boolean);
+    return bits.join(' ') || 'Climb';
+  }
+
+  function landingSessionTappable(item){
+    if(!item || !item.id) return false;
+    if(!_journalReady) return true;
+    return (_lastSessionRows || []).some(function(s){
+      return s && String(s.id) === String(item.id);
+    });
+  }
+
+  function landingAssignRowHtml(a){
+    var overdue = isAssignmentOverdue(a);
+    var due = a.due_date ? ('Due ' + fmtDate(a.due_date)) : 'No due date';
+    return '<button type="button" class="landing-assign-row" data-assignment-id="' + escapeHtml(a.id) +
+      '" data-overdue="' + (overdue ? '1' : '0') + '" data-status="Open">' +
+      '<span class="landing-assign-title">' + escapeHtml(a.title || 'Assignment') + '</span>' +
+      '<span class="landing-assign-due">' + escapeHtml(due) + '</span>' +
+      '<span class="landing-assign-status">Open</span>' +
+      (overdue ? '<span class="landing-overdue">Overdue</span>' : '') +
+    '</button>';
+  }
+
+  function landingSessionRowHtml(item){
+    var tap = landingSessionTappable(item);
+    var open = tap ? '<button type="button" ' : '<div ';
+    var close = tap ? '</button>' : '</div>';
+    return open + 'class="landing-session-row" data-session-id="' + escapeHtml(item.id) +
+      '" data-kind="' + escapeHtml(item.kind) +
+      '" data-source="' + escapeHtml(item.source) +
+      '" data-assignment-title="' + escapeHtml(item.assignmentTitle || '') + '">' +
+      '<span class="landing-session-date">' + escapeHtml(fmtDate(item.at)) + '</span>' +
+      '<span class="landing-session-title">' + escapeHtml(item.title) + '</span>' +
+      '<span class="landing-session-tag">' + escapeHtml(item.source) + '</span>' +
+      (item.assignmentTitle ? '<span class="landing-session-asg">' + escapeHtml(item.assignmentTitle) + '</span>' : '') +
+      close;
+  }
+
+  function paintAthleteLandingOpen(){
+    var section = document.getElementById('athlete-open-assignments');
+    var list = document.getElementById('athlete-open-assignments-list');
+    if(!section || !list) return;
+    if(_landingOpenError){
+      section.hidden = false;
+      list.innerHTML = '<div class="landing-muted">' + escapeHtml(_landingOpenError) + '</div>';
+      return;
+    }
+    if(!_landingOpen){
+      section.hidden = false;
+      list.innerHTML = '<div class="landing-muted">Loading…</div>';
+      return;
+    }
+    if(!_landingOpen.length){
+      section.hidden = true;
+      list.innerHTML = '';
+      return;
+    }
+    section.hidden = false;
+    list.innerHTML = _landingOpen.map(landingAssignRowHtml).join('');
+    Array.prototype.forEach.call(list.querySelectorAll('.landing-assign-row'), function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-assignment-id');
+        var src = null;
+        (_landingOpen || []).forEach(function(row){
+          if(row && String(row.id) === String(id)) src = row;
+        });
+        if(!src) return;
+        var full = (_lastCoachAssignments || []).find(function(a){ return a && String(a.id) === String(id); });
+        startAssignWizardFromAssignment(full || src, 'edit');
+      });
+    });
+  }
+
+  function openLandingSession(item){
+    if(!landingSessionTappable(item)) return;
+    openAthletePane('journal');
+    scrollCoachActivityEntry(item.id, 0);
+  }
+
+  function paintAthleteLandingSessions(){
+    var section = document.getElementById('athlete-recent-sessions');
+    var list = document.getElementById('athlete-recent-sessions-list');
+    if(!section || !list) return;
+    if(_landingSessionNote && (!_landingSessions || !_landingSessions.length)){
+      section.hidden = false;
+      list.innerHTML = '<div class="landing-muted">' + escapeHtml(_landingSessionNote) + '</div>';
+      return;
+    }
+    if(!_landingSessions){
+      section.hidden = false;
+      list.innerHTML = '<div class="landing-muted">Loading…</div>';
+      return;
+    }
+    if(!_landingSessions.length){
+      section.hidden = true;
+      list.innerHTML = '';
+      return;
+    }
+    section.hidden = false;
+    var slice = _landingSessions.slice(0, _landingShown);
+    var html = slice.map(landingSessionRowHtml).join('');
+    if(_landingShown < _landingSessions.length){
+      html += '<button type="button" id="athlete-recent-more">Show 10 more</button>';
+    }
+    if(_landingSessionNote){
+      html += '<div class="landing-muted">' + escapeHtml(_landingSessionNote) + '</div>';
+    }
+    list.innerHTML = html;
+    var more = document.getElementById('athlete-recent-more');
+    if(more){
+      more.addEventListener('click', function(){
+        _landingShown += 10;
+        paintAthleteLandingSessions();
+      });
+    }
+    Array.prototype.forEach.call(list.querySelectorAll('button.landing-session-row'), function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-session-id');
+        var item = null;
+        (_landingSessions || []).forEach(function(row){
+          if(row && String(row.id) === String(id)) item = row;
+        });
+        if(item) openLandingSession(item);
+      });
+    });
+  }
+
+  function loadAthleteLandingActivity(token, coachUser, athleteId){
+    var gen = ++_landingGen;
+    _landingOpen = null;
+    _landingSessions = null;
+    _landingShown = 10;
+    _landingOpenError = '';
+    _landingSessionNote = '';
+    _landingSkipped = [];
+    paintAthleteLandingOpen();
+    paintAthleteLandingSessions();
+    if(!token || !coachUser || !athleteId){
+      _landingOpen = [];
+      _landingSessions = [];
+      paintAthleteLandingOpen();
+      paintAthleteLandingSessions();
+      return;
+    }
+    var coachId = coachUser.id;
+    var who = 'athlete_id=eq.' + encodeURIComponent(athleteId) +
+      '&coach_id=eq.' + encodeURIComponent(coachId) +
+      '&deleted_at=is.null';
+    var openFilter = who + '&completed_at=is.null&order=due_date.asc.nullslast';
+    var userFilter = 'user_id=eq.' + encodeURIComponent(athleteId) +
+      '&deleted_at=is.null&order=created_at.desc&limit=40';
+    landingSelect(token, 'assignments', [
+      'id','athlete_id','coach_id','title','due_date','completed_at','created_at',
+      'description','resource_link','library_item_id','custom_workout_item_id','warmup_custom_workout_item_id'
+    ], openFilter, [
+      'description','resource_link','library_item_id','custom_workout_item_id','warmup_custom_workout_item_id','coach_id'
+    ]).then(function(rows){
+      if(gen !== _landingGen) return;
+      _landingOpen = (rows || []).filter(function(row){
+        return landingKeepAssignment(row, athleteId, coachId, true);
+      }).sort(compareLandingDue);
+      _landingOpenError = '';
+      paintAthleteLandingOpen();
+    }).catch(function(){
+      if(gen !== _landingGen) return;
+      _landingOpen = [];
+      _landingOpenError = 'Could not load open assignments.';
+      paintAthleteLandingOpen();
+    });
+
+    var sessP = landingSelect(token, 'sessions', [
+      'id','user_id','created_at','grade_value','baseline_zone','logged_by_coach','is_checkin','route_name'
+    ], userFilter, ['route_name']).then(function(rows){
+      return { ok: true, rows: rows };
+    }).catch(function(){
+      return { ok: false, rows: [] };
+    });
+    var trainP = landingSelect(token, 'training_sessions', [
+      'id','user_id','created_at','started_at','ended_at','energy_type','notes','blocks','logged_by_coach','assignment_id'
+    ], userFilter, ['assignment_id']).then(function(rows){
+      return { ok: true, rows: rows };
+    }).catch(function(){
+      return { ok: false, rows: [] };
+    });
+    var titleP = landingSelect(token, 'assignments', ['id','athlete_id','title'], who, []).then(function(rows){
+      return rows || [];
+    }).catch(function(){
+      return [];
+    });
+    Promise.all([sessP, trainP, titleP]).then(function(parts){
+      if(gen !== _landingGen) return;
+      var titles = {};
+      (parts[2] || []).forEach(function(row){
+        if(!landingKeepAssignment(row, athleteId, coachId, false)) return;
+        if(row && row.title) titles[String(row.id)] = String(row.title);
+      });
+      var items = [];
+      if(parts[0].ok){
+        (parts[0].rows || []).forEach(function(row){
+          if(!landingKeepClimb(row, athleteId)) return;
+          items.push({
+            id: row.id,
+            kind: 'climb',
+            at: row.created_at,
+            title: landingClimbTitle(row),
+            source: row.logged_by_coach ? 'by coach' : 'by athlete',
+            assignmentTitle: ''
+          });
+        });
+      }
+      if(parts[1].ok){
+        (parts[1].rows || []).forEach(function(row){
+          if(!row || row.deleted_at) return;
+          if(String(row.user_id) !== String(athleteId)) return;
+          var asg = row.assignment_id ? (titles[String(row.assignment_id)] || '') : '';
+          items.push({
+            id: row.id,
+            kind: 'training',
+            at: row.created_at,
+            title: coachActivityTrainTitle(row),
+            source: row.logged_by_coach ? 'by coach' : 'by athlete',
+            assignmentTitle: asg
+          });
+        });
+      }
+      items.sort(function(a, b){
+        return new Date(b.at).getTime() - new Date(a.at).getTime();
+      });
+      _landingSessions = items;
+      if(!parts[0].ok && !parts[1].ok) _landingSessionNote = 'Could not load recent sessions.';
+      else if(!parts[0].ok) _landingSessionNote = 'Could not load climb logs.';
+      else if(!parts[1].ok) _landingSessionNote = 'Could not load training sessions.';
+      else _landingSessionNote = '';
+      paintAthleteLandingSessions();
+    });
+  }
+
+  window.__coachLandingTest = {
+    skipped: function(){ return _landingSkipped.slice(); }
+  };
+
   function renderAthleteDetail(token, coachUser, athleteId, athleteLabel, athleteEmail){
     var detailEl = document.getElementById('detail-panel');
     var title = athleteLabel || athleteEmail || ('Athlete ' + shortId(athleteId));
@@ -3856,6 +4179,14 @@
             athleteHubCardHtml('notes', 'Private', "Coach's Notes", 'hub-notes-sub', 'Only you can see these') +
           '</div>' +
         '</div>' +
+        '</div>' +
+        '<div id="athlete-open-assignments" class="coach-activity landing-block">' +
+          '<div class="coach-activity-head">Open assignments</div>' +
+          '<div id="athlete-open-assignments-list"><div class="landing-muted">Loading…</div></div>' +
+        '</div>' +
+        '<div id="athlete-recent-sessions" class="coach-activity landing-block">' +
+          '<div class="coach-activity-head">Recent sessions</div>' +
+          '<div id="athlete-recent-sessions-list"><div class="landing-muted">Loading…</div></div>' +
         '</div>' +
         '<div id="athlete-share-block" class="athlete-snapshot">' +
           '<div class="athlete-share-print-head">' +
@@ -3963,6 +4294,7 @@
     });
 
     loadAssignments(token, coachUser, athleteId);
+    loadAthleteLandingActivity(token, coachUser, athleteId);
     loadAthleteGoals(token, coachUser, athleteId, title);
     loadAthleteBaseline(token, coachUser, athleteId);
     renderNewAssignmentForm(token, coachUser, athleteId, title);
@@ -11077,6 +11409,7 @@
         '<div class="empty-state">No sessions logged yet for this athlete.</div>';
       paintAthleteLandingStats();
       paintAthleteHubBadges();
+      paintAthleteLandingSessions();
       return;
     }
     var feed = _lastSessionRows.slice().sort(function(a, b){
@@ -11102,6 +11435,7 @@
     wireJournalFeed(el);
     paintAthleteLandingStats();
     paintAthleteHubBadges();
+    paintAthleteLandingSessions();
   }
 
   function wireJournalFeed(rootEl){
@@ -11268,6 +11602,7 @@
       _journalNotesBySession = {};
       paintAthleteLandingStats();
       paintAthleteHubBadges();
+      paintAthleteLandingSessions();
       el.innerHTML = '<div class="panel-title">Journal</div>' +
         '<div class="empty-state" style="color:var(--danger);">Could not load sessions. ' +
         escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';
