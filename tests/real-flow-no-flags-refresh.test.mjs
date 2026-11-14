@@ -124,12 +124,13 @@ try{
       renderTrainSessionBuilder();
       toggleWkBoulder(emom.id, 0, emom.rounds[0].boulders[0].id);
     });
-    await page.waitForSelector('#train-blocks-wrap .wk-notice-card', { timeout: 5000 });
+    await page.waitForSelector('#train-blocks-wrap .wk-notice-slot .wk-notice-link', { timeout: 5000 });
+    assert.ok(!(await page.$('#train-blocks-wrap .wk-notice-card')), 'notice stays collapsed until tapped');
     var menu = await page.evaluate(function(){
       return document.getElementById('train-block-menu').textContent;
     });
     assert.ok(menu.indexOf('Climbing (EMOM)') !== -1, 'fresh profile menu is the new builder');
-    await shot(page, 'fresh-builder-awareness.png', '#train-blocks-wrap .wk-notice-card');
+    await shot(page, 'fresh-builder-awareness.png', '#train-blocks-wrap .wk-notice-slot');
 
     await page.click('#train-sess-save');
     await page.waitForTimeout(400);
