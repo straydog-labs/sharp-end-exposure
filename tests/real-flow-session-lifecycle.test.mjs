@@ -11,8 +11,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index331'/.test(index));
-assert.ok(/APP_VERSION = 'index331'/.test(sw));
+assert.ok(/var app_version = 'index332'/.test(index));
+assert.ok(/APP_VERSION = 'index332'/.test(sw));
 
 function fulfillJson(route, status, body){
   return route.fulfill({ status: status, contentType: 'application/json', body: JSON.stringify(body) });
@@ -107,7 +107,7 @@ try{
     var ui = await chrome(page);
     assert.strictEqual(ui.running, true);
     assert.strictEqual(ui.finish, true);
-    assert.strictEqual(ui.finishText, 'Finish session');
+    assert.strictEqual(ui.finishText, 'Finish workout');
     assert.strictEqual(ui.buildSave, false, 'blank running session hides Save workout');
     assert.strictEqual(ui.more, true, 'blank session keeps Save as workout in the menu');
     assert.strictEqual(ui.dates, true);
@@ -201,12 +201,12 @@ try{
     }
     var asg = await openAs({ source_assignment_id: 'asg-1' });
     assert.strictEqual(asg.finish, true);
-    assert.strictEqual(asg.finishText, 'Finish session');
+    assert.strictEqual(asg.finishText, 'Finish workout');
     assert.strictEqual(asg.more, false, 'assignment session hides Save as workout');
     assert.strictEqual(asg.buildSave, false);
     var lib = await openAs({ library_item_id: 'lib-1' });
     assert.strictEqual(lib.more, false, 'library session hides Save as workout');
-    assert.strictEqual(lib.finishText, 'Finish session');
+    assert.strictEqual(lib.finishText, 'Finish workout');
     var pinned = await openAs({ custom_workout_item_id: 'cw-1' });
     assert.strictEqual(pinned.more, false, 'pinned session hides Save as workout');
 

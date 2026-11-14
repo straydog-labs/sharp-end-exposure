@@ -11,8 +11,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index331'/.test(index));
-assert.ok(/APP_VERSION = 'index331'/.test(sw));
+assert.ok(/var app_version = 'index332'/.test(index));
+assert.ok(/APP_VERSION = 'index332'/.test(sw));
 
 function extractFn(src, name){
   const start = src.indexOf('function ' + name + '(');
@@ -115,7 +115,7 @@ assert.ok(/entry\.type === 'training_session'/.test(flush));
 assert.ok(/sbI\('training_sessions'/.test(flush));
 assert.ok(/sbInsertSession\(payload\)/.test(flush));
 
-const cancel = extractFn(index, 'cancelTrainSession');
+const cancel = extractFn(index, 'confirmDiscardTrainSession');
 assert.ok(/clearTrainSessionDraft\(\)/.test(cancel));
 
 const countdown = extractFn(index, 'computeCountdownState');
