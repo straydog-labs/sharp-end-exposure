@@ -446,6 +446,10 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wk-hang-set{border:1px solid var(--border);border-radius:10px;padding:10px;margin:0 0 10px;}
 .wk-hang-set-title{font-size:13px;font-weight:700;margin:0 0 8px;}
 .wk-hang-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;}
+.wk-hang-edit-sets{background:none;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;font-weight:700;padding:6px 10px;min-height:32px;cursor:pointer;margin:0 0 8px;}
+.wk-hang-compact{display:flex;align-items:center;gap:8px;min-height:32px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.2;white-space:nowrap;}
+.wk-hang-compact-main{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.wk-hang-compact-status{flex:0 0 auto;font-size:12px;color:var(--muted);}
 .wk-hang-ro-set{margin:0 0 10px;}
 .wk-hang-ro-set-title{font-size:13px;color:var(--text);margin:0 0 4px;}
 .wk-add-bottom{margin:4px 0 8px;}
@@ -481,6 +485,10 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   border-bottom-color:var(--accent);
 }
 .train-sess-title-input::placeholder{ color:var(--muted); }
+.train-sess-progress{margin:-6px 0 14px;}
+.train-sess-progress-label{font-size:12px;font-weight:600;color:var(--muted);margin:0 0 6px;}
+.train-sess-progress-track{height:4px;background:var(--surface);border-radius:99px;overflow:hidden;}
+.train-sess-progress-bar{height:100%;width:0;background:var(--accent);border-radius:99px;}
 /* ── SELF-ASSIGN WIZARD (build 196) — baseline-weight chrome, coach data model ── */
 .saw-launch{width:100%;margin-top:0;margin-bottom:16px;background:var(--accent);border:none;border-radius:var(--r-xl);padding:18px 20px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;-webkit-tap-highlight-color:transparent;}
 .saw-launch-sub{display:block;font-size:12.5px;font-weight:600;opacity:.75;margin-top:2px;}
@@ -4996,6 +5004,12 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
   <div class="content">
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="train-sess-eyebrow">Training session</div>
     <input type="text" id="train-sess-title" class="train-sess-title-input" placeholder="Name this session" value="Session" oninput="if(trainSessionState) trainSessionState.title = this.value;">
+    <div id="train-sess-progress" class="train-sess-progress" hidden>
+      <div id="train-sess-progress-label" class="train-sess-progress-label"></div>
+      <div class="train-sess-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="train-sess-progress-bar" class="train-sess-progress-bar"></div>
+      </div>
+    </div>
     <div id="train-notice-hint" class="wk-notice-hint" hidden>
       <span>After each block, note what you noticed.</span>
       <button type="button" onclick="dismissTrainNoticeHint()">Got it</button>
@@ -6258,7 +6272,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index330'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index331'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -17989,14 +18003,74 @@ function trainHangOnSetLoad(blockId, si){
     if(laterEl) laterEl.value = newLoad;
   }
 }
+function trainHangSetsEditorOpen(b){
+  if(!b) return true;
+  if(b._setsEditing === true) return true;
+  if(b._setsEditing === false) return false;
+  if(b.editing) return true;
+  var sets = Array.isArray(b.sets) ? b.sets : [];
+  return !(sets.length > 1 && trainHangHasPerSetFields(b));
+}
+function toggleTrainHangSetsEditing(id){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainHangFindBlock(id);
+  if(!b) return;
+  b._setsEditing = !trainHangSetsEditorOpen(b);
+  renderTrainSessionBuilder();
+}
+function trainHangRepStatus(set){
+  var reps = (set && set.reps) || [];
+  var pass = 0, fail = 0, open = 0;
+  reps.forEach(function(rp){
+    if(rp && rp.ok === true) pass += 1;
+    else if(rp && rp.ok === false) fail += 1;
+    else open += 1;
+  });
+  if(!reps.length) return 'no reps';
+  var bits = [];
+  if(pass) bits.push(pass + (pass === 1 ? ' pass' : ' passes'));
+  if(fail) bits.push(fail + (fail === 1 ? ' fail' : ' fails'));
+  if(open) bits.push(open + ' open');
+  return bits.join(' · ');
+}
+function trainHangCompactRowsHtml(b, sets){
+  return sets.map(function(set, si){
+    var grip = trainHangEffectiveGrip(b, set);
+    var load = trainHangEffectiveLoad(b, set);
+    var bits = [];
+    if(grip) bits.push(grip);
+    if(load) bits.push(load);
+    if(!bits.length) bits.push('Set ' + (si + 1));
+    return '<div class="wk-hang-compact" data-hang-compact="'+(si+1)+'">'
+      + '<span class="wk-hang-compact-main">'+escTrainHtml(bits.join(' · '))+'</span>'
+      + '<span class="wk-hang-compact-status">'+escTrainHtml(trainHangRepStatus(set))+'</span>'
+      + '</div>';
+  }).join('');
+}
 function wkRenderHangboardBody(b){
   var sets = Array.isArray(b.sets) && b.sets.length ? b.sets : [{ reps: trainHangBlankReps(5) }];
   var preset = b.preset || '';
+  var editorOpen = trainHangSetsEditorOpen(b);
+  var perSet = trainHangHasPerSetFields(b);
   var onVal = (b.on_sec == null || b.on_sec === '') ? '' : String(b.on_sec);
   var offVal = (b.off_sec == null || b.off_sec === '') ? '' : String(b.off_sec);
   var onOffText = '';
   if(onVal !== '' || offVal !== ''){
     onOffText = (onVal === '' ? '—' : onVal + 's') + ' on / ' + (offVal === '' ? '—' : offVal + 's') + ' off';
+  }
+  var showGrip = !perSet || trainTextNonEmpty(b.grip);
+  var showLoad = !perSet || trainTextNonEmpty(b.assistance);
+  var blockFields = '';
+  if(showGrip || showLoad){
+    blockFields = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+      + (showGrip ? fieldHtml('Grip', 'tb-'+b.id+'-grip', b.grip, 'e.g. half crimp') : '')
+      + (showLoad ? fieldHtml('Load or assistance', 'tb-'+b.id+'-assist', b.assistance, 'e.g. 35 lb assist or +20 lb') : '')
+      + '</div>';
+  }
+  var editBtn = '';
+  if(sets.length > 1 && perSet){
+    editBtn = '<button type="button" class="wk-hang-edit-sets" data-hang-edit-sets="1" aria-pressed="'+(editorOpen ? 'true' : 'false')+'" onclick="toggleTrainHangSetsEditing(\''+b.id+'\')">Edit sets</button>';
   }
   var html = '<div class="wk-hang-presets" role="group" aria-label="Hangboard preset">'
     + '<button type="button" class="wk-hang-preset'+(preset === 'repeaters' ? ' is-on' : '')+'" data-hang-preset="repeaters" onclick="trainHangApplyPreset(\''+b.id+'\',\'repeaters\')">Repeaters</button>'
@@ -18006,13 +18080,20 @@ function wkRenderHangboardBody(b){
     + '</div>'
     + '<div class="wk-hang-onoff">'
     + (onOffText ? '<span data-hang-onoff-text="1">'+escTrainHtml(onOffText)+'</span>' : '')
-    + '<label>On (sec) <input id="tb-'+b.id+'-on" type="number" min="0" step="1" inputmode="numeric" value="'+escTrainHtml(onVal)+'"></label>'
-    + '<label>Off (sec) <input id="tb-'+b.id+'-off" type="number" min="0" step="1" inputmode="numeric" value="'+escTrainHtml(offVal)+'"></label>'
+    + (editorOpen
+      ? '<label>On (sec) <input id="tb-'+b.id+'-on" type="number" min="0" step="1" inputmode="numeric" value="'+escTrainHtml(onVal)+'"></label>'
+        + '<label>Off (sec) <input id="tb-'+b.id+'-off" type="number" min="0" step="1" inputmode="numeric" value="'+escTrainHtml(offVal)+'"></label>'
+      : '')
     + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-    + fieldHtml('Grip', 'tb-'+b.id+'-grip', b.grip, 'e.g. half crimp')
-    + fieldHtml('Load or assistance', 'tb-'+b.id+'-assist', b.assistance, 'e.g. 35 lb assist or +20 lb')
-    + '</div>';
+    + editBtn
+    + blockFields;
+  if(!editorOpen){
+    html += trainHangCompactRowsHtml(b, sets);
+    html += trainBlockNoteField('tb-'+b.id+'-prog', 'Progression rule', b.progression_note||'')
+      + attemptSummary(b)
+      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    return html;
+  }
   sets.forEach(function(set, si){
     var reps = (set && set.reps) || [];
     var nrep = reps.length || 1;
@@ -18548,6 +18629,29 @@ function paintTrainSessionChrome(){
   }
   ensureTrainElapsedClock();
   paintTrainLegacyNoteBoxes();
+  paintTrainSessionProgress();
+}
+function paintTrainSessionProgress(){
+  var wrap = document.getElementById('train-sess-progress');
+  if(!wrap) return;
+  var st = trainSessionState;
+  var blocks = st && Array.isArray(st.blocks) ? st.blocks : [];
+  var show = !!(st && st.session_running !== false && blocks.length);
+  wrap.hidden = !show;
+  if(!show) return;
+  var n = blocks.length;
+  var x = 0;
+  blocks.forEach(function(b){ if(trainBlockIsComplete(b)) x += 1; });
+  var label = document.getElementById('train-sess-progress-label');
+  if(label) label.textContent = x + ' of ' + n + ' blocks complete';
+  var pct = n ? Math.round((100 * x) / n) : 0;
+  var bar = document.getElementById('train-sess-progress-bar');
+  if(bar) bar.style.width = pct + '%';
+  var track = wrap.querySelector('[role="progressbar"]');
+  if(track){
+    track.setAttribute('aria-valuenow', String(pct));
+    track.setAttribute('aria-valuetext', x + ' of ' + n + ' blocks complete');
+  }
 }
 function toggleTrainSessionMore(){
   var menu = document.getElementById('train-sess-more-menu');
