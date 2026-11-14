@@ -447,8 +447,10 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wk-hang-set-title{font-size:13px;font-weight:700;margin:0 0 8px;}
 .wk-hang-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;}
 .wk-hang-edit-sets{background:none;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;font-weight:700;padding:6px 10px;min-height:32px;cursor:pointer;margin:0 0 8px;}
-.wk-hang-compact{display:flex;align-items:center;gap:8px;min-height:32px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.2;white-space:nowrap;}
+.wk-hang-compact{display:flex;align-items:center;gap:8px;min-height:32px;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.2;white-space:nowrap;}
 .wk-hang-compact-main{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.wk-hang-reps{display:flex;gap:4px;flex:0 0 auto;align-items:center;}
+.wk-hang-rep{width:22px;height:22px;padding:0;border-radius:6px;background:var(--bg);font-family:inherit;font-size:11px;font-weight:700;line-height:20px;cursor:pointer;box-sizing:border-box;}
 .wk-hang-compact-status{flex:0 0 auto;font-size:12px;color:var(--muted);}
 .wk-hang-ro-set{margin:0 0 10px;}
 .wk-hang-ro-set-title{font-size:13px;color:var(--text);margin:0 0 4px;}
@@ -6287,7 +6289,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index332'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index333'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -15259,6 +15261,7 @@ function trainBlockIsComplete(b){
   if((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(b.items) && b.items.length){
     return b.items.every(function(it){ return !!(it && it.complete); });
   }
+  if(b.shape === 'rep_pass_fail' && trainHangboardAllRepsMarked(b)) return true;
   return false;
 }
 function trainSessionBlocksAllComplete(state){
@@ -15284,6 +15287,10 @@ function trainHangboardAllRepsMarked(b){
     var reps = (s && s.reps) || [];
     return reps.length > 0 && reps.every(function(rp){ return rp && (rp.ok === true || rp.ok === false); });
   });
+}
+function trainHangSyncRepComplete(b){
+  if(!b || b.shape !== 'rep_pass_fail') return;
+  b.complete = trainHangboardAllRepsMarked(b);
 }
 function trainBlockWorkComplete(b){
   if(!b) return false;
@@ -17976,6 +17983,7 @@ function trainHangAddRep(blockId, si){
   if(!Array.isArray(set.reps)) set.reps = [];
   if(set.reps.length >= 10) return;
   set.reps.push({ ok: null });
+  trainHangSyncRepComplete(b);
   renderTrainSessionBuilder();
 }
 function trainHangMinusRep(blockId, si){
@@ -17986,6 +17994,7 @@ function trainHangMinusRep(blockId, si){
   var set = trainHangEnsureSets(b)[si];
   if(!set || !Array.isArray(set.reps) || set.reps.length <= 1) return;
   set.reps.pop();
+  trainHangSyncRepComplete(b);
   renderTrainSessionBuilder();
 }
 function trainHangOnSetLoad(blockId, si){
@@ -18043,6 +18052,19 @@ function trainHangRepStatus(set){
   if(open) bits.push(open + ' open');
   return bits.join(' · ');
 }
+function trainHangRepState(rp){
+  if(rp && rp.ok === true) return 'pass';
+  if(rp && rp.ok === false) return 'fail';
+  return 'untested';
+}
+function trainHangRepButtonsHtml(b, set, si){
+  var reps = (set && set.reps) || [];
+  return '<span class="wk-hang-reps">' + reps.map(function(rp, i){
+    var state = trainHangRepState(rp);
+    var col = state === 'pass' ? 'var(--comfort)' : (state === 'fail' ? 'var(--panic)' : 'var(--muted)');
+    return '<button type="button" class="wk-hang-rep" data-hang-rep="'+state+'" onclick="trainToggleRep(\''+b.id+'\','+si+','+i+')" style="border:1px solid '+col+';color:'+col+';">'+(i+1)+'</button>';
+  }).join('') + '</span>';
+}
 function trainHangCompactRowsHtml(b, sets){
   return sets.map(function(set, si){
     var grip = trainHangEffectiveGrip(b, set);
@@ -18050,9 +18072,12 @@ function trainHangCompactRowsHtml(b, sets){
     var bits = [];
     if(grip) bits.push(grip);
     if(load) bits.push(load);
+    var rest = set && set.rest_after_sec != null && set.rest_after_sec !== '' ? Number(set.rest_after_sec) : NaN;
+    if(!isNaN(rest) && rest > 0) bits.push(rest + 's rest');
     if(!bits.length) bits.push('Set ' + (si + 1));
     return '<div class="wk-hang-compact" data-hang-compact="'+(si+1)+'">'
       + '<span class="wk-hang-compact-main">'+escTrainHtml(bits.join(' · '))+'</span>'
+      + trainHangRepButtonsHtml(b, set, si)
       + '<span class="wk-hang-compact-status">'+escTrainHtml(trainHangRepStatus(set))+'</span>'
       + '</div>';
   }).join('');
@@ -18114,12 +18139,13 @@ function wkRenderHangboardBody(b){
       + fieldHtml('Grip', 'tb-'+b.id+'-s'+si+'-grip', (set && set.grip) || '', 'e.g. half crimp')
       + '<div class="saw-field" style="margin:0 0 8px;"><label for="tb-'+b.id+'-s'+si+'-load">Load or assistance</label>'
       + '<input id="tb-'+b.id+'-s'+si+'-load" value="'+escTrainHtml((set && set.load) || '')+'" placeholder="e.g. 35 lb assist or +20 lb" oninput="trainHangOnSetLoad(\''+b.id+'\','+si+')" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;"></div>'
-      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;">'
+      + ((sets.length > 1 && perSet) ? '' : '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;">'
       + reps.map(function(rp, i){
-        var col = rp && rp.ok === true ? 'var(--comfort)' : (rp && rp.ok === false ? 'var(--panic)' : 'var(--muted)');
-        return '<button type="button" data-hang-rep="'+(rp && rp.ok === true ? 'pass' : (rp && rp.ok === false ? 'fail' : 'untested'))+'" onclick="trainToggleRep(\''+b.id+'\','+si+','+i+')" style="width:36px;height:36px;border-radius:8px;border:1px solid '+col+';background:var(--bg);color:'+col+';font-weight:700;cursor:pointer;">'+(i+1)+'</button>';
+        var state = trainHangRepState(rp);
+        var col = state === 'pass' ? 'var(--comfort)' : (state === 'fail' ? 'var(--panic)' : 'var(--muted)');
+        return '<button type="button" data-hang-rep="'+state+'" onclick="trainToggleRep(\''+b.id+'\','+si+','+i+')" style="width:36px;height:36px;border-radius:8px;border:1px solid '+col+';background:var(--bg);color:'+col+';font-weight:700;cursor:pointer;">'+(i+1)+'</button>';
       }).join('')
-      + '</div>'
+      + '</div>')
       + '<div class="wk-hang-row">'
       + '<button type="button" class="train-add-affordance" onclick="trainHangMinusRep(\''+b.id+'\','+si+')"'+(nrep <= 1 ? ' disabled' : '')+'>- Rep</button>'
       + '<button type="button" class="train-add-affordance" onclick="trainHangAddRep(\''+b.id+'\','+si+')"'+(nrep >= 10 ? ' disabled' : '')+'>+ Rep</button>'
@@ -19901,6 +19927,7 @@ function trainToggleRep(blockId, setIdx, repIdx){
   var wasBlock = trainBlockWorkComplete(b);
   var cur = set.reps[repIdx].ok;
   set.reps[repIdx].ok = (cur === true) ? false : (cur === false ? null : true);
+  trainHangSyncRepComplete(b);
   collectTrainBlockFields();
   trainMaybeOfferNotice(b, wasBlock);
   renderTrainSessionBuilder();
