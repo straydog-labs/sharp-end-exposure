@@ -87,6 +87,37 @@ function training(){
   ];
 }
 
+function localIso(hour, minute){
+  var d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+}
+
+function clock(hour, minute){
+  var d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function twinTraining(){
+  return [
+    {
+      id: 'twin-a', user_id: ATHLETE_ID, created_at: localIso(9, 0), started_at: localIso(9, 15),
+      notes: 'Repeaters', logged_by_coach: false, assignment_id: 'asg-done',
+      energy_type: null,
+      blocks: [{ complete: true }, { complete: false }, { complete: false }],
+      deleted_at: null
+    },
+    {
+      id: 'twin-b', user_id: ATHLETE_ID, created_at: localIso(15, 0), started_at: localIso(15, 40),
+      notes: 'Repeaters', logged_by_coach: true, assignment_id: null,
+      energy_type: null,
+      blocks: [{ complete: true }, { complete: true }, { complete: true }, { complete: false }],
+      deleted_at: null
+    }
+  ];
+}
+
 function assignments(){
   return [
     {
@@ -184,7 +215,10 @@ function readRows(page, sel, attr){
         overdue: el.getAttribute('data-overdue'),
         status: el.getAttribute('data-status'),
         source: el.getAttribute('data-source'),
-        assignment: el.getAttribute('data-assignment-title') || ''
+        assignment: el.getAttribute('data-assignment-title') || '',
+        chevron: !!el.querySelector('.landing-chevron'),
+        date: (el.querySelector('.landing-session-date') || {}).textContent || '',
+        time: (el.querySelector('.landing-session-time') || {}).textContent || ''
       };
     });
   }, { sel: sel, attr: attr });
@@ -248,7 +282,10 @@ try {
     assert.strictEqual(recentRows[0].source, 'by coach');
     assert.ok(/Coach repeaters/.test(recentRows[0].text) && /by coach/.test(recentRows[0].text), recentRows[0].text);
     assert.strictEqual(recentRows[0].assignment, 'Finished plan');
-    assert.ok(/Finished plan/.test(recentRows[0].text));
+    assert.ok(/Assignment: Finished plan/.test(recentRows[0].text), recentRows[0].text);
+    assert.ok(/0 of 0 blocks done/.test(recentRows[0].text), recentRows[0].text);
+    assert.ok(!/blocks done|Assignment:/.test(recentRows[1].text), recentRows[1].text);
+    assert.ok(recentRows[0].chevron && recentRows[1].chevron, 'tappable rows show a chevron');
     assert.strictEqual(recentRows[1].source, 'by athlete');
     assert.ok(/Blue slab/.test(recentRows[1].text) && /by athlete/.test(recentRows[1].text), recentRows[1].text);
     assert.strictEqual(recentRows[1].assignment, '');
@@ -312,6 +349,71 @@ try {
         r.url.indexOf('/rest/v1/training_sessions') !== -1;
     });
     assert.strictEqual(writes.length, 0, JSON.stringify(writes.map(function(r){ return r.method + ' ' + r.url; })));
+  });
+
+  await withPage(browser, port, {
+    path: '/coach-dashboard.html',
+    session: coachSession(),
+    sessions: [{
+      id: 'climb-noon', user_id: ATHLETE_ID, created_at: localIso(12, 0),
+      route_name: 'Noon slab', grade_value: 'V3', baseline_zone: 'sent',
+      logged_by_coach: false, is_checkin: false, deleted_at: null
+    }],
+    trainingSessions: twinTraining(),
+    assignments: assignments()
+  }, async function(page){
+    await openAthlete(page);
+    await page.waitForSelector('.landing-session-row[data-session-id="twin-b"]', { timeout: 8000 });
+    var rows = await readRows(page, '#athlete-recent-sessions .landing-session-row', 'data-session-id');
+    assert.deepStrictEqual(rows.map(function(r){ return r.id; }), ['twin-b', 'climb-noon', 'twin-a']);
+    var twinB = rows[0];
+    var climb = rows[1];
+    var twinA = rows[2];
+    assert.strictEqual(twinA.date, twinB.date, 'same calendar date');
+    assert.notStrictEqual(twinA.text, twinB.text, 'same title and date still differ');
+    assert.ok(/Repeaters/.test(twinA.text) && /Repeaters/.test(twinB.text));
+    assert.strictEqual(twinA.time, clock(9, 15), twinA.text);
+    assert.strictEqual(twinB.time, clock(15, 40), twinB.text);
+    assert.ok(/1 of 3 blocks done/.test(twinA.text), twinA.text);
+    assert.ok(/3 of 4 blocks done/.test(twinB.text), twinB.text);
+    assert.ok(/Assignment: Finished plan/.test(twinA.text), twinA.text);
+    assert.ok(!/Assignment:/.test(twinB.text), twinB.text);
+    assert.ok(!/blocks done|Assignment:|landing-session-time/.test(climb.text) && !climb.time, climb.text);
+    assert.ok(twinA.chevron && twinB.chevron && climb.chevron);
+    var cursors = await page.evaluate(function(){
+      return Array.prototype.map.call(document.querySelectorAll('.landing-session-row, .landing-assign-row'), function(el){
+        return { tag: el.tagName, cursor: getComputedStyle(el).cursor, chevron: !!el.querySelector('.landing-chevron') };
+      });
+    });
+    assert.ok(cursors.length && cursors.every(function(row){
+      return row.tag === 'BUTTON' && row.cursor === 'pointer' && row.chevron;
+    }), JSON.stringify(cursors));
+    var gap = await page.evaluate(function(){
+      var recent = document.getElementById('athlete-recent-sessions');
+      var rule = document.querySelector('#athlete-landing .landing-snapshot-divider');
+      var snap = document.getElementById('athlete-share-block');
+      if(!recent || !rule || !snap) return null;
+      var cs = getComputedStyle(rule);
+      var snapCs = getComputedStyle(snap);
+      var openCs = getComputedStyle(document.getElementById('athlete-open-assignments'));
+      var recentCs = getComputedStyle(recent);
+      return {
+        between: !!(recent.compareDocumentPosition(rule) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+          !!(rule.compareDocumentPosition(snap) & Node.DOCUMENT_POSITION_FOLLOWING),
+        borderTop: parseFloat(cs.borderTopWidth),
+        ruleGap: parseFloat(cs.marginTop),
+        snapGap: parseFloat(snapCs.marginTop),
+        openGap: parseFloat(openCs.marginTop),
+        recentGap: parseFloat(recentCs.marginTop),
+        share: (document.getElementById('athlete-share-btn') || {}).textContent || ''
+      };
+    });
+    assert.ok(gap && gap.between, JSON.stringify(gap));
+    assert.ok(gap.borderTop >= 1, JSON.stringify(gap));
+    assert.ok(gap.ruleGap >= 16 && gap.snapGap >= 16, JSON.stringify(gap));
+    assert.strictEqual(gap.openGap, gap.recentGap);
+    assert.strictEqual(gap.recentGap, gap.ruleGap);
+    assert.strictEqual(gap.share.trim(), 'Print / Share snapshot');
   });
 
   await withPage(browser, port, {

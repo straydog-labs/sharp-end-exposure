@@ -250,7 +250,7 @@ async function runViewport(page, width, takeShots){
   assert.strictEqual(ui.subsHidden, true);
   assert.strictEqual(ui.logText, 'Log a climb');
   assert.strictEqual(ui.logHasDialSub, false);
-  assert.strictEqual(ui.shareText, 'Print / Share');
+  assert.strictEqual(ui.shareText, 'Print / Share snapshot');
   assert.ok(ui.titleSize >= 20, 'heading font-size ' + ui.titleSize);
   assert.ok(ui.dateSize >= 14, 'export line font-size ' + ui.dateSize);
 
