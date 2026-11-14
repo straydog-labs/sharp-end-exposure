@@ -1476,6 +1476,8 @@
     border:1px solid var(--accent);color:var(--accent);border-radius:12px;background:transparent;
   }
   .aw-secondary-btn.aw-edit-blocks:hover{color:var(--accent);background:rgba(232,146,82,.12);}
+  .aw-blocks-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;}
+  .aw-blocks-actions .aw-secondary-btn{width:auto;flex:1 1 180px;}
   .aw-linkish{
     background:none;border:none;padding:8px 0;color:var(--accent);font-family:'Space Grotesk',sans-serif;
     font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;
@@ -9734,6 +9736,156 @@
     goAssignWizardStep(2);
   }
 
+  function lockedListTrainingFocus(value){
+    var raw = String(value || '').trim().replace(/\s+/g, ' ');
+    if(!raw) return '';
+    var i;
+    for(i = 0; i < LOCKED_WORKOUT_CATEGORIES.length; i++){
+      if(LOCKED_WORKOUT_CATEGORIES[i].toLowerCase() === raw.toLowerCase()) return LOCKED_WORKOUT_CATEGORIES[i];
+    }
+    return '';
+  }
+
+  // Keep a source training_focus only when it is already in the locked list.
+  // Aliases and anything else use the same block rule as create.
+  function trainingFocusForWorkoutCopy(item, sections){
+    var kept = lockedListTrainingFocus(item && item.training_focus);
+    if(kept) return kept;
+    return derivedTrainingFocus(sections);
+  }
+
+  function cloneWorkoutSections(raw){
+    return JSON.parse(JSON.stringify(parseWorkoutSections(raw)));
+  }
+
+  function sourceSectionsForDuplicate(token, item){
+    if(item && item.sections != null) return Promise.resolve(cloneWorkoutSections(item.sections));
+    var table = item && item._source === 'custom' ? 'custom_workouts' : 'workout_library';
+    return sbSelect(
+      token,
+      table,
+      'select=sections&id=eq.' + encodeURIComponent(item.id) + '&limit=1'
+    ).then(function(rows){
+      var row = Array.isArray(rows) ? rows[0] : null;
+      return cloneWorkoutSections(row && row.sections);
+    });
+  }
+
+  function selectedWizardWorkout(){
+    if(!_assignWizard) return null;
+    var cache = _coachLibCache || [];
+    var customId = _assignWizard.customWorkoutItemId;
+    if(customId){
+      var custom = cache.find(function(r){
+        return r && r.id === customId && r._source === 'custom';
+      });
+      if(custom) return custom;
+    }
+    var libraryId = _assignWizard.libraryItemId;
+    if(!libraryId) return null;
+    return cache.find(function(r){
+      return r && r.id === libraryId && r._source !== 'custom';
+    }) || null;
+  }
+
+  // Step 3 duplicate: new coach-owned custom_workouts row, then select that copy.
+  function duplicateWorkoutFromCustomize(){
+    var ctx = _assignWizardCtx;
+    var item = selectedWizardWorkout();
+    var msgEl = document.getElementById('new-a-msg');
+    if(!ctx || !_assignWizard || !item){
+      if(msgEl) msgEl.innerHTML = '<div class="form-error">Could not duplicate this workout.</div>';
+      return;
+    }
+    var nameEl = document.getElementById('new-a-name-edit');
+    var typedTitle = nameEl ? nameEl.value : (_assignWizard.drillName || '');
+    readAssignWizardWarmupPicker();
+    var held = {
+      customWorkoutItemId: _assignWizard.customWorkoutItemId,
+      libraryItemId: _assignWizard.libraryItemId,
+      itemSource: _assignWizard.itemSource,
+      drillName: _assignWizard.drillName,
+      trainingFocus: _assignWizard.trainingFocus,
+      createMode: _assignWizard.createMode
+    };
+    var gen = (_assignWizard._dupGen || 0) + 1;
+    _assignWizard._dupGen = gen;
+    var btn = document.getElementById('wiz-duplicate-workout');
+    if(btn) btn.disabled = true;
+    if(msgEl) msgEl.innerHTML = '';
+    function still(){
+      return !!(_assignWizard && _assignWizard._dupGen === gen);
+    }
+    function fail(err){
+      if(!still()) return;
+      _assignWizard.customWorkoutItemId = held.customWorkoutItemId;
+      _assignWizard.libraryItemId = held.libraryItemId;
+      _assignWizard.itemSource = held.itemSource;
+      _assignWizard.drillName = held.drillName;
+      _assignWizard.trainingFocus = held.trainingFocus;
+      _assignWizard.createMode = held.createMode;
+      var titleInput = document.getElementById('new-a-name-edit');
+      if(titleInput) titleInput.value = typedTitle;
+      var again = document.getElementById('wiz-duplicate-workout');
+      if(again){ again.disabled = false; again.textContent = 'Duplicate workout'; }
+      var msg = document.getElementById('new-a-msg');
+      if(msg){
+        msg.innerHTML = '<div class="form-error">Could not duplicate this workout. ' +
+          escapeHtml(friendlyErrorMessage(err, 'Try again.')) + '</div>';
+      }
+    }
+    sourceSectionsForDuplicate(ctx.token, item).then(function(sections){
+      if(!still()) return;
+      var focus = trainingFocusForWorkoutCopy(item, sections);
+      var sourceName = String(item.name || '').trim() || 'Workout';
+      var copyName = sourceName + ' (copy)';
+      var description = item.description == null ? null : item.description;
+      return createCoachCustomWorkout(ctx.token, ctx.coachUser, {
+        trainingFocus: focus,
+        name: copyName,
+        description: description,
+        sections: sections
+      }).then(function(row){
+        if(!row || !row.id) throw { message: 'Duplicate returned no id' };
+        if(!still()) return;
+        var writtenFocus = lockedListTrainingFocus(row.training_focus) || focus;
+        var copy = {
+          id: row.id,
+          name: row.name || copyName,
+          description: row.description != null ? row.description : description,
+          sections: row.sections != null ? cloneWorkoutSections(row.sections) : sections,
+          training_focus: writtenFocus,
+          created_by: row.created_by || ctx.coachUser.id,
+          created_by_role: row.created_by_role || 'coach',
+          _source: 'custom',
+          _focus: writtenFocus
+        };
+        _coachLibCache = (_coachLibCache || []).filter(function(r){
+          return !(r && r.id === row.id && r._source === 'custom');
+        });
+        _coachLibCache.push(copy);
+        var liveTitle = document.getElementById('new-a-name-edit');
+        _assignWizard.customWorkoutItemId = row.id;
+        _assignWizard.libraryItemId = null;
+        _assignWizard.itemSource = 'custom';
+        _assignWizard.createMode = false;
+        _assignWizard.editingCustomWorkoutId = null;
+        _assignWizard.editingShapedRaw = null;
+        _coachLibSelectedId = row.id;
+        _assignWizard.drillName = liveTitle ? liveTitle.value : typedTitle;
+        _assignWizard.trainingFocus = writtenFocus || _assignWizard.trainingFocus;
+        _assignWizard.step = 3;
+        renderAssignWizardBody();
+        loadCoachWorkoutLibrary(ctx.token).then(function(rows){
+          if(!still() || !Array.isArray(rows)) return;
+          var next = rows.slice();
+          if(!next.some(function(r){ return r && r.id === row.id && r._source === 'custom'; })) next.push(copy);
+          _coachLibCache = next;
+        }).catch(function(){});
+      });
+    }).catch(fail);
+  }
+
   // Custom workout behind the current assignment, only when this coach owns it
   // (the custom_workouts UPDATE policy is created_by = auth.uid()).
   function editableWorkoutForWizard(){
@@ -10436,23 +10588,44 @@
 
     if(step === 3){
       setAssignWizardChrome('Customize for this athlete', 'Edit the title or attach a warm-up.');
+      var editable = editableWorkoutForWizard();
+      var sourceItem = selectedWizardWorkout();
+      var blocksField = '';
+      if(editable || sourceItem){
+        var shown = editable || sourceItem;
+        var actions = '';
+        if(editable){
+          actions += '<button type="button" class="aw-secondary-btn aw-edit-blocks" id="wiz-edit-blocks">Edit workout blocks</button>';
+        }
+        if(sourceItem){
+          actions += '<button type="button" class="aw-secondary-btn aw-edit-blocks" id="wiz-duplicate-workout">Duplicate workout</button>';
+        }
+        blocksField =
+          '<div class="aw-field" id="wiz-blocks-field" data-workout-id="' + escapeHtml(shown.id) +
+            '" data-workout-source="' + (shown._source === 'custom' ? 'custom' : 'foundational') + '">' +
+            '<label>Workout blocks</label>' +
+            '<div class="aw-blocks-actions">' + actions + '</div>' +
+            (editable
+              ? '<div class="form-note" id="wiz-blocks-note" style="margin:6px 0 0;">' +
+                  escapeHtml(String(editable.name || '').trim() || 'This workout') +
+                  ' — Changes this workout itself, so any other assignment using it changes too.</div>'
+              : '') +
+          '</div>';
+      }
       body.innerHTML =
         wizardPathSummaryHtml() +
         '<div class="aw-field"><label for="new-a-name-edit">Title</label>' +
           '<input id="new-a-name-edit" type="text" maxlength="120" value="' +
           escapeHtml(_assignWizard.drillName || '') + '"></div>' +
-        (editableWorkoutForWizard()
-          ? ('<div class="aw-field"><label>Workout blocks</label>' +
-              '<button type="button" class="aw-secondary-btn aw-edit-blocks" id="wiz-edit-blocks">Edit workout blocks</button>' +
-              '<div class="form-note" style="margin:6px 0 0;">Changes the workout itself, so any other assignment using it changes too.</div>' +
-            '</div>')
-          : '') +
+        blocksField +
         (wizardHasWarmupBlock() ? '' : assignWizardWarmupPickerHtml());
       var editBlocksBtn = document.getElementById('wiz-edit-blocks');
       if(editBlocksBtn) editBlocksBtn.addEventListener('click', function(){
         var it = editableWorkoutForWizard();
         if(it) editWorkoutFromCustomize(it);
       });
+      var dupWorkoutBtn = document.getElementById('wiz-duplicate-workout');
+      if(dupWorkoutBtn) dupWorkoutBtn.addEventListener('click', duplicateWorkoutFromCustomize);
       var warmupSel = document.getElementById('new-a-warmup');
       if(warmupSel) warmupSel.addEventListener('change', readAssignWizardWarmupPicker);
       setAssignWizardFooter(
