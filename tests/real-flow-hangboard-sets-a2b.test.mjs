@@ -12,8 +12,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index331'/.test(index));
-assert.ok(/APP_VERSION = 'index331'/.test(sw));
+assert.ok(/var app_version = 'index332'/.test(index));
+assert.ok(/APP_VERSION = 'index332'/.test(sw));
 assert.ok(!/WK_DEFAULT_ON/.test(index));
 assert.ok(!/_hangLoadSrc/.test(index));
 const sql = readFileSync(join(root, 'sql/training-sessions-assignment-id.sql'), 'utf8');
@@ -426,6 +426,10 @@ try{
     assert.strictEqual(fromAsg.load3, '45 lb assist');
     assert.strictEqual(fromAsg.src, 'asg-hang');
     await page.click('#train-sess-save');
+    if(await page.evaluate(function(){
+      var el = document.getElementById('train-finish-check');
+      return !!(el && !el.hidden);
+    })) await page.click('#train-finish-anyway');
     await page.waitForTimeout(400);
     var sess = firstBody(postsTo(recorded, 'training_sessions', 'POST'));
     assert.ok(sess);
@@ -565,6 +569,10 @@ try{
           trainToggleRep(hb.id, 0, 0);
         });
         await page.click('#train-sess-save');
+        if(await page.evaluate(function(){
+          var el = document.getElementById('train-finish-check');
+          return !!(el && !el.hidden);
+        })) await page.click('#train-finish-anyway');
         await page.waitForTimeout(400);
         assert.ok(firstBody(postsTo(recorded, 'training_sessions', 'POST')), 'session saved');
         assert.deepStrictEqual(errors.filter(function(e){ return !/Failed to load resource/.test(e); }), []);
@@ -636,6 +644,10 @@ try{
       trainAddBlock('rep_pass_fail');
     });
     await page.click('#train-sess-save');
+    if(await page.evaluate(function(){
+      var el = document.getElementById('train-finish-check');
+      return !!(el && !el.hidden);
+    })) await page.click('#train-finish-anyway');
     await page.waitForTimeout(500);
     var posts = postsTo(recorded, 'training_sessions', 'POST');
     assert.ok(posts.length >= 2, 'retries after missing assignment_id column');
@@ -739,7 +751,7 @@ try{
     await page.screenshot({ path: join(shotDir, 'load-fill-40-30-30.png'), animations: 'disabled' });
   });
 
-  var saveSrc = index.slice(index.indexOf('async function saveTrainSession()'), index.indexOf('function trainWorkoutFocusForSave'));
+  var saveSrc = index.slice(index.indexOf('async function saveTrainSession'), index.indexOf('function trainWorkoutFocusForSave'));
   assert.ok(/maybeCompleteLinkedAssignment/.test(saveSrc));
   assert.ok(/trainSessionBlocksAllComplete/.test(saveSrc));
   assert.ok(/source_assignment_id/.test(saveSrc));

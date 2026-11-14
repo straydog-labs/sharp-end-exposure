@@ -4997,9 +4997,16 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
   </div>
 </div>
 <div class="screen" id="screen-train-session">
+  <div id="train-discard-confirm" class="train-draft-choice" hidden>
+    <div class="train-draft-choice-panel" role="dialog" aria-label="Discard session">
+      <div>Discard this session? Progress will be lost.</div>
+      <button type="button" id="train-discard-do" class="train-draft-discard" onclick="confirmDiscardTrainSession()">Discard</button>
+      <button type="button" id="train-discard-keep" class="train-draft-resume" onclick="keepTrainSession()">Keep</button>
+    </div>
+  </div>
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button type="button" class="back-btn" onclick="cancelTrainSession()">← Cancel</button>
+    <button type="button" class="back-btn" id="train-sess-discard" onclick="cancelTrainSession()">Discard session</button>
   </div>
   <div class="content">
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="train-sess-eyebrow">Training session</div>
@@ -5083,7 +5090,15 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
       <button type="button" id="train-sess-saved-start-now" class="train-btn-primary" onclick="startNowFromJustCreatedWorkout()">Start now</button>
       <button type="button" id="train-sess-saved-done" class="train-btn-secondary" style="margin-top:8px;" onclick="doneFromJustCreatedWorkout()">Done</button>
     </div>
-    <button type="button" id="train-sess-save" onclick="saveTrainSession()" class="saw-next">Finish session</button>
+    <div id="train-finish-check" class="insight-card" hidden style="padding:14px 16px;margin:0 0 10px;">
+      <div id="train-finish-check-text" style="font-size:14px;font-weight:700;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="train-finish-anyway" class="saw-next" style="flex:1;margin:0;padding:12px;" onclick="finishTrainWorkoutAnyway()">Finish anyway</button>
+        <button type="button" id="train-finish-keep" class="train-btn-secondary" style="flex:1;" onclick="keepGoingTrainWorkout()">Keep going</button>
+      </div>
+    </div>
+    <button type="button" id="train-sess-save" onclick="requestFinishTrainWorkout()" class="saw-next">Finish workout</button>
+    <button type="button" id="train-sess-save-progress" class="train-btn-secondary" style="margin-bottom:10px;" onclick="saveTrainProgress()">Save progress</button>
   </div>
 </div>
 
@@ -6272,7 +6287,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index331'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index332'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -15507,6 +15522,8 @@ var _trainDraftScreen = 'screen-train-session';
 var _trainDraftPendingStart = null;
 var _trainDraftStartBypass = false;
 var _trainDraftConfirm = false;
+var _trainDraftExplicit = false;
+var _trainFinishCheckOpen = false;
 var _lastTrainSessionId = null;
 var _trainDoneSnapshot = null;
 var _trainDoneNoticeAttention = null;
@@ -17438,6 +17455,8 @@ async function renderTrainPicker(){
 }
 
 function newTrainSessionState(energyType, seedName, seedDesc, sourceMeta){
+  _trainDraftExplicit = false;
+  _trainFinishCheckOpen = false;
   var now = new Date();
   sourceMeta = sourceMeta || {};
   return {
@@ -17661,30 +17680,20 @@ var _trainCancelArmed = false;
 var _trainCancelArmTimer = null;
 
 function cancelTrainSession(){
-  var btn = document.querySelector('#screen-train-session .back-btn');
-  if(!_trainCancelArmed){
-    _trainCancelArmed = true;
-    if(btn){
-      btn.textContent = 'Tap again to discard';
-      btn.classList.add('is-confirming');
-    }
-    if(_trainCancelArmTimer) clearTimeout(_trainCancelArmTimer);
-    _trainCancelArmTimer = setTimeout(function(){
-      _trainCancelArmed = false;
-      var b = document.querySelector('#screen-train-session .back-btn');
-      if(b){
-        b.textContent = '← Cancel';
-        b.classList.remove('is-confirming');
-      }
-    }, 4000);
-    return;
-  }
-  _trainCancelArmed = false;
+  _trainCancelArmed = true;
   if(_trainCancelArmTimer) clearTimeout(_trainCancelArmTimer);
-  if(btn){
-    btn.textContent = '← Cancel';
-    btn.classList.remove('is-confirming');
-  }
+  var el = document.getElementById('train-discard-confirm');
+  if(el) el.hidden = false;
+}
+function keepTrainSession(){
+  _trainCancelArmed = false;
+  var el = document.getElementById('train-discard-confirm');
+  if(el) el.hidden = true;
+}
+function confirmDiscardTrainSession(){
+  _trainCancelArmed = false;
+  var el = document.getElementById('train-discard-confirm');
+  if(el) el.hidden = true;
   clearAllTrainBlockTimerIntervals();
   releaseTrainWakeLock();
   trainSessionState = null;
@@ -18236,6 +18245,8 @@ function clearTrainSessionDraft(){
   }catch(e){}
   _trainDraftDirty = false;
   _trainDraftConfirm = false;
+  _trainDraftExplicit = false;
+  _trainFinishCheckOpen = false;
   _trainDraftBaseline = '';
   _trainDraftBaselineId = null;
 }
@@ -18244,6 +18255,11 @@ function maybeResumeTrainSessionDraft(){
 }
 
 var TRAIN_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+var TRAIN_DRAFT_EXPLICIT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function trainDraftMaxAge(parsed){
+  return parsed && parsed.explicit ? TRAIN_DRAFT_EXPLICIT_MAX_AGE_MS : TRAIN_DRAFT_MAX_AGE_MS;
+}
 
 function readTrainDraftForUser(userId){
   if(!userId) return null;
@@ -18272,7 +18288,7 @@ function readTrainDraftForUser(userId){
   var bad = !parsed || parsed.v !== 1 || !parsed.state || String(parsed.user_id) !== String(userId);
   if(!bad){
     var t = new Date(parsed.saved_at).getTime();
-    if(isNaN(t) || (Date.now() - t) >= TRAIN_DRAFT_MAX_AGE_MS) bad = true;
+    if(isNaN(t) || (Date.now() - t) >= trainDraftMaxAge(parsed)) bad = true;
   }
   if(bad){
     try{ localStorage.removeItem(own); }catch(e){}
@@ -18358,6 +18374,7 @@ function resumeTrainDraft(){
     return;
   }
   trainSessionState = env.state;
+  _trainDraftExplicit = !!env.explicit;
   _trainDraftBaselineId = null;
   _trainDraftDirty = false;
   _trainDraftConfirm = false;
@@ -18377,6 +18394,7 @@ function adoptOpenTrainDraft(){
   var env = readTrainDraftForUser(id);
   if(!env || !env.state) return false;
   trainSessionState = env.state;
+  _trainDraftExplicit = !!env.explicit;
   _trainDraftBaselineId = null;
   _trainDraftDirty = false;
   _trainDraftScreen = env.screen || 'screen-train-session';
@@ -18417,6 +18435,12 @@ function flushTrainUserDraft(){
     var active = (document.querySelector('.screen.active') || {}).id;
     if(active === 'screen-train-session' || active === 'screen-train-run') screen = active;
   }catch(e){}
+  var explicit = !!_trainDraftExplicit;
+  try{
+    var prevRaw = localStorage.getItem('see_train_draft_' + userId);
+    var prev = prevRaw ? JSON.parse(prevRaw) : null;
+    if(prev && prev.explicit && String(prev.user_id) === String(userId)) explicit = true;
+  }catch(e){}
   var envelope = {
     v: 1,
     saved_at: new Date().toISOString(),
@@ -18424,6 +18448,10 @@ function flushTrainUserDraft(){
     screen: screen,
     state: snap
   };
+  if(explicit){
+    envelope.explicit = true;
+    _trainDraftExplicit = true;
+  }
   try{ localStorage.setItem('see_train_draft_' + userId, JSON.stringify(envelope)); }
   catch(e){ return; }
   try{ _trainDraftBaseline = JSON.stringify(trainSessionState); }catch(e){}
@@ -18585,19 +18613,104 @@ function ensureTrainElapsedClock(){
 }
 function paintTrainLegacyNoteBoxes(){
   if(!trainSessionState) return;
-  var hasWarm = trainSessionHasWarmupCheck(trainSessionState);
-  var warmEmpty = !String(trainSessionState.warm_up || '').trim();
-  var warmInside = (trainSessionState.blocks || []).some(function(b){ return b && b.is_warmup; });
   var warmNote = document.getElementById('train-sess-warmup');
-  if(warmNote) warmNote.hidden = !!(hasWarm && warmEmpty);
   var warmCard = document.getElementById('train-warmup-card');
-  if(warmCard) warmCard.hidden = !!(hasWarm && warmEmpty && !warmInside);
-  var hasCool = trainSessionHasCooldownCheck(trainSessionState);
-  var coolEmpty = !String(trainSessionState.cool_down || '').trim();
   var coolNote = document.getElementById('train-sess-cooldown');
-  if(coolNote) coolNote.hidden = !!(hasCool && coolEmpty);
   var coolCard = document.getElementById('train-cooldown-card');
+  var blocks = trainSessionState.blocks || [];
+  var warmEmpty = !String(trainSessionState.warm_up || '').trim();
+  var coolEmpty = !String(trainSessionState.cool_down || '').trim();
+  if(!trainSessionIsBlank(trainSessionState) && blocks.length){
+    var warmInside = blocks.some(function(b){ return b && b.is_warmup; });
+    if(warmNote) warmNote.hidden = warmEmpty;
+    if(warmCard) warmCard.hidden = warmEmpty && !warmInside;
+    if(coolNote) coolNote.hidden = coolEmpty;
+    if(coolCard) coolCard.hidden = coolEmpty;
+    return;
+  }
+  var hasWarm = trainSessionHasWarmupCheck(trainSessionState);
+  var warmInsideBlank = blocks.some(function(b){ return b && b.is_warmup; });
+  if(warmNote) warmNote.hidden = !!(hasWarm && warmEmpty);
+  if(warmCard) warmCard.hidden = !!(hasWarm && warmEmpty && !warmInsideBlank);
+  var hasCool = trainSessionHasCooldownCheck(trainSessionState);
+  if(coolNote) coolNote.hidden = !!(hasCool && coolEmpty);
   if(coolCard) coolCard.hidden = !!(hasCool && coolEmpty);
+}
+function trainIncompleteBlockCount(state){
+  var blocks = (state && state.blocks) || [];
+  var n = 0;
+  blocks.forEach(function(b){ if(!trainBlockIsComplete(b)) n += 1; });
+  return { n: n, m: blocks.length };
+}
+function hideTrainFinishCheck(){
+  _trainFinishCheckOpen = false;
+  var el = document.getElementById('train-finish-check');
+  if(el) el.hidden = true;
+}
+function showTrainFinishCheck(){
+  if(!trainSessionState) return;
+  var counts = trainIncompleteBlockCount(trainSessionState);
+  _trainFinishCheckOpen = true;
+  var el = document.getElementById('train-finish-check');
+  var text = document.getElementById('train-finish-check-text');
+  if(text) text.textContent = counts.n + ' of ' + counts.m + ' blocks not done. Finish anyway?';
+  if(el) el.hidden = false;
+}
+function requestFinishTrainWorkout(){
+  if(!trainSessionState) return;
+  try{ syncTrainSessionFieldsFromDom(); }catch(e){}
+  try{ collectTrainBlockFields(); }catch(e){}
+  var linked = trainSessionState.source_assignment_id || trainSessionState.assignment_id;
+  if(linked && !trainSessionBlocksAllComplete(trainSessionState)){
+    showTrainFinishCheck();
+    return;
+  }
+  hideTrainFinishCheck();
+  saveTrainSession();
+}
+function keepGoingTrainWorkout(){
+  hideTrainFinishCheck();
+}
+function finishTrainWorkoutAnyway(){
+  hideTrainFinishCheck();
+  saveTrainSession({ forceComplete: true });
+}
+function writeTrainUserDraft(explicit){
+  if(!trainSessionState) return false;
+  var userId = trainDraftUserId();
+  if(!userId) return false;
+  if(explicit) _trainDraftExplicit = true;
+  var snap = null;
+  try{ snap = JSON.parse(JSON.stringify(trainSessionState)); }catch(e){ return false; }
+  var envelope = {
+    v: 1,
+    saved_at: new Date().toISOString(),
+    user_id: userId,
+    screen: _trainDraftScreen || 'screen-train-session',
+    state: snap
+  };
+  if(_trainDraftExplicit) envelope.explicit = true;
+  try{ localStorage.setItem('see_train_draft_' + userId, JSON.stringify(envelope)); }
+  catch(e){ return false; }
+  try{ saveTrainSessionDraft(); }catch(e){}
+  try{ _trainDraftBaseline = JSON.stringify(trainSessionState); }catch(e){}
+  _trainDraftBaselineId = trainSessionState.id;
+  _trainDraftDirty = false;
+  return true;
+}
+function saveTrainProgress(){
+  if(!trainSessionState) return;
+  try{ syncTrainSessionFieldsFromDom(); }catch(e){}
+  try{ collectTrainBlockFields(); }catch(e){}
+  writeTrainUserDraft(true);
+  try{ clearAllTrainBlockTimerIntervals(); }catch(e){}
+  try{ releaseTrainWakeLock(); }catch(e){}
+  try{ stopTrainElapsedClock(); }catch(e){}
+  trainSessionState = null;
+  _trainDraftDirty = false;
+  hideTrainFinishCheck();
+  showToast('Progress saved. Resume from Home or Train.');
+  showScreen('screen-home');
 }
 function paintTrainSessionChrome(){
   if(!trainSessionState) return;
@@ -18608,7 +18721,19 @@ function paintTrainSessionChrome(){
   var finish = document.getElementById('train-sess-save');
   if(finish && !finish.disabled){
     finish.hidden = !running;
-    if(running && finish.textContent !== 'Saving...') finish.textContent = 'Finish session';
+    if(running && finish.textContent !== 'Saving...') finish.textContent = 'Finish workout';
+  }
+  var progressBtn = document.getElementById('train-sess-save-progress');
+  if(progressBtn) progressBtn.hidden = !running;
+  if(!running) _trainFinishCheckOpen = false;
+  var finishCheck = document.getElementById('train-finish-check');
+  if(finishCheck){
+    finishCheck.hidden = !_trainFinishCheckOpen;
+    if(_trainFinishCheckOpen){
+      var counts = trainIncompleteBlockCount(trainSessionState);
+      var finishText = document.getElementById('train-finish-check-text');
+      if(finishText) finishText.textContent = counts.n + ' of ' + counts.m + ' blocks not done. Finish anyway?';
+    }
   }
   var buildSave = document.getElementById('train-sess-save-workout');
   if(buildSave) buildSave.hidden = !!running;
@@ -19934,7 +20059,8 @@ function trainUndoAttempt(blockId){
   renderTrainSessionBuilder();
 }
 
-async function saveTrainSession(){
+async function saveTrainSession(opts){
+  opts = opts || {};
   if(!trainSessionState) return;
   if(!window._authUser){ showToast('Sign in to save training sessions', true); return; }
   syncTrainSessionFieldsFromDom();
@@ -19987,7 +20113,7 @@ async function saveTrainSession(){
     showToast('Saved offline. Will sync when you are back online.');
     queuedOffline = true;
   } else if(sbFailed(saved)){
-    if(btn){ btn.disabled = false; btn.textContent = 'Finish session'; }
+    if(btn){ btn.disabled = false; btn.textContent = 'Finish workout'; }
     if(msg) msg.textContent = 'Could not save. If this is a fresh environment, confirm training_sessions migration is applied.';
     return;
   }
@@ -20003,7 +20129,7 @@ async function saveTrainSession(){
     var linkedA = (_trainAssignmentsCache || []).find(function(x){ return String(x.id) === String(linkedAssignmentId); });
     linkedAssignmentTitle = (linkedA && linkedA.title) || trainSessionState.title || 'assignment';
   }
-  var linkedBlocksComplete = trainSessionBlocksAllComplete(trainSessionState);
+  var linkedBlocksComplete = !!opts.forceComplete || trainSessionBlocksAllComplete(trainSessionState);
   var libId = trainSessionState.library_item_id || null;
   var customId = trainSessionState.custom_workout_item_id || null;
   if(libId && customId){
@@ -20025,7 +20151,7 @@ async function saveTrainSession(){
     }
   }
 
-  if(btn){ btn.disabled = false; btn.textContent = 'Finish session'; }
+  if(btn){ btn.disabled = false; btn.textContent = 'Finish workout'; }
   if(msg) msg.textContent = '';
   var endedAt = payload.ended_at;
   _lastTrainSessionId = trainSessionState.id;

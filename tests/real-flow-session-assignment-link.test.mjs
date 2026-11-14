@@ -257,23 +257,27 @@ try{
     await waitForScreen(page, 'screen-train-session');
     await completeHeaders(page, 1);
     await tap(page, '#train-sess-save');
-    await waitForScreen(page, 'screen-train-done');
-    var body = firstBody(sessionPosts(recorded));
-    assert.strictEqual(body.assignment_id, 'asg-due', 'partial save still writes assignment_id');
     await page.waitForFunction(function(){
-      var el = document.getElementById('train-done-assign-prompt');
+      var el = document.getElementById('train-finish-check');
       return el && !el.hidden;
     }, null, { timeout: 8000 });
-    assert.strictEqual(completionPatches(recorded).length, 0, 'partial does not complete the assignment');
-    var prompt = await page.evaluate(function(){
-      var el = document.getElementById('train-done-assign-prompt');
-      return el && !el.hidden && (document.getElementById('train-done-assign-prompt-text').textContent || '');
+    assert.strictEqual(sessionPosts(recorded).length, 0, 'incomplete does not save yet');
+    await tap(page, '#train-finish-keep');
+    var kept = await page.evaluate(function(){
+      var el = document.getElementById('train-finish-check');
+      return (document.querySelector('.screen.active') || {}).id === 'screen-train-session' && (!el || el.hidden);
     });
-    assert.ok(/Mark .+ complete\?/.test(prompt), prompt);
-    var stillDue = await page.evaluate(function(){
-      return (document.getElementById('train-hub-due-list').textContent || '').indexOf('Due night') !== -1;
-    });
-    assert.strictEqual(stillDue, true);
+    assert.strictEqual(kept, true, 'Keep going stays on the session');
+    await tap(page, '#train-sess-save');
+    await tap(page, '#train-finish-anyway');
+    await waitForScreen(page, 'screen-train-done');
+    var body = firstBody(sessionPosts(recorded));
+    assert.strictEqual(body.assignment_id, 'asg-due', 'Finish anyway writes assignment_id');
+    await page.waitForFunction(function(){
+      var el = document.getElementById('train-hub-due-list');
+      return el && el.textContent.indexOf('Due night') === -1;
+    }, null, { timeout: 8000 });
+    assert.ok(completionPatches(recorded).length >= 1, 'Finish anyway marks the assignment complete');
   });
 
   await withPage(browser, port, {
@@ -410,6 +414,11 @@ try{
     await waitForScreen(page, 'screen-train-session');
     assert.strictEqual(await page.evaluate(function(){ return trainSessionState.source_assignment_id; }), 'asg-due');
     await tap(page, '#train-sess-save');
+    var resumeCheck = await page.evaluate(function(){
+      var el = document.getElementById('train-finish-check');
+      return !!(el && !el.hidden);
+    });
+    if(resumeCheck) await tap(page, '#train-finish-anyway');
     await waitForScreen(page, 'screen-train-done');
     assert.strictEqual(firstBody(sessionPosts(recorded)).assignment_id, 'asg-due', 'Resume keeps assignment_id');
   });

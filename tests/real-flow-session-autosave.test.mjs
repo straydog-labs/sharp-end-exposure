@@ -345,7 +345,7 @@ try{
     });
     await page.waitForTimeout(600);
     await page.click('#screen-train-session .back-btn');
-    await page.click('#screen-train-session .back-btn');
+    await page.click('#train-discard-do');
     await waitForScreen(page, 'screen-train');
     var cancelled = await page.evaluate(function(userId){
       return localStorage.getItem('see_train_draft_' + userId);
