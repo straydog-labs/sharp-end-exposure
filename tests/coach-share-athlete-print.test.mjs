@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const dash = readFileSync(join(__dirname, '../coach-dashboard.html'), 'utf8');
 
 assert.ok(/id="athlete-share-btn"/.test(dash));
-assert.ok(/>Print \/ Share</.test(dash));
+assert.ok(/>Print \/ Share snapshot</.test(dash));
 assert.ok(/Athlete snapshot/.test(dash));
 assert.ok(/id="athlete-share-block"/.test(dash));
 assert.ok(/athlete-share-print-head/.test(dash));

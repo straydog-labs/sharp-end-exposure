@@ -672,8 +672,16 @@
   .landing-assign-status,
   .landing-session-date,
   .landing-session-tag,
+  .landing-session-time,
+  .landing-session-blocks,
   .landing-session-asg{font-size:12px;color:var(--text-secondary);}
   .landing-overdue{font-size:11px;font-weight:650;color:#e07070;}
+  .landing-chevron{margin-left:auto;color:var(--text-secondary);font-size:18px;line-height:1;}
+  #athlete-landing > .landing-block{margin-top:18px;}
+  .landing-snapshot-divider{
+    height:0;margin-top:18px;border:0;border-top:1px solid var(--border);
+  }
+  #athlete-landing > #athlete-share-block{margin-top:18px;}
   #athlete-recent-more{margin-top:12px;}
   .journal-head{
     display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;
@@ -1515,6 +1523,9 @@
     #athlete-hub-cards,
     #athlete-path-subs,
     #coach-log-launch,
+    #athlete-open-assignments,
+    #athlete-recent-sessions,
+    .landing-snapshot-divider,
     #athlete-subview,
     .athlete-share-btn {
       display: none !important;
@@ -3866,6 +3877,24 @@
     return run();
   }
 
+  function landingBlocksDone(raw){
+    var b = raw;
+    if(typeof b === 'string'){
+      try{ b = JSON.parse(b); }catch(e){ b = []; }
+    }
+    if(!Array.isArray(b)) b = [];
+    var done = 0;
+    b.forEach(function(block){ if(block && block.complete) done++; });
+    return done + ' of ' + b.length + ' blocks done';
+  }
+
+  function landingClock(raw){
+    if(!raw) return '';
+    var dt = new Date(raw);
+    if(isNaN(dt.getTime())) return '';
+    return dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
   function landingClimbTitle(row){
     var name = String((row && row.route_name) || '').trim();
     if(name) return name;
@@ -3890,6 +3919,7 @@
       '<span class="landing-assign-due">' + escapeHtml(due) + '</span>' +
       '<span class="landing-assign-status">Open</span>' +
       (overdue ? '<span class="landing-overdue">Overdue</span>' : '') +
+      '<span class="landing-chevron" aria-hidden="true">\u203a</span>' +
     '</button>';
   }
 
@@ -3897,6 +3927,14 @@
     var tap = landingSessionTappable(item);
     var open = tap ? '<button type="button" ' : '<div ';
     var close = tap ? '</button>' : '</div>';
+    var training = '';
+    if(item.kind === 'training'){
+      training =
+        (item.startTime ? '<span class="landing-session-time">' + escapeHtml(item.startTime) + '</span>' : '') +
+        '<span class="landing-session-blocks">' + escapeHtml(item.blocksDone) + '</span>' +
+        (item.assignmentTitle ? '<span class="landing-session-asg">Assignment: ' + escapeHtml(item.assignmentTitle) + '</span>' : '');
+    }
+    var chev = tap ? '<span class="landing-chevron" aria-hidden="true">\u203a</span>' : '';
     return open + 'class="landing-session-row" data-session-id="' + escapeHtml(item.id) +
       '" data-kind="' + escapeHtml(item.kind) +
       '" data-source="' + escapeHtml(item.source) +
@@ -3904,7 +3942,8 @@
       '<span class="landing-session-date">' + escapeHtml(fmtDate(item.at)) + '</span>' +
       '<span class="landing-session-title">' + escapeHtml(item.title) + '</span>' +
       '<span class="landing-session-tag">' + escapeHtml(item.source) + '</span>' +
-      (item.assignmentTitle ? '<span class="landing-session-asg">' + escapeHtml(item.assignmentTitle) + '</span>' : '') +
+      training +
+      chev +
       close;
   }
 
@@ -4091,7 +4130,9 @@
             at: row.created_at,
             title: coachActivityTrainTitle(row),
             source: row.logged_by_coach ? 'by coach' : 'by athlete',
-            assignmentTitle: asg
+            assignmentTitle: asg,
+            startTime: landingClock(row.started_at || row.created_at),
+            blocksDone: landingBlocksDone(row.blocks)
           });
         });
       }
@@ -4188,6 +4229,7 @@
           '<div class="coach-activity-head">Recent sessions</div>' +
           '<div id="athlete-recent-sessions-list"><div class="landing-muted">Loading…</div></div>' +
         '</div>' +
+        '<div class="landing-snapshot-divider" aria-hidden="true"></div>' +
         '<div id="athlete-share-block" class="athlete-snapshot">' +
           '<div class="athlete-share-print-head">' +
             '<div>' +
@@ -4195,7 +4237,7 @@
               '<div class="athlete-share-print-name" id="athlete-share-print-name">' + escapeHtml(title) + '</div>' +
               '<div class="athlete-share-print-date" id="athlete-share-print-date"></div>' +
             '</div>' +
-            '<button type="button" class="athlete-share-btn" id="athlete-share-btn">Print / Share</button>' +
+            '<button type="button" class="athlete-share-btn" id="athlete-share-btn">Print / Share snapshot</button>' +
           '</div>' +
           '<div class="roster-stats">' +
             '<div class="roster-stat"><div class="roster-stat-val" id="athlete-stat-sessions">—</div><div class="roster-stat-label">Sessions</div></div>' +
@@ -11594,6 +11636,7 @@
       return loadJournalNotes(token, coachUser, athleteId).then(function(){
         mergeCoachTrainJournalPins();
         _journalReady = true;
+        paintAthleteLandingSessions();
         renderJournalFeed(el);
         return _lastSessionRows;
       });
