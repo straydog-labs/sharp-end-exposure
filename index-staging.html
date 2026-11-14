@@ -416,9 +416,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .train-emom-round{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:10px;}
 .train-emom-round.is-complete{border-color:rgba(126,200,122,.45);}
 .train-emom-round.is-locked{opacity:.5;}
-.train-emom-round.is-locked input,
-.train-emom-round.is-locked textarea,
-.train-emom-round.is-locked button{pointer-events:none;}
+.train-emom-skip-rest{margin-left:8px;background:none;border:1px solid var(--border);border-radius:99px;color:var(--text);font-family:inherit;font-size:12px;font-weight:700;padding:4px 10px;cursor:pointer;}
 .train-emom-round-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
 .train-emom-round-label{font-size:12px;font-weight:700;color:var(--muted);}
 .train-emom-rest{font-size:12px;color:var(--accent);margin-top:6px;font-variant-numeric:tabular-nums;}
@@ -913,6 +911,14 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   color:var(--accent);
   margin-bottom:6px;
 }
+#screen-train-done #train-done-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:28px;
+  font-weight:700;
+  letter-spacing:-.025em;
+  line-height:1.15;
+  color:var(--text);
+}
 .log-done-summary-meta{
   font-size:14px;
   color:var(--muted);
@@ -1388,6 +1394,9 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wk-notice-hint[hidden]{display:none;}
 .wk-notice-hint button{background:none;border:none;color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;padding:0;text-decoration:underline;flex:0 0 auto;}
 .wk-notice-link{flex:0 0 auto;width:72px;background:none;border:none;color:var(--muted);font-size:11px;line-height:1.2;font-family:inherit;cursor:pointer;padding:0;text-align:right;text-decoration:underline;}
+.wk-notice-slot{margin:0 0 8px;}
+.wk-notice-slot .wk-notice-link{display:block;width:auto;text-align:left;font-size:13px;padding:2px 0 6px;}
+.wk-notice-skip{display:block;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:8px 0 0;text-decoration:underline;}
 .wk-notice-summary{font-size:12px;color:var(--muted);}
 .wk-notice-card{margin-top:10px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);}
 .wk-notice-title{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text);}
@@ -6249,7 +6258,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index329'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index330'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -15233,7 +15242,7 @@ function trainSessionBlocksAllComplete(state){
 // training session / climb, never per block.
 var PSYCHE_AWARENESS_CREDIT_PER = 'session';
 var TRAIN_NOTICE_HINT_LS = 'see_train_notice_hint';
-var TRAIN_NOTICE_SHAPES = { emom: 1, rep_pass_fail: 1, circuit: 1, section: 1, check: 1 };
+var TRAIN_NOTICE_SHAPES = { emom: 1, rep_pass_fail: 1, circuit: 1, section: 1, check: 1, interval: 1 };
 
 function trainBlockAllowsNotice(b){
   return !!(b && TRAIN_NOTICE_SHAPES[b.shape] && typeof isWkOn === 'function' && isWkOn());
@@ -15319,10 +15328,7 @@ function dismissTrainNoticeHint(){
 function trainMaybeOfferNotice(b, wasComplete){
   if(!trainBlockAllowsNotice(b)) return;
   var now = trainBlockWorkComplete(b);
-  if(now && !wasComplete && !trainNoticeHasAnswer(b.notice)){
-    b._noticeOpen = true;
-    if(typeof wkCollapsed !== 'undefined') wkCollapsed[b.id] = false;
-  }
+  if(now && !wasComplete && !trainNoticeHasAnswer(b.notice)) b._noticeSkipped = false;
 }
 function toggleTrainNoticeOpen(blockId){
   if(!trainSessionState) return;
@@ -15330,7 +15336,16 @@ function toggleTrainNoticeOpen(blockId){
   var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
   if(!b || !trainBlockAllowsNotice(b)) return;
   b._noticeOpen = !b._noticeOpen;
-  if(b._noticeOpen && typeof wkCollapsed !== 'undefined') wkCollapsed[b.id] = false;
+  if(b._noticeOpen) b._noticeSkipped = false;
+  renderTrainSessionBuilder();
+}
+function skipTrainBlockNotice(blockId){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || !trainBlockAllowsNotice(b)) return;
+  b._noticeOpen = false;
+  b._noticeSkipped = true;
   renderTrainSessionBuilder();
 }
 function selectTrainNoticeAttention(blockId, n){
@@ -15348,9 +15363,7 @@ function selectTrainNoticeAttention(blockId, n){
 }
 function trainNoticeIsCardOpen(b){
   if(!trainBlockAllowsNotice(b)) return false;
-  if(b._noticeOpen) return true;
-  if(trainNoticeHasAnswer(b.notice)) return false;
-  return trainBlockWorkComplete(b);
+  return !!b._noticeOpen;
 }
 function renderTrainNoticeLink(b){
   if(!trainBlockAllowsNotice(b)) return '';
@@ -15377,7 +15390,16 @@ function renderTrainNoticeHtml(b){
     + '<div class="wk-notice-wrap">'+chips+'</div>'
     + '<div class="wk-notice-ends"><span>1 Autopilot</span><span>5 Dialed in</span></div>'
     + '<textarea class="wk-notice-note" id="tb-'+b.id+'-notice" placeholder="Body, effort, attention. What was different this time?" rows="3">'+escTrainHtml(n.note || '')+'</textarea>'
+    + '<button type="button" class="wk-notice-skip" onclick="skipTrainBlockNotice(\''+b.id+'\')">Skip</button>'
     + '</div>';
+}
+function trainNoticeSlot(b){
+  if(!trainBlockAllowsNotice(b)) return '';
+  var inner = trainNoticeIsCardOpen(b) ? renderTrainNoticeHtml(b) : renderTrainNoticeLink(b);
+  if(!trainNoticeIsCardOpen(b) && trainNoticeHasAnswer(b.notice)){
+    inner = renderTrainNoticeHtml(b) + renderTrainNoticeLink(b);
+  }
+  return '<div class="wk-notice-slot" data-notice-slot="'+escTrainHtml(b.id)+'">'+inner+'</div>';
 }
 function hideTrainDoneAssignPrompt(){
   _pendingAssignCompleteId = null;
@@ -16554,6 +16576,7 @@ function wkSetAllComplete(b, on){
       (round.boulders || []).forEach(function(bo){ if(bo) bo.complete = on; });
       if((round.boulders || []).length){
         round.complete = on;
+        if(on) round.rest_skipped = false;
         round.rest_started_at = on ? new Date().toISOString() : null;
       } else {
         round.complete = on;
@@ -16582,9 +16605,11 @@ function toggleWkBoulder(blockId, roundIndex, boulderId){
   if(!bo) return;
   var wasBlock = trainBlockWorkComplete(b);
   bo.complete = !bo.complete;
+  if(bo.complete) stopPriorEmomRests(b, roundIndex);
   var wasComplete = !!round.complete;
   wkDeriveEmom(b);
   if(round.complete && !wasComplete){
+    round.rest_skipped = false;
     round.rest_started_at = new Date().toISOString();
     if(Number(round.rest_after_sec) > 0) requestTrainWakeLock();
   } else if(!round.complete){
@@ -16618,6 +16643,29 @@ function toggleWkCheckItem(blockId, itemId){
   it.complete = !it.complete;
   wkDeriveCheck(b);
   trainMaybeOfferNotice(b, wasBlock);
+  renderTrainSessionBuilder();
+}
+function stopPriorEmomRests(b, roundIndex){
+  if(!b || !Array.isArray(b.rounds)) return;
+  var i;
+  for(i = 0; i < roundIndex; i++){
+    var round = b.rounds[i];
+    if(!round || !round.rest_started_at) continue;
+    if(emomRoundCountdownState(round).phase === 'Counting'){
+      round.rest_started_at = null;
+      round.rest_skipped = true;
+    }
+  }
+}
+function skipEmomRoundRest(blockId, roundIndex){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
+  var round = b.rounds[roundIndex];
+  round.rest_started_at = null;
+  round.rest_skipped = true;
+  if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
   renderTrainSessionBuilder();
 }
 function toggleWkRestComplete(blockId){
@@ -16721,9 +16769,9 @@ function wkRenderEmomBody(b, compact){
     var rst = emomRoundCountdownState(round);
     var restHtml = '';
     if(doneR && rst.phase === 'Counting'){
-      restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Counting">Rest <span data-emom-rest-count="'+escTrainHtml(b.id)+'-'+ri+'">'+formatTrainBlockTimerElapsed(rst.remainingMs)+'</span></div>';
-    } else if(doneR && rst.phase === 'Done' && Number(restSec) > 0){
-      restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Done">Rest done</div>';
+      restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Counting">Rest <span data-emom-rest-count="'+escTrainHtml(b.id)+'-'+ri+'">'+formatTrainBlockTimerElapsed(rst.remainingMs)+'</span> <button type="button" class="train-emom-skip-rest" onclick="skipEmomRoundRest(\''+b.id+'\','+ri+')">Skip rest</button></div>';
+    } else if(doneR && rst.phase === 'Done' && Number(restSec) > 0 && !round.rest_skipped){
+      restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Done">Rest over</div>';
     }
     var inner = (round.boulders || []).map(function(bo, i){
       bo = bo || {};
@@ -18875,7 +18923,10 @@ function paintTrainEmomRestTimers(b){
     if(wrap){
       var prevPhase = wrap.getAttribute('data-emom-rest-phase');
       wrap.setAttribute('data-emom-rest-phase', st.phase);
-      if(prevPhase === 'Counting' && st.phase === 'Done') needUnlock = true;
+      if(prevPhase === 'Counting' && st.phase === 'Done'){
+        needUnlock = true;
+        try{ if(navigator.vibrate) navigator.vibrate(200); }catch(e){}
+      }
     }
   });
   if(needUnlock){
@@ -19163,12 +19214,12 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       + '<span class="wk-blk-chev" style="transform:rotate('+(wkCollapsedNow?'0':'90')+'deg);">›</span>'
       + '<span class="wk-blk-name">'+kicker+'<span class="train-block-title">'+escTrainHtml(trainBlockDisplayTitle(b))+'</span></span>'
       + '</button>'
-      + renderTrainNoticeLink(b)
       + '<span class="wk-mv">'
       + '<span class="wk-drag-handle" data-wk-drag="'+b.id+'" role="button" aria-label="Drag to reorder" title="Drag to reorder">&#8801;</span>'
       + '<button type="button" class="wk-mv-btn" data-wk-move="up" aria-label="Move up" onclick="wkMoveBlock(\''+b.id+'\',-1)"'+(wkPos.pos <= 0 ? ' disabled' : '')+'>&#8593;</button>'
       + '<button type="button" class="wk-mv-btn" data-wk-move="down" aria-label="Move down" onclick="wkMoveBlock(\''+b.id+'\',1)"'+(wkPos.pos < 0 || wkPos.pos >= wkPos.len - 1 ? ' disabled' : '')+'>&#8595;</button>'
-      + '</span></div>';
+      + '</span></div>'
+      + trainNoticeSlot(b);
     if(wkCollapsedNow){
       return head + '<div class="wk-blk-summary" data-wk-summary="'+b.id+'">'+escTrainHtml(wkBlockSummary(b))+'</div></div>';
     }
@@ -19183,7 +19234,8 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       : '')
     + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
-    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button></div></div>';
+    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button></div></div>'
+    + trainNoticeSlot(b);
   }
   var timerRow = '';
   if(timerOn && !isCheck){
@@ -19258,9 +19310,9 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       var rst = emomRoundCountdownState(round);
       var restHtml = '';
       if(doneR && rst.phase === 'Counting'){
-        restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Counting">Rest <span data-emom-rest-count="'+escTrainHtml(b.id)+'-'+ri+'">'+formatTrainBlockTimerElapsed(rst.remainingMs)+'</span></div>';
-      } else if(doneR && rst.phase === 'Done' && Number(restSec) > 0){
-        restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Done">Rest done</div>';
+        restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Counting">Rest <span data-emom-rest-count="'+escTrainHtml(b.id)+'-'+ri+'">'+formatTrainBlockTimerElapsed(rst.remainingMs)+'</span> <button type="button" class="train-emom-skip-rest" onclick="skipEmomRoundRest(\''+b.id+'\','+ri+')">Skip rest</button></div>';
+      } else if(doneR && rst.phase === 'Done' && Number(restSec) > 0 && !round.rest_skipped){
+        restHtml = '<div class="train-emom-rest" data-emom-rest-wrap="'+escTrainHtml(b.id)+'-'+ri+'" data-emom-rest-phase="Done">Rest over</div>';
       }
       var inner;
       if(compact){
@@ -19374,7 +19426,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
   } else if(b.shape === 'rest'){
     body = (typeof isWkOn === 'function' && isWkOn()) ? wkRenderRestBody(b, compact) : fieldHtml('Minutes', 'tb-'+b.id+'-restmin', Math.round((Number(b.duration_sec || b.rest_after_sec) || 0) / 60));
   }
-  return head + timerRow + body + renderTrainNoticeHtml(b) + '</div>';
+  return head + timerRow + body + '</div>';
 }
 
 function renderTrainNotePreview(text){
@@ -19534,16 +19586,20 @@ function toggleTrainEmomRoundComplete(blockId, roundIndex){
   if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
   var round = b.rounds[roundIndex];
   var wasBlock = trainBlockWorkComplete(b);
+  var turningOn;
   if((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(round.boulders) && round.boulders.length){
-    var nextOn = !round.boulders.every(function(bo){ return bo && bo.complete; });
-    round.boulders.forEach(function(bo){ if(bo) bo.complete = nextOn; });
-    round.complete = nextOn;
+    turningOn = !round.boulders.every(function(bo){ return bo && bo.complete; });
+    round.boulders.forEach(function(bo){ if(bo) bo.complete = turningOn; });
+    round.complete = turningOn;
     wkDeriveEmom(b);
   } else {
-    round.complete = !round.complete;
+    turningOn = !round.complete;
+    round.complete = turningOn;
   }
+  if(turningOn) stopPriorEmomRests(b, roundIndex);
   trainMaybeOfferNotice(b, wasBlock);
   if(round.complete){
+    round.rest_skipped = false;
     round.rest_started_at = new Date().toISOString();
     if(Number(round.rest_after_sec) > 0) requestTrainWakeLock();
   } else {

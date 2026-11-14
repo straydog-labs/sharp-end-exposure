@@ -19,8 +19,8 @@ const insights = existsSync(join(root, 'js/coach-athlete-insights.js'))
 const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index329'/.test(index));
-assert.ok(/APP_VERSION = 'index329'/.test(sw));
+assert.ok(/var app_version = 'index330'/.test(index));
+assert.ok(/APP_VERSION = 'index330'/.test(sw));
 assert.ok(/PSYCHE_AWARENESS_CREDIT_PER = 'session'/.test(index));
 assert.ok(/What did you notice\?/.test(index));
 assert.ok(/How present were you\?/.test(index));
@@ -180,6 +180,8 @@ try{
 
     assert.ok(!(await page.$('#train-blocks-wrap .wk-notice-card')), 'no prompt before complete');
     await completeEmom(page);
+    assert.ok(!(await page.$('#train-blocks-wrap .wk-notice-card')), 'notice stays collapsed until tapped');
+    await page.locator('#train-blocks-wrap .wk-notice-link').first().click();
     await page.waitForSelector('#train-blocks-wrap .wk-notice-card', { timeout: 5000 });
     var cardText = await page.textContent('#train-blocks-wrap .wk-notice-card');
     assert.ok(/What did you notice\?/.test(cardText));
