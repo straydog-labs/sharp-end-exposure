@@ -12,8 +12,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index332'/.test(index));
-assert.ok(/APP_VERSION = 'index332'/.test(sw));
+assert.ok(/var app_version = 'index333'/.test(index));
+assert.ok(/APP_VERSION = 'index333'/.test(sw));
 assert.ok(!/WK_DEFAULT_ON/.test(index));
 assert.ok(!/_hangLoadSrc/.test(index));
 const sql = readFileSync(join(root, 'sql/training-sessions-assignment-id.sql'), 'utf8');
@@ -366,7 +366,7 @@ try{
     await page.click('[onclick="trainHangRemoveSet(\'' + hbId + '\',7)"]');
     assert.strictEqual(await page.evaluate(function(){ return trainSessionState.blocks[0].sets.length; }), 7);
 
-    await page.locator('[data-hang-set="1"] button[onclick*="trainToggleRep"]').first().click();
+    await page.evaluate(function(id){ trainToggleRep(id, 0, 0); }, hbId);
     await page.locator('[onclick="trainHangRemoveSet(\'' + hbId + '\',0)"]').click();
     assert.strictEqual((await page.locator('[onclick="trainHangRemoveSet(\'' + hbId + '\',0)"]').textContent()).trim(), 'Confirm remove set');
     await page.locator('[onclick="trainHangRemoveSet(\'' + hbId + '\',0)"]').click();
