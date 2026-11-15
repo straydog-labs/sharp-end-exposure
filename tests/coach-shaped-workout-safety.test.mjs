@@ -71,7 +71,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 ['parseWorkoutSections', 'sectionsAreShaped', 'shapedBlockName', 'shapedBlockSummary', 'shapedBlocksPreviewHtml',
- 'createCoachCustomWorkout', 'saveEditCustomWorkout', 'duplicateCoachCustomWorkout', 'enterEditCustomWorkout',
+ 'createCoachCustomWorkout', 'saveEditCustomWorkout', 'workoutCopyName', 'duplicateCoachCustomWorkout', 'enterEditCustomWorkout',
  'sectionsFromLibraryItem'].forEach(function(n){ vm.runInContext(extractFn(n), ctx); });
 // the coach block builder module (vars + functions) up to the save helper
 const cwbStart = dash.indexOf('  // ---------- Coach block builder ----------');
