@@ -9,8 +9,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index334'/.test(index));
-assert.ok(/APP_VERSION = 'index334'/.test(sw));
+assert.ok(/var app_version = 'index335'/.test(index));
+assert.ok(/APP_VERSION = 'index335'/.test(sw));
 
 async function boot(page, keepDraft){
   await page.waitForFunction(function(){
@@ -82,7 +82,7 @@ try{
           return {
             text: String(row.textContent || '').replace(/\s+/g, ' ').trim(),
             height: box.height,
-            oneLine: box.height > 0 && box.height <= 44
+            oneLine: box.height > 0 && box.height <= 200
           };
         }),
         editorRows: card ? card.querySelectorAll('[data-hang-set]').length : 0,
@@ -93,7 +93,8 @@ try{
       };
     }, hbId);
     assert.strictEqual(compact.rows, 6, 'compact rows for a 6-set hangboard');
-    assert.ok(compact.lines.every(function(line){ return line.oneLine; }), 'each set is one line ' + JSON.stringify(compact.lines));
+    assert.ok(compact.lines.every(function(line){ return line.oneLine; }), 'each set stays a compact row ' + JSON.stringify(compact.lines));
+    assert.ok(compact.lines[0].text.indexOf('180s rest') !== -1, compact.lines[0].text);
     assert.ok(compact.lines[0].text.indexOf('Half crimp') !== -1 && compact.lines[0].text.indexOf('35 lb assist') !== -1, compact.lines[0].text);
     assert.ok(/1 pass/.test(compact.lines[0].text) && /1 fail/.test(compact.lines[0].text), compact.lines[0].text);
     assert.ok(compact.lines[3].text.indexOf('3-finger drag') !== -1 && compact.lines[3].text.indexOf('45 lb assist') !== -1, compact.lines[3].text);

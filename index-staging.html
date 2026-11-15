@@ -313,7 +313,10 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .train-hub-primary .train-energy-card{min-height:120px;padding:16px 12px;}
 .train-landing-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
 .train-pinned-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 16px;margin-bottom:8px;}
-#train-pinned-strip,#train-start-pinned-strip,#psyche-pinned-strip{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+#psyche-pinned-strip{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+#train-pinned-strip,#train-start-pinned-strip{display:flex;flex-direction:column;align-items:stretch;gap:8px;overflow:visible;width:100%;box-sizing:border-box;padding:0 16px 4px;}
+#train-pinned-strip .qp-name,#train-start-pinned-strip .qp-name{display:block;-webkit-line-clamp:none;-webkit-box-orient:unset;overflow:visible;white-space:normal;}
+#train-pinned-strip .qp-meta,#train-start-pinned-strip .qp-meta{white-space:normal;overflow:visible;text-overflow:clip;}
 #train-start-pinned-wrap[hidden],#psyche-pinned-wrap[hidden]{display:none;}
 #psyche-landing-col .content{max-width:none;padding-left:16px;padding-right:16px;}
 .train-hub-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 16px;}
@@ -448,11 +451,11 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wk-hang-set-title{font-size:13px;font-weight:700;margin:0 0 8px;}
 .wk-hang-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;}
 .wk-hang-edit-sets{background:none;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;font-weight:700;padding:6px 10px;min-height:32px;cursor:pointer;margin:0 0 8px;}
-.wk-hang-compact{display:flex;align-items:center;gap:8px;min-height:32px;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.2;white-space:nowrap;}
-.wk-hang-compact-main{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
-.wk-hang-reps{display:flex;gap:4px;flex:0 0 auto;align-items:center;}
+.wk-hang-compact{display:grid;grid-template-columns:minmax(0,1fr) max-content 9em;align-items:center;column-gap:8px;min-height:32px;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.3;}
+.wk-hang-compact-main{min-width:0;color:var(--text);white-space:normal;overflow-wrap:anywhere;word-break:break-word;}
+.wk-hang-reps{display:flex;gap:4px;align-items:center;justify-self:start;}
 .wk-hang-rep{width:22px;height:22px;padding:0;border-radius:6px;background:var(--bg);font-family:inherit;font-size:11px;font-weight:700;line-height:20px;cursor:pointer;box-sizing:border-box;}
-.wk-hang-compact-status{flex:0 0 auto;font-size:12px;color:var(--muted);}
+.wk-hang-compact-status{width:9em;box-sizing:border-box;justify-self:stretch;text-align:right;font-size:12px;line-height:1.25;color:var(--muted);white-space:normal;overflow-wrap:anywhere;}
 .wk-hang-ro-set{margin:0 0 10px;}
 .wk-hang-ro-set-title{font-size:13px;color:var(--text);margin:0 0 4px;}
 .wk-add-bottom{margin:4px 0 8px;}
@@ -4781,7 +4784,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
         <button type="button" class="hub-compact-row" id="train-hub-card-chat" onclick="showScreen('screen-train-chat')">
           <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"/></svg></div>
           <div class="te-title">Coach chat</div>
-          <span id="train-hub-chat-unread" class="fnav-unread-dot" hidden aria-hidden="true"></span>
+          <span id="train-hub-chat-unread" class="te-count" hidden></span>
         </button>
       </div>
     </div>
@@ -6290,7 +6293,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index334'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index335'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -12891,25 +12894,37 @@ function syncAppIconBadge(){
 }
 
 function setTrainChatUnreadBadge(on){
-  ['fnav-train-unread','train-hub-chat-unread'].forEach(function(id){
-    var dot = document.getElementById(id);
-    if(!dot) return;
-    if(on) dot.removeAttribute('hidden');
-    else dot.setAttribute('hidden', '');
-  });
+  var count = (typeof on === 'number' && isFinite(on)) ? Math.max(0, Math.round(on)) : (on ? 1 : 0);
+  var nav = document.getElementById('fnav-train-unread');
+  if(nav){
+    if(count > 0) nav.removeAttribute('hidden');
+    else nav.setAttribute('hidden', '');
+  }
+  var hub = document.getElementById('train-hub-chat-unread');
+  if(hub){
+    if(count > 0){
+      hub.removeAttribute('hidden');
+      hub.textContent = String(count);
+      hub.setAttribute('aria-label', count + ' unread');
+    } else {
+      hub.setAttribute('hidden', '');
+      hub.textContent = '';
+      hub.removeAttribute('aria-label');
+    }
+  }
   var btn = document.getElementById('fnav-train');
   if(btn){
-    if(on) btn.setAttribute('aria-label', 'Train, unread coach message');
+    if(count > 0) btn.setAttribute('aria-label', 'Train, unread coach message');
     else btn.removeAttribute('aria-label');
   }
   setUnreadSource('coachChat', on);
 }
 
 function coachChatHasUnread(rows, selfId){
-  if(!selfId || !Array.isArray(rows)) return false;
-  return rows.some(function(m){
-    return m && m.sender_id && m.sender_id !== selfId && !m.read_at;
-  });
+  return coachChatUnreadCount(rows, selfId) > 0;
+}
+function coachChatUnreadCount(rows, selfId){
+  return coachChatIdsToMarkRead(rows, selfId).length;
 }
 
 function coachChatIdsToMarkRead(rows, selfId){
@@ -12972,10 +12987,10 @@ async function refreshCoachChatUnreadBadge(force){
       }
       var unread = await sbS(
         'coach_messages',
-        'select=id,edited_at&coach_id=eq.' + links[0].coach_id + '&athlete_id=eq.' + selfId +
-          '&sender_id=neq.' + selfId + '&read_at=is.null&limit=1'
+        'select=id&coach_id=eq.' + links[0].coach_id + '&athlete_id=eq.' + selfId +
+          '&sender_id=neq.' + selfId + '&read_at=is.null'
       );
-      setTrainChatUnreadBadge(Array.isArray(unread) && unread.length > 0);
+      setTrainChatUnreadBadge(Array.isArray(unread) ? unread.length : 0);
     } finally {
       _coachBadgeLastAt = Date.now();
       _coachBadgeInflight = null;
@@ -13003,7 +13018,7 @@ async function markCoachChatReadIfViewing(){
     { read_at: now }
   );
   if(sbFailed(saved)){
-    setTrainChatUnreadBadge(true);
+    setTrainChatUnreadBadge(ids.length);
     return false;
   }
   _coachChatMessages.forEach(function(m){
@@ -13159,7 +13174,7 @@ async function loadCoachChat(){
     hideCoachChatSection();
     return;
   }
-  refreshCoachChatUnreadBadge(true);
+  await refreshCoachChatUnreadBadge(true);
   var links = await sbS(
     'coach_athlete_links',
     'select=coach_id&athlete_id=eq.' + window._authUser.id + '&status=eq.active&limit=1'
@@ -13181,14 +13196,14 @@ async function loadCoachChat(){
     coachChatThreadParams(_coachChatCoachId, window._authUser.id)
   );
   _coachChatMessages = Array.isArray(rows) ? rows : [];
-  var unread = coachChatHasUnread(_coachChatMessages, window._authUser.id);
+  var unreadN = coachChatUnreadCount(_coachChatMessages, window._authUser.id);
   renderCoachChatMessages();
   // Mark read only when the athlete is actually looking at the thread.
   // Background badge refresh never calls this.
   if(isAthleteViewingCoachChat()){
     await markCoachChatReadIfViewing();
   } else {
-    setTrainChatUnreadBadge(unread);
+    setTrainChatUnreadBadge(unreadN);
   }
 }
 
@@ -16531,9 +16546,17 @@ function wkDragEnd(e){
 document.addEventListener('pointerup', wkDragEnd);
 document.addEventListener('pointercancel', wkDragEnd);
 
+function wkBoulderTextAlreadyNumbered(text, n){
+  var t = String(text == null ? '' : text).trim();
+  if(!t || !n) return false;
+  return new RegExp('^boulder\\s+' + n + '(?:\\s|$|[^0-9])', 'i').test(t);
+}
 function wkBoulderLabel(i, text){
   var t = String(text == null ? '' : text).trim();
-  return 'Boulder ' + (i + 1) + (t ? ' \u00b7 ' + t : '');
+  var n = i + 1;
+  if(!t) return 'Boulder ' + n;
+  if(wkBoulderTextAlreadyNumbered(t, n)) return t;
+  return 'Boulder ' + n + ' \u00b7 ' + t;
 }
 function restFieldHtml(label, id, secs){
   var s = Number(secs);
@@ -16585,7 +16608,11 @@ function wkEmomLabelLive(el){
   if(!span) return;
   var v = String(el.value || '').trim();
   var base = el.getAttribute('data-fallback') || '';
-  span.textContent = v ? (base ? base + ' \u00b7 ' + v : v) : base;
+  var nMatch = String(base).match(/(\d+)\s*$/);
+  var n = nMatch ? parseInt(nMatch[1], 10) : 0;
+  if(!v) span.textContent = base;
+  else if(n && wkBoulderTextAlreadyNumbered(v, n)) span.textContent = v;
+  else span.textContent = base ? base + ' \u00b7 ' + v : v;
 }
 function wkRemoveEmomRound(blockId, ri){
   if(!trainSessionState) return;
