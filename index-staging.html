@@ -395,6 +395,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   margin:0 0 10px;
 }
 .train-sess-more{position:relative;display:flex;justify-content:flex-end;margin:0 0 8px;}
+.train-sess-more[hidden],.train-sess-more-menu[hidden],.train-sess-more-menu button[hidden]{display:none !important;}
 .train-sess-more > button{
   background:none;border:1px solid var(--border);border-radius:var(--r-md);
   color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;
@@ -6289,7 +6290,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index333'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index334'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -12010,9 +12011,14 @@ function fillHomeAssignmentStart(a, now){
   }
   if(startEl){
     startEl.hidden = false;
-    startEl.textContent = 'Start';
     startEl.dataset.id = a.id || '';
-    startEl.onclick = function(){ startTrainSessionFromAssignment(startEl.dataset.id); };
+    if(trainDraftMatchesAssignment(a.id)){
+      startEl.textContent = 'Resume';
+      startEl.onclick = function(){ resumeTrainDraftForAssignment(startEl.dataset.id); };
+    } else {
+      startEl.textContent = 'Start';
+      startEl.onclick = function(){ startTrainSessionFromAssignment(startEl.dataset.id); };
+    }
   }
 }
 function fillHomeLogAttempt(p){
@@ -13242,7 +13248,10 @@ function trainCardHtml(a){
     ? '<div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">From coach</div>'
     : '<div style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Added by you</div>';
   var btnStyle = 'background:none;border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;';
-  var startBtn = '<button type="button" onclick="startTrainSessionFromAssignment(\''+a.id+'\')" style="'+btnStyle+'">Start</button>';
+  var resumeDraft = trainDraftMatchesAssignment(a.id);
+  var startBtn = resumeDraft
+    ? '<button type="button" onclick="resumeTrainDraftForAssignment(\''+a.id+'\')" style="'+btnStyle+'">Resume</button>'
+    : '<button type="button" onclick="startTrainSessionFromAssignment(\''+a.id+'\')" style="'+btnStyle+'">Start</button>';
   var completeEl = done
     ? '<span style="font-size:11px;font-weight:700;color:var(--comfort);">✓ Completed</span>'
     : '<button type="button" onclick="trainMarkComplete(\''+a.id+'\')" style="'+btnStyle+'">Mark complete</button>';
@@ -16993,7 +17002,9 @@ function trainStartDuplicatedSession(row){
   }
   var srcBlocks = parseTrainSessionBlocks(row);
   var state = newTrainSessionState(row.energy_type, trainSessionWorkoutName(row), '', {
-    source_assignment_id: (row && row.assignment_id) || null
+    source_assignment_id: (row && (row.assignment_id || row.source_assignment_id)) || null,
+    library_item_id: (row && row.library_item_id) || null,
+    custom_workout_item_id: (row && (row.custom_workout_item_id || row.template_id)) || null
   });
   state.blocks = srcBlocks.map(trainCloneBlockForDuplicate).filter(Boolean);
   state.warm_up = row.warm_up || '';
@@ -18580,9 +18591,43 @@ function bindTrainDraftListeners(){
 }
 bindTrainDraftListeners();
 
+function trainSessionHasSourceId(state){
+  if(!state) return false;
+  var keys = ['source_assignment_id', 'assignment_id', 'library_item_id', 'custom_workout_item_id', 'template_id'];
+  var i, v;
+  for(i = 0; i < keys.length; i++){
+    v = state[keys[i]];
+    if(v != null && String(v).trim() !== '') return true;
+  }
+  return false;
+}
 function trainSessionIsBlank(state){
   if(!state) return false;
-  return !state.source_assignment_id && !state.assignment_id && !state.library_item_id && !state.custom_workout_item_id;
+  return !trainSessionHasSourceId(state);
+}
+function trainDraftAssignmentId(){
+  var env = null;
+  try{
+    var id = trainDraftUserId();
+    env = id ? readTrainDraftForUser(id) : null;
+  }catch(e){ env = null; }
+  var st = env && env.state;
+  if(!st) return '';
+  var aid = st.source_assignment_id || st.assignment_id || '';
+  return aid ? String(aid) : '';
+}
+function trainDraftMatchesAssignment(assignmentId){
+  if(assignmentId == null || assignmentId === '') return false;
+  var draftId = '';
+  try{ draftId = trainDraftAssignmentId(); }catch(e){ return false; }
+  return !!draftId && draftId === String(assignmentId);
+}
+function resumeTrainDraftForAssignment(assignmentId){
+  if(!trainDraftMatchesAssignment(assignmentId)){
+    startTrainSessionFromAssignment(assignmentId);
+    return;
+  }
+  resumeTrainDraft();
 }
 function trainSessionHasWarmupCheck(state){
   return ((state && state.blocks) || []).some(function(b){
@@ -18763,13 +18808,19 @@ function paintTrainSessionChrome(){
   }
   var buildSave = document.getElementById('train-sess-save-workout');
   if(buildSave) buildSave.hidden = !!running;
+  var saveAsBtn = document.getElementById('train-sess-save-as');
+  if(saveAsBtn) saveAsBtn.hidden = !(running && blank);
   var more = document.getElementById('train-sess-more-wrap');
   if(more){
-    more.hidden = !(running && blank);
-    if(more.hidden){
-      var menu = document.getElementById('train-sess-more-menu');
-      if(menu) menu.hidden = true;
+    var menu = document.getElementById('train-sess-more-menu');
+    var menuButtons = menu ? menu.querySelectorAll('button') : [];
+    var anyShown = false;
+    var mi;
+    for(mi = 0; mi < menuButtons.length; mi++){
+      if(menuButtons[mi] && !menuButtons[mi].hidden) anyShown = true;
     }
+    more.hidden = !anyShown;
+    if(more.hidden && menu) menu.hidden = true;
   }
   var nameRow = document.getElementById('train-sess-workout-name-row');
   var nameEl = document.getElementById('train-sess-workout-name');
