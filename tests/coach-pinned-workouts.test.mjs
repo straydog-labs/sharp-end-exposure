@@ -109,7 +109,9 @@ assert.ok(/data-pin-note-save/.test(editing));
 assert.ok(!/Quiet feet on the slab<\/span>/.test(editing), 'note moves into textarea while editing');
 
 const dupSrc = extractFn(dash, 'duplicateCoachCustomWorkout', 'wizardLibraryRowHtml');
-assert.ok(/baseName \+ ' \(copy\)'/.test(dupSrc) || / \(copy\)/.test(dupSrc));
+assert.ok(/workoutCopyName\(/.test(dupSrc), 'library duplicate uses the shared copy suffix');
+const copyNameSrc = extractFn(dash, 'workoutCopyName', 'duplicateCoachCustomWorkout');
+assert.ok(copyNameSrc.indexOf("return / \\(copy\\)$/.test(baseName) ? baseName : (baseName + ' (copy)')") !== -1);
 assert.ok(/enterEditCustomWorkout\(created\)/.test(dupSrc));
 
 console.log('coach-pinned-workouts tests passed');

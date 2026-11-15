@@ -15,6 +15,10 @@ function blocksNote(name){
   return name + ' — ' + NOTE;
 }
 
+function pathText(raw){
+  return String(raw || '').replace(/\s+/g, ' ').trim();
+}
+
 const CUSTOM_SECTIONS = [
   { id: 'b1', shape: 'rep_pass_fail', title: 'Repeaters', grip: 'half crimp', assistance: '+35 lb',
     sets: [{ reps: [{ ok: null }, { ok: null }] }], progression_note: '', marker: { keep: 'yes' } },
@@ -178,6 +182,19 @@ async function run(){
       const copyId = await page.getAttribute('#wiz-blocks-field', 'data-workout-id');
       assert.strictEqual(await page.inputValue('#new-a-name-edit'), 'Jess session', 'Title unchanged');
       assert.strictEqual((await page.locator('#aw-q').innerText()).trim(), 'Customize for this athlete', 'stays on step 3');
+      assert.strictEqual((await page.locator('#wiz-dup-success').innerText()).trim(), 'Copy created: Repeaters (copy)');
+      assert.strictEqual(pathText(await page.locator('.aw-path').innerText()), 'Hangboard · Repeaters (copy)');
+      assert.strictEqual(await page.locator('#wiz-duplicate-workout').isDisabled(), true, 'Duplicate stays disabled');
+      const feedbackOrder = await page.evaluate(function(){
+        var btn = document.getElementById('wiz-duplicate-workout');
+        var ok = document.getElementById('wiz-dup-success');
+        var title = document.querySelector('label[for="new-a-name-edit"]');
+        var path = document.querySelector('.aw-path');
+        if(!btn || !ok || !title || !path) return false;
+        var after = Node.DOCUMENT_POSITION_FOLLOWING;
+        return !!(btn.compareDocumentPosition(ok) & after) && !!(path.compareDocumentPosition(title) & after);
+      });
+      assert.strictEqual(feedbackOrder, true, 'success sits under the buttons and the path label sits above Title');
       assert.strictEqual((await page.locator('#wiz-blocks-note').innerText()).trim(), blocksNote('Repeaters (copy)'));
       const inserted = firstBody(postsTo(recorded, 'custom_workouts', 'POST'));
       assert.ok(inserted, 'custom workout insert');
@@ -324,6 +341,8 @@ async function run(){
       assert.strictEqual(await page.getAttribute('#wiz-blocks-field', 'data-workout-source'), 'custom');
       assert.strictEqual((await page.locator('#aw-q').innerText()).trim(), 'Customize for this athlete');
       assert.strictEqual((await page.locator('#wiz-duplicate-workout').innerText()).trim(), 'Duplicate workout');
+      assert.strictEqual(await page.locator('#wiz-duplicate-workout').isDisabled(), false, 'failure keeps Duplicate enabled');
+      assert.strictEqual(await page.locator('#wiz-dup-success').count(), 0, 'failure does not show the success line');
       assert.ok(postsTo(recorded, 'custom_workouts', 'POST').length >= 1, 'insert was attempted');
       assert.ok(!recorded.some(function(r){
         return r.method === 'PATCH' && r.url.indexOf('custom_workouts') !== -1;
@@ -339,6 +358,55 @@ async function run(){
       assert.ok(updated, 'assignment still saves');
       assert.strictEqual(updated.body.custom_workout_item_id, 'cw-1', 'selection stayed on the original');
       assert.strictEqual(updated.body.title, 'Jess session');
+    });
+
+    await withPage(browser, port, {
+      path: '/coach-dashboard.html',
+      viewport: { width: 1280, height: 1400 },
+      session: coachSession(),
+      assignments: [asg({ id: 'asg-1', title: 'Repeaters', custom_workout_item_id: 'cw-1' })],
+      stub: makeStub()
+    }, async function(page){
+      await openCustomizeFromEdit(page, 'asg-1');
+      await page.waitForSelector('#wiz-duplicate-workout', { timeout: 8000 });
+      await page.fill('#new-a-name-edit', 'Jess session');
+      await tap(page, '#wiz-duplicate-workout');
+      await page.waitForSelector('#wiz-dup-success', { timeout: 8000 });
+      assert.strictEqual(await page.locator('#wiz-duplicate-workout').isDisabled(), true);
+      await tap(page, '#wiz-back');
+      await page.waitForSelector('.aw-chip[data-id="cw-1"]', { timeout: 8000 });
+      await tap(page, '.aw-chip[data-id="cw-1"]');
+      await page.waitForFunction(function(){
+        var el = document.getElementById('wiz-blocks-field');
+        var btn = document.getElementById('wiz-duplicate-workout');
+        return !!(el && btn && el.getAttribute('data-workout-id') === 'cw-1' && !btn.disabled);
+      }, null, { timeout: 8000 });
+      assert.strictEqual(await page.locator('#wiz-duplicate-workout').isDisabled(), false, 'a different workout re-enables Duplicate');
+      assert.strictEqual(await page.locator('#wiz-dup-success').count(), 0);
+      assert.strictEqual(await page.getAttribute('#wiz-blocks-field', 'data-workout-id'), 'cw-1');
+    });
+
+    const CW_ALREADY = Object.assign({}, CW, { id: 'cw-copied', name: 'Repeaters (copy)' });
+    await withPage(browser, port, {
+      path: '/coach-dashboard.html',
+      viewport: { width: 1280, height: 1400 },
+      session: coachSession(),
+      assignments: [asg({ id: 'asg-copied', title: 'Repeaters (copy)', custom_workout_item_id: 'cw-copied' })],
+      stub: makeStub({ customs: [CW_ALREADY] })
+    }, async function(page, recorded){
+      await openCustomizeFromEdit(page, 'asg-copied');
+      await page.waitForSelector('#wiz-duplicate-workout', { timeout: 8000 });
+      await page.fill('#new-a-name-edit', 'Keep assignment title');
+      await tap(page, '#wiz-duplicate-workout');
+      await page.waitForSelector('#wiz-dup-success', { timeout: 8000 });
+      const inserted = firstBody(postsTo(recorded, 'custom_workouts', 'POST'));
+      assert.strictEqual(inserted.name, 'Repeaters (copy)');
+      assert.ok(!/\(copy\) \(copy\)/.test(inserted.name), 'suffix does not stack');
+      assert.strictEqual((await page.locator('#wiz-dup-success').innerText()).trim(), 'Copy created: Repeaters (copy)');
+      assert.strictEqual(pathText(await page.locator('.aw-path').innerText()), 'Hangboard · Repeaters (copy)');
+      assert.ok(pathText(await page.locator('.aw-path').innerText()).indexOf('(copy) (copy)') === -1);
+      assert.strictEqual(await page.inputValue('#new-a-name-edit'), 'Keep assignment title');
+      assert.strictEqual(await page.locator('#wiz-duplicate-workout').isDisabled(), true);
     });
   } finally {
     await browser.close();

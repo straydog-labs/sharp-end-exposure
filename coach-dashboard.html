@@ -1476,6 +1476,9 @@
     border:1px solid var(--accent);color:var(--accent);border-radius:12px;background:transparent;
   }
   .aw-secondary-btn.aw-edit-blocks:hover{color:var(--accent);background:rgba(232,146,82,.12);}
+  .aw-secondary-btn:disabled,
+  .aw-secondary-btn:disabled:hover{opacity:.45;cursor:default;}
+  .wiz-dup-success{margin:6px 0 0;font-size:13px;color:#7fbf3f;line-height:1.4;}
   .aw-blocks-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;}
   .aw-blocks-actions .aw-secondary-btn{width:auto;flex:1 1 180px;}
   .aw-linkish{
@@ -9594,6 +9597,13 @@
     });
   }
 
+  // Shared by the library-row Duplicate and the assign-wizard Duplicate.
+  // A name that already ends with " (copy)" is kept, so the suffix does not stack.
+  function workoutCopyName(name){
+    var baseName = String(name || 'Workout').trim() || 'Workout';
+    return / \(copy\)$/.test(baseName) ? baseName : (baseName + ' (copy)');
+  }
+
   function duplicateCoachCustomWorkout(item){
     var ctx = _assignWizardCtx;
     if(!ctx || !item || item._source !== 'custom') return;
@@ -9608,10 +9618,9 @@
       sections = cleanedAssignWizardSections();
       _assignWizard.sections = prevSections;
     }
-    var baseName = String(item.name || 'Workout').trim() || 'Workout';
     createCoachCustomWorkout(ctx.token, ctx.coachUser, {
       trainingFocus: item._focus || itemTrainingFocus(item) || item.training_focus,
-      name: / \(copy\)$/.test(baseName) ? baseName : (baseName + ' (copy)'),
+      name: workoutCopyName(item.name),
       description: item.description || null,
       sections: sections
     }).then(function(row){
@@ -9837,8 +9846,7 @@
     sourceSectionsForDuplicate(ctx.token, item).then(function(sections){
       if(!still()) return;
       var focus = trainingFocusForWorkoutCopy(item, sections);
-      var sourceName = String(item.name || '').trim() || 'Workout';
-      var copyName = sourceName + ' (copy)';
+      var copyName = workoutCopyName(item.name);
       var description = item.description == null ? null : item.description;
       return createCoachCustomWorkout(ctx.token, ctx.coachUser, {
         trainingFocus: focus,
@@ -9874,6 +9882,8 @@
         _coachLibSelectedId = row.id;
         _assignWizard.drillName = liveTitle ? liveTitle.value : typedTitle;
         _assignWizard.trainingFocus = writtenFocus || _assignWizard.trainingFocus;
+        _assignWizard.dupLockedId = row.id;
+        _assignWizard.dupPathName = copy.name;
         _assignWizard.step = 3;
         renderAssignWizardBody();
         loadCoachWorkoutLibrary(ctx.token).then(function(rows){
@@ -10175,7 +10185,8 @@
   function wizardPathSummaryHtml(){
     var parts = [];
     if(_assignWizard.trainingFocus) parts.push('<b>' + escapeHtml(coachLibFocusLabel(_assignWizard.trainingFocus)) + '</b>');
-    if(_assignWizard.drillName) parts.push('<b>' + escapeHtml(_assignWizard.drillName) + '</b>');
+    var pathName = _assignWizard.dupPathName || _assignWizard.drillName;
+    if(pathName) parts.push('<b>' + escapeHtml(pathName) + '</b>');
     var warmupId = assignmentWarmupId();
     if(warmupId){
       var wu = warmupCustomWorkoutRows().find(function(r){ return r.id === warmupId; });
@@ -10360,6 +10371,11 @@
     var body = document.getElementById('wiz-body');
     var msgEl = document.getElementById('new-a-msg');
     if(!body || !_assignWizard) return;
+    var selectedId = _assignWizard.customWorkoutItemId || _assignWizard.libraryItemId || '';
+    if(_assignWizard.dupLockedId && selectedId !== _assignWizard.dupLockedId){
+      _assignWizard.dupLockedId = null;
+      _assignWizard.dupPathName = null;
+    }
     if(msgEl) msgEl.innerHTML = '';
     setAssignWizardFooter('');
 
@@ -10597,14 +10613,20 @@
         if(editable){
           actions += '<button type="button" class="aw-secondary-btn aw-edit-blocks" id="wiz-edit-blocks">Edit workout blocks</button>';
         }
+        var dupLocked = !!(_assignWizard.dupLockedId && shown.id === _assignWizard.dupLockedId);
+        var dupSuccess = dupLocked ? String(_assignWizard.dupPathName || '').trim() : '';
         if(sourceItem){
-          actions += '<button type="button" class="aw-secondary-btn aw-edit-blocks" id="wiz-duplicate-workout">Duplicate workout</button>';
+          actions += '<button type="button" class="aw-secondary-btn aw-edit-blocks" id="wiz-duplicate-workout"' +
+            (dupLocked ? ' disabled' : '') + '>Duplicate workout</button>';
         }
         blocksField =
           '<div class="aw-field" id="wiz-blocks-field" data-workout-id="' + escapeHtml(shown.id) +
             '" data-workout-source="' + (shown._source === 'custom' ? 'custom' : 'foundational') + '">' +
             '<label>Workout blocks</label>' +
             '<div class="aw-blocks-actions">' + actions + '</div>' +
+            (dupSuccess
+              ? '<div id="wiz-dup-success" class="wiz-dup-success">Copy created: ' + escapeHtml(dupSuccess) + '</div>'
+              : '') +
             (editable
               ? '<div class="form-note" id="wiz-blocks-note" style="margin:6px 0 0;">' +
                   escapeHtml(String(editable.name || '').trim() || 'This workout') +
