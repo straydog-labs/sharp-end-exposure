@@ -9,8 +9,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index333'/.test(index));
-assert.ok(/APP_VERSION = 'index333'/.test(sw));
+assert.ok(/var app_version = 'index334'/.test(index));
+assert.ok(/APP_VERSION = 'index334'/.test(sw));
 
 async function boot(page, keepDraft){
   await page.waitForFunction(function(){
