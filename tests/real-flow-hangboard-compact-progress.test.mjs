@@ -9,8 +9,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index335'/.test(index));
-assert.ok(/APP_VERSION = 'index335'/.test(sw));
+assert.ok(/var app_version = 'index336'/.test(index));
+assert.ok(/APP_VERSION = 'index336'/.test(sw));
 
 async function boot(page, keepDraft){
   await page.waitForFunction(function(){
@@ -42,7 +42,7 @@ const { server, port } = await startStaticServer();
 try{
   await withPage(browser, port, {
     path: '/index.html',
-    viewport: { width: 390, height: 900 },
+    viewport: { width: 346, height: 900 },
     session: { access_token: 'test-token', user: { id: USER_ID } }
   }, async function(page){
     await boot(page);
@@ -77,12 +77,23 @@ try{
       var edit = card ? card.querySelector('[data-hang-edit-sets]') : null;
       return {
         rows: rows.length,
+        innerWidth: window.innerWidth,
         lines: rows.map(function(row){
           var box = row.getBoundingClientRect();
+          var main = row.querySelector('.wk-hang-compact-main');
+          var reps = row.querySelector('.wk-hang-reps');
+          var status = row.querySelector('.wk-hang-compact-status');
+          var mainBox = main ? main.getBoundingClientRect() : null;
+          var repsBox = reps ? reps.getBoundingClientRect() : null;
+          var statusBox = status ? status.getBoundingClientRect() : null;
           return {
             text: String(row.textContent || '').replace(/\s+/g, ' ').trim(),
-            height: box.height,
-            oneLine: box.height > 0 && box.height <= 200
+            width: Math.round(box.width),
+            height: Math.round(box.height * 100) / 100,
+            oneLine: box.height > 0 && box.height <= 90,
+            labelAbove: !!(mainBox && repsBox && mainBox.bottom <= repsBox.top + 1),
+            labelFull: !!(mainBox && mainBox.width >= box.width - 2),
+            statusRight: !!(statusBox && repsBox && statusBox.left >= repsBox.right - 1 && Math.abs(statusBox.top - repsBox.top) < 8)
           };
         }),
         editorRows: card ? card.querySelectorAll('[data-hang-set]').length : 0,
@@ -93,7 +104,9 @@ try{
       };
     }, hbId);
     assert.strictEqual(compact.rows, 6, 'compact rows for a 6-set hangboard');
-    assert.ok(compact.lines.every(function(line){ return line.oneLine; }), 'each set stays a compact row ' + JSON.stringify(compact.lines));
+    assert.strictEqual(compact.innerWidth, 346, 'row heights measured at 346px');
+    console.log('compact rows at 346px: ' + compact.lines.map(function(line){ return line.width + 'x' + line.height; }).join(', '));
+    assert.ok(compact.lines.every(function(line){ return line.oneLine && line.labelAbove && line.labelFull && line.statusRight; }), 'each set is two lines and at most 90px at 346px ' + JSON.stringify(compact.lines));
     assert.ok(compact.lines[0].text.indexOf('180s rest') !== -1, compact.lines[0].text);
     assert.ok(compact.lines[0].text.indexOf('Half crimp') !== -1 && compact.lines[0].text.indexOf('35 lb assist') !== -1, compact.lines[0].text);
     assert.ok(/1 pass/.test(compact.lines[0].text) && /1 fail/.test(compact.lines[0].text), compact.lines[0].text);
