@@ -9,8 +9,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index340'/.test(index));
-assert.ok(/APP_VERSION = 'index340'/.test(sw));
+assert.ok(/var app_version = 'index341'/.test(index));
+assert.ok(/APP_VERSION = 'index341'/.test(sw));
 assert.ok(/Tap to cycle: sent, failed, clear\./.test(index));
 assert.ok(!/toggleWkBoulder/.test(index.slice(index.indexOf('function wkRenderCircuitBody'), index.indexOf('function wkRenderCheckBody'))));
 
