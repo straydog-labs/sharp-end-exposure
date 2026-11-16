@@ -9,7 +9,7 @@ const html = readFileSync(join(__dirname, '../founder-dashboard.html'), 'utf8');
 
 assert.ok(/id="users-filter-baseline"/.test(html));
 assert.ok(/data-sort="baseline"/.test(html));
-assert.ok(/hydrateUsersBaselineFlags/.test(html));
+assert.ok(!/function hydrateUsersBaselineFlags/.test(html), 'cross-user baseline REST read removed');
 assert.ok(/fetchUserBaseline/.test(html));
 assert.ok(/is_baseline=eq\.true&user_id=eq\./.test(html), 'same baseline query as coach');
 assert.ok(/foundash_athlete_training/.test(html.match(/function openUserDetail\(userId\)\{[\s\S]*?\n  function /)[0]));
