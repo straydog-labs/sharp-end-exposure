@@ -106,7 +106,13 @@
     border-bottom:1px solid var(--border);background:var(--surface);
     min-width:0;
   }
-  .topbar-word{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-width:0;flex:0 1 auto;}
+  .topbar-word{
+    font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;min-width:0;flex:0 1 auto;
+  }
+  button.topbar-word{
+    background:none;border:none;padding:0;margin:0;color:inherit;cursor:pointer;text-align:left;
+  }
   .topbar-word span{color:var(--accent);}
   .topbar-coaching-label{color:var(--text-secondary);font-weight:400;text-transform:none;letter-spacing:0;}
   .topbar-right{
@@ -117,9 +123,15 @@
   #whoami{
     max-width:20ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
   }
+  #coach-home-btn{
+    background:transparent;border:none;padding:7px 0;color:var(--text-secondary);
+    font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;
+    white-space:nowrap;flex:0 0 auto;
+  }
+  #coach-home-btn:hover{color:var(--accent);}
   #coach-guide-link{
     color:var(--text-secondary);text-decoration:none;font-family:'Space Grotesk',sans-serif;
-    font-size:12.5px;font-weight:700;padding:7px 0;white-space:nowrap;
+    font-size:12.5px;font-weight:700;padding:7px 0;white-space:nowrap;flex:0 0 auto;
   }
   #coach-guide-link:hover{color:var(--accent);}
   #signout-btn{
@@ -1695,10 +1707,11 @@
   <!-- ================= APP SHELL ================= -->
   <div id="app">
     <div id="topbar">
-      <div class="topbar-word">STRAY<span>DOG</span> LABS <span class="topbar-coaching-label">— Coaching</span></div>
+      <button type="button" class="topbar-word" id="coach-brand-home">STRAY<span>DOG</span> LABS <span class="topbar-coaching-label">— Coaching</span></button>
       <!-- Founder back-office (roster across coaches, grant/revoke is_coach): founder-dashboard.html -->
       <div class="topbar-right">
         <span id="whoami"></span>
+        <button type="button" id="coach-home-btn">Home</button>
         <a id="coach-guide-link" href="/sharp-end-exposure/guide/coach-guide.html" target="_blank" rel="noopener">Guide / Help</a>
         <button type="button" id="personal-dash-btn" title="Go to your personal athlete dashboard">My dashboard</button>
         <a id="founder-dash-btn" href="founder-dashboard.html" target="_blank" rel="noopener" hidden aria-hidden="true" title="Open the founder back-office">Founder</a>
@@ -2229,6 +2242,83 @@
     window.location.href = 'index.html';
   });
 
+  document.getElementById('coach-home-btn').addEventListener('click', goCoachRosterHome);
+  document.getElementById('coach-brand-home').addEventListener('click', goCoachRosterHome);
+
+  var _coachNavPop = false;
+
+  function scrollCoachPageTop(){
+    try{
+      window.scrollTo(0, 0);
+      if(document.documentElement) document.documentElement.scrollTop = 0;
+      if(document.body) document.body.scrollTop = 0;
+      var main = document.getElementById('main');
+      if(main) main.scrollTop = 0;
+      var panel = document.getElementById('detail-panel');
+      if(panel) panel.scrollTop = 0;
+    }catch(e){}
+  }
+
+  function noteCoachAthleteOpened(athleteId){
+    if(_coachNavPop) return;
+    if(!window.history || !window.history.pushState) return;
+    var id = String(athleteId || '');
+    var state = window.history.state || {};
+    try{
+      if(state.seeCoachAthlete){
+        if(String(state.seeCoachAthlete) !== id){
+          window.history.replaceState({ seeCoachAthlete: id }, '');
+        }
+        return;
+      }
+      window.history.pushState({ seeCoachAthlete: id }, '');
+    }catch(e){}
+  }
+
+  function goCoachRosterHome(){
+    var state = window.history && window.history.state;
+    if(state && state.seeCoachAthlete && window.history.back){
+      if(_coachNavPop) return;
+      _coachNavPop = true;
+      window.history.back();
+      return;
+    }
+    closeCoachDetailToRoster();
+  }
+
+  window.addEventListener('popstate', function(){
+    var state = (window.history && window.history.state) || {};
+    _coachNavPop = false;
+    if(state.seeCoachAthlete){
+      if(_detailCtx && String(_detailCtx.athleteId) === String(state.seeCoachAthlete)) return;
+      if(!_coachHomeCtx || !_coachRoster) return;
+      var row = null;
+      _coachRoster.forEach(function(r){
+        if(String(r.athlete_id) === String(state.seeCoachAthlete)) row = r;
+      });
+      if(!row) return;
+      _coachNavPop = true;
+      renderAthleteDetail(
+        _coachHomeCtx.token,
+        _coachHomeCtx.user,
+        row.athlete_id,
+        athleteDisplayLabel(row),
+        String(row.athlete_email || '')
+      );
+      var listEl = document.getElementById('roster-list');
+      if(listEl){
+        Array.prototype.forEach.call(listEl.querySelectorAll('.roster-row'), function(r){
+          r.classList.toggle('active', String(r.getAttribute('data-athlete-id')) === String(row.athlete_id));
+        });
+      }
+      _coachNavPop = false;
+      return;
+    }
+    if(_detailCtx || document.getElementById('athlete-landing') || document.querySelector('.coach-layout.detail-open')){
+      closeCoachDetailToRoster();
+    }
+  });
+
   function hideFounderDashBtn(){
     var btn = document.getElementById('founder-dash-btn');
     if(!btn) return;
@@ -2353,6 +2443,7 @@
     }
     restoreRosterHomePanel();
     syncCoachStackBack();
+    scrollCoachPageTop();
   }
 
   function onCoachStackBack(){
@@ -4205,6 +4296,7 @@
       '<div id="athlete-landing">' +
         '<div class="detail-header">' +
           '<div>' +
+            '<button type="button" class="detail-back" data-roster-home="1">← Roster</button>' +
             '<div class="detail-title">' + escapeHtml(title) + '</div>' +
             sub +
           '</div>' +
@@ -4297,6 +4389,7 @@
         '</div>' +
       '</div>' +
       '<div id="athlete-subview" style="display:none;">' +
+        '<button type="button" class="detail-back" data-roster-home="1">← Roster</button>' +
         '<button type="button" class="detail-back" id="athlete-subview-back">← Back</button>' +
         '<div class="detail-section" id="detail-new-assignment" style="display:none;"></div>' +
         '<div class="detail-section" id="detail-assignments" style="display:none;"><div class="panel-title">Assignments</div><div>Loading···</div></div>' +
@@ -4313,6 +4406,12 @@
     paintAthleteSnapshotStamp();
 
     document.getElementById('athlete-subview-back').addEventListener('click', showAthleteLanding);
+    Array.prototype.forEach.call(detailEl.querySelectorAll('[data-roster-home]'), function(btn){
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        goCoachRosterHome();
+      });
+    });
     var headerAssign = document.getElementById('athlete-header-assign');
     if(headerAssign){
       headerAssign.addEventListener('click', function(){ startAssign(); });
@@ -4359,6 +4458,7 @@
     loadAthleteCoachNotes(token, coachUser, athleteId);
     loadAthleteInsightPanels(token, athleteId);
     openCoachDetailOverlay();
+    noteCoachAthleteOpened(athleteId);
   }
 
   var _coachLogState = {
