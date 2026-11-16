@@ -31,7 +31,7 @@ assert.ok(/option value="Signed up · active"/.test(html));
 assert.ok(/option value="Signed up · no activity"/.test(html));
 assert.ok(/option value="not">Not coach/.test(html));
 
-['name','email','role','coach','signup','sessions','climbs','lastActivity','linked','baseline'].forEach(function(key){
+['name','email','role','coach','signup','sessions','climbs','training','lastActivity','linked','baseline','openAssignments'].forEach(function(key){
   assert.ok(html.indexOf('data-sort="' + key + '"') !== -1, 'sort header ' + key);
 });
 assert.ok(/var _usersSort = \{ key: null, dir: 'asc' \}/.test(html));

@@ -873,8 +873,8 @@
           <span>Signed in as <b id="sidebar-admin-email"></b></span>
           <button type="button" class="bo-btn" id="sidebar-signout">Sign out</button>
         </div>
-        <div class="mono">v0.3.1 · foundash</div>
-        <div>Last updated 2026-09-15</div>
+        <div class="mono">v0.3.3 · foundash</div>
+        <div>Last updated 2026-11-16</div>
       </div>
     </div>
 
@@ -957,6 +957,12 @@
           <div id="users-sql-banner" class="bo-warn" style="display:none;"></div>
           <div class="users-toolbar">
             <button type="button" class="bo-btn" id="users-refresh-btn">Refresh</button>
+            <label class="users-toggle" for="users-hide-test">
+              <input type="checkbox" id="users-hide-test" checked>
+              Hide test accounts
+            </label>
+            <span id="users-showing-count" class="mono"></span>
+            <span id="users-refreshed-at" class="mono"></span>
           </div>
           <div class="panel" style="margin-bottom:0;overflow-x:auto;">
             <table class="bo-table" id="users-table">
@@ -967,11 +973,13 @@
                   <th class="users-sort-th" data-sort="role" tabindex="0" role="columnheader" aria-sort="none">Role <span class="users-sort-ind" aria-hidden="true"></span></th>
                   <th class="users-sort-th" data-sort="coach" tabindex="0" role="columnheader" aria-sort="none">Coach <span class="users-sort-ind" aria-hidden="true"></span></th>
                   <th class="users-sort-th" data-sort="signup" tabindex="0" role="columnheader" aria-sort="none">Signed up <span class="users-sort-ind" aria-hidden="true"></span></th>
-                  <th class="users-sort-th" data-sort="sessions" tabindex="0" role="columnheader" aria-sort="none">Sessions <span class="users-sort-ind" aria-hidden="true"></span></th>
-                  <th class="users-sort-th" data-sort="climbs" tabindex="0" role="columnheader" aria-sort="none">Climbs <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="sessions" tabindex="0" role="columnheader" aria-sort="none" title="Climb sessions. Baseline and check-ins are not counted.">Sessions <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="climbs" tabindex="0" role="columnheader" aria-sort="none" title="Rows in the climbs table. Sessions logged without a named climb are not counted here.">Named climbs <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="training" tabindex="0" role="columnheader" aria-sort="none">Training <span class="users-sort-ind" aria-hidden="true"></span></th>
                   <th class="users-sort-th" data-sort="lastActivity" tabindex="0" role="columnheader" aria-sort="none">Last activity <span class="users-sort-ind" aria-hidden="true"></span></th>
                   <th class="users-sort-th" data-sort="linked" tabindex="0" role="columnheader" aria-sort="none">Linked <span class="users-sort-ind" aria-hidden="true"></span></th>
                   <th class="users-sort-th" data-sort="baseline" tabindex="0" role="columnheader" aria-sort="none">Baseline <span class="users-sort-ind" aria-hidden="true"></span></th>
+                  <th class="users-sort-th" data-sort="openAssignments" tabindex="0" role="columnheader" aria-sort="none">Open assignments <span class="users-sort-ind" aria-hidden="true"></span></th>
                 </tr>
                 <tr class="users-filter-row">
                   <td><input id="users-filter-name" type="search" placeholder="Filter…" aria-label="Filter name"></td>
@@ -997,6 +1005,7 @@
                   <td><input id="users-filter-signup" type="search" placeholder="Filter…" aria-label="Filter signed up"></td>
                   <td><input id="users-filter-sessions" type="search" placeholder="Filter…" aria-label="Filter sessions"></td>
                   <td><input id="users-filter-climbs" type="search" placeholder="Filter…" aria-label="Filter climbs"></td>
+                  <td><input id="users-filter-training" type="search" placeholder="Filter…" aria-label="Filter training"></td>
                   <td><input id="users-filter-last" type="search" placeholder="Filter…" aria-label="Filter last activity"></td>
                   <td><input id="users-filter-linked" type="search" placeholder="Filter…" aria-label="Filter linked"></td>
                   <td>
@@ -1006,14 +1015,15 @@
                       <option value="not">Not set</option>
                     </select>
                   </td>
+                  <td><input id="users-filter-open" type="search" placeholder="Filter…" aria-label="Filter open assignments"></td>
                 </tr>
               </thead>
               <tbody id="users-tbody">
-                <tr><td colspan="10" class="bo-empty">Loading···</td></tr>
+                <tr><td colspan="12" class="bo-empty">Loading···</td></tr>
               </tbody>
             </table>
           </div>
-          <div class="schema-note">RPC: <code>foundash_list_all_users()</code> · Sessions = real logged climbs (<code>is_checkin = false AND deleted_at IS NULL</code>, see <code>sql/foundash-list-all-users-session-count.sql</code>) · row click opens <code>foundash_user_detail</code>.</div>
+          <div class="schema-note">RPC: <code>foundash_users_summary()</code> · Sessions = real logged climbs (<code>is_checkin = false AND deleted_at IS NULL</code>, see <code>sql/foundash-users-summary.sql</code>) · row click opens <code>foundash_user_detail</code>.</div>
         </div>
       </section>
 
@@ -3770,8 +3780,13 @@
   var _usersRoleFilter = null;
   var _usersCoachFilter = null;
   var _usersBaselineFilter = null;
-  var _usersTextFilters = { name:'', email:'', signup:'', sessions:'', climbs:'', lastActivity:'', linked:'' };
+  var _usersHideTest = true;
+  var _usersTextFilters = { name:'', email:'', signup:'', sessions:'', climbs:'', training:'', lastActivity:'', linked:'', openAssignments:'' };
   var _usersSort = { key: null, dir: 'asc' };
+  var _usersLastRefreshedAt = null;
+  var _usersLoadInflight = false;
+  var _usersAutoRefreshStarted = false;
+  var USERS_AUTO_REFRESH_MS = 5 * 60 * 1000;
   var COACH_BASELINE_TERRAINS = ['Slab', 'Vertical', 'Overhang', 'Roof', 'Crack'];
 
   function parseBaselineTerrainState(raw){
@@ -3831,26 +3846,6 @@
       return [];
     });
   }
-  function hydrateUsersBaselineFlags(){
-    return sbAdminSelect(
-      'sessions',
-      'select=user_id&is_baseline=eq.true&user_id=not.is.null'
-    ).then(function(rows){
-      var setIds = {};
-      (Array.isArray(rows) ? rows : []).forEach(function(r){
-        if(r && r.user_id) setIds[String(r.user_id)] = true;
-      });
-      var any = false;
-      allUsersCache.forEach(function(u){
-        var uid = String(userField(u, ['user_id', 'id'], ''));
-        if(uid && setIds[uid] && !u._baselineSet){
-          u._baselineSet = true;
-          any = true;
-        }
-      });
-      if(any) renderAllUsersTable();
-    }).catch(function(){ /* admin REST may be RLS-empty; per-user detail still tries */ });
-  }
   function userDetailSoft(promise, fallback){
     return Promise.resolve(promise).then(function(v){ return v; }, function(){ return fallback; });
   }
@@ -3897,21 +3892,26 @@
     return '<span class="bo-chip ' + cls + '">' + escapeHtml(label) + '</span>';
   }
   function linkedLabel(u){
-    var coaches = u.linked_coaches || u.coaches || u.coach_names || [];
-    var athletes = u.linked_athletes || u.athletes || u.athlete_names || [];
-    function names(arr){
-      if(!arr) return [];
-      if(!Array.isArray(arr)) return [String(arr)];
-      return arr.map(function(x){
-        if(x && typeof x === 'object') return x.name || x.email || x.user_id || '';
-        return String(x);
-      }).filter(Boolean);
-    }
-    var c = names(coaches);
-    var a = names(athletes);
     var bits = [];
+    var n = linkedAthleteCount(u);
+    if(userIsCoach(u) && n > 0){
+      bits.push(n === 1 ? '1 athlete' : (n + ' athletes'));
+    }
+    var coaches = u.coach_links || u.linked_coaches || u.coaches || u.coach_names || [];
+    if(!Array.isArray(coaches)) coaches = coaches ? [coaches] : [];
+    var c = coaches.map(function(x){
+      if(x && typeof x === 'object'){
+        var named = personDisplayName(
+          x.first_name || x.coach_first_name || '',
+          x.last_name || x.coach_last_name || '',
+          x.email || x.coach_email || '',
+          x.name || ''
+        );
+        return named && named !== '—' ? named : (x.name || x.email || '');
+      }
+      return String(x || '');
+    }).filter(function(name){ return name && name !== '—'; });
     if(c.length) bits.push('Coach: ' + c.join(', '));
-    if(a.length) bits.push('Athlete: ' + a.join(', '));
     return bits.join(' · ') || '—';
   }
 
@@ -3919,16 +3919,63 @@
     return personDisplayName(userField(u, ['first_name'], ''), userField(u, ['last_name'], ''), userField(u, ['email'], ''), '—');
   }
   function usersSignupRaw(u){
-    return userField(u, ['signup_date', 'created_at', 'signed_up_at'], '');
+    return userField(u, ['signed_up', 'signup_date', 'created_at', 'signed_up_at'], '');
   }
   function usersLastActivityRaw(u){
     return userField(u, ['last_activity', 'last_seen_at', 'last_session_at'], '');
   }
   function usersSessionCount(u){
-    return parseInt(userField(u, ['session_count', 'sessions'], 0), 10) || 0;
+    return parseInt(userField(u, ['climb_sessions', 'session_count', 'sessions'], 0), 10) || 0;
   }
   function usersClimbCount(u){
-    return parseInt(userField(u, ['climb_count', 'climbs'], 0), 10) || 0;
+    return parseInt(userField(u, ['climbs', 'climb_count'], 0), 10) || 0;
+  }
+  function usersTrainingCount(u){
+    return parseInt(userField(u, ['training_sessions', 'training_count'], 0), 10) || 0;
+  }
+  function usersOpenAssignments(u){
+    return parseInt(userField(u, ['assignments_open', 'open_assignments'], 0), 10) || 0;
+  }
+  function usersRelativeAgo(v, now){
+    var t = usersDateMs(v);
+    if(!t) return '';
+    now = now || new Date();
+    var then = new Date(t);
+    var a = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    var b = Date.UTC(then.getUTCFullYear(), then.getUTCMonth(), then.getUTCDate());
+    var days = Math.round((a - b) / 86400000);
+    if(days <= 0) return 'today';
+    return days + 'd ago';
+  }
+  function usersLastActivityLabel(u, now){
+    var raw = usersLastActivityRaw(u);
+    if(!raw) return '—';
+    var date = fmtShortDate(raw);
+    var rel = usersRelativeAgo(raw, now);
+    if(!rel || date === '—') return date;
+    return date + ' · ' + rel;
+  }
+  function usersBaselineLabel(u){
+    if(!usersBaselineSet(u)) return '—';
+    var at = userField(u, ['baseline_at'], '');
+    var date = at ? fmtShortDate(at) : '';
+    return date && date !== '—' ? ('✓ ' + date) : '✓';
+  }
+  function formatUsersRefreshedLabel(d){
+    if(!d) return '';
+    var dt = d instanceof Date ? d : new Date(d);
+    if(isNaN(dt.getTime())) return '';
+    var hh = String(dt.getHours()).padStart(2, '0');
+    var mm = String(dt.getMinutes()).padStart(2, '0');
+    return 'Last refreshed ' + hh + ':' + mm;
+  }
+  function paintUsersShowingCount(shown, total){
+    var el = document.getElementById('users-showing-count');
+    if(el) el.textContent = 'showing ' + shown + ' of ' + total;
+  }
+  function paintUsersRefreshedAt(){
+    var el = document.getElementById('users-refreshed-at');
+    if(el) el.textContent = formatUsersRefreshedLabel(_usersLastRefreshedAt);
   }
   function usersDateMs(v){
     if(!v) return 0;
@@ -3950,18 +3997,23 @@
     _usersRoleFilter = val('users-filter-role') || null;
     _usersCoachFilter = val('users-filter-coach') || null;
     _usersBaselineFilter = val('users-filter-baseline') || null;
+    var hideEl = document.getElementById('users-hide-test');
+    _usersHideTest = hideEl ? !!hideEl.checked : _usersHideTest;
     _usersTextFilters = {
       name: val('users-filter-name').toLowerCase(),
       email: val('users-filter-email').toLowerCase(),
       signup: val('users-filter-signup').toLowerCase(),
       sessions: val('users-filter-sessions').toLowerCase(),
       climbs: val('users-filter-climbs').toLowerCase(),
+      training: val('users-filter-training').toLowerCase(),
       lastActivity: val('users-filter-last').toLowerCase(),
-      linked: val('users-filter-linked').toLowerCase()
+      linked: val('users-filter-linked').toLowerCase(),
+      openAssignments: val('users-filter-open').toLowerCase()
     };
   }
-  function usersRowMatchesFilters(u, textFilters, roleFilter, coachFilter, baselineFilter){
+  function usersRowMatchesFilters(u, textFilters, roleFilter, coachFilter, baselineFilter, hideTest){
     var tf = textFilters || {};
+    if(hideTest && isTestAccount(u)) return false;
     if(roleFilter && resolveDisplayRole(u) !== roleFilter) return false;
     if(coachFilter === 'coach' && !userIsCoach(u)) return false;
     if(coachFilter === 'not' && userIsCoach(u)) return false;
@@ -3972,8 +4024,10 @@
     if(!usersSubstringMatch(fmtShortDate(usersSignupRaw(u)), tf.signup)) return false;
     if(!usersSubstringMatch(String(usersSessionCount(u)), tf.sessions)) return false;
     if(!usersSubstringMatch(String(usersClimbCount(u)), tf.climbs)) return false;
-    if(!usersSubstringMatch(fmtShortDate(usersLastActivityRaw(u)), tf.lastActivity)) return false;
+    if(!usersSubstringMatch(String(usersTrainingCount(u)), tf.training)) return false;
+    if(!usersSubstringMatch(usersLastActivityLabel(u), tf.lastActivity)) return false;
     if(!usersSubstringMatch(linkedLabel(u), tf.linked)) return false;
+    if(!usersSubstringMatch(String(usersOpenAssignments(u)), tf.openAssignments)) return false;
     return true;
   }
   function usersSortValue(u, key){
@@ -3985,8 +4039,10 @@
     if(key === 'lastActivity') return usersDateMs(usersLastActivityRaw(u));
     if(key === 'sessions') return usersSessionCount(u);
     if(key === 'climbs') return usersClimbCount(u);
+    if(key === 'training') return usersTrainingCount(u);
     if(key === 'linked') return linkedAthleteCount(u);
     if(key === 'baseline') return usersBaselineSet(u) ? 1 : 0;
+    if(key === 'openAssignments') return usersOpenAssignments(u);
     return '';
   }
   function usersSortCompare(a, b, sort){
@@ -4024,36 +4080,67 @@
   function loadAllUsers(force){
     requireAdmin('users-admin-auth', 'users-privileged', 'All Users', function(){
       if(allUsersLoaded && !force){ renderAllUsersTable(); return; }
+      if(_usersLoadInflight) return;
+      _usersLoadInflight = true;
       var banner = document.getElementById('users-sql-banner');
       if(banner) banner.style.display = 'none';
       var tbody = document.getElementById('users-tbody');
-      if(tbody) tbody.innerHTML = '<tr><td colspan="10" class="bo-empty">Loading···</td></tr>';
-      sbRpc('foundash_list_all_users', {}).then(function(data){
+      if(tbody && !allUsersCache.length) tbody.innerHTML = '<tr><td colspan="12" class="bo-empty">Loading···</td></tr>';
+      sbRpc('foundash_users_summary', {}).then(function(data){
+        _usersLoadInflight = false;
         if(!data || data.ok === false){
           if(data && (data.error === 'not_admin' || data.error === 'not_authenticated')){
-            if(tbody) tbody.innerHTML = '<tr><td colspan="10" class="bo-empty">Unauthorized — admin session required.</td></tr>';
+            if(tbody) tbody.innerHTML = '<tr><td colspan="12" class="bo-empty">Unauthorized — admin session required.</td></tr>';
             return;
           }
           throw data || { message: 'list users failed' };
         }
         allUsersLoaded = true;
         allUsersCache = data.users || data.rows || data.accounts || [];
+        _usersLastRefreshedAt = new Date();
         bindAllUsersToolbar();
+        paintUsersRefreshedAt();
         renderAllUsersTable();
-        hydrateUsersBaselineFlags();
       }).catch(function(err){
+        _usersLoadInflight = false;
+        var msg = (err && (err.message || err.error || err.hint)) || 'unknown';
+        if(banner){
+          banner.style.display = 'block';
+          banner.className = 'bo-err';
+          banner.innerHTML = '<b>All Users</b> failed — ' + escapeHtml(String(msg));
+        }
         if(isMissingRpc(err)){
           if(banner){
-            banner.style.display = 'block';
             banner.className = 'bo-warn';
-            banner.innerHTML = '<b>All Users</b> needs <code>foundash_list_all_users</code> applied in Supabase.';
+            banner.innerHTML = '<b>All Users</b> needs <code>foundash_users_summary</code> applied in Supabase.';
           }
-          if(tbody) tbody.innerHTML = '<tr><td colspan="10" class="bo-empty">RPC not available yet.</td></tr>';
+          if(!allUsersCache.length && tbody){
+            tbody.innerHTML = '<tr><td colspan="12" class="bo-empty">RPC not available yet.</td></tr>';
+          }
           return;
         }
-        if(tbody) tbody.innerHTML = '<tr><td colspan="10" class="bo-empty" style="color:var(--danger);">Failed — ' +
-          escapeHtml((err && (err.message || err.error)) || 'unknown') + '</td></tr>';
+        if(allUsersCache.length){
+          renderAllUsersTable();
+          return;
+        }
+        if(tbody) tbody.innerHTML = '<tr><td colspan="12" class="bo-empty" style="color:var(--danger);">Failed — ' +
+          escapeHtml(String(msg)) + '</td></tr>';
       });
+    });
+  }
+
+  function ensureUsersAutoRefresh(){
+    if(_usersAutoRefreshStarted) return;
+    _usersAutoRefreshStarted = true;
+    setInterval(function(){
+      if(document.visibilityState && document.visibilityState !== 'visible') return;
+      if(!allUsersLoaded) return;
+      loadAllUsers(true);
+    }, USERS_AUTO_REFRESH_MS);
+    document.addEventListener('visibilitychange', function(){
+      if(document.visibilityState !== 'visible') return;
+      if(!allUsersLoaded || !_usersLastRefreshedAt) return;
+      if(Date.now() - _usersLastRefreshedAt.getTime() >= USERS_AUTO_REFRESH_MS) loadAllUsers(true);
     });
   }
 
@@ -4063,7 +4150,13 @@
       refresh._bound = true;
       refresh.addEventListener('click', function(){ loadAllUsers(true); });
     }
+    var hide = document.getElementById('users-hide-test');
+    if(hide && !hide._bound){
+      hide._bound = true;
+      hide.addEventListener('change', renderAllUsersTable);
+    }
     bindAllUsersColFilters();
+    ensureUsersAutoRefresh();
   }
 
   function bindAllUsersColFilters(){
@@ -4097,13 +4190,14 @@
     readUsersColFilters();
     paintUsersSortHeaders();
     var rows = allUsersCache.filter(function(u){
-      return usersRowMatchesFilters(u, _usersTextFilters, _usersRoleFilter, _usersCoachFilter, _usersBaselineFilter);
+      return usersRowMatchesFilters(u, _usersTextFilters, _usersRoleFilter, _usersCoachFilter, _usersBaselineFilter, _usersHideTest);
     });
     if(_usersSort.key){
       rows.sort(function(a, b){ return usersSortCompare(a, b, _usersSort); });
     }
+    paintUsersShowingCount(rows.length, allUsersCache.length);
     if(!rows.length){
-      tbody.innerHTML = '<tr><td colspan="10" class="bo-empty">No users match.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" class="bo-empty">No users match.</td></tr>';
       return;
     }
     tbody.innerHTML = rows.map(function(u, i){
@@ -4125,9 +4219,11 @@
         '<td class="mono">' + escapeHtml(fmtShortDate(usersSignupRaw(u))) + '</td>' +
         '<td class="mono">' + escapeHtml(String(usersSessionCount(u))) + '</td>' +
         '<td class="mono">' + escapeHtml(String(usersClimbCount(u))) + '</td>' +
-        '<td class="mono">' + escapeHtml(fmtShortDate(usersLastActivityRaw(u))) + '</td>' +
+        '<td class="mono">' + escapeHtml(String(usersTrainingCount(u))) + '</td>' +
+        '<td class="mono">' + escapeHtml(usersLastActivityLabel(u)) + '</td>' +
         '<td>' + escapeHtml(linkedLabel(u)) + '</td>' +
-        '<td class="mono">' + (usersBaselineSet(u) ? '✓' : '—') + '</td>' +
+        '<td class="mono">' + escapeHtml(usersBaselineLabel(u)) + '</td>' +
+        '<td class="mono">' + escapeHtml(String(usersOpenAssignments(u))) + '</td>' +
       '</tr>';
     }).join('');
     tbody.querySelectorAll('tr.click-row').forEach(function(tr){
@@ -4173,9 +4269,10 @@
     if(userIsCoach(u) && userIsAthlete(u)) return 'both';
     if(userIsCoach(u)) return 'coach';
     if(userIsAthlete(u)) return 'athlete';
-    var sessions = parseInt(userField(u, ['session_count', 'sessions'], 0), 10) || 0;
-    var climbs = parseInt(userField(u, ['climb_count', 'climbs'], 0), 10) || 0;
-    if(sessions > 0 || climbs > 0) return 'Signed up · active';
+    var sessions = parseInt(userField(u, ['climb_sessions', 'session_count', 'sessions'], 0), 10) || 0;
+    var climbs = parseInt(userField(u, ['climbs', 'climb_count'], 0), 10) || 0;
+    var training = parseInt(userField(u, ['training_sessions'], 0), 10) || 0;
+    if(sessions > 0 || climbs > 0 || training > 0) return 'Signed up · active';
     return 'Signed up · no activity';
   }
   function linkedAthleteCount(u){

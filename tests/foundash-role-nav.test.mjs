@@ -6,8 +6,9 @@ import assert from 'assert';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(__dirname, '../founder-dashboard.html'), 'utf8');
 
-assert.ok(!/id="users-hide-test"/.test(html), 'Hide test checkbox is gone');
-assert.ok(!/Hide test \/ seed accounts/.test(html), 'Hide test label is gone');
+assert.ok(/id="users-hide-test"[^>]*checked/.test(html), 'Hide test accounts defaults on');
+assert.ok(/Hide test accounts/.test(html));
+assert.ok(!/Hide test \/ seed accounts/.test(html), 'old seed-accounts label stays gone');
 assert.ok(/id="users-filter-role"/.test(html), 'Role filter is a header select');
 assert.ok(!/id="users-search"/.test(html), 'combined search box removed');
 assert.ok(!/id="users-role-filter"/.test(html), 'old chip container removed');
