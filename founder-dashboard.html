@@ -873,7 +873,7 @@
           <span>Signed in as <b id="sidebar-admin-email"></b></span>
           <button type="button" class="bo-btn" id="sidebar-signout">Sign out</button>
         </div>
-        <div class="mono">v0.3.3 · foundash</div>
+        <div class="mono">v0.3.4 · foundash</div>
         <div>Last updated 2026-11-16</div>
       </div>
     </div>
@@ -1023,11 +1023,21 @@
               </tbody>
             </table>
           </div>
-          <div class="schema-note">RPC: <code>foundash_users_summary()</code> · Sessions = real logged climbs (<code>is_checkin = false AND deleted_at IS NULL</code>, see <code>sql/foundash-users-summary.sql</code>) · row click opens <code>foundash_user_detail</code>.</div>
+          <div class="schema-note">RPC: <code>foundash_users_summary()</code> · Sessions = real logged climbs (<code>is_checkin = false AND deleted_at IS NULL</code>, see <code>sql/foundash-users-summary.sql</code>) · row click opens <code>foundash_user_full</code>.</div>
         </div>
       </section>
 
       <!-- ---------- FOUNDASH: TO-DO ---------- -->
+      <section id="section-user-profile" class="section-view">
+        <div class="panel">
+          <div class="panel-title-row">
+            <button type="button" class="bo-btn" id="user-profile-back">Back</button>
+            <h2 id="user-profile-title" style="margin:0;">User</h2>
+          </div>
+          <div id="user-profile-body"><div class="bo-empty">Open a row in All Users.</div></div>
+        </div>
+      </section>
+
       <section id="section-todo" class="section-view">
         <div class="page-title">To-do</div>
         <div class="page-sub">General founder tasks — separate from the Pine Creek / clinic checklist in Ops.</div>
@@ -3806,50 +3816,6 @@
     if(u.baseline && typeof u.baseline === 'object' && (u.baseline.id || u.baseline.created_at)) return true;
     return false;
   }
-  function fetchUserBaseline(userId){
-    return sbAdminSelect(
-      'sessions',
-      'select=id,baseline_terrain_state,baseline_terrain_calibrated,created_at' +
-        '&is_baseline=eq.true&user_id=eq.' + userId +
-        '&order=created_at.desc&limit=1'
-    ).then(function(rows){
-      return Array.isArray(rows) && rows[0] ? rows[0] : null;
-    });
-  }
-  function fetchUserJournal(userId){
-    return sbAdminSelect(
-      'journal_entries',
-      'select=id,created_at,entry_text&user_id=eq.' + userId +
-        '&deleted_at=is.null&order=created_at.desc'
-    ).then(function(rows){
-      return Array.isArray(rows) ? rows : [];
-    });
-  }
-  function fetchUserCoachFlag(userId){
-    return sbAdminSelect(
-      'coach_flags',
-      'select=user_id,is_coach&user_id=eq.' + userId + '&limit=1'
-    ).then(function(rows){
-      var row = Array.isArray(rows) && rows[0] ? rows[0] : null;
-      if(!row) return null;
-      return row.is_coach === true;
-    });
-  }
-  function ensureRosterLinks(){
-    if(rosterLoaded && Array.isArray(rosterCache)) return Promise.resolve(rosterCache);
-    return sbRpc('foundash_list_roster', {}).then(function(data){
-      if(data && data.ok){
-        rosterLoaded = true;
-        rosterCache = data.links || [];
-        return rosterCache;
-      }
-      return [];
-    });
-  }
-  function userDetailSoft(promise, fallback){
-    return Promise.resolve(promise).then(function(v){ return v; }, function(){ return fallback; });
-  }
-
   function userField(u, keys, fallback){
     for(var i = 0; i < keys.length; i++){
       if(u[keys[i]] !== undefined && u[keys[i]] !== null && u[keys[i]] !== '') return u[keys[i]];
@@ -4407,62 +4373,6 @@
     });
   }
 
-  function enrichClimbsFromTraining(climbs, sessions){
-    var byId = {};
-    (sessions || []).forEach(function(s){
-      if(s && s.id != null) byId[String(s.id)] = s;
-    });
-    return (climbs || []).map(function(c){
-      var extra = (c && c.id != null && byId[String(c.id)]) ? byId[String(c.id)] : {};
-      function pick(key){
-        if(c[key] !== undefined && c[key] !== null && c[key] !== '') return c[key];
-        return extra[key];
-      }
-      return {
-        id: c.id,
-        created_at: c.created_at,
-        route_name: c.route_name,
-        grade_value: c.grade_value,
-        climbing_type: c.climbing_type,
-        setting: c.setting,
-        zone: c.zone,
-        baseline_zone: c.baseline_zone,
-        zone_confidence: pick('zone_confidence'),
-        breathing_post: pick('breathing_post'),
-        gut_post: pick('gut_post'),
-        crux_response: pick('crux_response'),
-        body_state: pick('body_state')
-      };
-    });
-  }
-  function mergeUserDetailBundle(userId, bundle, cached){
-    var detail = bundle && bundle.detail;
-    if(!detail || detail.ok === false) return detail;
-    var training = (bundle.training && bundle.training.ok !== false)
-      ? bundle.training
-      : { sessions: [], falls: [], assignments: [] };
-    var coachLinks = Array.isArray(detail.coach_links)
-      ? detail.coach_links
-      : (bundle.rosterLinks || []).filter(function(l){
-          return String(l.athlete_id) === String(userId);
-        });
-    var falls = Array.isArray(detail.falls) ? detail.falls : (training.falls || []);
-    var assignments = Array.isArray(detail.assignments) ? detail.assignments : (training.assignments || []);
-    var journal = Array.isArray(detail.journal) ? detail.journal : (bundle.journal || []);
-    var isCoach = bundle.is_coach;
-    if(isCoach == null && detail.is_coach != null) isCoach = detail.is_coach;
-    if(isCoach == null && detail.profile && detail.profile.is_coach != null) isCoach = detail.profile.is_coach;
-    if(isCoach == null && cached) isCoach = userIsCoach(cached);
-    return Object.assign({}, detail, {
-      climbs: enrichClimbsFromTraining(detail.climbs || [], training.sessions || []),
-      falls: falls,
-      assignments: assignments,
-      journal: journal,
-      coach_links: coachLinks,
-      baseline: detail.baseline || bundle.baseline || null,
-      is_coach: isCoach
-    });
-  }
   function userDetailCoachLine(links){
     if(!links || !links.length) return 'Not linked to a coach';
     return links.map(function(l){
@@ -4489,39 +4399,6 @@
     }).join('');
     return when + rows;
   }
-  function openUserDetail(userId){
-    var modal = document.getElementById('user-detail-modal');
-    var body = document.getElementById('user-detail-body');
-    var title = document.getElementById('user-detail-title');
-    if(!modal || !body) return;
-    var cached = allUsersCache.find(function(u){ return String(userField(u, ['user_id', 'id'], '')) === String(userId); });
-    title.textContent = cached ? personDisplayName(userField(cached, ['first_name'], ''), userField(cached, ['last_name'], ''), userField(cached, ['email'], ''), 'User') : 'User';
-    body.innerHTML = '<div class="bo-empty">Loading···</div>';
-    modal.classList.add('open');
-    Promise.all([
-      sbRpc('foundash_user_detail', { p_user_id: userId }),
-      userDetailSoft(sbRpc('foundash_athlete_training', { p_athlete_id: userId }), { ok: false, sessions: [], falls: [], assignments: [] }),
-      userDetailSoft(fetchUserBaseline(userId), null),
-      userDetailSoft(fetchUserJournal(userId), []),
-      userDetailSoft(ensureRosterLinks(), []),
-      userDetailSoft(fetchUserCoachFlag(userId), null)
-    ]).then(function(parts){
-      var data = mergeUserDetailBundle(userId, {
-        detail: parts[0],
-        training: parts[1],
-        baseline: parts[2],
-        journal: parts[3],
-        rosterLinks: parts[4],
-        is_coach: parts[5]
-      }, cached);
-      if(!data || data.ok === false) throw data || { message: 'detail failed' };
-      renderUserDetail(userId, data, cached);
-    }).catch(function(err){
-      body.innerHTML = '<div class="bo-err">Could not load detail — ' +
-        escapeHtml((err && (err.message || err.error)) || 'error') + '</div>';
-    });
-  }
-
   function userDetailTableHtml(headers, rowsHtml, emptyMsg){
     if(!rowsHtml) return '<div class="bo-empty">' + emptyMsg + '</div>';
     return '<div class="detail-acc-table-wrap"><table class="bo-table"><thead><tr>' +
@@ -4551,23 +4428,186 @@
     });
   }
 
+  var profileMessagesState = null;
+  var userProfileChart = null;
+
+  function emomBoulderResult(bo){
+    if(!bo) return 'not attempted';
+    if(bo.result === 'sent' || bo.result === 'failed') return bo.result;
+    if(bo.complete === true) return 'sent';
+    return 'not attempted';
+  }
+  function trainingBlocksHtml(blocks){
+    if(!Array.isArray(blocks) || !blocks.length) return '<div class="bo-empty">No blocks.</div>';
+    return blocks.map(function(b, i){
+      var title = (b && (b.name || b.shape || b.type)) || ('Block ' + (i + 1));
+      var rounds = (b && Array.isArray(b.rounds)) ? b.rounds : [];
+      if(b && Array.isArray(b.boulders) && !rounds.length) rounds = [{ boulders: b.boulders }];
+      var lines = [];
+      rounds.forEach(function(round){
+        ((round && round.boulders) || []).forEach(function(bo){
+          lines.push('<li>' + escapeHtml((bo && bo.text) || 'Boulder') + ' — ' + escapeHtml(emomBoulderResult(bo)) + '</li>');
+        });
+      });
+      var notes = (b && b.notes) ? '<div>' + escapeHtml(b.notes) + '</div>' : '';
+      return '<div><strong>' + escapeHtml(String(title)) + '</strong>' +
+        (lines.length ? '<ul>' + lines.join('') + '</ul>' : '<div class="bo-empty">No boulder results.</div>') +
+        notes + '</div>';
+    }).join('');
+  }
+  function userProfileSection(title, inner){
+    return '<div class="panel" style="margin-top:16px;"><div class="panel-title">' + escapeHtml(title) + '</div>' + inner + '</div>';
+  }
+  function userProfileMissing(title){
+    return '<div class="bo-err">' + escapeHtml(title) + ' did not come back from foundash_user_full.</div>';
+  }
+  function userProfilePeopleLine(profile){
+    profile = profile || {};
+    var parts = [];
+    var coaches = Array.isArray(profile.coach_links) ? profile.coach_links : [];
+    if(coaches.length){
+      parts.push(coaches.map(function(l){
+        var who = (l && (l.name || personDisplayName(l.first_name || l.coach_first_name, l.last_name || l.coach_last_name, l.email || l.coach_email, 'coach'))) || 'coach';
+        return 'Coach: ' + who;
+      }).join(' · '));
+    } else if(!Array.isArray(profile.coach_links) && profile.coach_links){
+      var fallback = userDetailCoachLine(profile.coach_links);
+      if(fallback && fallback !== 'Not linked to a coach') parts.push(fallback);
+    }
+    var athletes = Array.isArray(profile.athletes) ? profile.athletes : [];
+    if(athletes.length){
+      parts.push(athletes.map(function(a){
+        return 'Athlete: ' + ((a && (a.name || a.email)) || 'athlete');
+      }).join(' · '));
+    }
+    if(!parts.length) return 'Not linked to a coach';
+    return parts.join(' · ');
+  }
+  function userProfileAccessInner(rows){
+    if(!Array.isArray(rows)) return userProfileMissing('Access log');
+    return userDetailTableHtml(
+      ['When', 'Kind', 'Admin'],
+      rows.length ? rows.map(function(row){
+        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(row.viewed_at)) + '</td>' +
+          '<td>' + escapeHtml(row.kind || '—') + '</td>' +
+          '<td class="mono">' + escapeHtml(shortId(row.admin_id)) + '</td></tr>';
+      }).join('') : '',
+      'No access log rows.'
+    );
+  }
+  function userProfileMessagesHtml(data){
+    var rows = data && data.messages;
+    if(!Array.isArray(rows)) return userProfileMissing('Messages');
+    if(!rows.length) return '<div class="bo-empty">No messages.</div>';
+    return rows.map(function(m){
+      var who = m.sender_name || shortId(m.sender_id);
+      var link = (m.link && /^https?:\/\//i.test(String(m.link).trim())) ? String(m.link).trim() : '';
+      var linkHtml = link ? ' <a href="' + escapeHtml(link) + '" rel="noopener noreferrer">' + escapeHtml(link) + '</a>' : '';
+      return '<div style="margin:0 0 10px;"><div class="mono">' + escapeHtml(fmtShortDate(m.created_at)) +
+        ' · ' + escapeHtml(who) + '</div><div>' + escapeHtml(m.body || '') + linkHtml + '</div></div>';
+    }).join('');
+  }
+  function userProfileMessagesSlotHtml(state){
+    if(!state || state.status === 'loading') return '<div class="bo-empty">Loading···</div>';
+    if(state.status === 'error'){
+      return '<div class="bo-err">Could not load messages — ' + escapeHtml(state.error || 'error') + '</div>';
+    }
+    return userProfileMessagesHtml(state.data);
+  }
+  function applyProfileMessages(){
+    if(!profileMessagesState) return;
+    var slot = document.getElementById('user-profile-messages');
+    var html = userProfileMessagesSlotHtml(profileMessagesState);
+    if(slot) slot.innerHTML = html;
+    var logSlot = document.getElementById('user-profile-access');
+    if(logSlot && profileMessagesState.status === 'ready' && profileMessagesState.data && Array.isArray(profileMessagesState.data.access_log)){
+      logSlot.innerHTML = userProfileAccessInner(profileMessagesState.data.access_log);
+    }
+  }
+  function renderUserProfileChart(sessions){
+    if(userProfileChart){
+      try { userProfileChart.destroy(); } catch(e) {}
+      userProfileChart = null;
+    }
+    var canvas = document.getElementById('user-profile-sessions-chart');
+    if(!canvas || !Array.isArray(sessions)) return;
+    var now = new Date();
+    var end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+    var buckets = [];
+    var i;
+    for(i = 7; i >= 0; i--){
+      var start = new Date(end.getTime() - (i + 1) * 7 * 86400000);
+      var stop = new Date(end.getTime() - i * 7 * 86400000);
+      buckets.push({ start: start, end: stop, label: start.toISOString().slice(5, 10), count: 0 });
+    }
+    sessions.forEach(function(s){
+      var d = new Date(s && s.created_at);
+      if(isNaN(d.getTime())) return;
+      buckets.forEach(function(b){
+        if(d >= b.start && d < b.end) b.count++;
+      });
+    });
+    renderChartOrFallback('user-profile-sessions-chart', function(el){
+      userProfileChart = new Chart(el, {
+        type: 'bar',
+        data: {
+          labels: buckets.map(function(b){ return b.label; }),
+          datasets: [{ data: buckets.map(function(b){ return b.count; }), backgroundColor: '#c8622a' }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#2a2a2a' }, ticks: { color: '#888888', font: { family: 'Space Mono', size: 10 } } },
+            y: { grid: { color: '#2a2a2a' }, ticks: { color: '#888888', font: { family: 'Space Mono', size: 10 }, precision: 0 }, beginAtZero: true }
+          }
+        }
+      });
+    });
+  }
+  function openUserDetail(userId){
+    var body = document.getElementById('user-profile-body');
+    var title = document.getElementById('user-profile-title');
+    if(!body || !title) return;
+    var cached = allUsersCache.find(function(u){
+      return String(userField(u, ['user_id', 'id'], '')) === String(userId);
+    });
+    title.textContent = cached ? personDisplayName(userField(cached, ['first_name'], ''), userField(cached, ['last_name'], ''), userField(cached, ['email'], ''), 'User') : 'User';
+    body.innerHTML = '<div class="bo-empty">Loading···</div>';
+    profileMessagesState = { userId: String(userId), status: 'loading' };
+    showSection('user-profile');
+    sbRpc('foundash_user_full', { p_user_id: userId }).then(function(data){
+      if(!data || data.ok === false) throw data || { message: 'profile failed' };
+      if(!profileMessagesState || profileMessagesState.userId !== String(userId)) return;
+      renderUserDetail(userId, data, cached);
+    }).catch(function(err){
+      if(!profileMessagesState || profileMessagesState.userId !== String(userId)) return;
+      body.innerHTML = '<div class="bo-err">Could not load this profile — ' +
+        escapeHtml((err && (err.message || err.error)) || 'error') + '</div>';
+    });
+    sbRpc('foundash_user_messages', { p_user_id: userId }).then(function(data){
+      if(!data || data.ok === false) throw data || { message: 'messages failed' };
+      if(!profileMessagesState || profileMessagesState.userId !== String(userId)) return;
+      profileMessagesState.status = 'ready';
+      profileMessagesState.data = data;
+      applyProfileMessages();
+    }).catch(function(err){
+      if(!profileMessagesState || profileMessagesState.userId !== String(userId)) return;
+      profileMessagesState.status = 'error';
+      profileMessagesState.error = (err && (err.message || err.error)) || 'error';
+      applyProfileMessages();
+    });
+  }
   function buildUserDetailHtml(userId, data, cached){
+    data = data || {};
     var profile = data.profile || {};
-    var climbs = data.climbs || [];
-    var psyche = data.psyche || [];
-    var train = data.train || [];
-    var falls = data.falls || [];
-    var assignments = data.assignments || [];
-    var journal = data.journal || [];
-    var payments = data.payments || data.ledger || [];
-    var baseline = data.baseline || null;
-    var baselineSet = !!(baseline && (baseline.id || baseline.created_at || baseline.baseline_terrain_state));
-    var signupRaw = userField(profile, ['signup_date', 'created_at', 'signed_up_at'], userField(cached || {}, ['signup_date', 'created_at', 'signed_up_at'], ''));
-    var isCoach = data.is_coach;
-    if(isCoach == null) isCoach = userIsCoach(Object.assign({}, cached || {}, profile));
-    var climbsHtml = userDetailTableHtml(
-      ['Date', 'Route', 'Grade', 'Type', 'Setting', 'Zone', 'Confidence', 'Breathing', 'Gut', 'Crux', 'Body'],
-      climbs.length ? climbs.map(function(c){
+    var signupRaw = userField(profile, ['signed_up', 'signup_date', 'created_at'], userField(cached || {}, ['signed_up', 'signup_date', 'created_at'], ''));
+    var role = resolveDisplayRole(profile);
+    var climbRows = data.climb_sessions;
+    var climbHtml = !Array.isArray(climbRows) ? userProfileMissing('Climb sessions') : userDetailTableHtml(
+      ['Date', 'Route', 'Grade', 'Type', 'Setting', 'Zone', 'Confidence', 'Breathing', 'Gut', 'Crux', 'Body', 'Falls'],
+      climbRows.length ? climbRows.map(function(c){
+        var falls = Array.isArray(c.falls) ? c.falls : [];
+        var fallText = falls.length ? falls.map(function(f){ return f.fall_description || f.vs_expect || shortId(f.id); }).join('; ') : '—';
         return '<tr><td class="mono">' + escapeHtml(fmtShortDate(c.created_at)) + '</td>' +
           '<td>' + escapeHtml(c.route_name || '—') + '</td>' +
           '<td>' + escapeHtml(c.grade_value || '—') + '</td>' +
@@ -4578,11 +4618,65 @@
           '<td class="notes-clip" title="' + escapeHtml(c.breathing_post || '') + '">' + escapeHtml(c.breathing_post || '—') + '</td>' +
           '<td class="notes-clip" title="' + escapeHtml(c.gut_post || '') + '">' + escapeHtml(c.gut_post || '—') + '</td>' +
           '<td class="notes-clip" title="' + escapeHtml(c.crux_response || '') + '">' + escapeHtml(c.crux_response || '—') + '</td>' +
-          '<td class="notes-clip" title="' + escapeHtml(c.body_state || '') + '">' + escapeHtml(c.body_state || '—') + '</td></tr>';
+          '<td class="notes-clip" title="' + escapeHtml(c.body_state || '') + '">' + escapeHtml(c.body_state || '—') + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(fallText) + '">' + escapeHtml(fallText) + '</td></tr>';
       }).join('') : '',
-      'No climbs logged.'
+      'No climb sessions logged.'
     );
-    var psycheHtml = userDetailTableHtml(
+    var named = data.climbs;
+    var namedHtml = !Array.isArray(named) ? userProfileMissing('Named climbs') : userDetailTableHtml(
+      ['Date', 'Name', 'Grade', 'Type', 'Project'],
+      named.length ? named.map(function(c){
+        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(c.created_at)) + '</td>' +
+          '<td>' + escapeHtml(c.name || '—') + '</td>' +
+          '<td>' + escapeHtml(c.grade_value || '—') + '</td>' +
+          '<td>' + escapeHtml(c.climbing_type || '—') + '</td>' +
+          '<td>' + (c.is_project ? 'Yes' : '—') + '</td></tr>';
+      }).join('') : '',
+      'No named climbs.'
+    );
+    var train = data.training_sessions;
+    var trainHtml = !Array.isArray(train) ? userProfileMissing('Training sessions') : (
+      train.length ? train.map(function(t){
+        return '<div style="margin:0 0 14px;">' +
+          '<div class="mono">' + escapeHtml(fmtShortDate(t.started_at || t.created_at)) +
+          ' → ' + escapeHtml(t.ended_at ? fmtShortDate(t.ended_at) : '—') +
+          ' · ' + escapeHtml(t.energy_type || '—') +
+          (t.assignment_title ? ' · Assignment: ' + escapeHtml(t.assignment_title) : '') +
+          '</div>' +
+          '<div>' + escapeHtml(t.notes || '—') + '</div>' +
+          trainingBlocksHtml(t.blocks) +
+          '</div>';
+      }).join('') : '<div class="bo-empty">No training sessions logged.</div>'
+    );
+    var assignments = data.assignments;
+    var assignHtml = !Array.isArray(assignments) ? userProfileMissing('Assignments') : userDetailTableHtml(
+      ['Title', 'Status', 'Due', 'Completed', 'Linked session', 'Description'],
+      assignments.length ? assignments.map(function(a){
+        var linked = a.linked_session && a.linked_session.id
+          ? (shortId(a.linked_session.id) + (a.linked_session.energy_type ? ' · ' + a.linked_session.energy_type : ''))
+          : '—';
+        return '<tr><td>' + escapeHtml(a.title || '—') + '</td>' +
+          '<td>' + escapeHtml(a.status || '—') + '</td>' +
+          '<td class="mono">' + escapeHtml(a.due_date ? fmtShortDate(a.due_date) : '—') + '</td>' +
+          '<td class="mono">' + escapeHtml(a.completed_at ? fmtShortDate(a.completed_at) : '—') + '</td>' +
+          '<td class="mono">' + escapeHtml(linked) + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(a.description || '') + '">' + escapeHtml(a.description || '—') + '</td></tr>';
+      }).join('') : '',
+      'No assignments.'
+    );
+    var journal = data.journal;
+    var journalHtml = !Array.isArray(journal) ? userProfileMissing('Journal') : userDetailTableHtml(
+      ['Date', 'Entry'],
+      journal.length ? journal.map(function(j){
+        var text = j.entry_text || '';
+        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(j.created_at)) + '</td>' +
+          '<td class="notes-clip" title="' + escapeHtml(text) + '">' + escapeHtml(text || '—') + '</td></tr>';
+      }).join('') : '',
+      'No journal entries.'
+    );
+    var psyche = data.psyche;
+    var psycheHtml = !Array.isArray(psyche) ? userProfileMissing('Psyche') : userDetailTableHtml(
       ['Date', 'Type', 'Detail'],
       psyche.length ? psyche.map(function(row){
         var isDrill = row.kind === 'drill';
@@ -4592,163 +4686,79 @@
       }).join('') : '',
       'No psyche activity logged.'
     );
-    var trainHtml = userDetailTableHtml(
-      ['Date', 'Energy', 'Started', 'Ended', 'Notes'],
-      train.length ? train.map(function(t){
-        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(t.created_at)) + '</td>' +
-          '<td>' + escapeHtml(t.energy_type || '—') + '</td>' +
-          '<td class="mono">' + escapeHtml(t.started_at ? fmtShortDate(t.started_at) : '—') + '</td>' +
-          '<td class="mono">' + escapeHtml(t.ended_at ? fmtShortDate(t.ended_at) : '—') + '</td>' +
-          '<td class="notes-clip" title="' + escapeHtml(t.notes || '') + '">' + escapeHtml(t.notes || '—') + '</td></tr>';
-      }).join('') : '',
-      'No training sessions logged.'
+    var account = data.account;
+    var accountHtml = !account ? userProfileMissing('Account') : (
+      '<div>Email <span class="mono">' + escapeHtml(account.email || '—') + '</span></div>' +
+      '<div>Signed up <span class="mono">' + escapeHtml(fmtShortDate(account.created_at)) + '</span></div>' +
+      '<div>Last sign in <span class="mono">' + escapeHtml(account.last_sign_in_at ? fmtShortDate(account.last_sign_in_at) : '—') + '</span></div>' +
+      '<div class="panel-title" style="margin-top:12px;">User metadata</div>' +
+      '<pre class="mono" style="white-space:pre-wrap;">' + escapeHtml(JSON.stringify(account.raw_user_meta_data || {}, null, 2)) + '</pre>' +
+      '<div class="panel-title">App metadata</div>' +
+      '<pre class="mono" style="white-space:pre-wrap;">' + escapeHtml(JSON.stringify(account.raw_app_meta_data || {}, null, 2)) + '</pre>'
     );
-    var fallsHtml = userDetailTableHtml(
-      ['Date', 'Id', 'Climb'],
-      falls.length ? falls.map(function(f){
-        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(f.created_at)) + '</td>' +
-          '<td class="mono">' + escapeHtml(shortId(f.id)) + '</td>' +
-          '<td class="mono">' + escapeHtml(shortId(f.session_id)) + '</td></tr>';
-      }).join('') : '',
-      'No falls logged.'
-    );
-    var assignHtml = userDetailTableHtml(
-      ['Title', 'Due', 'Completed', 'Description'],
-      assignments.length ? assignments.map(function(a){
-        return '<tr><td>' + escapeHtml(a.title || '—') + '</td>' +
-          '<td class="mono">' + escapeHtml(a.due_date ? fmtShortDate(a.due_date) : '—') + '</td>' +
-          '<td class="mono">' + escapeHtml(a.completed_at ? fmtShortDate(a.completed_at) : '—') + '</td>' +
-          '<td class="notes-clip" title="' + escapeHtml(a.description || '') + '">' + escapeHtml(a.description || '—') + '</td></tr>';
-      }).join('') : '',
-      'No assignments.'
-    );
-    var journalHtml = userDetailTableHtml(
-      ['Date', 'Entry'],
-      journal.length ? journal.map(function(j){
-        var text = j.entry_text || j.entry || j.text || '';
-        return '<tr><td class="mono">' + escapeHtml(fmtShortDate(j.created_at)) + '</td>' +
-          '<td class="notes-clip" title="' + escapeHtml(text) + '">' + escapeHtml(text || '—') + '</td></tr>';
-      }).join('') : '',
-      'No journal entries.'
-    );
-    var payHtml = payments.length
-      ? '<table class="bo-table"><thead><tr><th>Date</th><th>Amount</th><th>Note</th><th></th></tr></thead><tbody>' +
-        payments.map(function(p){
-          var pid = p.id || '';
-          return '<tr><td class="mono">' + escapeHtml(fmtShortDate(p.payment_date || p.date)) + '</td>' +
-            '<td class="mono">' + escapeHtml(opsMoney(p.amount)) + '</td>' +
-            '<td>' + escapeHtml(p.description || p.note || '') + '</td>' +
-            '<td>' + (pid ? '<button type="button" class="bo-btn danger" data-pay-del="' + escapeHtml(pid) + '">Delete</button>' : '') + '</td></tr>';
-        }).join('') + '</tbody></table>'
-      : '<div class="bo-empty">No payments logged.</div>';
+    var payNote = data.payments_note || (Array.isArray(data.payments) ? '' : '');
+    var payHtml = payNote
+      ? '<div class="bo-err">' + escapeHtml(payNote) + '</div>'
+      : (Array.isArray(data.payments) ? '<div class="bo-empty">No payments logged.</div>' : userProfileMissing('Payments'));
+    var overviewChart = Array.isArray(climbRows)
+      ? '<p class="schema-note">Project-wide charts stay on Analytics. This bar counts this account\'s climb sessions by week, using the same Chart.js helper.</p><canvas id="user-profile-sessions-chart" height="160"></canvas>'
+      : '';
     return '' +
-      '<div class="user-detail-meta">' +
-        '<div id="user-detail-coach-line">' + escapeHtml(userDetailCoachLine(data.coach_links)) + '</div>' +
-        '<div>Signed up <span class="mono">' + escapeHtml(fmtShortDate(signupRaw)) + '</span>' +
-          ' · This account is a coach: ' + (isCoach ? 'yes' : 'no') + '</div>' +
+      '<div class="user-detail-meta" id="user-detail-coach-line">' +
+        '<div>' + roleChip(role) + '</div>' +
+        '<div>' + escapeHtml(userField(profile, ['email'], '')) + '</div>' +
+        '<div>Signed up <span class="mono">' + escapeHtml(fmtShortDate(signupRaw)) + '</span></div>' +
+        '<div>Last activity <span class="mono">' + escapeHtml(usersLastActivityLabel(profile)) + '</span> · ' + escapeHtml(profile.last_activity_kind || '—') + '</div>' +
+        '<div>' + escapeHtml(userProfilePeopleLine(profile)) + '</div>' +
+        '<div>Baseline <span class="mono">' + escapeHtml(usersBaselineLabel(profile)) + '</span></div>' +
       '</div>' +
-      '<div class="metric-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:16px;">' +
-        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['climb_count', 'climbs'], 0)).toLocaleString() + '</div><div class="metric-label">Climbs</div></div>' +
-        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['falls_count', 'falls', 'falls_logged'], falls.length)).toLocaleString() + '</div><div class="metric-label">Falls</div></div>' +
-        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['journal_count', 'journal_entries', 'journal'], journal.length)).toLocaleString() + '</div><div class="metric-label">Journal</div></div>' +
-        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['psyche_count'], 0)).toLocaleString() + '</div><div class="metric-label">Psyche</div></div>' +
-        '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['train_count'], 0)).toLocaleString() + '</div><div class="metric-label">Train</div></div>' +
-        '<div class="metric-card clickable" id="user-detail-baseline-card" role="button" tabindex="0" aria-expanded="false" aria-controls="user-detail-baseline-panel">' +
-          '<div class="metric-num mono">' + (baselineSet ? 'Set' : 'Not set') + '</div><div class="metric-label">Baseline</div></div>' +
-      '</div>' +
-      '<div id="user-detail-baseline-panel" hidden>' +
-        '<div class="panel-title">Baseline</div>' +
-        userDetailBaselinePanelHtml(baseline) +
-      '</div>' +
-      userDetailAccordionHtml('climbs', 'Climbs', climbsHtml) +
-      userDetailAccordionHtml('falls', 'Falls', fallsHtml) +
-      userDetailAccordionHtml('assignments', 'Assignments', assignHtml) +
-      userDetailAccordionHtml('journal', 'Journal', journalHtml) +
-      userDetailAccordionHtml('psyche', 'Psyche', psycheHtml) +
-      userDetailAccordionHtml('train', 'Train', trainHtml) +
-      '<div class="panel-title" style="margin-top:18px;">Payments ledger</div>' +
-      '<div class="schema-note" style="margin:0 0 10px;">Bookkeeping only — not live billing.</div>' +
-      payHtml +
-      '<div class="bo-actions" style="margin-top:12px;align-items:flex-end;">' +
-        '<div class="bo-form-row" style="width:150px;margin:0;"><label for="pay-date">Date</label><input type="date" id="pay-date"></div>' +
-        '<div class="bo-form-row" style="width:120px;margin:0;"><label for="pay-amt">Amount ($)</label><input type="number" step="0.01" id="pay-amt"></div>' +
-        '<div class="bo-form-row" style="flex:1;margin:0;"><label for="pay-note">Note</label><input id="pay-note" placeholder="e.g. PC coaching Sep"></div>' +
-        '<button type="button" class="bo-btn primary" id="pay-add-btn">Add</button>' +
-      '</div>';
+      userProfileSection('Overview',
+        '<div class="metric-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));">' +
+          '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['climb_sessions'], 0)).toLocaleString() + '</div><div class="metric-label">Climb sessions</div></div>' +
+          '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['climbs'], 0)).toLocaleString() + '</div><div class="metric-label">Named climbs</div></div>' +
+          '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['training_sessions'], 0)).toLocaleString() + '</div><div class="metric-label">Training</div></div>' +
+          '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['falls_count'], 0)).toLocaleString() + '</div><div class="metric-label">Falls</div></div>' +
+          '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['journal_count'], 0)).toLocaleString() + '</div><div class="metric-label">Journal</div></div>' +
+          '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['psyche_count'], 0)).toLocaleString() + '</div><div class="metric-label">Psyche</div></div>' +
+          '<div class="metric-card"><div class="metric-num mono">' + Number(userField(profile, ['assignments_open'], 0)).toLocaleString() + '</div><div class="metric-label">Open assignments</div></div>' +
+          '<div class="metric-card" id="user-detail-baseline-card"><div class="metric-num mono">' + escapeHtml(usersBaselineLabel(profile)) + '</div><div class="metric-label">Baseline</div></div>' +
+        '</div>' + overviewChart
+      ) +
+      userProfileSection('Climb sessions', climbHtml) +
+      userProfileSection('Named climbs', namedHtml) +
+      userProfileSection('Training sessions', trainHtml) +
+      userProfileSection('Assignments', assignHtml) +
+      userProfileSection('Journal', journalHtml) +
+      userProfileSection('Psyche', psycheHtml) +
+      userProfileSection('Baseline', userDetailBaselinePanelHtml(data.baseline)) +
+      userProfileSection('Messages', '<div id="user-profile-messages"><div class="bo-empty">Loading···</div></div>') +
+      userProfileSection('Payments', payHtml) +
+      userProfileSection('Account', accountHtml) +
+      '<div class="panel" id="user-profile-access" style="margin-top:16px;"><div class="panel-title">Access log</div>' +
+        userProfileAccessInner(data.access_log) + '</div>';
   }
-
   function renderUserDetail(userId, data, cached){
-    var body = document.getElementById('user-detail-body');
-    var title = document.getElementById('user-detail-title');
-    var profile = data.profile || {};
-    var name = personDisplayName(
-      userField(profile, ['first_name'], userField(cached || {}, ['first_name'], '')),
-      userField(profile, ['last_name'], userField(cached || {}, ['last_name'], '')),
-      userField(profile, ['email'], userField(cached || {}, ['email'], '')),
-      'User'
-    );
-    title.textContent = name;
-    if(cached && data.baseline && (data.baseline.id || data.baseline.created_at)){
-      cached._baselineSet = true;
+    var body = document.getElementById('user-profile-body');
+    var title = document.getElementById('user-profile-title');
+    var profile = (data && data.profile) || {};
+    if(title){
+      title.textContent = personDisplayName(
+        userField(profile, ['first_name'], userField(cached || {}, ['first_name'], '')),
+        userField(profile, ['last_name'], userField(cached || {}, ['last_name'], '')),
+        userField(profile, ['email'], userField(cached || {}, ['email'], '')),
+        'User'
+      );
     }
-    body.innerHTML = buildUserDetailHtml(userId, data, cached);
-    bindUserDetailAccordions(body);
-    var baselineCard = document.getElementById('user-detail-baseline-card');
-    var baselinePanel = document.getElementById('user-detail-baseline-panel');
-    if(baselineCard && baselinePanel){
-      function toggleBaselinePanel(){
-        var open = baselinePanel.hasAttribute('hidden');
-        if(open) baselinePanel.removeAttribute('hidden');
-        else baselinePanel.setAttribute('hidden', '');
-        baselineCard.setAttribute('aria-expanded', open ? 'true' : 'false');
-      }
-      baselineCard.addEventListener('click', toggleBaselinePanel);
-      baselineCard.addEventListener('keydown', function(e){
-        if(e.key === 'Enter' || e.key === ' '){
-          e.preventDefault();
-          toggleBaselinePanel();
-        }
-      });
-    }
-    var dateEl = document.getElementById('pay-date');
-    if(dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
-    var addBtn = document.getElementById('pay-add-btn');
-    if(addBtn){
-      addBtn.addEventListener('click', function(){
-        var payload = {
-          p_user_id: userId,
-          p_payment_date: document.getElementById('pay-date').value,
-          p_amount: parseFloat(document.getElementById('pay-amt').value) || 0,
-          p_description: (document.getElementById('pay-note').value || '').trim()
-        };
-        if(!payload.p_payment_date || !payload.p_amount){ alert('Date and amount required'); return; }
-        sbRpc('foundash_add_user_payment', payload).then(function(res){
-          if(res && res.ok === false) throw res;
-          openUserDetail(userId);
-        }).catch(function(err){
-          alert('Could not add payment — ' + ((err && (err.message || err.error)) || 'error'));
-        });
-      });
-    }
-    body.querySelectorAll('[data-pay-del]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        if(!confirm('Delete this payment entry?')) return;
-        sbRpc('foundash_delete_user_payment', { p_id: btn.getAttribute('data-pay-del') }).then(function(){
-          openUserDetail(userId);
-        }).catch(function(err){
-          alert('Could not delete — ' + ((err && (err.message || err.error)) || 'error'));
-        });
-      });
-    });
+    if(body) body.innerHTML = buildUserDetailHtml(userId, data, cached);
+    renderUserProfileChart(data && data.climb_sessions);
+    applyProfileMessages();
   }
-
-  (function bindUserDetailModal(){
-    var modal = document.getElementById('user-detail-modal');
-    if(!modal) return;
-    var close = document.getElementById('user-detail-close');
-    if(close) close.addEventListener('click', function(){ modal.classList.remove('open'); });
-    modal.addEventListener('click', function(e){ if(e.target === modal) modal.classList.remove('open'); });
-  })();
+  function bindUserProfileBack(){
+    var back = document.getElementById('user-profile-back');
+    if(!back) return;
+    back.addEventListener('click', function(){ showSection('all-users'); });
+  }
+  bindUserProfileBack();
 
   /* ===================== GENERAL TO-DO ===================== */
   var todoLoaded = false;
