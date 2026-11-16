@@ -592,7 +592,10 @@ async function run(){
       assert.match(sessionText, /half crimp 15 lbs · 3 x 6/);
       assert.match(sessionText, /pass/i);
       assert.match(sessionText, /fail/i);
-      assert.match(sessionText, /untested/i);
+      assert.match(sessionText, /3 pass · 1 fail · 2 open/);
+      assert.strictEqual(await card.locator('.clog-rep.is-pass').count(), 14);
+      assert.strictEqual(await card.locator('.clog-rep.is-fail').count(), 2);
+      assert.strictEqual(await card.locator('.clog-rep.is-untested').count(), 2);
       await page.locator('.completed-group > summary').click();
       const done = page.locator('.assign-card', { hasText: 'Done week' });
       assert.match(await done.locator('.assign-logged').innerText(), /Logged/);

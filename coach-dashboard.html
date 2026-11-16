@@ -1095,10 +1095,16 @@
   .clog-boulder-mark.is-failed{border-color:var(--panic);color:var(--panic);}
   .clog-boulder-mark.is-none{background:transparent;}
   .clog-round-sum{font-size:12px;color:var(--text-secondary);margin-top:4px;}
-  .clog-rep{display:inline-block;font-size:11px;font-weight:700;margin:2px 4px 0 0;text-transform:uppercase;}
-  .clog-rep.is-pass{color:var(--comfort);}
-  .clog-rep.is-fail{color:var(--panic);}
-  .clog-rep.is-untested{color:var(--text-secondary);}
+  .clog-reps{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+  .clog-rep{
+    width:22px;height:22px;box-sizing:border-box;border-radius:6px;flex:0 0 auto;
+    border:1px solid var(--text-secondary);background:var(--bg);
+    color:var(--text-secondary);font-size:11px;font-weight:700;line-height:1;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .clog-rep.is-pass{border-color:var(--comfort);color:var(--comfort);}
+  .clog-rep.is-fail{border-color:var(--panic);color:var(--panic);}
+  .clog-rep.is-untested{border-color:var(--text-secondary);color:var(--text-secondary);}
   .cwb-menu.cwb-menu-flash{
     outline:2px solid var(--accent);outline-offset:4px;border-radius:12px;
     box-shadow:0 0 0 6px rgba(232,146,82,.28);
@@ -11618,16 +11624,25 @@
         var grip = coachEffGrip(b, s);
         var load = coachEffLoad(b, s);
         var rest = coachRestPhrase(s && s.rest_after_sec);
+        var reps = Array.isArray(s && s.reps) ? s.reps : [];
+        var passN = 0;
+        var failN = 0;
+        var openN = 0;
+        var chips = '';
+        reps.forEach(function(rp, ri){
+          var mark = rp && rp.ok === true ? 'pass' : (rp && rp.ok === false ? 'fail' : 'untested');
+          if(mark === 'pass') passN++;
+          else if(mark === 'fail') failN++;
+          else openN++;
+          chips += '<span class="clog-rep is-' + mark + '" aria-label="Rep ' + (ri + 1) + ' ' + mark + '">' + (ri + 1) + '</span>';
+        });
         var bits = ['Set ' + (si + 1)];
         if(grip) bits.push(grip);
         if(load) bits.push(load);
         if(rest) bits.push(rest);
-        html += '<div class="clog-set"><div class="clog-sub">' + escapeHtml(bits.join(' · ')) + '</div>';
-        (Array.isArray(s && s.reps) ? s.reps : []).forEach(function(rp){
-          var mark = rp && rp.ok === true ? 'pass' : (rp && rp.ok === false ? 'fail' : 'untested');
-          html += '<span class="clog-rep is-' + mark + '">' + mark + '</span>';
-        });
-        html += '</div>';
+        bits.push(passN + ' pass · ' + failN + ' fail · ' + openN + ' open');
+        html += '<div class="clog-set"><div class="clog-sub">' + escapeHtml(bits.join(' · ')) + '</div>' +
+          '<div class="clog-reps">' + chips + '</div></div>';
       });
       if(b.progression_note && String(b.progression_note).trim()){
         html += '<div class="clog-note">' + escapeHtml(String(b.progression_note).trim()) + '</div>';
