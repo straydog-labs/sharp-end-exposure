@@ -1280,7 +1280,9 @@ async function run(){
         var gets = restGets(recorded).length;
         await page.evaluate(function(){ showScreen('screen-home'); });
         await page.waitForTimeout(80);
-        assert.strictEqual(restGets(recorded).length, gets, 'same-user Home refocus is zero extra GETs, before=' + gets + ' after=' + restGets(recorded).length);
+        var extra = restGets(recorded).slice(gets);
+        assert.strictEqual(extra.length, 1, 'Home refocus adds one draft GET, before=' + gets + ' after=' + restGets(recorded).length);
+        assert.ok(extra[0].url.indexOf('/rest/v1/training_session_drafts') !== -1, extra[0].url);
         await page.evaluate(function(){ showScreen('screen-train-start'); });
         await page.evaluate(function(){ showScreen('screen-home'); });
         await page.waitForTimeout(80);
