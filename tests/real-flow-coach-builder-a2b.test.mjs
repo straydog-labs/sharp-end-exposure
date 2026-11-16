@@ -628,8 +628,9 @@ async function run(){
       assert.strictEqual(await entry.locator('.clog-rep.is-pass').count(), 14);
       assert.strictEqual(await entry.locator('.clog-rep.is-fail').count(), 2);
       assert.strictEqual(await entry.locator('.clog-rep.is-untested').count(), 2);
-      const round4 = await entry.locator('.clog-round').nth(3).locator('.clog-item').allTextContents();
-      assert.strictEqual(round4.filter(function(t){ return /not done/.test(t); }).length, 3);
+      const round4 = entry.locator('.clog-round').nth(3);
+      assert.strictEqual(await round4.locator('.clog-boulder-mark.is-none').count(), 3);
+      assert.match(await round4.innerText(), /Sent 0 · Failed 0 · Not attempted 3/);
       const nil = page.locator('.journal-entry[data-session-id="ts-null"]');
       assert.strictEqual(await nil.locator('[data-show-blocks]').count(), 0);
       assert.match(await nil.innerText(), /legacy warm/);
