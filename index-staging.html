@@ -6309,7 +6309,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index341'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index342'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -16727,19 +16727,6 @@ function wkRestUnitChange(sel){
   }
   sel.setAttribute('data-prev', sel.value);
 }
-function wkEmomLabelLive(el){
-  if(!el) return;
-  var btn = el.previousElementSibling;
-  var span = btn && btn.querySelector ? btn.querySelector('.wk-check-text') : null;
-  if(!span) return;
-  var v = String(el.value || '').trim();
-  var base = el.getAttribute('data-fallback') || '';
-  var nMatch = String(base).match(/(\d+)\s*$/);
-  var n = nMatch ? parseInt(nMatch[1], 10) : 0;
-  if(!v) span.textContent = base;
-  else if(n && wkBoulderTextAlreadyNumbered(v, n)) span.textContent = v;
-  else span.textContent = base ? base + ' \u00b7 ' + v : v;
-}
 function wkRemoveEmomRound(blockId, ri){
   if(!trainSessionState) return;
   collectTrainBlockFields();
@@ -16958,10 +16945,14 @@ function wkBoulderHitHtml(bo, onclick, text){
   var result = wkBoulderResultOf(bo);
   var state = wkBoulderStateName(result);
   var cls = 'wk-boulder' + (result === 'sent' ? ' is-sent' : '') + (result === 'failed' ? ' is-failed' : '');
-  var label = (text == null ? '' : String(text)) + ', ' + state;
-  return '<button type="button" class="wk-check-hit '+cls+(result === 'sent' ? ' is-on' : '')+'" data-boulder-result="'+state+'" onclick="'+onclick+'" aria-label="'+escTrainHtml(label)+'" style="display:flex;align-items:flex-start;gap:10px;width:100%;min-height:44px;min-width:44px;box-sizing:border-box;background:none;border:none;padding:0;margin:0 0 4px;color:inherit;font:inherit;text-align:left;cursor:pointer;">'
+  var iconOnly = text == null;
+  var shown = iconOnly ? '' : String(text);
+  var label = iconOnly ? state : (shown + ', ' + state);
+  var width = iconOnly ? 'width:44px;margin:0;' : 'width:100%;margin:0 0 4px;';
+  var span = iconOnly ? '' : '<span class="wk-check-text" style="font-size:13px;line-height:1.35;padding:11px 0;flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word;">'+escTrainHtml(shown)+'</span>';
+  return '<button type="button" class="wk-check-hit '+cls+(result === 'sent' ? ' is-on' : '')+'" data-boulder-result="'+state+'" onclick="'+onclick+'" aria-label="'+escTrainHtml(label)+'" style="display:flex;align-items:flex-start;gap:10px;'+width+'min-height:44px;min-width:44px;box-sizing:border-box;background:none;border:none;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;">'
     + '<input type="checkbox" class="wk-box"'+(result === 'sent' ? ' checked' : '')+' tabindex="-1" aria-hidden="true" style="width:22px;height:22px;min-width:22px;min-height:22px;margin:11px 0;flex-shrink:0;pointer-events:none;">'
-    + '<span class="wk-check-text" style="font-size:13px;line-height:1.35;padding:11px 0;flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word;">'+escTrainHtml(text == null ? '' : String(text))+'</span>'
+    + span
     + '</button>';
 }
 function wkRenderEmomBody(b, compact){
@@ -16982,11 +16973,12 @@ function wkRenderEmomBody(b, compact){
     var inner = (round.boulders || []).map(function(bo, i){
       bo = bo || {};
       var bid = wkEscId(bo.id || ('i'+i));
-      var row = wkBoulderHitHtml(bo, "toggleWkBoulder('"+wkEscId(b.id)+"',"+ri+",'"+bid+"')", wkBoulderLabel(i, bo.text));
-      if(!compact){
-        row += '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" data-fallback="Boulder '+(i+1)+'" oninput="wkEmomLabelLive(this)" placeholder="Details (grade · color · wall)" aria-label="Boulder '+(i+1)+' details" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
-      }
-      return row;
+      var hit = "toggleWkBoulder('"+wkEscId(b.id)+"',"+ri+",'"+bid+"')";
+      if(compact) return wkBoulderHitHtml(bo, hit, wkBoulderLabel(i, bo.text));
+      return '<div class="wk-boulder-line" style="display:flex;align-items:center;gap:10px;margin:0 0 6px;">'
+        + wkBoulderHitHtml(bo, hit, null)
+        + '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Boulder '+(i+1)+'" style="flex:1;min-width:0;margin:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">'
+        + '</div>';
     }).join('');
     if(!compact){
       inner += '<button type="button" class="train-add-affordance" onclick="trainAddEmomBoulder(\''+b.id+'\','+ri+')" style="margin-bottom:8px;">+ Boulder</button>'

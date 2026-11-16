@@ -13,8 +13,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index341'/.test(index));
-assert.ok(/APP_VERSION = 'index341'/.test(sw));
+assert.ok(/var app_version = 'index342'/.test(index));
+assert.ok(/APP_VERSION = 'index342'/.test(sw));
 
 // Optional screenshot output (outside the repo). Unset in CI.
 const SHOT_OUT = process.env.SEE_SHOT_OUT || '';
@@ -148,32 +148,32 @@ try{
     // 2. EMOM live label + tick + collapse summary
     var emomId = await page.evaluate(function(){ return trainSessionState.blocks[0].id; });
     var firstInput = '#tb-' + emomId + '-r0-b0';
-    var labelSel = '#train-blocks-wrap .train-block-card[data-block-id="' + emomId + '"] .wk-boulder .wk-check-text';
-    assert.strictEqual((await page.locator(labelSel).first().textContent()).trim(), 'Boulder 1');
-    // Slow CI runners can re-render the builder just after a fill and drop the typed text,
-    // so refill and wait for the label instead of reading it once.
-    const fillAndSettle = async function(value, expected, msg){
+    var cardSel = '#train-blocks-wrap .train-block-card[data-block-id="' + emomId + '"]';
+    assert.strictEqual(await page.locator(firstInput).getAttribute('placeholder'), 'Boulder 1');
+    assert.strictEqual(await page.locator(cardSel + ' .wk-boulder .wk-check-text').count(), 0, 'the check control is not a second boulder label');
+    const fillAndSettle = async function(value, msg){
       let got = '';
       for(let attempt = 0; attempt < 5; attempt++){
         await page.fill(firstInput, value);
         try{
           await page.waitForFunction(function(args){
             var n = document.querySelector(args[0]);
-            return !!n && n.textContent.trim() === args[1];
-          }, [labelSel, expected], { timeout: 1500 });
-          got = expected;
+            return !!n && n.value === args[1];
+          }, [firstInput, value], { timeout: 1500 });
+          got = value;
           break;
         }catch(e){
-          got = (await page.locator(labelSel).first().textContent()).trim();
+          got = await page.locator(firstInput).inputValue();
         }
       }
-      assert.strictEqual(got, expected, msg);
+      assert.strictEqual(got, value, msg);
+      var repeated = await page.locator(cardSel + ' .wk-boulder .wk-check-text').count();
+      assert.strictEqual(repeated, 0, 'typing does not add a second Boulder N label');
     };
     await page.waitForTimeout(300);
-    await fillAndSettle('V4 orange', 'Boulder 1 \u00b7 V4 orange', 'label keeps Boulder N and adds the detail while typing');
-    await fillAndSettle('', 'Boulder 1', 'empty falls back to Boulder N');
-    await fillAndSettle('V4 orange', 'Boulder 1 \u00b7 V4 orange', 'label restored after retyping');
-    assert.strictEqual(await page.locator(firstInput).getAttribute('placeholder'), 'Details (grade \u00b7 color \u00b7 wall)');
+    await fillAndSettle('V4 orange', 'the text field is the only name');
+    await fillAndSettle('', 'clearing the field leaves the Boulder N placeholder');
+    await fillAndSettle('V4 orange', 'retyping stays in the one field');
 
     // rest takes minutes or seconds: unit menu, typed suffix, and m:ss
     var restSel = '#tb-' + emomId + '-r0-rest';

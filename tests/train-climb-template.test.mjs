@@ -12,8 +12,8 @@ const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 const sql = readFileSync(join(root, 'sql/custom-workouts-is-starred.sql'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index341'/.test(index));
-assert.ok(/APP_VERSION = 'index341'/.test(sw));
+assert.ok(/var app_version = 'index342'/.test(index));
+assert.ok(/APP_VERSION = 'index342'/.test(sw));
 assert.ok(/add column if not exists is_starred/.test(sql));
 assert.ok(/custom_workouts/.test(sql));
 
