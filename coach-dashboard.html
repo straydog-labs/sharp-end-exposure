@@ -1073,6 +1073,16 @@
   .clog-h{font-weight:700;font-size:13px;margin-top:8px;}
   .clog-sub{font-size:12px;font-weight:700;color:var(--text-secondary);margin-top:6px;}
   .clog-item,.clog-note,.clog-rest,.clog-line{font-size:13px;margin-top:2px;}
+  .clog-boulder{display:flex;align-items:center;gap:8px;}
+  .clog-boulder-mark{
+    width:14px;height:14px;border-radius:3px;border:1px solid var(--text-secondary);
+    display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+    font-size:11px;line-height:1;color:var(--text-secondary);
+  }
+  .clog-boulder-mark.is-sent{border-color:var(--comfort);color:var(--comfort);}
+  .clog-boulder-mark.is-failed{border-color:var(--panic);color:var(--panic);}
+  .clog-boulder-mark.is-none{background:transparent;}
+  .clog-round-sum{font-size:12px;color:var(--text-secondary);margin-top:4px;}
   .clog-rep{display:inline-block;font-size:11px;font-weight:700;margin:2px 4px 0 0;text-transform:uppercase;}
   .clog-rep.is-pass{color:var(--comfort);}
   .clog-rep.is-fail{color:var(--panic);}
@@ -11443,6 +11453,23 @@
     return n + ' sec';
   }
 
+  // result is authoritative when present. Legacy rows only have complete.
+  function coachBoulderAttempt(bo){
+    if(!bo || typeof bo !== 'object') return 'none';
+    if(Object.prototype.hasOwnProperty.call(bo, 'result')){
+      if(bo.result === 'sent') return 'sent';
+      if(bo.result === 'failed') return 'failed';
+      return 'none';
+    }
+    return bo.complete === true ? 'sent' : 'none';
+  }
+
+  function coachBoulderMarkHtml(state){
+    if(state === 'sent') return '<span class="clog-boulder-mark is-sent" aria-label="Sent">\u2713</span>';
+    if(state === 'failed') return '<span class="clog-boulder-mark is-failed" aria-label="Failed">\u2715</span>';
+    return '<span class="clog-boulder-mark is-none" aria-label="Not attempted"></span>';
+  }
+
   function coachLoggedBlockHtml(b){
     if(!b || typeof b !== 'object') return '<div class="clog-line">kept as logged</div>';
     var shape = b.shape;
@@ -11452,17 +11479,28 @@
       (Array.isArray(b.rounds) ? b.rounds : []).forEach(function(r){
         (Array.isArray(r && r.boulders) ? r.boulders : []).forEach(function(bo){
           total++;
-          if(bo && bo.complete) sent++;
+          if(coachBoulderAttempt(bo) === 'sent') sent++;
         });
       });
       var html = '<div class="clog-block"><div class="clog-h">EMOM · ' + sent + ' of ' + total + ' sent</div>';
       (b.rounds || []).forEach(function(r, ri){
-        html += '<div class="clog-round"><div class="clog-sub">Round ' + (ri + 1) + '</div>';
+        var rs = 0;
+        var rf = 0;
+        var rn = 0;
+        var items = '';
         (Array.isArray(r && r.boulders) ? r.boulders : []).forEach(function(bo, bi){
           var text = bo && String(bo.text || '').trim();
           if(!text) text = 'Boulder ' + (bi + 1);
-          html += '<div class="clog-item">' + escapeHtml(text) + ' · ' + (bo && bo.complete ? 'done' : 'not done') + '</div>';
+          var state = coachBoulderAttempt(bo);
+          if(state === 'sent') rs++;
+          else if(state === 'failed') rf++;
+          else rn++;
+          items += '<div class="clog-item clog-boulder">' + coachBoulderMarkHtml(state) +
+            '<span class="clog-boulder-name">' + escapeHtml(text) + '</span></div>';
         });
+        html += '<div class="clog-round"><div class="clog-sub">Round ' + (ri + 1) + '</div>' +
+          items +
+          '<div class="clog-round-sum">Sent ' + rs + ' · Failed ' + rf + ' · Not attempted ' + rn + '</div>';
         if(r && String(r.notes || '').trim()) html += '<div class="clog-note">' + escapeHtml(String(r.notes).trim()) + '</div>';
         var rest = coachRestPhrase(r && r.rest_after_sec);
         if(rest) html += '<div class="clog-rest">Rest after round · ' + escapeHtml(rest) + '</div>';
@@ -11560,7 +11598,7 @@
       (Array.isArray(b.rounds) ? b.rounds : []).forEach(function(r){
         ((r && r.boulders) || []).forEach(function(bo){
           total++;
-          if(bo && bo.complete) sent++;
+          if(coachBoulderAttempt(bo) === 'sent') sent++;
         });
       });
       if(total) return sent + ' of ' + total + ' sent';
