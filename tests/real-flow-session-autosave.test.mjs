@@ -345,9 +345,9 @@ try{
       scheduleTrainDraftSave();
     });
     await page.waitForTimeout(600);
-    await page.click('#screen-train-session .back-btn');
+    await page.click('#train-sess-discard');
     await page.click('#train-discard-do');
-    await waitForScreen(page, 'screen-train');
+    await waitForScreen(page, 'screen-home');
     var cancelled = await page.evaluate(function(userId){
       return localStorage.getItem('see_train_draft_' + userId);
     }, USER_ID);
