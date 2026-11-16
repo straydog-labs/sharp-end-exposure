@@ -9,8 +9,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index341'/.test(index));
-assert.ok(/APP_VERSION = 'index341'/.test(sw));
+assert.ok(/var app_version = 'index342'/.test(index));
+assert.ok(/APP_VERSION = 'index342'/.test(sw));
 
 function fulfillJson(route, status, body){
   return route.fulfill({
@@ -188,23 +188,43 @@ try{
       }];
       renderTrainSessionBuilder();
       var card = document.querySelector('[data-block-id="' + b.id + '"]');
-      var texts = card ? Array.prototype.slice.call(card.querySelectorAll('.wk-boulder .wk-check-text')).map(function(n){ return n.textContent.trim(); }) : [];
-      return { id: b.id, texts: texts };
+      var inputs = card ? Array.prototype.slice.call(card.querySelectorAll('input[id*="-r0-b"]')) : [];
+      var checks = card ? card.querySelectorAll('.wk-boulder .wk-check-text').length : 0;
+      return {
+        id: b.id,
+        values: inputs.map(function(el){ return el.value; }),
+        checks: checks
+      };
     });
-    assert.deepStrictEqual(labels.texts, [
+    assert.deepStrictEqual(labels.values, [
       'Boulder 1 - Green V3-5',
-      'Boulder 2 · Green V3-5',
-      'Boulder 3'
-    ], JSON.stringify(labels.texts));
+      'Green V3-5',
+      ''
+    ], JSON.stringify(labels.values));
+    assert.strictEqual(labels.checks, 0, 'the editor does not repeat the name on the check control');
 
     var input = '#tb-' + labels.id + '-r0-b0';
-    await page.fill(input, '');
-    await page.fill(input, 'Boulder 1 - Green V3-5');
-    var live = (await page.locator('[data-block-id="' + labels.id + '"] .wk-boulder .wk-check-text').first().textContent()).trim();
-    assert.strictEqual(live, 'Boulder 1 - Green V3-5', 'live label does not double the prefix');
     await page.fill(input, 'Green V4');
-    live = (await page.locator('[data-block-id="' + labels.id + '"] .wk-boulder .wk-check-text').first().textContent()).trim();
-    assert.strictEqual(live, 'Boulder 1 · Green V4', 'legacy detail still gets the prefix');
+    assert.strictEqual(await page.locator(input).inputValue(), 'Green V4');
+    assert.strictEqual(await page.locator('[data-block-id="' + labels.id + '"] .wk-boulder .wk-check-text').count(), 0);
+
+    var compact = await page.evaluate(function(){
+      var b = trainSessionState.blocks[0];
+      b.title = 'EMOM';
+      b.editing = false;
+      collectTrainBlockFields();
+      renderTrainSessionBuilder();
+      var card = document.querySelector('[data-block-id="' + b.id + '"]');
+      var texts = card ? Array.prototype.slice.call(card.querySelectorAll('.wk-boulder .wk-check-text')).map(function(n){ return n.textContent.trim(); }) : [];
+      var inputs = card ? card.querySelectorAll('input[id*="-r0-b"]').length : 0;
+      return { texts: texts, inputs: inputs };
+    });
+    assert.deepStrictEqual(compact.texts, [
+      'Boulder 1 · Green V4',
+      'Boulder 2 · Green V3-5',
+      'Boulder 3'
+    ], JSON.stringify(compact.texts));
+    assert.strictEqual(compact.inputs, 0, 'a titled session row is one label');
 
     await page.evaluate(function(){ showScreen('screen-train'); });
     await page.waitForFunction(function(title){

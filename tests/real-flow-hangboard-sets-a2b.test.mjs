@@ -12,8 +12,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index341'/.test(index));
-assert.ok(/APP_VERSION = 'index341'/.test(sw));
+assert.ok(/var app_version = 'index342'/.test(index));
+assert.ok(/APP_VERSION = 'index342'/.test(sw));
 assert.ok(!/WK_DEFAULT_ON/.test(index));
 assert.ok(!/_hangLoadSrc/.test(index));
 const sql = readFileSync(join(root, 'sql/training-sessions-assignment-id.sql'), 'utf8');
@@ -545,6 +545,7 @@ try{
           checkInWarmupDom: !!(wuWrap && check && wuWrap.querySelector('[data-block-id="' + check.id + '"]')),
           checkItems: checkCard ? checkCard.querySelectorAll('.wk-check-hit').length : 0,
           boulderLabel: emomCard && emomCard.querySelector('.wk-check-text') ? emomCard.querySelector('.wk-check-text').textContent.trim() : '',
+          boulderPlaceholder: (emom && document.getElementById('tb-' + emom.id + '-r0-b0') || {}).placeholder || '',
           boulderTick: !!(emomCard && emomCard.querySelector('.wk-box')),
           boulderInput: !!(emom && document.getElementById('tb-' + emom.id + '-r0-b0')),
           hangSetRows: hbCard ? hbCard.querySelectorAll('[data-hang-set]').length : 0,
@@ -556,7 +557,8 @@ try{
         assert.ok(probe.mainShapes.some(function(s){ return s.indexOf('check:Warm up') === 0; }), 'Warm up check is in main group');
         assert.strictEqual(probe.checkInWarmupDom, false, 'does not duplicate fixed Warm up slot');
         assert.ok(probe.checkItems >= 2, 'check items tick');
-        assert.ok(/^Boulder 1/.test(probe.boulderLabel), 'blank boulder labeled Boulder N');
+        assert.strictEqual(probe.boulderLabel, '', 'the check control does not repeat Boulder N');
+        assert.strictEqual(probe.boulderPlaceholder, 'Boulder 1', 'the text field is the boulder label');
         assert.ok(probe.boulderTick, 'blank boulder has tick box');
         assert.ok(probe.boulderInput, 'blank boulder text is editable');
         assert.ok(probe.hangSetRows >= 6, 'all hangboard sets visible');

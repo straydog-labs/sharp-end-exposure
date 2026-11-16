@@ -120,8 +120,10 @@ try{
     assert.strictEqual(seeded.rounds, 2);
     assert.strictEqual(seeded.ticked, false, 'a started workout begins unticked');
     assert.strictEqual(seeded.grip, 'half crimp');
-    const labels = await page.$$eval('#train-blocks-wrap .train-block-card:first-child .wk-boulder .wk-check-text', function(ns){ return ns.slice(0, 2).map(function(n){ return n.textContent.trim(); }); });
-    assert.deepStrictEqual(labels, ['Boulder 1 · V4-6 blue cave', 'Boulder 2 · V4-6 green left']);
+    const labels = await page.$$eval('#train-blocks-wrap .train-block-card:first-child input[id*="-r0-b"]', function(ns){ return ns.slice(0, 2).map(function(n){ return n.value; }); });
+    const repeated = await page.$$eval('#train-blocks-wrap .train-block-card:first-child .wk-boulder .wk-check-text', function(ns){ return ns.map(function(n){ return n.textContent.trim(); }); });
+    assert.deepStrictEqual(labels, ['V4-6 blue cave', 'V4-6 green left']);
+    assert.deepStrictEqual(repeated, [], 'the check control does not repeat the boulder name');
     await page.locator('#train-blocks-wrap .train-block-card:first-child .wk-boulder').first().click();
     assert.strictEqual(await page.evaluate(function(){ return trainSessionState.blocks[0].rounds[0].boulders[0].complete; }), true, 'tick works in the run');
     await page.click('#train-sess-save');
