@@ -477,6 +477,8 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 }
 .wk-check-text{font-size:13px;line-height:1.35;color:var(--text);padding:11px 0;flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word;}
 .wk-check-hit.is-on .wk-check-text{color:var(--comfort);}
+.wk-check-hit.is-failed .wk-check-text{color:var(--panic);}
+.wk-check-hit.is-failed .wk-box{accent-color:var(--panic);outline:2px solid var(--panic);outline-offset:1px;}
 .train-sess-title-input{
   display:block;
   width:100%;
@@ -6299,7 +6301,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index339'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index340'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -15400,7 +15402,11 @@ function trainStripBlockForLibrary(b){
       if(!r) return;
       r.complete = false;
       r.rest_started_at = null;
-      (r.boulders || []).forEach(function(bo){ if(bo) bo.complete = false; });
+      (r.boulders || []).forEach(function(bo){
+        if(!bo) return;
+        bo.complete = false;
+        bo.result = null;
+      });
     });
   }
   if(Array.isArray(fresh.sets)){
@@ -16251,7 +16257,7 @@ function parseTrainSessionBlocks(row){
   return [];
 }
 
-var WK_SENT_HINT = 'Checked = sent / completed successfully. Unchecked = not sent.';
+var WK_SENT_HINT = 'Tap to cycle: sent, failed, clear.';
 function wkEscId(v){
   return String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, '');
 }
@@ -16266,26 +16272,60 @@ function wkRoundCount(b){
   if(isNaN(n) || n < 1) return 0;
   return Math.floor(n);
 }
+function wkBoulderResultOf(bo){
+  if(!bo) return null;
+  if(bo.result === 'sent' || bo.result === 'failed') return bo.result;
+  if(bo.complete === true) return 'sent';
+  return null;
+}
+function wkApplyBoulderResult(bo, result){
+  if(!bo) return;
+  bo.result = result === 'sent' || result === 'failed' ? result : null;
+  bo.complete = bo.result === 'sent';
+}
+function wkBoulderStateName(result){
+  if(result === 'sent') return 'sent';
+  if(result === 'failed') return 'failed';
+  return 'unmarked';
+}
 function wkEnsureBoulder(bo){
   bo = bo || {};
+  var result = wkBoulderResultOf(bo);
   return {
     id: bo.id || uid(),
     text: (bo.text == null ? '' : String(bo.text)),
-    complete: !!bo.complete
+    complete: result === 'sent',
+    result: result
   };
+}
+function wkRoundAllSent(round){
+  var bos = (round && round.boulders) || [];
+  return bos.length > 0 && bos.every(function(bo){ return wkBoulderResultOf(bo) === 'sent'; });
 }
 function wkDeriveEmom(b){
   if(!b || !Array.isArray(b.rounds)) return;
   b.rounds.forEach(function(round){
-    if(!round) return;
-    var bos = Array.isArray(round.boulders) ? round.boulders : [];
-    if(bos.length){
-      round.complete = bos.every(function(bo){ return !!(bo && bo.complete); });
-    }
+    if(!round || !Array.isArray(round.boulders)) return;
+    round.boulders.forEach(function(bo){
+      if(bo) wkApplyBoulderResult(bo, wkBoulderResultOf(bo));
+    });
+    if(wkRoundAllSent(round)) round.complete = true;
   });
-  if(b.rounds.length){
-    b.complete = b.rounds.every(function(r){ return !!(r && r.complete); });
-  }
+  if(b.rounds.length && b.rounds.every(function(r){ return !!(r && r.complete); })) b.complete = true;
+}
+function wkCountEmomResults(blocks){
+  var sent = 0, failed = 0;
+  (blocks || []).forEach(function(b){
+    if(!b || b.shape !== 'emom') return;
+    (b.rounds || []).forEach(function(round){
+      ((round && round.boulders) || []).forEach(function(bo){
+        var result = wkBoulderResultOf(bo);
+        if(result === 'sent') sent++;
+        else if(result === 'failed') failed++;
+      });
+    });
+  });
+  return { sent: sent, failed: failed };
 }
 function wkExpandEmom(b){
   if(!b || b.shape !== 'emom') return;
@@ -16459,15 +16499,17 @@ function wkBlockSummary(b){
   if(!b) return '';
   var out = '';
   if(b.shape === 'emom'){
-    var total = 0, sent = 0;
+    var total = 0, sent = 0, failed = 0;
     var rounds = Array.isArray(b.rounds) ? b.rounds : [];
     rounds.forEach(function(r){
       ((r && r.boulders) || []).forEach(function(bo){
         total++;
-        if(bo && bo.complete) sent++;
+        var result = wkBoulderResultOf(bo);
+        if(result === 'sent') sent++;
+        else if(result === 'failed') failed++;
       });
     });
-    out = total ? (sent + ' of ' + total + ' sent') : 'No boulders yet';
+    out = total ? (sent + ' of ' + total + ' sent' + (failed ? (' · ' + failed + ' failed') : '')) : 'No boulders yet';
     if(rounds.length > 1) out += ' · ' + rounds.length + ' rounds';
   } else if(b.shape === 'rep_pass_fail'){
     out = trainHangCollapsedSummary(b);
@@ -16659,7 +16701,7 @@ function wkRemoveEmomRound(blockId, ri){
   var b = trainSessionState.blocks.find(function(x){ return x && x.id === blockId; });
   if(!b || b.shape !== 'emom' || !Array.isArray(b.rounds) || b.rounds.length <= 1 || !b.rounds[ri]) return;
   var round = b.rounds[ri];
-  var hasContent = (round.boulders || []).some(function(bo){ return bo && (trainTextNonEmpty(bo.text) || bo.complete); })
+  var hasContent = (round.boulders || []).some(function(bo){ return bo && (trainTextNonEmpty(bo.text) || bo.complete || bo.result === 'sent' || bo.result === 'failed'); })
     || trainTextNonEmpty(round.notes) || !!round.complete;
   var key = blockId + ':' + ri;
   var armed = wkRoundArm && wkRoundArm.key === key && (Date.now() - wkRoundArm.at) < 8000;
@@ -16684,18 +16726,7 @@ function wkSetAllComplete(b, on){
   on = !!on;
   if(!b) return;
   if(b.shape === 'emom' && Array.isArray(b.rounds)){
-    b.rounds.forEach(function(round){
-      if(!round) return;
-      (round.boulders || []).forEach(function(bo){ if(bo) bo.complete = on; });
-      if((round.boulders || []).length){
-        round.complete = on;
-        if(on) round.rest_skipped = false;
-        round.rest_started_at = on ? new Date().toISOString() : null;
-      } else {
-        round.complete = on;
-      }
-    });
-    wkDeriveEmom(b);
+    b.complete = on;
   } else if(b.shape === 'circuit'){
     if(!Array.isArray(b.round_complete)) b.round_complete = [];
     var i;
@@ -16717,9 +16748,11 @@ function toggleWkBoulder(blockId, roundIndex, boulderId){
   var bo = (round.boulders || []).find(function(x){ return x && String(x.id) === String(boulderId); });
   if(!bo) return;
   var wasBlock = trainBlockWorkComplete(b);
-  bo.complete = !bo.complete;
-  if(bo.complete) stopPriorEmomRests(b, roundIndex);
   var wasComplete = !!round.complete;
+  var prev = wkBoulderResultOf(bo);
+  var next = prev == null ? 'sent' : (prev === 'sent' ? 'failed' : null);
+  wkApplyBoulderResult(bo, next);
+  if(next === 'sent') stopPriorEmomRests(b, roundIndex);
   wkDeriveEmom(b);
   if(round.complete && !wasComplete){
     round.rest_skipped = false;
@@ -16871,6 +16904,16 @@ function wkJohnSessionBlocks(){
     ], '2 rounds.')
   ];
 }
+function wkBoulderHitHtml(bo, onclick, text){
+  var result = wkBoulderResultOf(bo);
+  var state = wkBoulderStateName(result);
+  var cls = 'wk-boulder' + (result === 'sent' ? ' is-sent' : '') + (result === 'failed' ? ' is-failed' : '');
+  var label = (text == null ? '' : String(text)) + ', ' + state;
+  return '<button type="button" class="wk-check-hit '+cls+(result === 'sent' ? ' is-on' : '')+'" data-boulder-result="'+state+'" onclick="'+onclick+'" aria-label="'+escTrainHtml(label)+'" style="display:flex;align-items:flex-start;gap:10px;width:100%;min-height:44px;min-width:44px;box-sizing:border-box;background:none;border:none;padding:0;margin:0 0 4px;color:inherit;font:inherit;text-align:left;cursor:pointer;">'
+    + '<input type="checkbox" class="wk-box"'+(result === 'sent' ? ' checked' : '')+' tabindex="-1" aria-hidden="true" style="width:22px;height:22px;min-width:22px;min-height:22px;margin:11px 0;flex-shrink:0;pointer-events:none;">'
+    + '<span class="wk-check-text" style="font-size:13px;line-height:1.35;padding:11px 0;flex:1;min-width:0;overflow-wrap:anywhere;word-break:break-word;">'+escTrainHtml(text == null ? '' : String(text))+'</span>'
+    + '</button>';
+}
 function wkRenderEmomBody(b, compact){
   var rounds = Array.isArray(b.rounds) && b.rounds.length ? b.rounds : [{ boulders: [], notes: '', rest_after_sec: 180, complete: false }];
   var hint = '<div class="wk-sent-hint">'+escTrainHtml(WK_SENT_HINT)+'</div>';
@@ -16889,7 +16932,7 @@ function wkRenderEmomBody(b, compact){
     var inner = (round.boulders || []).map(function(bo, i){
       bo = bo || {};
       var bid = wkEscId(bo.id || ('i'+i));
-      var row = wkCheckHtml(!!bo.complete, "toggleWkBoulder('"+wkEscId(b.id)+"',"+ri+",'"+bid+"')", wkBoulderLabel(i, bo.text), 'wk-boulder');
+      var row = wkBoulderHitHtml(bo, "toggleWkBoulder('"+wkEscId(b.id)+"',"+ri+",'"+bid+"')", wkBoulderLabel(i, bo.text));
       if(!compact){
         row += '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" data-fallback="Boulder '+(i+1)+'" oninput="wkEmomLabelLive(this)" placeholder="Details (grade · color · wall)" aria-label="Boulder '+(i+1)+' details" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
       }
@@ -17264,8 +17307,11 @@ function renderTrainSessionBlockDetailHtml(b, bi, isWarmup){
   } else if(b.shape === 'emom'){
     body = (b.rounds || []).map(function(round, ri){
       var bits = (round.boulders || []).map(function(bo){
-        if(!trainTextNonEmpty(bo && bo.text)) return '';
-        return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+(bo && bo.complete ? ' · sent' : '')+'</div>';
+        var result = wkBoulderResultOf(bo);
+        if(!trainTextNonEmpty(bo && bo.text) && !result) return '';
+        var mark = result === 'sent' ? ' · sent' : (result === 'failed' ? ' · failed' : '');
+        var col = result === 'failed' ? 'var(--panic)' : 'var(--text)';
+        return '<div data-boulder-result="'+(result || 'unmarked')+'" style="font-size:13px;color:'+col+';margin-bottom:4px;">'+escTrainHtml((bo && bo.text) || '')+mark+'</div>';
       }).join('');
       if(trainTextNonEmpty(round && round.notes)){
         bits += '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>';
@@ -20184,16 +20230,8 @@ function toggleTrainEmomRoundComplete(blockId, roundIndex){
   if(!b || b.shape !== 'emom' || !b.rounds || !b.rounds[roundIndex]) return;
   var round = b.rounds[roundIndex];
   var wasBlock = trainBlockWorkComplete(b);
-  var turningOn;
-  if((typeof isWkOn === 'function' && isWkOn()) && Array.isArray(round.boulders) && round.boulders.length){
-    turningOn = !round.boulders.every(function(bo){ return bo && bo.complete; });
-    round.boulders.forEach(function(bo){ if(bo) bo.complete = turningOn; });
-    round.complete = turningOn;
-    wkDeriveEmom(b);
-  } else {
-    turningOn = !round.complete;
-    round.complete = turningOn;
-  }
+  var turningOn = !round.complete;
+  round.complete = turningOn;
   if(turningOn) stopPriorEmomRests(b, roundIndex);
   trainMaybeOfferNotice(b, wasBlock);
   if(round.complete){
@@ -20525,6 +20563,7 @@ async function saveTrainSession(opts){
   if(msg) msg.textContent = '';
   var endedAt = payload.ended_at;
   _lastTrainSessionId = trainSessionState.id;
+  var emomCounts = wkCountEmomResults(trainSessionState.blocks);
   _trainDoneSnapshot = {
     id: trainSessionState.id,
     title: trainSessionState.title,
@@ -20533,7 +20572,9 @@ async function saveTrainSession(opts){
     ended_at: endedAt,
     blockCount: (trainSessionState.blocks || []).length,
     warm_up_complete: !!trainSessionState.warm_up_complete,
-    cool_down_complete: !!trainSessionState.cool_down_complete
+    cool_down_complete: !!trainSessionState.cool_down_complete,
+    emomSent: emomCounts.sent,
+    emomFailed: emomCounts.failed
   };
   try{ localStorage.setItem('see_pinned_session_id', String(trainSessionState.id)); }catch(e){}
   if(!queuedOffline){
@@ -20624,6 +20665,12 @@ function populateTrainDoneScreen(snap, resetReflection){
     if(dur) bits.push(dur);
     var n = snap.blockCount || 0;
     bits.push(n + ' block' + (n === 1 ? '' : 's'));
+    if(snap.emomSent || snap.emomFailed){
+      var results = [];
+      if(snap.emomSent) results.push(snap.emomSent + ' sent');
+      if(snap.emomFailed) results.push(snap.emomFailed + ' failed');
+      bits.push(results.join(' · '));
+    }
     metaEl.textContent = bits.join(' · ');
   }
   if(resetReflection){
