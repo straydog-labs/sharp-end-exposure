@@ -6299,7 +6299,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index337'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index338'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -11939,11 +11939,27 @@ function countHomeWeekSessions(climbs, trains, psyche, drills, fromDate){
   (drills || []).forEach(function(d){ if(isAthleteStreakPsycheDrill(d) && d.drill_key !== 'awareness' && inWeek(d.created_at)) n++; });
   return n;
 }
-function homeProjectLastLabel(iso){
+function homeProjectAddedLabel(iso){
   if(!iso) return '';
   var d = iso instanceof Date ? iso : new Date(iso);
   if(isNaN(d.getTime())) return '';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function homeProjectLastLabel(iso, now){
+  if(!iso) return '';
+  var d = iso instanceof Date ? new Date(iso.getTime()) : new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  var n = now instanceof Date ? new Date(now.getTime()) : (now ? new Date(now) : new Date());
+  if(isNaN(n.getTime())) n = new Date();
+  var startD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  var startN = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  var days = Math.round((startN.getTime() - startD.getTime()) / 86400000);
+  if(days === 0) return 'tried today';
+  if(days === 1) return 'tried yesterday';
+  if(days >= 2 && days <= 30) return 'tried ' + days + ' days ago';
+  var opts = { month: 'short', day: 'numeric' };
+  if(d.getFullYear() !== n.getFullYear()) opts.year = 'numeric';
+  return 'tried ' + d.toLocaleDateString('en-US', opts);
 }
 function homeZoneDotColor(zone){
   var z = String(zone || '').toLowerCase();
@@ -12157,7 +12173,7 @@ function paintHomePrompt(prompt, now){
     var p3 = prompt.project || {};
     if(kickerEl) kickerEl.textContent = 'PROJECT';
     titleEl.textContent = 'Revisit ' + climbDisplayName(p3.name);
-    metaEl.textContent = attemptCountLabel(p3.attempts) + (p3.lastAt ? ', last ' + homeProjectLastLabel(p3.lastAt) : '');
+    metaEl.textContent = attemptCountLabel(p3.attempts) + (p3.lastAt ? ', ' + homeProjectLastLabel(p3.lastAt) : '');
     fillHomeLogAttempt(p3);
   } else if(prompt.state === 's4'){
     if(kickerEl) kickerEl.textContent = 'PROJECT';
@@ -12203,7 +12219,7 @@ function paintHomePrompt(prompt, now){
       titleEl.textContent = 'Next: ' + (p6.name || 'Unnamed');
       var att = attemptCountLabel(p6.attempts);
       var last = homeProjectLastLabel(p6.lastAt);
-      metaEl.textContent = att + (last ? ', last ' + last : '');
+      metaEl.textContent = att + (last ? ', ' + last : '');
       fillHomeLogAttempt(p6);
     } else {
       titleEl.textContent = "Log today's climb";
@@ -12629,10 +12645,11 @@ function paintHomeProjectsStrip(){
   strip.innerHTML = projects.map(function(p){
     var attN = p.attempts || 0;
     var att = attemptCountLabel(attN);
-    var when = homeProjectLastLabel(p.lastAt);
+    var tried = homeProjectLastLabel(p.lastAt);
+    var added = homeProjectAddedLabel(p.lastAt);
     var whenBit = attN === 0
-      ? (when ? '0 attempts · added ' + when : '0 attempts')
-      : (att + (when ? ' · last ' + when : ''));
+      ? (added ? '0 attempts · added ' + added : '0 attempts')
+      : (att + (tried ? ' · ' + tried : ''));
     var meta = [p.grade, whenBit].filter(Boolean).join(' · ');
     var current = targetId && p.id === targetId;
     return '<button type="button" class="home-project-row" data-cid="'+escHomeAttr(p.id)+'" data-name="'+escHomeAttr(p.name || '')+'" data-grade="'+escHomeAttr(p.grade || '')+'" data-terrain="'+escHomeAttr(p.terrain || '')+'" data-setting="'+escHomeAttr(p.setting || '')+'"'+(current ? ' aria-current="true"' : '')+' onclick="launchHomeProjectLog(this.dataset.cid,this.dataset.name,this.dataset.grade,this.dataset.terrain,this.dataset.setting)">'

@@ -15,8 +15,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index337'/.test(index));
-assert.ok(/APP_VERSION = 'index337'/.test(sw));
+assert.ok(/var app_version = 'index338'/.test(index));
+assert.ok(/APP_VERSION = 'index338'/.test(sw));
 assert.ok(/id="home-today-card"[\s\S]*id="home-action-row"[\s\S]*id="home-projects-wrap"[\s\S]*id="home-recent-wrap"[\s\S]*id="home-streak-band"/.test(index));
 assert.ok(/id="home-action-psyche"/.test(index));
 assert.ok(/class="home-action-outline"/.test(index));
@@ -600,7 +600,7 @@ async function run(){
         assert.strictEqual(snap.state, 's3', 'stale project is S3, got ' + snap.state);
         assert.ok(/Revisit/.test(snap.today.text) && /Power of Now/.test(snap.today.text), 'oldest stale not projects[0]: ' + snap.today.text);
         assert.strictEqual(snap.kicker, 'PROJECT');
-        assert.ok(/attempt/.test(snap.meta) && /, last /.test(snap.meta), 'F5 S3 meta: ' + snap.meta);
+        assert.ok(/attempt/.test(snap.meta) && /, tried \d+ days ago/.test(snap.meta), 'F5 S3 meta: ' + snap.meta);
         assert.strictEqual(snap.week.hidden, true, 'F3 week hidden at 0 for S3');
         assertMyProjects(snap, { include: [P1, P2], current: P1, max: 3 });
         assert.strictEqual(snap.logHidden, false);
