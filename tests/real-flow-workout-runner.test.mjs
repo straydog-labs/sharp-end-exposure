@@ -18,14 +18,14 @@ const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 const REPO_SHOTS = join(root, 'shots');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index339'/.test(index));
-assert.ok(/APP_VERSION = 'index339'/.test(sw));
+assert.ok(/var app_version = 'index340'/.test(index));
+assert.ok(/APP_VERSION = 'index340'/.test(sw));
 assert.ok(!/WK_DEFAULT_ON/.test(index));
 assert.ok(/function isWkOn\(/.test(index));
 assert.ok(/see_wk/.test(index));
 assert.ok(/localStorage\.getItem\(WK_LS_KEY\) === '0'/.test(index));
 assert.ok(!/q\.get\('wk'\)/.test(index));
-assert.ok(/Checked = sent \/ completed successfully\. Unchecked = not sent\./.test(index));
+assert.ok(/Tap to cycle: sent, failed, clear\./.test(index));
 assert.ok(/function normalizeWkBlock\(/.test(index));
 assert.ok(/function seedTrainBlocksFromSections\(/.test(index) && /normalizeWkBlock\(cloned/.test(index));
 assert.ok(/payload\.template_id = trainSessionState\.custom_workout_item_id/.test(index));
@@ -47,7 +47,7 @@ assert.ok(/custom_workouts_select/.test(sql));
 assert.ok(/custom_workouts_update/.test(sql));
 assert.ok(/custom_workouts_delete/.test(sql));
 assert.ok(!/workout-sessions|isWkOn|WK_DEFAULT_ON/.test(coach), 'coach-dashboard must not use the athlete WK flag');
-assert.ok(!/index339/.test(coach) || true);
+assert.ok(!/index340/.test(coach) || true);
 
 function extractBetween(src, startNeedle, endNeedle){
   var start = src.indexOf(startNeedle);
@@ -241,7 +241,7 @@ try{
     assert.strictEqual(seeded.emom0Boulders, 14);
     assert.strictEqual(seeded.emom1Boulders, 12);
     assert.ok(seeded.hint, 'sent/completed label visible');
-    assert.ok(/Checked = sent/.test(seeded.hintText));
+    assert.ok(/Tap to cycle: sent, failed, clear\./.test(seeded.hintText));
     assert.ok(seeded.boulderHits >= 14, 'boulder checkboxes rendered');
 
     await page.evaluate(function(){
@@ -294,7 +294,7 @@ try{
         complete: !!bo.complete,
         roundComplete: !!emom.rounds[0].complete,
         blockComplete: !!emom.complete,
-        hintVisible: !!(hint && hintCs && hintCs.display !== 'none' && hintCs.visibility !== 'hidden' && /Checked = sent/.test(hint.textContent || '')),
+        hintVisible: !!(hint && hintCs && hintCs.display !== 'none' && hintCs.visibility !== 'hidden' && /Tap to cycle: sent, failed, clear\./.test(hint.textContent || '')),
         hintClipped: !!(hint && hint.scrollWidth > hint.clientWidth + 1),
         hitW: hr.width,
         hitH: hr.height,
@@ -318,19 +318,20 @@ try{
 
     await page.evaluate(function(){
       var emom = trainSessionState.blocks.filter(function(b){ return b.shape === 'emom'; })[0];
-      emom.rounds[0].boulders.forEach(function(bo){ bo.complete = true; });
-      wkDeriveEmom(emom);
-      renderTrainSessionBuilder();
+      toggleTrainEmomRoundComplete(emom.id, 0);
     });
     var roundDone = await page.evaluate(function(){
       var emom = trainSessionState.blocks.filter(function(b){ return b.shape === 'emom'; })[0];
+      var open = emom.rounds[0].boulders.filter(function(bo){ return !(bo && bo.complete); }).length;
       return {
         round: !!emom.rounds[0].complete,
         block: !!emom.complete,
-        roundClass: !!document.querySelector('.train-emom-round.is-complete')
+        roundClass: !!document.querySelector('.train-emom-round.is-complete'),
+        open: open
       };
     });
-    assert.strictEqual(roundDone.round, true, 'round.complete derived from all boulders');
+    assert.ok(roundDone.open > 0, 'Mark complete leaves unmarked boulders');
+    assert.strictEqual(roundDone.round, true, 'round Mark complete sets the round flag');
     assert.strictEqual(roundDone.block, false, 'block waits for all rounds');
     assert.ok(roundDone.roundClass, 'completed round styled');
     await shot(page, 'wk-round-complete.png', '#train-blocks-wrap .train-emom-round.is-complete');

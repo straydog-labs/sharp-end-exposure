@@ -9,8 +9,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index339'/.test(index));
-assert.ok(/APP_VERSION = 'index339'/.test(sw));
+assert.ok(/var app_version = 'index340'/.test(index));
+assert.ok(/APP_VERSION = 'index340'/.test(sw));
 
 async function boot(page){
   await page.waitForFunction(function(){
@@ -224,7 +224,9 @@ try{
       b.rounds[0].complete = false;
       b.rounds[0].rest_started_at = null;
       b.rounds[0].boulders[0].complete = false;
+      b.rounds[0].boulders[0].result = null;
       b.rounds[1].boulders[0].complete = false;
+      b.rounds[1].boulders[0].result = null;
       b.rounds[1].complete = false;
       wkDeriveEmom(b);
       renderTrainSessionBuilder();
