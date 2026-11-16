@@ -12080,6 +12080,20 @@ function paintHomeTodayCard(a, now){
   var prompt = a ? { state: 's2', assignment: a, cta: 'start' } : { state: 's0', cta: '' };
   paintHomePrompt(prompt, now);
 }
+function paintHomeUpNextOrHide(assignment, now){
+  if(assignment && trainDraftMatchesAssignment(assignment.id)){
+    var card = document.getElementById('home-today-card');
+    var titleEl = document.getElementById('home-today-title');
+    var metaEl = document.getElementById('home-today-meta');
+    var kickerEl = document.getElementById('home-today-kicker');
+    if(card) card.hidden = true;
+    if(titleEl) titleEl.textContent = '';
+    if(metaEl) metaEl.textContent = '';
+    if(kickerEl) kickerEl.textContent = '';
+    return;
+  }
+  fillHomeAssignmentStart(assignment, now);
+}
 function paintHomeProjectNextCard(p){
   paintHomePrompt({ state: 's6-climb', project: p, cta: p ? 'log-attempt' : 'log-climb' });
 }
@@ -12138,7 +12152,7 @@ function paintHomePrompt(prompt, now){
       dismissEl.onclick = dismissHomeChecklist;
     }
   } else if(prompt.state === 's2'){
-    fillHomeAssignmentStart(prompt.assignment, now);
+    paintHomeUpNextOrHide(prompt.assignment, now);
   } else if(prompt.state === 's3'){
     var p3 = prompt.project || {};
     if(kickerEl) kickerEl.textContent = 'PROJECT';
@@ -12158,7 +12172,7 @@ function paintHomePrompt(prompt, now){
       dismissEl.onclick = dismissHomeStarPrompt;
     }
   } else if(prompt.state === 's5' && prompt.assignment){
-    fillHomeAssignmentStart(prompt.assignment, now);
+    paintHomeUpNextOrHide(prompt.assignment, now);
   } else if(prompt.state === 's5'){
     if(kickerEl) kickerEl.textContent = 'PROJECT';
     titleEl.textContent = 'Nothing logged this week';
@@ -12171,7 +12185,7 @@ function paintHomePrompt(prompt, now){
       if(logClimbEl) logClimbEl.hidden = false;
     }
   } else if(prompt.state === 's6-assign'){
-    fillHomeAssignmentStart(prompt.assignment, now);
+    paintHomeUpNextOrHide(prompt.assignment, now);
   } else if(prompt.state === 's6-train'){
     if(kickerEl) kickerEl.textContent = 'SESSION';
     titleEl.textContent = 'Keep training';
@@ -12637,15 +12651,17 @@ function paintHomeWelcomeHint(){
     return;
   }
   var today = document.getElementById('home-today-card');
+  var draft = document.getElementById('home-train-draft-card');
   var projects = document.getElementById('home-projects-wrap');
   var week = document.getElementById('home-streak-band');
   var recent = document.getElementById('home-recent-wrap');
   var hasCard = !!(today && !today.hidden);
+  var hasDraft = !!(draft && !draft.hidden);
   var projectsOn = !!(projects && !projects.hidden);
   var hasWeek = !!(week && !week.hidden);
   var hasRecent = !!(recent && !recent.hidden);
   el.hidden = true;
-  if(hasCard || projectsOn || hasWeek || hasRecent) return;
+  if(hasCard || hasDraft || projectsOn || hasWeek || hasRecent) return;
   var prompt = decideHomePrompt(new Date());
   if(prompt && prompt.state === 's0') return;
   el.hidden = false;
@@ -18431,6 +18447,7 @@ function confirmDiscardTrainDraft(){
   try{ clearTrainSessionDraft(); }catch(e){}
   trainSessionState = null;
   paintTrainDraftCards();
+  try{ paintHomePrimaryCard(); }catch(e){}
 }
 
 function resumeTrainDraft(){

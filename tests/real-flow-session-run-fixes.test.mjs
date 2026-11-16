@@ -320,10 +320,17 @@ try{
     }, USER_ID, { timeout: 4000 });
     await page.evaluate(function(){ showScreen('screen-home'); });
     await page.waitForFunction(function(){
-      var el = document.getElementById('home-today-start');
-      return el && !el.hidden && (el.textContent || '').trim() === 'Resume' && el.dataset.id === 'asg-a';
+      var draft = document.getElementById('home-train-draft-card');
+      var today = document.getElementById('home-today-card');
+      if(!draft || !today) return false;
+      var draftCs = getComputedStyle(draft);
+      var todayCs = getComputedStyle(today);
+      var title = document.getElementById('home-train-draft-title');
+      return draftCs.display !== 'none' && draft.getBoundingClientRect().height > 0
+        && title && title.textContent === 'Alpha draft'
+        && (today.hidden || todayCs.display === 'none');
     }, null, { timeout: 8000 });
-    await tap(page, '#home-today-start');
+    await tap(page, '#home-train-draft-card .train-draft-resume');
     await waitForScreen(page, 'screen-train-session');
     var resumed = await page.evaluate(function(){
       var choice = document.getElementById('train-draft-choice');
