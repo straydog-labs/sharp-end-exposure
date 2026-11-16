@@ -9,8 +9,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index335'/.test(index));
-assert.ok(/APP_VERSION = 'index335'/.test(sw));
+assert.ok(/var app_version = 'index336'/.test(index));
+assert.ok(/APP_VERSION = 'index336'/.test(sw));
 
 function fulfillJson(route, status, body){
   return route.fulfill({
@@ -151,7 +151,8 @@ try{
             ellipsis: !!(mainCs && mainCs.textOverflow === 'ellipsis'),
             nowrap: !!(mainCs && mainCs.whiteSpace === 'nowrap'),
             clipped: !!(main && main.scrollWidth > main.clientWidth + 1),
-            wrapped: !!(main && main.getBoundingClientRect().height > 22)
+            labelAbove: !!(main && rep && main.getBoundingClientRect().bottom <= rep.getBoundingClientRect().top + 1),
+            labelFull: !!(main && main.getBoundingClientRect().width >= row.getBoundingClientRect().width - 2)
           };
         })
       };
@@ -168,7 +169,8 @@ try{
     });
     assert.ok(hang.rows[0].main.indexOf('180s rest') !== -1, hang.rows[0].main);
     assert.ok(hang.rows[0].main.indexOf('…') === -1 && hang.rows[0].main.indexOf('180s r') !== -1, hang.rows[0].main);
-    assert.strictEqual(hang.rows[0].wrapped, true, 'long grip load rest wraps');
+    assert.strictEqual(hang.rows[0].labelAbove, true, 'label sits above the rep buttons');
+    assert.strictEqual(hang.rows[0].labelFull, true, 'label uses the full row width');
 
     var labels = await page.evaluate(function(){
       trainSessionState = newTrainSessionState('Boulders', 'Prefix', '', { session_running: true });

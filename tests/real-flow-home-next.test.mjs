@@ -15,8 +15,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index335'/.test(index));
-assert.ok(/APP_VERSION = 'index335'/.test(sw));
+assert.ok(/var app_version = 'index336'/.test(index));
+assert.ok(/APP_VERSION = 'index336'/.test(sw));
 assert.ok(/id="home-today-card"[\s\S]*id="home-action-row"[\s\S]*id="home-projects-wrap"[\s\S]*id="home-recent-wrap"[\s\S]*id="home-streak-band"/.test(index));
 assert.ok(/id="home-action-psyche"/.test(index));
 assert.ok(/class="home-action-outline"/.test(index));
