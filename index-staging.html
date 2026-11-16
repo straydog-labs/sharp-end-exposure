@@ -1428,6 +1428,12 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wk-notice-wrap .wk-notice-chip.selected{border-color:var(--accent);color:var(--accent);}
 .wk-notice-ends{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);line-height:1.3;margin-top:4px;}
 .wk-notice-note{width:100%;min-height:72px;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;resize:vertical;}
+.wk-notice-saved{display:inline-block;margin-left:8px;font-size:12px;font-weight:700;color:var(--comfort);animation:wk-notice-saved-fade 2s ease forwards;}
+@keyframes wk-notice-saved-fade{0%{opacity:1}70%{opacity:1}100%{opacity:0}}
+.wk-notice-preview{font-size:12px;color:var(--muted);line-height:1.3;margin:-2px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.train-sess-actions{display:flex;flex-direction:column;gap:8px;margin:0 0 10px;}
+.train-sess-actions .saw-next{margin:0;}
+.train-sess-actions .train-btn-secondary{margin:0;}
 .wk-notice-collapsed{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
 .wk-notice-detail{font-size:13px;color:var(--text);margin-top:8px;}
 
@@ -5020,7 +5026,6 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
   </div>
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
-    <button type="button" class="back-btn" id="train-sess-discard" onclick="cancelTrainSession()">Discard session</button>
   </div>
   <div class="content">
     <div style="font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;" id="train-sess-eyebrow">Training session</div>
@@ -5111,8 +5116,11 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
         <button type="button" id="train-finish-keep" class="train-btn-secondary" style="flex:1;" onclick="keepGoingTrainWorkout()">Keep going</button>
       </div>
     </div>
-    <button type="button" id="train-sess-save" onclick="requestFinishTrainWorkout()" class="saw-next">Finish workout</button>
-    <button type="button" id="train-sess-save-progress" class="train-btn-secondary" style="margin-bottom:10px;" onclick="saveTrainProgress()">Save progress</button>
+    <div class="train-sess-actions">
+      <button type="button" id="train-sess-save" onclick="requestFinishTrainWorkout()" class="saw-next">Finish workout</button>
+      <button type="button" id="train-sess-save-progress" class="train-btn-secondary" onclick="saveTrainProgress()">Save progress</button>
+      <button type="button" id="train-sess-discard" class="train-btn-secondary" onclick="cancelTrainSession()">Discard session</button>
+    </div>
   </div>
 </div>
 
@@ -6301,7 +6309,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index340'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index341'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -12205,6 +12213,14 @@ function paintHomePrompt(prompt, now){
   } else if(prompt.state === 's6-assign'){
     paintHomeUpNextOrHide(prompt.assignment, now);
   } else if(prompt.state === 's6-train'){
+    if(typeof trainDraftPending === 'function' && trainDraftPending()){
+      card.hidden = true;
+      titleEl.textContent = '';
+      metaEl.textContent = '';
+      if(kickerEl) kickerEl.textContent = '';
+      paintHomeActionRow(prompt);
+      return;
+    }
     if(kickerEl) kickerEl.textContent = 'SESSION';
     titleEl.textContent = 'Keep training';
     metaEl.textContent = '';
@@ -15470,9 +15486,34 @@ function trainNoticeIsCardOpen(b){
   if(!trainBlockAllowsNotice(b)) return false;
   return !!b._noticeOpen;
 }
+function trainNoticeNotePreview(note){
+  var line = String(note || '').split(/\r?\n/)[0].replace(/\s+/g, ' ').trim();
+  if(line.length > 80) line = line.slice(0, 77) + '...';
+  return line;
+}
 function renderTrainNoticeLink(b){
   if(!trainBlockAllowsNotice(b)) return '';
-  return '<button type="button" class="wk-notice-link" data-notice-link="'+escTrainHtml(b.id)+'" onclick="event.stopPropagation();toggleTrainNoticeOpen(\''+b.id+'\')">What did you notice?</button>';
+  var note = b.notice && String(b.notice.note || '').trim();
+  var label = note ? 'Edit note' : 'What did you notice?';
+  var preview = note
+    ? '<div class="wk-notice-preview" data-notice-preview="'+escTrainHtml(b.id)+'">'+escTrainHtml(trainNoticeNotePreview(note))+'</div>'
+    : '';
+  return '<button type="button" class="wk-notice-link" data-notice-link="'+escTrainHtml(b.id)+'" onclick="event.stopPropagation();toggleTrainNoticeOpen(\''+b.id+'\')">'+label+'</button>'
+    + preview;
+}
+function saveTrainNoticeNote(blockId){
+  if(!trainSessionState) return;
+  try{ collectTrainBlockFields(); }catch(e){}
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  var note = b && b.notice && String(b.notice.note || '').trim();
+  if(!b || !note) return;
+  b._noticeSavedAt = Date.now();
+  try{ markTrainDraftIfChanged(); scheduleTrainDraftSave(); }catch(e){}
+  renderTrainSessionBuilder();
+  setTimeout(function(){
+    var el = document.querySelector('[data-notice-saved="'+blockId+'"]');
+    if(el) el.remove();
+  }, 2000);
 }
 function renderTrainNoticeHtml(b){
   if(!trainBlockAllowsNotice(b)) return '';
@@ -15494,7 +15535,8 @@ function renderTrainNoticeHtml(b){
     + '<div class="wk-notice-q">How present were you?</div>'
     + '<div class="wk-notice-wrap">'+chips+'</div>'
     + '<div class="wk-notice-ends"><span>1 Autopilot</span><span>5 Dialed in</span></div>'
-    + '<textarea class="wk-notice-note" id="tb-'+b.id+'-notice" placeholder="Body, effort, attention. What was different this time?" rows="3">'+escTrainHtml(n.note || '')+'</textarea>'
+    + '<textarea class="wk-notice-note" id="tb-'+b.id+'-notice" placeholder="Body, effort, attention. What was different this time?" rows="3" onblur="saveTrainNoticeNote(\''+b.id+'\')">'+escTrainHtml(n.note || '')+'</textarea>'
+    + ((b._noticeSavedAt && (Date.now() - b._noticeSavedAt) < 2000) ? '<span class="wk-notice-saved" data-notice-saved="'+escTrainHtml(b.id)+'">Saved</span>' : '')
     + '<button type="button" class="wk-notice-skip" onclick="skipTrainBlockNotice(\''+b.id+'\')">Skip</button>'
     + '</div>';
 }
@@ -16338,9 +16380,11 @@ function wkExpandEmom(b){
   if(want > 1 && proto && (!Array.isArray(b.rounds) || b.rounds.length !== want)){
     var rest = 180;
     var notes = '';
+    var note = '';
     if(b.rounds && b.rounds[0]){
       if(b.rounds[0].rest_after_sec != null) rest = b.rounds[0].rest_after_sec;
       notes = b.rounds[0].notes || '';
+      note = b.rounds[0].note || '';
     }
     b.rounds = [];
     var i;
@@ -16348,6 +16392,7 @@ function wkExpandEmom(b){
       b.rounds.push({
         boulders: proto.map(function(bo){ return wkEnsureBoulder({ text: (bo && bo.text) || '', complete: false }); }),
         notes: notes,
+        note: note,
         rest_after_sec: rest,
         complete: false,
         rest_started_at: null
@@ -16702,7 +16747,7 @@ function wkRemoveEmomRound(blockId, ri){
   if(!b || b.shape !== 'emom' || !Array.isArray(b.rounds) || b.rounds.length <= 1 || !b.rounds[ri]) return;
   var round = b.rounds[ri];
   var hasContent = (round.boulders || []).some(function(bo){ return bo && (trainTextNonEmpty(bo.text) || bo.complete || bo.result === 'sent' || bo.result === 'failed'); })
-    || trainTextNonEmpty(round.notes) || !!round.complete;
+    || trainTextNonEmpty(round.notes) || trainTextNonEmpty(round.note) || !!round.complete;
   var key = blockId + ':' + ri;
   var armed = wkRoundArm && wkRoundArm.key === key && (Date.now() - wkRoundArm.at) < 8000;
   if(hasContent && !armed){
@@ -16904,6 +16949,11 @@ function wkJohnSessionBlocks(){
     ], '2 rounds.')
   ];
 }
+function wkRoundNoteText(round){
+  if(!round) return '';
+  if(trainTextNonEmpty(round.note)) return String(round.note);
+  return round.notes == null ? '' : String(round.notes);
+}
 function wkBoulderHitHtml(bo, onclick, text){
   var result = wkBoulderResultOf(bo);
   var state = wkBoulderStateName(result);
@@ -16940,11 +16990,9 @@ function wkRenderEmomBody(b, compact){
     }).join('');
     if(!compact){
       inner += '<button type="button" class="train-add-affordance" onclick="trainAddEmomBoulder(\''+b.id+'\','+ri+')" style="margin-bottom:8px;">+ Boulder</button>'
-        + trainBlockNoteField('tb-'+b.id+'-r'+ri+'-notes', 'Round notes', round.notes||'')
         + restFieldHtml('Rest after round', 'tb-'+b.id+'-r'+ri+'-rest', restSec);
-    } else if(trainTextNonEmpty(round.notes)){
-      inner += '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>';
     }
+    inner += trainBlockNoteField('tb-'+b.id+'-r'+ri+'-note', 'Round note', wkRoundNoteText(round));
     return '<div class="train-emom-round'+(doneR?' is-complete':'')+(locked?' is-locked':'')+'">'
       + '<div class="train-emom-round-head">'
       + '<div class="train-emom-round-label">Round '+(ri+1)+(ri===0?' boulders':'')+(doneR?' · Complete':'')+'</div>'
@@ -17058,6 +17106,7 @@ function trainCloneBlockForDuplicate(b){
                 : { text: (bo && bo.text) || '' };
             }) : [],
             notes: (r && r.notes) || '',
+            note: (r && r.note) || '',
             rest_after_sec: (r && r.rest_after_sec != null) ? r.rest_after_sec : 180,
             complete: false,
             rest_started_at: null
@@ -17313,8 +17362,8 @@ function renderTrainSessionBlockDetailHtml(b, bi, isWarmup){
         var col = result === 'failed' ? 'var(--panic)' : 'var(--text)';
         return '<div data-boulder-result="'+(result || 'unmarked')+'" style="font-size:13px;color:'+col+';margin-bottom:4px;">'+escTrainHtml((bo && bo.text) || '')+mark+'</div>';
       }).join('');
-      if(trainTextNonEmpty(round && round.notes)){
-        bits += '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>';
+      if(trainTextNonEmpty(wkRoundNoteText(round))){
+        bits += '<div class="train-note-preview">'+renderTrainNotePreview(wkRoundNoteText(round))+'</div>';
       }
       var restN = (round && round.rest_after_sec != null) ? round.rest_after_sec : 180;
       return '<div class="train-emom-round'+(round && round.complete ? ' is-complete' : '')+'">'
@@ -17828,7 +17877,7 @@ function confirmDiscardTrainSession(){
   releaseTrainWakeLock();
   trainSessionState = null;
   clearTrainSessionDraft();
-  showScreen('screen-train');
+  showScreen('screen-home');
 }
 
 function trainAddBlockMenu(where){
@@ -19963,16 +20012,15 @@ function renderTrainBlockHtml(b, bi, isWarmup){
         inner = (round.boulders || []).map(function(bo){
           if(!trainTextNonEmpty(bo && bo.text)) return '';
           return '<div style="font-size:13px;color:var(--text);margin-bottom:4px;">'+escTrainHtml(bo.text)+'</div>';
-        }).join('')
-          + (trainTextNonEmpty(round.notes) ? '<div class="train-note-preview">'+renderTrainNotePreview(round.notes)+'</div>' : '');
+        }).join('');
       } else {
         inner = (round.boulders || []).map(function(bo, i){
           return '<input id="tb-'+b.id+'-r'+ri+'-b'+i+'" value="'+escTrainHtml(bo.text||'')+'" placeholder="Grade · color · wall" style="width:100%;margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;">';
         }).join('')
           + '<button type="button" class="train-add-affordance" onclick="trainAddEmomBoulder(\''+b.id+'\','+ri+')" style="margin-bottom:8px;">+ Boulder</button>'
-          + trainBlockNoteField('tb-'+b.id+'-r'+ri+'-notes', 'Round notes', round.notes||'')
           + fieldHtml('Rest sec', 'tb-'+b.id+'-r'+ri+'-rest', restSec);
       }
+      inner += trainBlockNoteField('tb-'+b.id+'-r'+ri+'-note', 'Round note', wkRoundNoteText(round));
       return '<div class="train-emom-round'+(doneR?' is-complete':'')+(locked?' is-locked':'')+'">'
         + '<div class="train-emom-round-head">'
         + '<div class="train-emom-round-label">Round '+(ri+1)+(ri===0?' boulders':'')+'</div>'
@@ -20332,6 +20380,8 @@ function collectTrainBlockFields(){
           var el = document.getElementById('tb-'+b.id+'-r'+ri+'-b'+i);
           if(el) bo.text = el.value;
         });
+        var noteEl = document.getElementById('tb-'+b.id+'-r'+ri+'-note');
+        if(noteEl) round.note = noteEl.value;
         var n = document.getElementById('tb-'+b.id+'-r'+ri+'-notes');
         if(n) round.notes = n.value;
         var restEl = document.getElementById('tb-'+b.id+'-r'+ri+'-rest');

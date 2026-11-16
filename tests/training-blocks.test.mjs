@@ -13,8 +13,8 @@ const sql = readFileSync(join(root, 'sql/training-blocks.sql'), 'utf8');
 const coach = readFileSync(join(root, 'coach-dashboard.html'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index340'/.test(index));
-assert.ok(/APP_VERSION = 'index340'/.test(sw));
+assert.ok(/var app_version = 'index341'/.test(index));
+assert.ok(/APP_VERSION = 'index341'/.test(sw));
 
 assert.ok(/id="train-hub-card-blocks"/.test(index));
 assert.ok(/id="screen-train-blocks"/.test(index));

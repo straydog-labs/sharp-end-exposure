@@ -325,7 +325,7 @@ try{
     assert.strictEqual(kept.title, 'Keep me');
     await page.click('#train-sess-discard');
     await page.click('#train-discard-do');
-    await waitForScreen(page, 'screen-train');
+    await waitForScreen(page, 'screen-home');
     var cleared = await page.evaluate(function(userId){
       return localStorage.getItem('see_train_draft_' + userId);
     }, USER_ID);
