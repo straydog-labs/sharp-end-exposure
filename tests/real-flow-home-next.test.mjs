@@ -15,8 +15,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index338'/.test(index));
-assert.ok(/APP_VERSION = 'index338'/.test(sw));
+assert.ok(/var app_version = 'index339'/.test(index));
+assert.ok(/APP_VERSION = 'index339'/.test(sw));
 assert.ok(/id="home-today-card"[\s\S]*id="home-action-row"[\s\S]*id="home-projects-wrap"[\s\S]*id="home-recent-wrap"[\s\S]*id="home-streak-band"/.test(index));
 assert.ok(/id="home-action-psyche"/.test(index));
 assert.ok(/class="home-action-outline"/.test(index));
@@ -1280,7 +1280,9 @@ async function run(){
         var gets = restGets(recorded).length;
         await page.evaluate(function(){ showScreen('screen-home'); });
         await page.waitForTimeout(80);
-        assert.strictEqual(restGets(recorded).length, gets, 'same-user Home refocus is zero extra GETs, before=' + gets + ' after=' + restGets(recorded).length);
+        var extra = restGets(recorded).slice(gets);
+        assert.strictEqual(extra.length, 1, 'Home refocus adds one draft GET, before=' + gets + ' after=' + restGets(recorded).length);
+        assert.ok(extra[0].url.indexOf('/rest/v1/training_session_drafts') !== -1, extra[0].url);
         await page.evaluate(function(){ showScreen('screen-train-start'); });
         await page.evaluate(function(){ showScreen('screen-home'); });
         await page.waitForTimeout(80);

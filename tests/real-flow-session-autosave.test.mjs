@@ -66,6 +66,7 @@ function assignmentItem(){
 
 function stub(state){
   return async function(route, info){
+    if(info.url.indexOf('/rest/v1/training_session_drafts') !== -1) return false;
     if(info.method === 'POST' && info.url.indexOf('/rest/v1/training_sessions') !== -1){
       if(state.failSave){
         await fulfillJson(route, 400, { message: 'save failed' });

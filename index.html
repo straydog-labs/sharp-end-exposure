@@ -6299,7 +6299,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index338'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index339'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -7361,7 +7361,7 @@ function showScreen(id){
     try{ paintTrainDraftCards(); }catch(e){}
   }
   // Load screen data
-  if(id==='screen-home'){ loadHomeScreen(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
+  if(id==='screen-home'){ try{ pullTrainDraftFromServer(); }catch(e){} loadHomeScreen(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); }
   if(id==='screen-sessions') loadClimbLog();
   if(id==='screen-train'){ loadTrainAssignments(); refreshCoachChatUnreadBadge(); refreshCoachDashToggle(); loadTrainHub(); }
   else if(id==='screen-train-start'){ loadTrainHub(); loadTrainStartScreen(); }
@@ -18352,6 +18352,10 @@ function clearTrainSessionDraft(){
   _trainFinishCheckOpen = false;
   _trainDraftBaseline = '';
   _trainDraftBaselineId = null;
+  try{
+    _trainDraftServerRev = (_trainDraftServerRev || 0) + 1;
+    if(id) deleteTrainDraftOnServer(id);
+  }catch(e){}
 }
 function maybeResumeTrainSessionDraft(){
   try{ paintTrainDraftCards(); }catch(e){}
@@ -18359,6 +18363,212 @@ function maybeResumeTrainSessionDraft(){
 
 var TRAIN_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 var TRAIN_DRAFT_EXPLICIT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+var TRAIN_DRAFT_PAYLOAD_MAX = 262144;
+var _trainDraftServerRev = 0;
+var _trainDraftPulling = null;
+
+function trainDraftCanSync(){
+  try{
+    return !!(window._authUser && window._authUser.id && window._authToken && typeof SB_URL === 'string' && SB_URL && typeof fetch === 'function');
+  }catch(e){ return false; }
+}
+function trainDraftPayloadBytes(value){
+  try{
+    var s = JSON.stringify(value);
+    if(typeof TextEncoder === 'function') return new TextEncoder().encode(s).length;
+    return s.length;
+  }catch(e){ return TRAIN_DRAFT_PAYLOAD_MAX + 1; }
+}
+function trainDraftPendingDeleteKey(userId){
+  return 'see_train_pending_delete_' + userId;
+}
+function trainDraftHasPendingDelete(userId){
+  if(!userId) return false;
+  try{ return localStorage.getItem(trainDraftPendingDeleteKey(userId)) != null; }catch(e){ return false; }
+}
+function markTrainDraftPendingDelete(userId){
+  if(!userId) return;
+  try{
+    if(localStorage.getItem(trainDraftPendingDeleteKey(userId)) == null){
+      localStorage.setItem(trainDraftPendingDeleteKey(userId), new Date().toISOString());
+    }
+  }catch(e){}
+}
+function clearTrainDraftPendingDelete(userId){
+  if(!userId) return;
+  try{ localStorage.removeItem(trainDraftPendingDeleteKey(userId)); }catch(e){}
+}
+function deleteTrainDraftOnServer(userId){
+  if(!userId) return Promise.resolve(false);
+  markTrainDraftPendingDelete(userId);
+  if(!trainDraftCanSync()) return Promise.resolve(false);
+  try{
+    return fetch(SB_URL + '/rest/v1/training_session_drafts?user_id=eq.' + encodeURIComponent(userId), {
+      method: 'DELETE',
+      headers: getSBHeaders()
+    }).then(function(res){
+      if(res && res.ok){
+        clearTrainDraftPendingDelete(userId);
+        return true;
+      }
+      return false;
+    }).catch(function(){ return false; });
+  }catch(e){
+    return Promise.resolve(false);
+  }
+}
+function stampTrainDraftServerSynced(userId, savedAt){
+  try{
+    var key = 'see_train_draft_' + userId;
+    var raw = localStorage.getItem(key);
+    if(!raw) return;
+    var env = JSON.parse(raw);
+    if(!env || env.v !== 1) return;
+    if(savedAt && env.saved_at !== savedAt) return;
+    env.server_synced_at = new Date().toISOString();
+    localStorage.setItem(key, JSON.stringify(env));
+  }catch(e){}
+}
+function pushTrainDraftToServer(envelope){
+  if(!trainDraftCanSync() || !envelope || !envelope.state) return;
+  if(trainDraftPayloadBytes(envelope) > TRAIN_DRAFT_PAYLOAD_MAX) return;
+  var rev = _trainDraftServerRev || 0;
+  var st = envelope.state;
+  var savedAt = envelope.saved_at || new Date().toISOString();
+  var savedMs = new Date(savedAt).getTime();
+  if(isNaN(savedMs)) return;
+  var explicit = !!envelope.explicit;
+  var age = explicit ? TRAIN_DRAFT_EXPLICIT_MAX_AGE_MS : TRAIN_DRAFT_MAX_AGE_MS;
+  var expiresAt = new Date(savedMs + age).toISOString();
+  var assignmentId = st.source_assignment_id || st.assignment_id || '';
+  var userId = String(envelope.user_id || window._authUser.id);
+  if(trainDraftHasPendingDelete(userId)){
+    deleteTrainDraftOnServer(userId).then(function(ok){
+      if(ok && rev === _trainDraftServerRev) pushTrainDraftToServer(envelope);
+    }).catch(function(){});
+    return;
+  }
+  fetch(SB_URL + '/rest/v1/training_session_drafts?on_conflict=user_id', {
+    method: 'POST',
+    headers: Object.assign({}, getSBHeaders(), { Prefer: 'resolution=merge-duplicates,return=minimal' }),
+    body: JSON.stringify({
+      user_id: userId,
+      assignment_id: assignmentId ? String(assignmentId) : null,
+      title: st.title || null,
+      started_at: st.started_at || null,
+      saved_at: savedAt,
+      expires_at: expiresAt,
+      explicit_save: explicit,
+      payload: envelope
+    })
+  }).then(function(res){
+    if(rev !== _trainDraftServerRev){
+      deleteTrainDraftOnServer(userId);
+      return;
+    }
+    if(res && res.ok) stampTrainDraftServerSynced(userId, savedAt);
+  }).catch(function(){});
+}
+function trainDraftFromServerRow(row){
+  if(!row) return null;
+  var remote = row.payload;
+  if(typeof remote === 'string'){
+    try{ remote = JSON.parse(remote); }catch(e){ return null; }
+  }
+  if(!remote || remote.v !== 1 || !remote.state || typeof remote.state !== 'object') return null;
+  try{ remote = JSON.parse(JSON.stringify(remote)); }catch(e){ return null; }
+  if(row.saved_at) remote.saved_at = row.saved_at;
+  if(row.explicit_save) remote.explicit = true;
+  if(!remote.user_id && row.user_id) remote.user_id = row.user_id;
+  return remote;
+}
+function applyServerTrainDraft(userId, remote){
+  if(trainDraftHasPendingDelete(userId)) return;
+  if(!remote.server_synced_at) remote.server_synced_at = new Date().toISOString();
+  try{ localStorage.setItem('see_train_draft_' + userId, JSON.stringify(remote)); }catch(e){ return; }
+  if(trainSessionState && !trainDraftSessionIsOpen()){
+    trainSessionState = remote.state;
+    _trainDraftExplicit = !!remote.explicit;
+    _trainDraftDirty = false;
+    try{ _trainDraftBaseline = JSON.stringify(trainSessionState); }catch(e){}
+    _trainDraftBaselineId = trainSessionState && trainSessionState.id;
+  }
+  try{ paintTrainDraftCards(); }catch(e){}
+  try{
+    var active = (document.querySelector('.screen.active') || {}).id;
+    if(active === 'screen-home' && typeof paintHomePrimaryCard === 'function') paintHomePrimaryCard();
+  }catch(e){}
+}
+function dropSyncedTrainDraft(userId){
+  try{ localStorage.removeItem('see_train_draft_' + userId); }catch(e){}
+  if(!trainDraftSessionIsOpen()){
+    trainSessionState = null;
+    _trainDraftDirty = false;
+    _trainDraftExplicit = false;
+  }
+  try{ paintTrainDraftCards(); }catch(e){}
+  try{
+    var active = (document.querySelector('.screen.active') || {}).id;
+    if(active === 'screen-home' && typeof paintHomePrimaryCard === 'function') paintHomePrimaryCard();
+  }catch(e){}
+}
+function pullTrainDraftFromServer(){
+  if(!trainDraftCanSync()) return Promise.resolve();
+  if(_trainDraftPulling) return _trainDraftPulling;
+  var userId = String(window._authUser.id);
+  function readRemote(){
+    if(trainDraftHasPendingDelete(userId)) return Promise.resolve();
+    return fetch(SB_URL + '/rest/v1/training_session_drafts?select=user_id,saved_at,expires_at,explicit_save,payload&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', {
+      headers: getSBHeaders()
+    }).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(rows){
+      if(!rows) return;
+      if(trainDraftHasPendingDelete(userId)) return;
+      var row = Array.isArray(rows) ? rows[0] : null;
+      var local = null;
+      try{ local = readTrainDraftForUser(userId); }catch(e){ local = null; }
+      if(!row){
+        if(local && local.server_synced_at){
+          if(!trainDraftSessionIsOpen()) dropSyncedTrainDraft(userId);
+          return;
+        }
+        if(local) pushTrainDraftToServer(local);
+        return;
+      }
+      var exp = new Date(row.expires_at).getTime();
+      if(!isNaN(exp) && exp <= Date.now()){
+        deleteTrainDraftOnServer(userId);
+        if(local && !local.server_synced_at) pushTrainDraftToServer(local);
+        return;
+      }
+      var remote = trainDraftFromServerRow(row);
+      if(!remote) return;
+      if(!local){
+        if(trainDraftSessionIsOpen()) return;
+        applyServerTrainDraft(userId, remote);
+        return;
+      }
+      var remoteMs = new Date(remote.saved_at).getTime();
+      var localMs = new Date(local.saved_at).getTime();
+      if(isNaN(remoteMs) || isNaN(localMs) || remoteMs === localMs) return;
+      if(remoteMs > localMs){
+        if(trainDraftSessionIsOpen()) return;
+        applyServerTrainDraft(userId, remote);
+        return;
+      }
+      pushTrainDraftToServer(local);
+    });
+  }
+  var chain = trainDraftHasPendingDelete(userId)
+    ? deleteTrainDraftOnServer(userId).then(function(ok){ if(ok) return readRemote(); })
+    : readRemote();
+  _trainDraftPulling = chain.catch(function(){}).then(function(){
+    _trainDraftPulling = null;
+  });
+  return _trainDraftPulling;
+}
 
 function trainDraftMaxAge(parsed){
   return parsed && parsed.explicit ? TRAIN_DRAFT_EXPLICIT_MAX_AGE_MS : TRAIN_DRAFT_MAX_AGE_MS;
@@ -18389,12 +18599,19 @@ function readTrainDraftForUser(userId){
     return null;
   }
   var bad = !parsed || parsed.v !== 1 || !parsed.state || String(parsed.user_id) !== String(userId);
+  var expired = false;
   if(!bad){
     var t = new Date(parsed.saved_at).getTime();
-    if(isNaN(t) || (Date.now() - t) >= trainDraftMaxAge(parsed)) bad = true;
+    if(isNaN(t) || (Date.now() - t) >= trainDraftMaxAge(parsed)){
+      bad = true;
+      expired = true;
+    }
   }
   if(bad){
     try{ localStorage.removeItem(own); }catch(e){}
+    if(expired && !_trainDraftPulling){
+      try{ pullTrainDraftFromServer(); }catch(e){}
+    }
     return null;
   }
   return parsed;
@@ -18558,6 +18775,7 @@ function flushTrainUserDraft(){
   }
   try{ localStorage.setItem('see_train_draft_' + userId, JSON.stringify(envelope)); }
   catch(e){ return; }
+  try{ pushTrainDraftToServer(envelope); }catch(e){}
   try{ _trainDraftBaseline = JSON.stringify(trainSessionState); }catch(e){}
   _trainDraftBaselineId = trainSessionState.id;
   _trainDraftDirty = false;
@@ -18653,6 +18871,12 @@ function bindTrainDraftListeners(){
   document.addEventListener('change', onTrainDraftDomEdit);
   document.addEventListener('visibilitychange', function(){
     if(document.visibilityState === 'hidden') onTrainDraftHide();
+    else {
+      try{ pullTrainDraftFromServer(); }catch(e){}
+    }
+  });
+  window.addEventListener('focus', function(){
+    try{ pullTrainDraftFromServer(); }catch(e){}
   });
   window.addEventListener('pagehide', onTrainDraftHide);
 }
@@ -18830,6 +19054,7 @@ function writeTrainUserDraft(explicit){
   if(_trainDraftExplicit) envelope.explicit = true;
   try{ localStorage.setItem('see_train_draft_' + userId, JSON.stringify(envelope)); }
   catch(e){ return false; }
+  try{ pushTrainDraftToServer(envelope); }catch(e){}
   try{ saveTrainSessionDraft(); }catch(e){}
   try{ _trainDraftBaseline = JSON.stringify(trainSessionState); }catch(e){}
   _trainDraftBaselineId = trainSessionState.id;
@@ -31796,6 +32021,7 @@ async function routeOnLoad(){
       window._authUser = session ? session.user : null;
       window._authToken = session ? session.access_token : null;
       if(session){
+        try{ pullTrainDraftFromServer(); }catch(e){}
         // Authenticated - go to Home
         await redeemPendingInvite();
         var finishLoadRoute = function(){
