@@ -80,6 +80,11 @@ function stub(state){
       return true;
     }
     if(info.method === 'DELETE'){
+      state.deleteAttempts = (state.deleteAttempts || 0) + 1;
+      if(state.failDelete){
+        await fulfillJson(route, 500, { message: 'draft delete failed' });
+        return true;
+      }
       state.row = null;
       state.deletes = (state.deletes || 0) + 1;
       await fulfillJson(route, 200, []);
@@ -300,6 +305,129 @@ try{
     }
     assert.ok(postsTo(recorded, 'training_session_drafts', 'DELETE').length > deletesBefore, 'Discard session deletes the server draft');
     assert.strictEqual(await localTitle(page), null);
+  });
+
+  var offlineFinish = { row: null, failDelete: true, deletes: 0 };
+  await withPage(browser, port, {
+    path: '/index.html',
+    viewport: { width: 390, height: 844 },
+    session: { access_token: 'test-token', user: { id: USER_ID } },
+    stub: stub(offlineFinish)
+  }, async function(page){
+    await boot(page);
+    await page.evaluate(function(){
+      trainSessionState = {
+        id: 'off-1',
+        energy_type: 'Boulders',
+        title: 'Finished offline',
+        started_at: new Date().toISOString(),
+        ended_at: null,
+        warm_up: '',
+        cool_down: '',
+        blocks: [{ id: 'b1', shape: 'section', title: 'Free', complete: true, notes: '' }],
+        session_running: true
+      };
+      _trainDraftBaselineId = null;
+      showScreen('screen-train-session');
+      writeTrainUserDraft(true);
+    });
+    await page.waitForFunction(function(userId){
+      return !!localStorage.getItem('see_train_draft_' + userId);
+    }, USER_ID, { timeout: 4000 });
+    assert.ok(offlineFinish.row && offlineFinish.row.title === 'Finished offline', 'server has the draft before the failed delete');
+    await page.click('#train-sess-save');
+    await waitForScreen(page, 'screen-train-done');
+    await page.waitForFunction(function(userId){
+      return !localStorage.getItem('see_train_draft_' + userId) && !!localStorage.getItem('see_train_pending_delete_' + userId);
+    }, USER_ID, { timeout: 4000 });
+    assert.strictEqual(offlineFinish.deletes || 0, 0, 'offline Finish does not clear the server row');
+    assert.strictEqual(await errorToast(page), '');
+    await page.evaluate(function(){ return pullTrainDraftFromServer(); });
+    await page.waitForTimeout(250);
+    assert.strictEqual(await localTitle(page), null, 'a failed delete is not restored while it is still pending');
+    assert.strictEqual(await errorToast(page), '');
+    offlineFinish.failDelete = false;
+    await page.evaluate(function(){ return pullTrainDraftFromServer(); });
+    await page.waitForFunction(function(userId){
+      return !localStorage.getItem('see_train_pending_delete_' + userId);
+    }, USER_ID, { timeout: 4000 });
+    assert.ok(offlineFinish.deletes >= 1, 'reconnect deletes the finished server row');
+    assert.strictEqual(offlineFinish.row, null);
+    assert.strictEqual(await localTitle(page), null, 'reconnect does not restore the finished session');
+    assert.strictEqual(await errorToast(page), '');
+  });
+
+  var devices = { row: null };
+  await withPage(browser, port, {
+    path: '/index.html',
+    viewport: { width: 390, height: 844 },
+    session: { access_token: 'test-token', user: { id: USER_ID } },
+    stub: stub(devices)
+  }, async function(page, recorded){
+    await boot(page);
+    await page.evaluate(function(userId){
+      localStorage.setItem('see_train_draft_' + userId, JSON.stringify({
+        v: 1,
+        saved_at: new Date(Date.now() - 60 * 1000).toISOString(),
+        server_synced_at: new Date(Date.now() - 30 * 1000).toISOString(),
+        user_id: userId,
+        screen: 'screen-train-session',
+        state: { id: 'synced-b', title: 'Synced on B', started_at: '2026-11-16T15:00:00.000Z', blocks: [] }
+      }));
+      showScreen('screen-home');
+    }, USER_ID);
+    var postsBefore = postsTo(recorded, 'training_session_drafts', 'POST').length;
+    await page.evaluate(function(){ return pullTrainDraftFromServer(); });
+    await page.waitForFunction(function(userId){
+      return !localStorage.getItem('see_train_draft_' + userId);
+    }, USER_ID, { timeout: 4000 });
+    assert.strictEqual(postsTo(recorded, 'training_session_drafts', 'POST').length, postsBefore, 'a synced draft is not upserted when the server row is gone');
+    assert.strictEqual(await localTitle(page), null);
+    assert.strictEqual(await errorToast(page), '');
+
+    await page.evaluate(function(userId){
+      localStorage.setItem('see_train_draft_' + userId, JSON.stringify({
+        v: 1,
+        saved_at: new Date().toISOString(),
+        user_id: userId,
+        screen: 'screen-train-session',
+        state: { id: 'unsynced-b', title: 'Unsynced on B', started_at: '2026-11-16T15:00:00.000Z', blocks: [] }
+      }));
+    }, USER_ID);
+    var unsyncedBefore = postsTo(recorded, 'training_session_drafts', 'POST').length;
+    await page.evaluate(function(){ return pullTrainDraftFromServer(); });
+    for(var i = 0; i < 20 && postsTo(recorded, 'training_session_drafts', 'POST').length <= unsyncedBefore; i++){
+      await page.waitForTimeout(50);
+    }
+    assert.ok(postsTo(recorded, 'training_session_drafts', 'POST').length > unsyncedBefore, 'an unsynced local draft is upserted');
+    var pushed = postsTo(recorded, 'training_session_drafts', 'POST').slice(-1)[0].body;
+    assert.strictEqual(pushed.title, 'Unsynced on B');
+    assert.strictEqual(await localTitle(page), 'Unsynced on B');
+
+    await page.evaluate(function(userId){
+      localStorage.setItem('see_train_draft_' + userId, JSON.stringify({
+        v: 1,
+        saved_at: new Date(Date.now() - 60 * 1000).toISOString(),
+        server_synced_at: new Date(Date.now() - 30 * 1000).toISOString(),
+        user_id: userId,
+        screen: 'screen-train-session',
+        state: { id: 'open-b', title: 'Open on B', started_at: '2026-11-16T15:00:00.000Z', blocks: [] }
+      }));
+      trainSessionState = { id: 'open-b', title: 'Open on B', started_at: '2026-11-16T15:00:00.000Z', blocks: [], session_running: true };
+      showScreen('screen-train-session');
+    }, USER_ID);
+    devices.row = null;
+    await page.evaluate(function(){ return pullTrainDraftFromServer(); });
+    await page.waitForTimeout(200);
+    assert.strictEqual(await localTitle(page), 'Open on B', 'an open session is not cleared when the server row is gone');
+    await page.evaluate(function(){
+      trainSessionState = null;
+      showScreen('screen-home');
+    });
+    await page.waitForFunction(function(userId){
+      return !localStorage.getItem('see_train_draft_' + userId);
+    }, USER_ID, { timeout: 4000 });
+    assert.strictEqual(await localTitle(page), null, 'the synced draft is dropped on the next Home');
   });
 
   console.log('session-draft-sync ok');

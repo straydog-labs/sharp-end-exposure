@@ -18379,13 +18379,54 @@ function trainDraftPayloadBytes(value){
     return s.length;
   }catch(e){ return TRAIN_DRAFT_PAYLOAD_MAX + 1; }
 }
-function deleteTrainDraftOnServer(userId){
-  if(!userId || !trainDraftCanSync()) return;
+function trainDraftPendingDeleteKey(userId){
+  return 'see_train_pending_delete_' + userId;
+}
+function trainDraftHasPendingDelete(userId){
+  if(!userId) return false;
+  try{ return localStorage.getItem(trainDraftPendingDeleteKey(userId)) != null; }catch(e){ return false; }
+}
+function markTrainDraftPendingDelete(userId){
+  if(!userId) return;
   try{
-    fetch(SB_URL + '/rest/v1/training_session_drafts?user_id=eq.' + encodeURIComponent(userId), {
+    if(localStorage.getItem(trainDraftPendingDeleteKey(userId)) == null){
+      localStorage.setItem(trainDraftPendingDeleteKey(userId), new Date().toISOString());
+    }
+  }catch(e){}
+}
+function clearTrainDraftPendingDelete(userId){
+  if(!userId) return;
+  try{ localStorage.removeItem(trainDraftPendingDeleteKey(userId)); }catch(e){}
+}
+function deleteTrainDraftOnServer(userId){
+  if(!userId) return Promise.resolve(false);
+  markTrainDraftPendingDelete(userId);
+  if(!trainDraftCanSync()) return Promise.resolve(false);
+  try{
+    return fetch(SB_URL + '/rest/v1/training_session_drafts?user_id=eq.' + encodeURIComponent(userId), {
       method: 'DELETE',
       headers: getSBHeaders()
-    }).catch(function(){});
+    }).then(function(res){
+      if(res && res.ok){
+        clearTrainDraftPendingDelete(userId);
+        return true;
+      }
+      return false;
+    }).catch(function(){ return false; });
+  }catch(e){
+    return Promise.resolve(false);
+  }
+}
+function stampTrainDraftServerSynced(userId, savedAt){
+  try{
+    var key = 'see_train_draft_' + userId;
+    var raw = localStorage.getItem(key);
+    if(!raw) return;
+    var env = JSON.parse(raw);
+    if(!env || env.v !== 1) return;
+    if(savedAt && env.saved_at !== savedAt) return;
+    env.server_synced_at = new Date().toISOString();
+    localStorage.setItem(key, JSON.stringify(env));
   }catch(e){}
 }
 function pushTrainDraftToServer(envelope){
@@ -18401,6 +18442,12 @@ function pushTrainDraftToServer(envelope){
   var expiresAt = new Date(savedMs + age).toISOString();
   var assignmentId = st.source_assignment_id || st.assignment_id || '';
   var userId = String(envelope.user_id || window._authUser.id);
+  if(trainDraftHasPendingDelete(userId)){
+    deleteTrainDraftOnServer(userId).then(function(ok){
+      if(ok && rev === _trainDraftServerRev) pushTrainDraftToServer(envelope);
+    }).catch(function(){});
+    return;
+  }
   fetch(SB_URL + '/rest/v1/training_session_drafts?on_conflict=user_id', {
     method: 'POST',
     headers: Object.assign({}, getSBHeaders(), { Prefer: 'resolution=merge-duplicates,return=minimal' }),
@@ -18414,8 +18461,12 @@ function pushTrainDraftToServer(envelope){
       explicit_save: explicit,
       payload: envelope
     })
-  }).then(function(){
-    if(rev !== _trainDraftServerRev) deleteTrainDraftOnServer(userId);
+  }).then(function(res){
+    if(rev !== _trainDraftServerRev){
+      deleteTrainDraftOnServer(userId);
+      return;
+    }
+    if(res && res.ok) stampTrainDraftServerSynced(userId, savedAt);
   }).catch(function(){});
 }
 function trainDraftFromServerRow(row){
@@ -18432,6 +18483,8 @@ function trainDraftFromServerRow(row){
   return remote;
 }
 function applyServerTrainDraft(userId, remote){
+  if(trainDraftHasPendingDelete(userId)) return;
+  if(!remote.server_synced_at) remote.server_synced_at = new Date().toISOString();
   try{ localStorage.setItem('see_train_draft_' + userId, JSON.stringify(remote)); }catch(e){ return; }
   if(trainSessionState && !trainDraftSessionIsOpen()){
     trainSessionState = remote.state;
@@ -18446,46 +18499,72 @@ function applyServerTrainDraft(userId, remote){
     if(active === 'screen-home' && typeof paintHomePrimaryCard === 'function') paintHomePrimaryCard();
   }catch(e){}
 }
+function dropSyncedTrainDraft(userId){
+  try{ localStorage.removeItem('see_train_draft_' + userId); }catch(e){}
+  if(!trainDraftSessionIsOpen()){
+    trainSessionState = null;
+    _trainDraftDirty = false;
+    _trainDraftExplicit = false;
+  }
+  try{ paintTrainDraftCards(); }catch(e){}
+  try{
+    var active = (document.querySelector('.screen.active') || {}).id;
+    if(active === 'screen-home' && typeof paintHomePrimaryCard === 'function') paintHomePrimaryCard();
+  }catch(e){}
+}
 function pullTrainDraftFromServer(){
   if(!trainDraftCanSync()) return Promise.resolve();
   if(_trainDraftPulling) return _trainDraftPulling;
   var userId = String(window._authUser.id);
-  _trainDraftPulling = fetch(SB_URL + '/rest/v1/training_session_drafts?select=user_id,saved_at,expires_at,explicit_save,payload&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', {
-    headers: getSBHeaders()
-  }).then(function(res){
-    if(!res || !res.ok) return null;
-    return res.json();
-  }).then(function(rows){
-    if(!rows) return;
-    var row = Array.isArray(rows) ? rows[0] : null;
-    var local = null;
-    try{ local = readTrainDraftForUser(userId); }catch(e){ local = null; }
-    if(!row){
-      if(local) pushTrainDraftToServer(local);
-      return;
-    }
-    var exp = new Date(row.expires_at).getTime();
-    if(!isNaN(exp) && exp <= Date.now()){
-      deleteTrainDraftOnServer(userId);
-      if(local) pushTrainDraftToServer(local);
-      return;
-    }
-    var remote = trainDraftFromServerRow(row);
-    if(!remote) return;
-    if(!local){
-      if(!trainDraftSessionIsOpen()) applyServerTrainDraft(userId, remote);
-      return;
-    }
-    var remoteMs = new Date(remote.saved_at).getTime();
-    var localMs = new Date(local.saved_at).getTime();
-    if(isNaN(remoteMs) || isNaN(localMs) || remoteMs === localMs) return;
-    if(remoteMs > localMs){
-      if(trainDraftSessionIsOpen()) return;
-      applyServerTrainDraft(userId, remote);
-      return;
-    }
-    pushTrainDraftToServer(local);
-  }).catch(function(){}).then(function(){
+  function readRemote(){
+    if(trainDraftHasPendingDelete(userId)) return Promise.resolve();
+    return fetch(SB_URL + '/rest/v1/training_session_drafts?select=user_id,saved_at,expires_at,explicit_save,payload&user_id=eq.' + encodeURIComponent(userId) + '&limit=1', {
+      headers: getSBHeaders()
+    }).then(function(res){
+      if(!res || !res.ok) return null;
+      return res.json();
+    }).then(function(rows){
+      if(!rows) return;
+      if(trainDraftHasPendingDelete(userId)) return;
+      var row = Array.isArray(rows) ? rows[0] : null;
+      var local = null;
+      try{ local = readTrainDraftForUser(userId); }catch(e){ local = null; }
+      if(!row){
+        if(local && local.server_synced_at){
+          if(!trainDraftSessionIsOpen()) dropSyncedTrainDraft(userId);
+          return;
+        }
+        if(local) pushTrainDraftToServer(local);
+        return;
+      }
+      var exp = new Date(row.expires_at).getTime();
+      if(!isNaN(exp) && exp <= Date.now()){
+        deleteTrainDraftOnServer(userId);
+        if(local && !local.server_synced_at) pushTrainDraftToServer(local);
+        return;
+      }
+      var remote = trainDraftFromServerRow(row);
+      if(!remote) return;
+      if(!local){
+        if(trainDraftSessionIsOpen()) return;
+        applyServerTrainDraft(userId, remote);
+        return;
+      }
+      var remoteMs = new Date(remote.saved_at).getTime();
+      var localMs = new Date(local.saved_at).getTime();
+      if(isNaN(remoteMs) || isNaN(localMs) || remoteMs === localMs) return;
+      if(remoteMs > localMs){
+        if(trainDraftSessionIsOpen()) return;
+        applyServerTrainDraft(userId, remote);
+        return;
+      }
+      pushTrainDraftToServer(local);
+    });
+  }
+  var chain = trainDraftHasPendingDelete(userId)
+    ? deleteTrainDraftOnServer(userId).then(function(ok){ if(ok) return readRemote(); })
+    : readRemote();
+  _trainDraftPulling = chain.catch(function(){}).then(function(){
     _trainDraftPulling = null;
   });
   return _trainDraftPulling;

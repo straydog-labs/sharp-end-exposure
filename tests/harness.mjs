@@ -104,6 +104,7 @@ function fulfillJson(route, status, body, extraHeaders){
 export async function withPage(browser, port, opts, fn){
   opts = opts || {};
   const recorded = [];
+  var draftRow = null;
   const context = await browser.newContext(opts.viewport ? { viewport: opts.viewport } : {});
   const page = await context.newPage();
   await page.route('**/*', async function(route){
@@ -134,6 +135,17 @@ export async function withPage(browser, port, opts, fn){
     }
     if(method === 'GET' && url.indexOf('/rest/v1/assignments') !== -1){
       return fulfillJson(route, 200, opts.assignments || []);
+    }
+    if(url.indexOf('/rest/v1/training_session_drafts') !== -1){
+      if(method === 'GET') return fulfillJson(route, 200, draftRow ? [draftRow] : []);
+      if(method === 'POST' || method === 'PATCH'){
+        draftRow = body;
+        return fulfillJson(route, method === 'PATCH' ? 200 : 201, []);
+      }
+      if(method === 'DELETE'){
+        draftRow = null;
+        return fulfillJson(route, 200, []);
+      }
     }
     if(method === 'GET' && url.indexOf('/rest/v1/training_sessions') !== -1){
       return fulfillJson(route, 200, opts.trainingSessions || []);
