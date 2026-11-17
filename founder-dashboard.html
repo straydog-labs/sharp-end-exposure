@@ -286,6 +286,17 @@
   .bo-table tr.click-row{cursor:pointer;}
   .bo-table tr.click-row:hover td{background:rgba(255,255,255,.03);}
   .users-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+  .fd-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+  .fd-filters .bo-form-row{margin:0;min-width:150px;flex:1 1 150px;}
+  .fd-filters .users-toggle{padding-bottom:8px;}
+  .fd-picker{max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;}
+  .fd-picker label{display:flex;gap:8px;align-items:center;padding:7px 10px;font-size:12.5px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .fd-picker label:last-child{border-bottom:none;}
+  .fd-picker label.in-group{opacity:.5;cursor:default;}
+  .fd-picker .mono{font-size:11px;color:var(--text-secondary);}
+  .fd-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;}
+  @media (max-width: 900px){ .fd-two-col{grid-template-columns:minmax(0,1fr);} }
+  .bo-table td.num, .bo-table th.num{text-align:right;font-variant-numeric:tabular-nums;}
   .users-sort-th{
     cursor:pointer;user-select:none;white-space:nowrap;
   }
@@ -873,8 +884,8 @@
           <span>Signed in as <b id="sidebar-admin-email"></b></span>
           <button type="button" class="bo-btn" id="sidebar-signout">Sign out</button>
         </div>
-        <div class="mono">v0.3.4 · foundash</div>
-        <div>Last updated 2026-11-16</div>
+        <div class="mono">v0.3.5 · foundash</div>
+        <div>Last updated 2026-11-17</div>
       </div>
     </div>
 
@@ -1024,6 +1035,135 @@
             </table>
           </div>
           <div class="schema-note">RPC: <code>foundash_users_summary()</code> · Sessions = real logged climbs (<code>is_checkin = false AND deleted_at IS NULL</code>, see <code>sql/foundash-users-summary.sql</code>) · row click opens <code>foundash_user_full</code>.</div>
+        </div>
+      </section>
+
+      <!-- ---------- FOUNDASH: GROUPS ---------- -->
+      <section id="section-groups" class="section-view">
+        <div class="page-title">Groups</div>
+        <div class="page-sub">Named sets of users for reports. Deleting a group removes the group and its memberships only — users and their data are not changed. Admin JWT required.</div>
+        <div id="groups-admin-auth"></div>
+        <div id="groups-privileged" style="display:none;">
+          <div id="groups-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="panel">
+            <div class="panel-title">New group</div>
+            <div class="fd-filters">
+              <div class="bo-form-row">
+                <label for="group-create-name">Name</label>
+                <input id="group-create-name" type="text" maxlength="120" placeholder="e.g. Sender One pilot">
+              </div>
+              <div class="bo-form-row" style="flex:2 1 260px;">
+                <label for="group-create-note">Note (optional)</label>
+                <input id="group-create-note" type="text" maxlength="2000" placeholder="What this group is for">
+              </div>
+              <button type="button" class="bo-btn primary" id="group-create-btn">Create group</button>
+            </div>
+            <div id="group-create-msg"></div>
+          </div>
+          <div class="panel" style="overflow-x:auto;">
+            <div class="panel-title-row">
+              <div class="panel-title">All groups</div>
+              <button type="button" class="bo-btn" id="groups-refresh-btn">Refresh</button>
+            </div>
+            <table class="bo-table" id="groups-table">
+              <thead><tr><th>Name</th><th>Note</th><th class="num">Members</th><th>Created</th><th></th></tr></thead>
+              <tbody id="groups-tbody"><tr><td colspan="5" class="bo-empty">Loading···</td></tr></tbody>
+            </table>
+          </div>
+          <div class="panel" id="group-detail-panel" style="display:none;">
+            <div class="panel-title-row">
+              <div class="panel-title" id="group-detail-title">Group</div>
+              <button type="button" class="bo-btn" id="group-detail-close">Close</button>
+            </div>
+            <div id="group-detail-msg"></div>
+            <div class="fd-two-col">
+              <div style="overflow-x:auto;">
+                <div class="panel-title" style="font-size:12px;">Members</div>
+                <table class="bo-table">
+                  <thead><tr><th>Name</th><th>Email</th><th>Added</th><th></th></tr></thead>
+                  <tbody id="group-members-tbody"><tr><td colspan="4" class="bo-empty">Loading···</td></tr></tbody>
+                </table>
+              </div>
+              <div>
+                <div class="panel-title" style="font-size:12px;">Add from roster</div>
+                <div class="users-toolbar" style="margin-bottom:8px;">
+                  <input id="group-picker-search" type="search" placeholder="Filter roster by name or email…" aria-label="Filter roster" style="flex:1;min-width:140px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);">
+                  <label class="users-toggle" for="group-picker-show-test">
+                    <input type="checkbox" id="group-picker-show-test">
+                    Show test accounts
+                  </label>
+                </div>
+                <div class="fd-picker" id="group-picker-list"><div class="bo-empty">Loading roster···</div></div>
+                <div class="users-toolbar" style="margin:10px 0 0;">
+                  <button type="button" class="bo-btn primary" id="group-add-selected-btn" disabled>Add selected</button>
+                  <span class="mono" id="group-picker-count"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="schema-note">RPCs: <code>foundash_group_list</code>, <code>foundash_group_create</code>, <code>foundash_group_delete</code>, <code>foundash_group_add_members</code>, <code>foundash_group_remove_member</code>, <code>foundash_group_members</code> · <code>sql/foundash-groups-reports.sql</code> · roster from <code>foundash_users_summary()</code>.</div>
+        </div>
+      </section>
+
+      <!-- ---------- FOUNDASH: REPORTS ---------- -->
+      <section id="section-reports" class="section-view">
+        <div class="page-title">Reports</div>
+        <div class="page-sub">Users, activity, sessions, climbs, and coach links for a date range. Test accounts are excluded unless you include them. Admin JWT required.</div>
+        <div id="reports-admin-auth"></div>
+        <div id="reports-privileged" style="display:none;">
+          <div id="reports-sql-banner" class="bo-warn" style="display:none;"></div>
+          <div class="panel">
+            <div class="fd-filters">
+              <div class="bo-form-row">
+                <label for="report-date-from">From</label>
+                <input id="report-date-from" type="date">
+              </div>
+              <div class="bo-form-row">
+                <label for="report-date-to">To</label>
+                <input id="report-date-to" type="date">
+              </div>
+              <div class="bo-form-row">
+                <label for="report-role">Role</label>
+                <select id="report-role">
+                  <option value="">All roles</option>
+                  <option value="coach">coach</option>
+                  <option value="athlete">athlete</option>
+                  <option value="both">both</option>
+                  <option value="signed-up-only">signed up only</option>
+                </select>
+              </div>
+              <div class="bo-form-row">
+                <label for="report-group">Group</label>
+                <select id="report-group"><option value="">All users</option></select>
+              </div>
+              <div class="bo-form-row">
+                <label for="report-group-by">Group by</label>
+                <select id="report-group-by">
+                  <option value="none">None</option>
+                  <option value="role">Role</option>
+                  <option value="group">Group</option>
+                  <option value="week">Week</option>
+                </select>
+              </div>
+              <label class="users-toggle" for="report-include-test">
+                <input type="checkbox" id="report-include-test">
+                Include test accounts
+              </label>
+            </div>
+            <div class="users-toolbar" style="margin-bottom:0;">
+              <button type="button" class="bo-btn primary" id="report-run-btn">Run report</button>
+              <button type="button" class="bo-btn" id="report-csv-btn" disabled>Export CSV</button>
+              <span class="mono" id="report-meta"></span>
+            </div>
+          </div>
+          <div id="report-msg"></div>
+          <div class="panel" style="overflow-x:auto;">
+            <table class="bo-table" id="report-table">
+              <thead><tr><th>Bucket</th><th class="num">Users</th><th class="num">Active 7d</th><th class="num">Active 30d</th><th class="num">Sessions</th><th class="num">Climbs</th><th class="num">Coach-linked athletes</th></tr></thead>
+              <tbody id="report-tbody"><tr><td colspan="7" class="bo-empty">Pick filters and run the report.</td></tr></tbody>
+            </table>
+          </div>
+          <div class="schema-note">RPC: <code>foundash_report(date_from, date_to, role, group_id, include_test, group_by)</code> · dates are inclusive UTC days · Users = signed up by the bucket end · Active = any session, training, journal, or psyche activity in the 7 / 30 days ending at the bucket end · Sessions = climb sessions (check-ins excluded) · Coach-linked = active coach link created by the bucket end · CSV is built in the browser.</div>
         </div>
       </section>
 
@@ -2190,10 +2330,13 @@
     {id:'see-live', icon:'●', label:'SEE Live'},
     {id:'demo-center', icon:'◎', label:'Demo Center'},
     {id:'roadmap', icon:'↦', label:'Roadmap'},
-    {id:'build-queue', icon:'▣', label:'Build Queue'}
+    {id:'build-queue', icon:'▣', label:'Build Queue'},
+    {id:'groups', icon:'◫', label:'Groups'},
+    {id:'reports', icon:'▤', label:'Reports'}
   ];
   var NAV_CATEGORIES = [
     {id:'overview-users', label:'Overview & Users', ids:['overview','all-users','coaching-roster','coach-mgmt']},
+    {id:'groups-reports', label:'Groups & Reports', ids:['groups','reports']},
     {id:'operations', label:'Operations', ids:['todo','ops-center','athlete-training','custom-workouts','audit-log']},
     {id:'business', label:'Business', ids:['finance','investor-view','analytics']},
     {id:'dev-tools', label:'Dev Tools', ids:['see-live','demo-center','roadmap','build-queue']}
@@ -2279,6 +2422,8 @@
     if(id === 'audit-log') renderAuditLog();
     if(id === 'coach-mgmt') loadCoachManagement();
     if(id === 'ops-center') loadOpsCenter();
+    if(id === 'groups') loadGroups();
+    if(id === 'reports') loadReports();
   }
 
   /* ===================== SUPABASE ===================== */
@@ -3782,6 +3927,444 @@
         onReady();
       });
     });
+  }
+
+  /* ===================== GROUPS + REPORTS ===================== */
+  // sql/foundash-groups-reports.sql. Every call is an admin-only RPC; the
+  // group tables have no direct REST access. Deleting a group removes the
+  // group and its memberships only.
+  var _groupsCache = [];
+  var _groupsBound = false;
+  var _groupDetailId = null;
+  var _groupMembers = [];
+  var _groupRoster = null;
+  var _reportsBound = false;
+  var _reportLast = null;
+  var FOUNDASH_REPORT_COLUMNS = [
+    { key: 'bucket_label', label: 'Bucket' },
+    { key: 'users', label: 'Users', num: true },
+    { key: 'active_7d', label: 'Active 7d', num: true },
+    { key: 'active_30d', label: 'Active 30d', num: true },
+    { key: 'sessions', label: 'Sessions', num: true },
+    { key: 'climbs', label: 'Climbs', num: true },
+    { key: 'coach_linked_athletes', label: 'Coach-linked athletes', num: true }
+  ];
+  var FOUNDASH_GROUP_ERRORS = {
+    not_admin: 'This account is not in foundash_admins.',
+    not_authenticated: 'Sign in required.',
+    name_required: 'Give the group a name.',
+    name_too_long: 'Group names are 120 characters or fewer.',
+    note_too_long: 'Notes are 2000 characters or fewer.',
+    name_taken: 'A group with that name already exists.',
+    group_not_found: 'That group no longer exists.',
+    too_many_users: 'Add at most 1000 users at a time.',
+    bad_role: 'Unknown role filter.',
+    bad_group_by: 'Unknown group-by option.',
+    bad_date_range: 'From must be on or before To.',
+    range_too_long: 'Pick a range of ten years or less.'
+  };
+
+  // CSV cell: neutralise spreadsheet formulas, then RFC 4180 quoting.
+  function foundashCsvCell(v){
+    if(v === null || v === undefined) return '';
+    var s = String(v);
+    if(/^[=+\-@]/.test(s)) s = "'" + s;
+    if(/[",\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function foundashReportCsv(rows){
+    var lines = [FOUNDASH_REPORT_COLUMNS.map(function(c){ return foundashCsvCell(c.label); }).join(',')];
+    (rows || []).forEach(function(r){
+      lines.push(FOUNDASH_REPORT_COLUMNS.map(function(c){ return foundashCsvCell(r[c.key]); }).join(','));
+    });
+    return lines.join('\r\n');
+  }
+  function foundashReportParams(f){
+    return {
+      p_date_from: f.from || null,
+      p_date_to: f.to || null,
+      p_role: f.role || null,
+      p_group_id: f.group || null,
+      p_include_test: !!f.includeTest,
+      p_group_by: f.groupBy || 'none'
+    };
+  }
+  function foundashReportTableHtml(rows){
+    if(!rows || !rows.length){
+      return '<tr><td colspan="' + FOUNDASH_REPORT_COLUMNS.length + '" class="bo-empty">No rows for these filters.</td></tr>';
+    }
+    return rows.map(function(r){
+      return '<tr>' + FOUNDASH_REPORT_COLUMNS.map(function(c){
+        var v = r[c.key];
+        return c.num ? '<td class="num">' + escapeHtml(v == null ? 0 : v) + '</td>' : '<td>' + escapeHtml(v) + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+  }
+  function foundashRpcMessage(data, err){
+    var code = (data && data.error) || (err && (err.error || err.code)) || '';
+    if(FOUNDASH_GROUP_ERRORS[code]) return FOUNDASH_GROUP_ERRORS[code];
+    if(err && isMissingRpc(err)) return 'needs sql/foundash-groups-reports.sql applied in Supabase.';
+    return (err && (err.message || err.hint)) || code || 'unknown error';
+  }
+  function foundashShowMsg(id, kind, text){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.innerHTML = text ? '<div class="' + kind + '">' + escapeHtml(text) + '</div>' : '';
+  }
+  function foundashMissingBanner(id, err){
+    var el = document.getElementById(id);
+    if(!el) return false;
+    if(!isMissingRpc(err)){ el.style.display = 'none'; return false; }
+    el.style.display = 'block';
+    el.className = 'bo-warn';
+    el.innerHTML = 'This page needs <code>sql/foundash-groups-reports.sql</code> applied in Supabase.';
+    return true;
+  }
+
+  function loadGroups(){
+    requireAdmin('groups-admin-auth', 'groups-privileged', 'Groups', function(){
+      bindGroupsPage();
+      refreshGroupsList();
+    });
+  }
+  function bindGroupsPage(){
+    if(_groupsBound) return;
+    _groupsBound = true;
+    document.getElementById('group-create-btn').addEventListener('click', createFoundashGroup);
+    document.getElementById('group-create-name').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') createFoundashGroup();
+    });
+    document.getElementById('groups-refresh-btn').addEventListener('click', function(){ refreshGroupsList(); });
+    document.getElementById('groups-tbody').addEventListener('click', function(e){
+      var btn = e.target.closest('button[data-group-action]');
+      if(!btn) return;
+      var id = btn.getAttribute('data-group-id');
+      if(btn.getAttribute('data-group-action') === 'delete') deleteFoundashGroup(id);
+      else openGroupDetail(id);
+    });
+    document.getElementById('group-detail-close').addEventListener('click', closeGroupDetail);
+    document.getElementById('group-members-tbody').addEventListener('click', function(e){
+      var btn = e.target.closest('button[data-remove-user]');
+      if(btn) removeFoundashGroupMember(btn.getAttribute('data-remove-user'), btn);
+    });
+    document.getElementById('group-picker-search').addEventListener('input', renderGroupPicker);
+    document.getElementById('group-picker-show-test').addEventListener('change', renderGroupPicker);
+    document.getElementById('group-picker-list').addEventListener('change', paintGroupPickerCount);
+    document.getElementById('group-add-selected-btn').addEventListener('click', addSelectedToGroup);
+  }
+  function refreshGroupsList(){
+    var tbody = document.getElementById('groups-tbody');
+    return sbRpc('foundash_group_list', {}).then(function(data){
+      if(!data || data.ok === false){
+        if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="bo-empty">' + escapeHtml(foundashRpcMessage(data)) + '</td></tr>';
+        return [];
+      }
+      foundashMissingBanner('groups-sql-banner', null);
+      _groupsCache = data.groups || [];
+      renderGroupsTable();
+      fillReportGroupSelect();
+      return _groupsCache;
+    }).catch(function(err){
+      foundashMissingBanner('groups-sql-banner', err);
+      if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="bo-empty" style="color:var(--danger);">Failed — ' +
+        escapeHtml(foundashRpcMessage(null, err)) + '</td></tr>';
+      return [];
+    });
+  }
+  function renderGroupsTable(){
+    var tbody = document.getElementById('groups-tbody');
+    if(!tbody) return;
+    if(!_groupsCache.length){
+      tbody.innerHTML = '<tr><td colspan="5" class="bo-empty">No groups yet. Create one above.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = _groupsCache.map(function(g){
+      var id = escapeHtml(g.id);
+      return '<tr' + (g.id === _groupDetailId ? ' style="background:rgba(200,98,42,.08);"' : '') + '>' +
+        '<td><b>' + escapeHtml(g.name) + '</b></td>' +
+        '<td>' + (g.note ? escapeHtml(g.note) : '<span class="mono">—</span>') + '</td>' +
+        '<td class="num">' + escapeHtml(g.member_count || 0) + '</td>' +
+        '<td>' + escapeHtml(fmtDate(g.created_at)) + '</td>' +
+        '<td><div class="bo-actions" style="justify-content:flex-end;">' +
+          '<button type="button" class="bo-btn" data-group-action="open" data-group-id="' + id + '">Members</button>' +
+          '<button type="button" class="bo-btn danger" data-group-action="delete" data-group-id="' + id + '">Delete</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+  }
+  function createFoundashGroup(){
+    var nameEl = document.getElementById('group-create-name');
+    var noteEl = document.getElementById('group-create-note');
+    var btn = document.getElementById('group-create-btn');
+    var name = nameEl.value.trim();
+    if(!name){ foundashShowMsg('group-create-msg', 'bo-err', FOUNDASH_GROUP_ERRORS.name_required); return; }
+    btn.disabled = true;
+    sbRpc('foundash_group_create', { p_name: name, p_note: noteEl.value.trim() || null }).then(function(data){
+      btn.disabled = false;
+      if(!data || data.ok === false){
+        foundashShowMsg('group-create-msg', 'bo-err', foundashRpcMessage(data));
+        return;
+      }
+      nameEl.value = '';
+      noteEl.value = '';
+      foundashShowMsg('group-create-msg', 'bo-ok', 'Created ' + data.group.name + '.');
+      refreshGroupsList().then(function(){ openGroupDetail(data.group.id); });
+    }).catch(function(err){
+      btn.disabled = false;
+      foundashMissingBanner('groups-sql-banner', err);
+      foundashShowMsg('group-create-msg', 'bo-err', 'Create failed — ' + foundashRpcMessage(null, err));
+    });
+  }
+  function deleteFoundashGroup(groupId){
+    var g = _groupsCache.find(function(row){ return row.id === groupId; });
+    if(!g) return;
+    var n = g.member_count || 0;
+    if(!window.confirm('Delete group "' + g.name + '"?\n\nThis removes the group and its ' + n +
+      ' membership' + (n === 1 ? '' : 's') + '. Users and their data are not changed.')) return;
+    sbRpc('foundash_group_delete', { p_group_id: groupId }).then(function(data){
+      if(!data || data.ok === false){
+        foundashShowMsg('group-create-msg', 'bo-err', 'Delete failed — ' + foundashRpcMessage(data));
+        return;
+      }
+      if(_groupDetailId === groupId) closeGroupDetail();
+      foundashShowMsg('group-create-msg', 'bo-ok', 'Deleted ' + g.name + ' (' + data.members_removed + ' memberships removed).');
+      refreshGroupsList();
+    }).catch(function(err){
+      foundashShowMsg('group-create-msg', 'bo-err', 'Delete failed — ' + foundashRpcMessage(null, err));
+    });
+  }
+  function closeGroupDetail(){
+    _groupDetailId = null;
+    _groupMembers = [];
+    var panel = document.getElementById('group-detail-panel');
+    if(panel) panel.style.display = 'none';
+    renderGroupsTable();
+  }
+  function openGroupDetail(groupId){
+    _groupDetailId = groupId;
+    var g = _groupsCache.find(function(row){ return row.id === groupId; });
+    document.getElementById('group-detail-panel').style.display = 'block';
+    document.getElementById('group-detail-title').textContent = g ? g.name : 'Group';
+    foundashShowMsg('group-detail-msg', '', '');
+    renderGroupsTable();
+    loadGroupMembers(groupId);
+    loadGroupRoster();
+  }
+  function loadGroupMembers(groupId){
+    var tbody = document.getElementById('group-members-tbody');
+    tbody.innerHTML = '<tr><td colspan="4" class="bo-empty">Loading···</td></tr>';
+    return sbRpc('foundash_group_members', { p_group_id: groupId }).then(function(data){
+      if(groupId !== _groupDetailId) return;
+      if(!data || data.ok === false){
+        tbody.innerHTML = '<tr><td colspan="4" class="bo-empty">' + escapeHtml(foundashRpcMessage(data)) + '</td></tr>';
+        return;
+      }
+      _groupMembers = data.members || [];
+      renderGroupMembers();
+      renderGroupPicker();
+    }).catch(function(err){
+      tbody.innerHTML = '<tr><td colspan="4" class="bo-empty" style="color:var(--danger);">Failed — ' +
+        escapeHtml(foundashRpcMessage(null, err)) + '</td></tr>';
+    });
+  }
+  function renderGroupMembers(){
+    var tbody = document.getElementById('group-members-tbody');
+    if(!_groupMembers.length){
+      tbody.innerHTML = '<tr><td colspan="4" class="bo-empty">No members yet. Add users from the roster.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = _groupMembers.map(function(m){
+      return '<tr>' +
+        '<td>' + escapeHtml(personDisplayName(m.first_name, m.last_name, null, '—')) +
+          (m.is_test ? ' <span class="bo-chip role-test">test</span>' : '') + '</td>' +
+        '<td>' + escapeHtml(m.email || shortId(m.user_id)) + '</td>' +
+        '<td>' + escapeHtml(fmtDate(m.added_at)) + '</td>' +
+        '<td><button type="button" class="bo-btn" data-remove-user="' + escapeHtml(m.user_id) + '">Remove</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+  function removeFoundashGroupMember(userId, btn){
+    var groupId = _groupDetailId;
+    if(!groupId) return;
+    if(btn) btn.disabled = true;
+    sbRpc('foundash_group_remove_member', { p_group_id: groupId, p_user_id: userId }).then(function(data){
+      if(!data || data.ok === false){
+        if(btn) btn.disabled = false;
+        foundashShowMsg('group-detail-msg', 'bo-err', 'Remove failed — ' + foundashRpcMessage(data));
+        return;
+      }
+      foundashShowMsg('group-detail-msg', '', '');
+      loadGroupMembers(groupId);
+      refreshGroupsList();
+    }).catch(function(err){
+      if(btn) btn.disabled = false;
+      foundashShowMsg('group-detail-msg', 'bo-err', 'Remove failed — ' + foundashRpcMessage(null, err));
+    });
+  }
+  function loadGroupRoster(){
+    if(allUsersCache.length){ _groupRoster = allUsersCache; renderGroupPicker(); return; }
+    if(_groupRoster){ renderGroupPicker(); return; }
+    sbRpc('foundash_users_summary', {}).then(function(data){
+      if(!data || data.ok === false) throw data || {};
+      _groupRoster = data.users || [];
+      renderGroupPicker();
+    }).catch(function(err){
+      document.getElementById('group-picker-list').innerHTML =
+        '<div class="bo-empty">Roster unavailable — ' + escapeHtml(foundashRpcMessage(err, err)) + '</div>';
+    });
+  }
+  function renderGroupPicker(){
+    var list = document.getElementById('group-picker-list');
+    if(!list || !_groupRoster) return;
+    var q = document.getElementById('group-picker-search').value.trim().toLowerCase();
+    var showTest = document.getElementById('group-picker-show-test').checked;
+    var inGroup = {};
+    _groupMembers.forEach(function(m){ inGroup[m.user_id] = true; });
+    var checked = {};
+    list.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb){ checked[cb.value] = true; });
+    var rows = _groupRoster.filter(function(u){
+      if(!showTest && isTestAccount(u)) return false;
+      if(!q) return true;
+      var hay = (personDisplayName(u.first_name, u.last_name, null, '') + ' ' + (u.email || '')).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+    if(!rows.length){
+      list.innerHTML = '<div class="bo-empty">No users match.</div>';
+      paintGroupPickerCount();
+      return;
+    }
+    list.innerHTML = rows.map(function(u){
+      var id = escapeHtml(u.user_id);
+      var member = !!inGroup[u.user_id];
+      return '<label class="' + (member ? 'in-group' : '') + '">' +
+        '<input type="checkbox" value="' + id + '"' + (member ? ' disabled checked' : (checked[u.user_id] ? ' checked' : '')) + '>' +
+        '<span>' + escapeHtml(personDisplayName(u.first_name, u.last_name, u.email, shortId(u.user_id))) + '</span>' +
+        '<span class="mono">' + escapeHtml(u.email || '') + (member ? ' · in group' : '') + (isTestAccount(u) ? ' · test' : '') + '</span>' +
+      '</label>';
+    }).join('');
+    paintGroupPickerCount();
+  }
+  function groupPickerSelectedIds(){
+    var ids = [];
+    document.querySelectorAll('#group-picker-list input[type="checkbox"]:checked:not(:disabled)').forEach(function(cb){
+      ids.push(cb.value);
+    });
+    return ids;
+  }
+  function paintGroupPickerCount(){
+    var n = groupPickerSelectedIds().length;
+    document.getElementById('group-picker-count').textContent = n ? n + ' selected' : '';
+    document.getElementById('group-add-selected-btn').disabled = !n;
+  }
+  function addSelectedToGroup(){
+    var groupId = _groupDetailId;
+    var ids = groupPickerSelectedIds();
+    if(!groupId || !ids.length) return;
+    var btn = document.getElementById('group-add-selected-btn');
+    btn.disabled = true;
+    sbRpc('foundash_group_add_members', { p_group_id: groupId, p_user_ids: ids }).then(function(data){
+      if(!data || data.ok === false){
+        btn.disabled = false;
+        foundashShowMsg('group-detail-msg', 'bo-err', 'Add failed — ' + foundashRpcMessage(data));
+        return;
+      }
+      foundashShowMsg('group-detail-msg', 'bo-ok', 'Added ' + data.added + (data.skipped ? ' (' + data.skipped + ' already in the group or not found)' : '') + '.');
+      document.querySelectorAll('#group-picker-list input[type="checkbox"]:checked:not(:disabled)').forEach(function(cb){ cb.checked = false; });
+      loadGroupMembers(groupId);
+      refreshGroupsList();
+    }).catch(function(err){
+      btn.disabled = false;
+      foundashShowMsg('group-detail-msg', 'bo-err', 'Add failed — ' + foundashRpcMessage(null, err));
+    });
+  }
+
+  function loadReports(){
+    requireAdmin('reports-admin-auth', 'reports-privileged', 'Reports', function(){
+      bindReportsPage();
+      sbRpc('foundash_group_list', {}).then(function(data){
+        if(data && data.ok !== false){
+          _groupsCache = data.groups || [];
+          fillReportGroupSelect();
+        }
+      }).catch(function(err){ foundashMissingBanner('reports-sql-banner', err); });
+    });
+  }
+  function bindReportsPage(){
+    if(_reportsBound) return;
+    _reportsBound = true;
+    var toEl = document.getElementById('report-date-to');
+    var fromEl = document.getElementById('report-date-from');
+    if(!toEl.value){
+      var today = new Date();
+      toEl.value = today.toISOString().slice(0, 10);
+      fromEl.value = new Date(today.getTime() - 29 * 86400000).toISOString().slice(0, 10);
+    }
+    document.getElementById('report-run-btn').addEventListener('click', runFoundashReport);
+    document.getElementById('report-csv-btn').addEventListener('click', exportFoundashReportCsv);
+  }
+  function fillReportGroupSelect(){
+    var sel = document.getElementById('report-group');
+    if(!sel) return;
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">All users</option>' + _groupsCache.map(function(g){
+      return '<option value="' + escapeHtml(g.id) + '">' + escapeHtml(g.name) + ' (' + escapeHtml(g.member_count || 0) + ')</option>';
+    }).join('');
+    if(cur && _groupsCache.some(function(g){ return g.id === cur; })) sel.value = cur;
+  }
+  function readReportFilters(){
+    return {
+      from: document.getElementById('report-date-from').value,
+      to: document.getElementById('report-date-to').value,
+      role: document.getElementById('report-role').value,
+      group: document.getElementById('report-group').value,
+      includeTest: document.getElementById('report-include-test').checked,
+      groupBy: document.getElementById('report-group-by').value
+    };
+  }
+  function runFoundashReport(){
+    var params = foundashReportParams(readReportFilters());
+    var btn = document.getElementById('report-run-btn');
+    var csvBtn = document.getElementById('report-csv-btn');
+    var tbody = document.getElementById('report-tbody');
+    btn.disabled = true;
+    csvBtn.disabled = true;
+    _reportLast = null;
+    foundashShowMsg('report-msg', '', '');
+    tbody.innerHTML = '<tr><td colspan="' + FOUNDASH_REPORT_COLUMNS.length + '" class="bo-empty">Running···</td></tr>';
+    sbRpc('foundash_report', params).then(function(data){
+      btn.disabled = false;
+      if(!data || data.ok === false){
+        tbody.innerHTML = '<tr><td colspan="' + FOUNDASH_REPORT_COLUMNS.length + '" class="bo-empty">No report.</td></tr>';
+        foundashShowMsg('report-msg', 'bo-err', foundashRpcMessage(data));
+        return;
+      }
+      foundashMissingBanner('reports-sql-banner', null);
+      _reportLast = { rows: data.rows || [], params: data.params || {} };
+      tbody.innerHTML = foundashReportTableHtml(_reportLast.rows);
+      csvBtn.disabled = !_reportLast.rows.length;
+      var p = _reportLast.params;
+      document.getElementById('report-meta').textContent = p.date_from + ' → ' + p.date_to +
+        (p.include_test ? ' · test accounts included' : ' · test accounts excluded');
+    }).catch(function(err){
+      btn.disabled = false;
+      foundashMissingBanner('reports-sql-banner', err);
+      tbody.innerHTML = '<tr><td colspan="' + FOUNDASH_REPORT_COLUMNS.length + '" class="bo-empty">No report.</td></tr>';
+      foundashShowMsg('report-msg', 'bo-err', 'Report failed — ' + foundashRpcMessage(null, err));
+    });
+  }
+  function exportFoundashReportCsv(){
+    if(!_reportLast || !_reportLast.rows.length) return;
+    var p = _reportLast.params;
+    var csv = foundashReportCsv(_reportLast.rows);
+    var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'foundash-report-' + (p.date_from || '') + '-to-' + (p.date_to || '') + '-' + (p.group_by || 'none') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
   }
 
   /* ===================== ALL USERS ===================== */
