@@ -5021,6 +5021,13 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
       <button type="button" id="train-discard-keep" class="train-draft-resume" onclick="keepTrainSession()">Keep</button>
     </div>
   </div>
+  <div id="train-block-delete-confirm" class="train-draft-choice" hidden>
+    <div class="train-draft-choice-panel" role="dialog" aria-label="Delete block">
+      <div>Delete this block? Its marks will be lost.</div>
+      <button type="button" id="train-block-delete-do" class="train-draft-discard" onclick="confirmTrainRemoveBlock()">Delete</button>
+      <button type="button" id="train-block-delete-keep" class="train-draft-resume" onclick="cancelTrainRemoveBlock()">Keep</button>
+    </div>
+  </div>
   <div class="page-header">
     <div class="wordmark"><span>Sharp End</span> Exposure <span class="beta-badge">Beta</span></div>
   </div>
@@ -6313,7 +6320,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index343'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index344'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -18391,22 +18398,70 @@ function trainAddSectionChild(sectionId, kind){
   renderTrainSessionBuilder();
 }
 
+// Does this block have any mark (tick, rep, round, timer, note) that would be
+// lost on delete? Drives whether trainRemoveBlock needs an in-page confirm.
+function trainBlockHasData(b){
+  if(!b) return false;
+  if(b.attempts && b.attempts.length) return true;
+  if(b.timer_started_at || trainBlockTimerElapsedMs(b) > 0) return true;
+  if(trainTextNonEmpty(b.notes) || trainTextNonEmpty(b.progression_note)) return true;
+  if(trainNoticeHasAnswer(b.notice)) return true;
+  if(b.shape === 'emom'){
+    return (b.rounds || []).some(function(r){
+      return r && ((r.boulders || []).some(function(bo){ return bo && (bo.complete || bo.result != null); })
+        || trainTextNonEmpty(r.note) || trainTextNonEmpty(r.notes));
+    });
+  }
+  if(b.shape === 'rep_pass_fail'){
+    return (b.sets || []).some(function(s){
+      return s && (s.reps || []).some(function(rp){ return rp && (rp.ok === true || rp.ok === false); });
+    });
+  }
+  if(b.shape === 'circuit'){
+    return Array.isArray(b.round_complete) && b.round_complete.some(Boolean);
+  }
+  if(b.shape === 'check' || b.shape === 'section'){
+    return Array.isArray(b.items) && b.items.some(function(it){ return it && it.complete; });
+  }
+  if(b.shape === 'rest'){
+    return !!b.complete;
+  }
+  return false;
+}
+var _pendingRemoveBlockId = null;
 function trainRemoveBlock(id){
   if(!trainSessionState) return;
+  collectTrainBlockFields();
   var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
   if(!b) return;
-  if(!b._removeArmed){
-    collectTrainBlockFields();
-    trainSessionState.blocks.forEach(function(x){ if(x !== b) x._removeArmed = false; });
-    b._removeArmed = true;
-    renderTrainSessionBuilder();
+  if(trainBlockHasData(b)){
+    _pendingRemoveBlockId = id;
+    var el = document.getElementById('train-block-delete-confirm');
+    if(el) el.hidden = false;
     return;
   }
+  trainDoRemoveBlock(id);
+}
+function trainDoRemoveBlock(id){
+  if(!trainSessionState) return;
   clearTrainBlockTimerInterval(id);
   if(_trainIntervalLastPhaseKey) delete _trainIntervalLastPhaseKey[id];
   trainSessionState.blocks = trainSessionState.blocks.filter(function(x){ return x.id !== id; });
   if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
+  try{ markTrainDraftIfChanged(); scheduleTrainDraftSave(); }catch(e){}
   renderTrainSessionBuilder();
+}
+function confirmTrainRemoveBlock(){
+  var id = _pendingRemoveBlockId;
+  _pendingRemoveBlockId = null;
+  var el = document.getElementById('train-block-delete-confirm');
+  if(el) el.hidden = true;
+  if(id) trainDoRemoveBlock(id);
+}
+function cancelTrainRemoveBlock(){
+  _pendingRemoveBlockId = null;
+  var el = document.getElementById('train-block-delete-confirm');
+  if(el) el.hidden = true;
 }
 
 function syncTrainSessionFieldsFromDom(){
@@ -19905,7 +19960,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
         : '')
       + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
       + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
-      + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;min-height:32px;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button>';
+      + '<button type="button" class="train-block-remove" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;min-height:32px;">Remove</button>';
     head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
       + '<div class="wk-blk-row">'
       + '<button type="button" class="wk-blk-toggle" data-wk-toggle="'+b.id+'" aria-expanded="'+(wkCollapsedNow?'false':'true')+'" onclick="wkToggleCollapse(\''+b.id+'\')">'
@@ -19919,7 +19974,8 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       + '</span></div>'
       + trainNoticeSlot(b);
     if(wkCollapsedNow){
-      return head + '<div class="wk-blk-summary" data-wk-summary="'+b.id+'">'+escTrainHtml(wkBlockSummary(b))+'</div></div>';
+      return head + '<div class="wk-blk-summary" data-wk-summary="'+b.id+'">'+escTrainHtml(wkBlockSummary(b))
+        + '</div><div class="wk-blk-actions"><button type="button" class="train-block-remove" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;min-height:32px;">Remove</button></div></div>';
     }
     head += '<div class="wk-blk-actions">'+actions+'</div>';
   } else {
@@ -19932,7 +19988,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
       : '')
     + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
-    + '<button type="button" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:'+(b._removeArmed?'var(--panic)':'var(--muted)')+';font-size:12px;cursor:pointer;">'+(b._removeArmed?'Confirm remove':'Remove')+'</button></div></div>'
+    + '<button type="button" class="train-block-remove" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div></div>'
     + trainNoticeSlot(b);
   }
   var timerRow = '';
@@ -29264,13 +29320,23 @@ async function runSEETests(){
     var htmlDur = renderTrainBlockHtml(titledSec, 1);
     var a4b = /Duration \(sec\)/.test(htmlDur);
     var a5 = /_trainCancelArmed/.test(String(cancelTrainSession))
-      && /_removeArmed/.test(String(trainRemoveBlock));
+      && /trainBlockHasData/.test(String(trainRemoveBlock));
     trainRemoveBlock(untitledSec.id); // no-op, not in state
     trainSessionState.blocks = [untitledSec];
-    trainRemoveBlock(untitledSec.id);
-    var armed = untitledSec._removeArmed === true && trainSessionState.blocks.length === 1;
-    trainRemoveBlock(untitledSec.id);
-    var removed = trainSessionState.blocks.length === 0;
+    trainRemoveBlock(untitledSec.id); // empty block: no marks, deletes immediately
+    var removed = trainSessionState.blocks.length === 0
+      && document.getElementById('train-block-delete-confirm').hidden;
+    var dataBlock = newTrainBlock('section');
+    dataBlock.notes = 'has content';
+    trainSessionState.blocks = [dataBlock];
+    trainRemoveBlock(dataBlock.id); // has marks: confirm first, no delete yet
+    var armed = !document.getElementById('train-block-delete-confirm').hidden
+      && trainSessionState.blocks.length === 1;
+    cancelTrainRemoveBlock();
+    var kept = trainSessionState.blocks.length === 1 && document.getElementById('train-block-delete-confirm').hidden;
+    trainRemoveBlock(dataBlock.id);
+    confirmTrainRemoveBlock();
+    var removedAfterConfirm = trainSessionState.blocks.length === 0;
     var a6 = /savedClimb/.test(String(saveEditedClimb)) && /Could not update/.test(String(saveEditedClimb))
       && /savedRefl/.test(String(trainFlowSaveReflectionIfFilled));
     var chips = (function(){
@@ -29305,12 +29371,12 @@ async function runSEETests(){
 
     trainSessionState = prevSess;
     showScreen('screen-train');
-    if(a1 && a2 && a3 && a4 && a4b && a5 && armed && removed && a6 && chips && a8 && a9 && a10
+    if(a1 && a2 && a3 && a4 && a4b && a5 && armed && kept && removed && removedAfterConfirm && a6 && chips && a8 && a9 && a10
       && b1 && b2 && b3 && b4 && b5 && b6 && b8 && b9 && c1){
       pass('Train UX cleanup batch A1-A10 B1-B9 C1');
     } else {
       fail('Train UX cleanup batch A1-A10 B1-B9 C1',
-        'a1='+a1+' a2='+a2+' a3='+a3+' a4='+a4+' a4b='+a4b+' a5='+a5+' armed='+armed+' removed='+removed
+        'a1='+a1+' a2='+a2+' a3='+a3+' a4='+a4+' a4b='+a4b+' a5='+a5+' armed='+armed+' kept='+kept+' removed='+removed+' removedAfterConfirm='+removedAfterConfirm
         +' a6='+a6+' chips='+chips+' a8='+a8+' a9='+a9+' a10='+a10
         +' b1='+b1+' b2='+b2+' b3='+b3+' b4='+b4+' b5='+b5+' b6='+b6+' b8='+b8+' b9='+b9+' c1='+c1);
     }

@@ -14,8 +14,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index343'/.test(index));
-assert.ok(/APP_VERSION = 'index343'/.test(sw));
+assert.ok(/var app_version = 'index344'/.test(index));
+assert.ok(/APP_VERSION = 'index344'/.test(sw));
 
 function fulfillJson(route, status, body){
   return route.fulfill({
