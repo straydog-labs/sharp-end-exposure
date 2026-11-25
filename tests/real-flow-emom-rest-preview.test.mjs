@@ -57,8 +57,9 @@ try{
     assert.ok(/Rest after round: 01:30/.test(preview), preview);
 
     // Once the round is actually complete, the live countdown replaces the
-    // preview rather than showing both.
-    await page.click('[data-block-id="' + id + '"] .train-section-complete');
+    // preview rather than showing both. (The round-level Mark complete, not
+    // the block-level one in the header - both share the same button class.)
+    await page.click('[data-block-id="' + id + '"] .train-emom-round-head .train-section-complete');
     var afterComplete = await page.evaluate(function(id){
       var card = document.querySelector('[data-block-id="' + id + '"]');
       return {
