@@ -9,8 +9,8 @@ const index = readFileSync(join(root, 'index.html'), 'utf8');
 const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index342'/.test(index));
-assert.ok(/APP_VERSION = 'index342'/.test(sw));
+assert.ok(/var app_version = 'index343'/.test(index));
+assert.ok(/APP_VERSION = 'index343'/.test(sw));
 
 async function boot(page){
   await page.waitForFunction(function(){
@@ -92,25 +92,30 @@ try{
 
     await page.evaluate(seedEmom);
     await page.click('[data-notice-link="emom-1"]');
+    await page.click('.wk-notice-chip[data-notice-att="4"]');
     await page.fill('#tb-emom-1-notice', 'held the breath');
-    await page.locator('#tb-emom-1-notice').blur();
-    await page.waitForFunction(function(){
-      var el = document.querySelector('[data-notice-saved="emom-1"]');
-      return !!(el && el.textContent === 'Saved');
-    }, null, { timeout: 4000 });
-    var savedAnim = await page.evaluate(function(){
-      var el = document.querySelector('[data-notice-saved="emom-1"]');
-      return el ? getComputedStyle(el).animationDuration : '';
+    await page.click('[data-notice-save="emom-1"]');
+    // Save collapses the card to one summary line with an Edit link - no
+    // separate "Edit note" link/preview duplicating the same text (A2).
+    var collapsed = await page.evaluate(function(){
+      var summary = document.querySelector('[data-notice="emom-1"] .wk-notice-summary');
+      var edit = document.querySelector('[data-notice="emom-1"] .wk-notice-edit');
+      var card = document.querySelector('[data-notice="emom-1"].wk-notice-card');
+      return { summary: summary ? summary.textContent : '', editLabel: edit ? edit.textContent : '', cardStillOpen: !!card };
     });
-    assert.ok(/2s/.test(savedAnim), savedAnim);
-    await page.evaluate(function(){ toggleTrainNoticeOpen('emom-1'); });
-    var link = await page.evaluate(function(){
-      var btn = document.querySelector('[data-notice-link="emom-1"]');
-      var preview = document.querySelector('[data-notice-preview="emom-1"]');
-      return { label: btn ? btn.textContent : '', preview: preview ? preview.textContent : '' };
+    assert.strictEqual(collapsed.cardStillOpen, false);
+    assert.strictEqual(collapsed.editLabel, 'Edit');
+    assert.ok(/Present 4\/5/.test(collapsed.summary), collapsed.summary);
+    assert.ok(/held the breath/.test(collapsed.summary), collapsed.summary);
+
+    await page.click('[data-notice-link="emom-1"]');
+    var reopened = await page.evaluate(function(){
+      var ta = document.getElementById('tb-emom-1-notice');
+      var selected = document.querySelector('[data-notice="emom-1"] .wk-notice-chip.selected');
+      return { note: ta ? ta.value : '', att: selected ? selected.getAttribute('data-notice-att') : null };
     });
-    assert.strictEqual(link.label, 'Edit note');
-    assert.strictEqual(link.preview, 'held the breath');
+    assert.strictEqual(reopened.note, 'held the breath');
+    assert.strictEqual(reopened.att, '4');
 
     await page.click('#train-sess-discard');
     await page.click('#train-discard-do');

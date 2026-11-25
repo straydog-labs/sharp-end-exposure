@@ -18,8 +18,8 @@ const SHOT_DIR = '/opt/cursor/artifacts/screenshots';
 const REPO_SHOTS = join(root, 'shots');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index342'/.test(index));
-assert.ok(/APP_VERSION = 'index342'/.test(sw));
+assert.ok(/var app_version = 'index343'/.test(index));
+assert.ok(/APP_VERSION = 'index343'/.test(sw));
 assert.ok(!/WK_DEFAULT_ON/.test(index));
 assert.ok(/function isWkOn\(/.test(index));
 assert.ok(/see_wk/.test(index));
@@ -47,7 +47,7 @@ assert.ok(/custom_workouts_select/.test(sql));
 assert.ok(/custom_workouts_update/.test(sql));
 assert.ok(/custom_workouts_delete/.test(sql));
 assert.ok(!/workout-sessions|isWkOn|WK_DEFAULT_ON/.test(coach), 'coach-dashboard must not use the athlete WK flag');
-assert.ok(!/index342/.test(coach) || true);
+assert.ok(!/index343/.test(coach) || true);
 
 function extractBetween(src, startNeedle, endNeedle){
   var start = src.indexOf(startNeedle);

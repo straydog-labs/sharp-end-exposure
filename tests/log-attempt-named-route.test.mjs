@@ -12,8 +12,8 @@ const staging = readFileSync(join(root, 'index-staging.html'), 'utf8');
 const sw = readFileSync(join(root, 'sw.js'), 'utf8');
 
 assert.strictEqual(index, staging, 'index.html and index-staging.html must match');
-assert.ok(/var app_version = 'index342'/.test(index));
-assert.ok(/APP_VERSION = 'index342'/.test(sw));
+assert.ok(/var app_version = 'index343'/.test(index));
+assert.ok(/APP_VERSION = 'index343'/.test(sw));
 assert.ok(/from '\.\/pw-browser\.mjs'/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
   'named-route test uses installed browser helper');
 assert.ok(!/execSync\([^)]*playwright[^)]*install/.test(readFileSync(join(__dirname, 'log-attempt-named-route.test.mjs'), 'utf8')),
@@ -545,8 +545,13 @@ async function run(){
           var el = document.getElementById('screen-train-session');
           return !!(el && el.classList.contains('active'));
         }, null, { timeout: 8000 });
-        await tap(page, 'button:has-text("+ Add block")');
-        await tap(page, '#train-block-menu button:has-text("EMOM")');
+        // EMOM/Hangboard/Strength track their own work and no longer show
+        // + Attempt (Job A4); 'interval' has no tracking of its own and keeps
+        // it, so it's what still exercises this trainLogAttempt call site.
+        await page.evaluate(function(){
+          trainAddBlock('interval');
+          renderTrainSessionBuilder();
+        });
         await tap(page, '.train-attempt-btn:has-text("+ Attempt")');
         await page.waitForTimeout(200);
         var toasts = await toastTexts(page);
@@ -561,7 +566,7 @@ async function run(){
         });
         assert.ok(trainPosts.length, 'train did not POST training_sessions');
         var body = trainPosts[0].body;
-        var block = (body.blocks || []).find(function(b){ return b.shape === 'emom'; });
+        var block = (body.blocks || []).find(function(b){ return b.shape === 'interval'; });
         assert.ok(block && block.attempts && block.attempts.length === 1, 'train block missing attempt');
         assert.strictEqual(sessionsPosts(recorded).length, 0, 'train must not POST climb sessions');
         recordFlow('train', true, 'training_sessions POST with attempt, no climb toast');

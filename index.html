@@ -413,10 +413,6 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;padding:8px 10px;cursor:pointer;
 }
 .train-done-notice{margin-top:14px;}
-.train-done-notice-skip{
-  background:none;border:none;color:var(--muted);font-family:'Space Grotesk',sans-serif;
-  font-size:13px;font-weight:600;padding:8px 0 0;cursor:pointer;
-}
 .train-emom-round{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;margin-bottom:10px;}
 .train-emom-round.is-complete{border-color:rgba(126,200,122,.45);}
 .train-emom-round.is-locked{opacity:.5;}
@@ -1418,8 +1414,11 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wk-notice-link{flex:0 0 auto;width:72px;background:none;border:none;color:var(--muted);font-size:11px;line-height:1.2;font-family:inherit;cursor:pointer;padding:0;text-align:right;text-decoration:underline;}
 .wk-notice-slot{margin:0 0 8px;}
 .wk-notice-slot .wk-notice-link{display:block;width:auto;text-align:left;font-size:13px;padding:2px 0 6px;}
-.wk-notice-skip{display:block;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:8px 0 0;text-decoration:underline;}
-.wk-notice-summary{font-size:12px;color:var(--muted);}
+.wk-notice-skip{background:none;border:none;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:12px 10px;text-decoration:underline;}
+.wk-notice-summary{font-size:13px;color:var(--text);flex:1;min-width:0;}
+.wk-notice-actions{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.wk-notice-save{flex:1;background:var(--accent);border:none;border-radius:var(--r-md);color:#fff;font-family:inherit;font-size:14px;font-weight:700;padding:12px;cursor:pointer;}
+.wk-notice-edit{flex:0 0 auto;background:none;border:none;color:var(--accent);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline;}
 .wk-notice-card{margin-top:10px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);}
 .wk-notice-title{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text);}
 .wk-notice-q{font-size:13px;color:var(--muted);margin-bottom:6px;}
@@ -1428,8 +1427,6 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .wk-notice-wrap .wk-notice-chip.selected{border-color:var(--accent);color:var(--accent);}
 .wk-notice-ends{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);line-height:1.3;margin-top:4px;}
 .wk-notice-note{width:100%;min-height:72px;margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:12px;box-sizing:border-box;resize:vertical;}
-.wk-notice-saved{display:inline-block;margin-left:8px;font-size:12px;font-weight:700;color:var(--comfort);animation:wk-notice-saved-fade 2s ease forwards;}
-@keyframes wk-notice-saved-fade{0%{opacity:1}70%{opacity:1}100%{opacity:0}}
 .wk-notice-preview{font-size:12px;color:var(--muted);line-height:1.3;margin:-2px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .train-sess-actions{display:flex;flex-direction:column;gap:8px;margin:0 0 10px;}
 .train-sess-actions .saw-next{margin:0;}
@@ -5149,7 +5146,14 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
         </div>
         <div class="wk-notice-ends"><span>1 Autopilot</span><span>5 Dialed in</span></div>
         <textarea id="train-done-notice-note" class="wk-notice-note" placeholder="Optional. Body, effort, attention." rows="3"></textarea>
-        <button type="button" id="train-done-notice-skip" class="train-done-notice-skip" onclick="skipTrainDoneNotice()">Skip</button>
+        <div class="wk-notice-actions">
+          <button type="button" id="train-done-notice-save" class="wk-notice-save" onclick="saveTrainDoneNotice()">Save</button>
+          <button type="button" id="train-done-notice-skip" class="wk-notice-skip" onclick="skipTrainDoneNotice()">Skip</button>
+        </div>
+      </div>
+      <div id="train-done-notice-collapsed" class="wk-notice-collapsed" hidden>
+        <span class="wk-notice-summary" id="train-done-notice-summary"></span>
+        <button type="button" class="wk-notice-edit" onclick="editTrainDoneNotice()">Edit</button>
       </div>
       <button class="log-done-add-note" id="train-done-add-note" type="button" onclick="trainFlowToggleReflection()">+ Add a note</button>
       <div class="log-done-reflection-inline" id="train-reflection-panel" style="display:none;">
@@ -6309,7 +6313,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index342'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index343'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -7348,6 +7352,9 @@ function syncLogFlowChrome(){
 function showScreen(id){
   var prev=document.querySelector('.screen.active');
   if(prev){_prevScreen=prev.id;prev.classList.remove('active');}
+  if(prev && prev.id==='screen-train-done' && id!=='screen-train-done'){
+    try{ trainFlowSaveReflectionIfFilled(); }catch(e){}
+  }
   var el=document.getElementById(id);
   if(el){el.classList.add('active');window.scrollTo(0,0);}
   if(id==='screen-celebrate' || id==='screen-train-done') playCelebrateMoment(id);
@@ -15465,9 +15472,27 @@ function skipTrainBlockNotice(blockId){
   collectTrainBlockFields();
   var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
   if(!b || !trainBlockAllowsNotice(b)) return;
+  b.notice = null;
   b._noticeOpen = false;
   b._noticeSkipped = true;
+  try{ markTrainDraftIfChanged(); scheduleTrainDraftSave(); }catch(e){}
   renderTrainSessionBuilder();
+}
+function saveTrainBlockNotice(blockId){
+  if(!trainSessionState) return;
+  collectTrainBlockFields();
+  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
+  if(!b || !trainBlockAllowsNotice(b)) return;
+  if(!trainNoticeHasAnswer(b.notice)){
+    skipTrainBlockNotice(blockId);
+    return;
+  }
+  b.notice.at = new Date().toISOString();
+  b._noticeOpen = false;
+  b._noticeSkipped = false;
+  try{ markTrainDraftIfChanged(); scheduleTrainDraftSave(); }catch(e){}
+  renderTrainSessionBuilder();
+  showToast('Saved');
 }
 function selectTrainNoticeAttention(blockId, n){
   if(!trainSessionState) return;
@@ -15501,29 +15526,22 @@ function renderTrainNoticeLink(b){
   return '<button type="button" class="wk-notice-link" data-notice-link="'+escTrainHtml(b.id)+'" onclick="event.stopPropagation();toggleTrainNoticeOpen(\''+b.id+'\')">'+label+'</button>'
     + preview;
 }
-function saveTrainNoticeNote(blockId){
-  if(!trainSessionState) return;
-  try{ collectTrainBlockFields(); }catch(e){}
-  var b = trainSessionState.blocks.find(function(x){ return x.id === blockId; });
-  var note = b && b.notice && String(b.notice.note || '').trim();
-  if(!b || !note) return;
-  b._noticeSavedAt = Date.now();
-  try{ markTrainDraftIfChanged(); scheduleTrainDraftSave(); }catch(e){}
-  renderTrainSessionBuilder();
-  setTimeout(function(){
-    var el = document.querySelector('[data-notice-saved="'+blockId+'"]');
-    if(el) el.remove();
-  }, 2000);
+function trainNoticeSummaryLine(n){
+  var present = trainNoticePresentLabel(n);
+  var note = n && String(n.note || '').trim();
+  var preview = note ? trainNoticeNotePreview(note) : '';
+  if(present && preview) return present + ' - ' + preview;
+  return present || preview;
 }
 function renderTrainNoticeHtml(b){
   if(!trainBlockAllowsNotice(b)) return '';
   var n = b.notice || {};
   var answered = trainNoticeHasAnswer(n);
-  var present = trainNoticePresentLabel(n);
   if(!trainNoticeIsCardOpen(b)){
     if(!answered) return '';
     return '<div class="wk-notice-collapsed" data-notice="'+escTrainHtml(b.id)+'">'
-      + (present ? '<span class="wk-notice-summary">'+escTrainHtml(present)+'</span>' : '')
+      + '<span class="wk-notice-summary">'+escTrainHtml(trainNoticeSummaryLine(n))+'</span>'
+      + '<button type="button" class="wk-notice-edit" data-notice-link="'+escTrainHtml(b.id)+'" onclick="event.stopPropagation();toggleTrainNoticeOpen(\''+b.id+'\')">Edit</button>'
       + '</div>';
   }
   var att = parseInt(n.attention, 10);
@@ -15535,17 +15553,16 @@ function renderTrainNoticeHtml(b){
     + '<div class="wk-notice-q">How present were you?</div>'
     + '<div class="wk-notice-wrap">'+chips+'</div>'
     + '<div class="wk-notice-ends"><span>1 Autopilot</span><span>5 Dialed in</span></div>'
-    + '<textarea class="wk-notice-note" id="tb-'+b.id+'-notice" placeholder="Body, effort, attention. What was different this time?" rows="3" onblur="saveTrainNoticeNote(\''+b.id+'\')">'+escTrainHtml(n.note || '')+'</textarea>'
-    + ((b._noticeSavedAt && (Date.now() - b._noticeSavedAt) < 2000) ? '<span class="wk-notice-saved" data-notice-saved="'+escTrainHtml(b.id)+'">Saved</span>' : '')
-    + '<button type="button" class="wk-notice-skip" onclick="skipTrainBlockNotice(\''+b.id+'\')">Skip</button>'
+    + '<textarea class="wk-notice-note" id="tb-'+b.id+'-notice" placeholder="Body, effort, attention. What was different this time?" rows="3">'+escTrainHtml(n.note || '')+'</textarea>'
+    + '<div class="wk-notice-actions">'
+    + '<button type="button" class="wk-notice-save" data-notice-save="'+escTrainHtml(b.id)+'" onclick="saveTrainBlockNotice(\''+b.id+'\')">Save</button>'
+    + '<button type="button" class="wk-notice-skip" data-notice-skip="'+escTrainHtml(b.id)+'" onclick="skipTrainBlockNotice(\''+b.id+'\')">Skip</button>'
+    + '</div>'
     + '</div>';
 }
 function trainNoticeSlot(b){
   if(!trainBlockAllowsNotice(b)) return '';
-  var inner = trainNoticeIsCardOpen(b) ? renderTrainNoticeHtml(b) : renderTrainNoticeLink(b);
-  if(!trainNoticeIsCardOpen(b) && trainNoticeHasAnswer(b.notice)){
-    inner = renderTrainNoticeHtml(b) + renderTrainNoticeLink(b);
-  }
+  var inner = (trainNoticeIsCardOpen(b) || trainNoticeHasAnswer(b.notice)) ? renderTrainNoticeHtml(b) : renderTrainNoticeLink(b);
   return '<div class="wk-notice-slot" data-notice-slot="'+escTrainHtml(b.id)+'">'+inner+'</div>';
 }
 function hideTrainDoneAssignPrompt(){
@@ -17002,8 +17019,7 @@ function wkRenderEmomBody(b, compact){
     + '<button type="button" class="saw-chip" onclick="trainAddEmomRound(\''+b.id+'\',\'repeat\')">+ Same round again</button>'
     + '<button type="button" class="saw-chip" onclick="trainAddEmomRound(\''+b.id+'\',\'new\')">+ New round</button>'
     + '</div>'
-    + attemptSummary(b)
-    + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    + attemptSummaryReadOnly(b);
 }
 function wkRenderCircuitBody(b, compact){
   var n = Number(b.rounds);
@@ -17026,16 +17042,15 @@ function wkRenderCircuitBody(b, compact){
   } else {
     exHtml = fieldHtml('Rounds', 'tb-'+b.id+'-rounds', b.rounds)
       + (b.exercises||[]).map(function(ex, idx){
-        return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-top:6px;">'
-          + '<input id="tb-'+b.id+'-ex'+idx+'-name" value="'+escTrainHtml(ex.name||'')+'" placeholder="Exercise" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
-          + '<input id="tb-'+b.id+'-ex'+idx+'-wt" value="'+escTrainHtml(ex.weight||'')+'" placeholder="Weight" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
-          + '<input id="tb-'+b.id+'-ex'+idx+'-reps" value="'+escTrainHtml(ex.reps||'')+'" placeholder="Reps" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+        return '<div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:6px;margin-top:6px;">'
+          + '<input id="tb-'+b.id+'-ex'+idx+'-name" value="'+escTrainHtml(ex.name||'')+'" placeholder="Exercise" style="min-width:0;width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+          + '<input id="tb-'+b.id+'-ex'+idx+'-wt" value="'+escTrainHtml(ex.weight||'')+'" placeholder="Weight" style="min-width:0;width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
+          + '<input id="tb-'+b.id+'-ex'+idx+'-reps" value="'+escTrainHtml(ex.reps||'')+'" placeholder="Reps" style="min-width:0;width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font-family:inherit;font-size:13px;">'
           + '</div>';
       }).join('')
       + trainBlockNoteField('tb-'+b.id+'-cnotes', 'Block notes', b.notes||'');
   }
-  return roundsHtml + exHtml + attemptSummary(b)
-    + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+  return roundsHtml + exHtml + attemptSummaryReadOnly(b);
 }
 function wkRenderCheckBody(b, compact){
   var items = Array.isArray(b.items) ? b.items : [];
@@ -18288,8 +18303,7 @@ function wkRenderHangboardBody(b){
   if(!editorOpen){
     html += trainHangCompactRowsHtml(b, sets);
     html += trainBlockNoteField('tb-'+b.id+'-prog', 'Progression rule', b.progression_note||'')
-      + attemptSummary(b)
-      + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+      + attemptSummaryReadOnly(b);
     return html;
   }
   sets.forEach(function(set, si){
@@ -18322,8 +18336,7 @@ function wkRenderHangboardBody(b){
       + '</div></div>';
   });
   html += trainBlockNoteField('tb-'+b.id+'-prog', 'Progression rule', b.progression_note||'')
-    + attemptSummary(b)
-    + '<button type="button" class="train-attempt-btn" onclick="trainLogAttempt(\''+b.id+'\')">+ Attempt</button>';
+    + attemptSummaryReadOnly(b);
   return html;
 }
 
@@ -20327,8 +20340,8 @@ function trainAddEmomBoulder(blockId, roundIndex){
 }
 
 function fieldHtml(label, id, val, placeholder){
-  return '<div class="saw-field" style="margin:0 0 8px;"><label for="'+id+'">'+escTrainHtml(label)+'</label>'
-    + '<input id="'+id+'" value="'+escTrainHtml(val==null?'':String(val))+'"'+(placeholder ? ' placeholder="'+escTrainHtml(placeholder)+'"' : '')+' style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;"></div>';
+  return '<div class="saw-field" style="margin:0 0 8px;min-width:0;"><label for="'+id+'">'+escTrainHtml(label)+'</label>'
+    + '<input id="'+id+'" value="'+escTrainHtml(val==null?'':String(val))+'"'+(placeholder ? ' placeholder="'+escTrainHtml(placeholder)+'"' : '')+' style="width:100%;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-family:inherit;font-size:14px;box-sizing:border-box;"></div>';
 }
 
 function attemptSummary(b){
@@ -20337,6 +20350,14 @@ function attemptSummary(b){
     ? ' <button type="button" class="train-attempt-undo" onclick="trainUndoAttempt(\''+escTrainHtml(b.id)+'\')">Undo</button>'
     : '';
   return '<div style="font-size:12px;color:var(--muted);margin-top:8px;" data-block-attempt-summary="'+escTrainHtml(b.id)+'">Attempts logged: <b style="color:var(--text);">'+n+'</b>'+undo+'</div>';
+}
+// EMOM, Hangboard, and Strength each already track their own work (boulder
+// ticks, rep pass/fail, round-complete), so the generic Attempts counter is
+// read-only there instead of offering + Attempt (see Job A4).
+function attemptSummaryReadOnly(b){
+  var n = (b.attempts && b.attempts.length) || 0;
+  if(!n) return '';
+  return '<div style="font-size:12px;color:var(--muted);margin-top:8px;" data-block-attempt-summary="'+escTrainHtml(b.id)+'">Attempts logged: <b style="color:var(--text);">'+n+'</b></div>';
 }
 
 function trainToggleRep(blockId, setIdx, repIdx){
@@ -20725,6 +20746,8 @@ function populateTrainDoneScreen(snap, resetReflection){
     document.querySelectorAll('#train-done-notice .wk-notice-chip.selected').forEach(function(b){
       b.classList.remove('selected');
     });
+    var doneCollapsed = document.getElementById('train-done-notice-collapsed');
+    if(doneCollapsed) doneCollapsed.hidden = true;
     if(panel) panel.style.display = 'none';
     if(noteBtn) noteBtn.style.display = '';
     var body = document.getElementById('train-refl-body');
@@ -20791,6 +20814,20 @@ function skipTrainDoneNotice(){
   _trainDoneNoticeAttention = null;
   var el = document.getElementById('train-done-notice');
   if(el) el.hidden = true;
+  var noteEl = document.getElementById('train-done-notice-note');
+  if(noteEl) noteEl.value = '';
+  document.querySelectorAll('#train-done-notice .wk-notice-chip.selected').forEach(function(b){
+    b.classList.remove('selected');
+  });
+  var collapsedEl = document.getElementById('train-done-notice-collapsed');
+  if(collapsedEl) collapsedEl.hidden = true;
+}
+function editTrainDoneNotice(){
+  _trainDoneNoticeSkipped = false;
+  var el = document.getElementById('train-done-notice');
+  if(el) el.hidden = false;
+  var collapsedEl = document.getElementById('train-done-notice-collapsed');
+  if(collapsedEl) collapsedEl.hidden = true;
 }
 function trainDoneNoticeForNotes(){
   if(_trainDoneNoticeSkipped) return null;
@@ -20801,12 +20838,12 @@ function trainDoneNoticeForNotes(){
   if(!hasAtt && !note) return null;
   return { attention: hasAtt ? att : null, note: note, at: new Date().toISOString() };
 }
-async function trainFlowSaveReflectionIfFilled(){
-  if(!_lastTrainSessionId) return;
+async function trainFlowPersistReflection(announce){
+  if(!_lastTrainSessionId) return true;
   var refl = _trainFlowReflectionFields();
   var notice = trainDoneNoticeForNotes();
   var hasAny = refl.went_well || refl.still_learning || refl.surprised_by || notice;
-  if(!hasAny) return;
+  if(!hasAny) return true;
   var snap = _trainDoneSnapshot || {};
   var title = snap.title || workoutTypeLabel(snap.energy_type) || 'Session';
   var parts = [title];
@@ -20819,17 +20856,40 @@ async function trainFlowSaveReflectionIfFilled(){
   if(refl.still_learning) parts.push('What to work on: ' + refl.still_learning);
   if(refl.surprised_by) parts.push('Anything surprise you: ' + refl.surprised_by);
   var savedRefl = await sbU('training_sessions', 'id=eq.' + _lastTrainSessionId, { notes: parts.join('\n\n') });
-  if(!sbFailed(savedRefl)) showToast('Reflection saved ✓');
-  else showToast('Could not save reflection - try again', true);
+  var ok = !sbFailed(savedRefl);
+  if(announce){
+    if(ok) showToast('Reflection saved ✓');
+    else showToast('Could not save reflection - try again', true);
+  }
+  return ok;
+}
+async function trainFlowSaveReflectionIfFilled(){
+  await trainFlowPersistReflection(true);
+}
+async function saveTrainDoneNotice(){
+  var noteEl = document.getElementById('train-done-notice-note');
+  var note = noteEl ? String(noteEl.value || '').trim() : '';
+  var att = parseInt(_trainDoneNoticeAttention, 10);
+  var hasAtt = att >= 1 && att <= 5;
+  if(!hasAtt && !note){ skipTrainDoneNotice(); return; }
+  _trainDoneNoticeSkipped = false;
+  var summary = trainNoticeSummaryLine({ attention: hasAtt ? att : null, note: note });
+  var ok = await trainFlowPersistReflection(false);
+  if(!ok){ showToast('Could not save - try again', true); return; }
+  var el = document.getElementById('train-done-notice');
+  if(el) el.hidden = true;
+  var summaryEl = document.getElementById('train-done-notice-summary');
+  if(summaryEl) summaryEl.textContent = summary;
+  var collapsedEl = document.getElementById('train-done-notice-collapsed');
+  if(collapsedEl) collapsedEl.hidden = false;
+  showToast('Saved');
 }
 
-async function trainDoneAnother(){
-  await trainFlowSaveReflectionIfFilled();
+function trainDoneAnother(){
   showScreen('screen-train-start');
 }
 
-async function trainDoneHome(){
-  await trainFlowSaveReflectionIfFilled();
+function trainDoneHome(){
   showScreen('screen-train');
 }
 
