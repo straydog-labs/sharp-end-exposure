@@ -137,6 +137,9 @@ try{
     var before = await page.evaluate(function(id){
       return trainSessionState.blocks.find(function(x){ return x.id === id; }).timer_started_at;
     }, emomId);
+    // A real page reload would also reset the (client-side only) overlay
+    // chrome; this lighter resume simulation doesn't, so close it first.
+    await page.click('#train-fullscreen-timer-close');
     await page.evaluate(function(){ trainSessionState = null; resumeTrainDraft(); });
     await waitForScreen(page, 'screen-train-session');
     var after = await page.evaluate(function(id){
