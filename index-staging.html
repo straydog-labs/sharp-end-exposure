@@ -1070,6 +1070,101 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   letter-spacing:.04em;
   min-width:4.5em;
 }
+.train-block-timer-fullscreen{
+  background:none;
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1;
+  padding:6px 8px;
+  cursor:pointer;
+  flex-shrink:0;
+  margin-left:auto;
+  min-height:32px;
+  min-width:32px;
+}
+.train-fullscreen-timer{
+  position:fixed;
+  inset:0;
+  z-index:150;
+  background:var(--bg);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0)) max(16px,env(safe-area-inset-right,0)) max(16px,env(safe-area-inset-bottom,0)) max(16px,env(safe-area-inset-left,0));
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.train-fullscreen-timer[hidden]{display:none !important;}
+.train-fullscreen-timer-close{
+  position:absolute;
+  top:max(16px,env(safe-area-inset-top,0));
+  right:max(16px,env(safe-area-inset-right,0));
+  width:44px;
+  height:44px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:50%;
+  color:var(--text);
+  font-size:18px;
+  font-family:inherit;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.train-fullscreen-timer-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:14px;
+  font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  text-align:center;
+  padding:0 56px;
+  margin-bottom:18px;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.train-fullscreen-timer-clock{
+  font-family:'Space Mono',monospace;
+  font-size:clamp(48px,18vw,88px);
+  font-weight:700;
+  color:var(--text);
+  letter-spacing:.02em;
+  margin-bottom:28px;
+  line-height:1;
+}
+.train-fullscreen-timer-actions{
+  display:flex;
+  gap:12px;
+  width:100%;
+  max-width:360px;
+  padding:0 8px;
+  box-sizing:border-box;
+}
+.train-fullscreen-timer-actions button{
+  flex:1;
+  min-height:52px;
+  border-radius:var(--r-lg);
+  border:none;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+}
+.train-fullscreen-timer-actions #train-fullscreen-timer-start,
+.train-fullscreen-timer-actions #train-fullscreen-timer-pause{
+  background:var(--accent);
+  color:#fff;
+}
+.train-fullscreen-timer-actions #train-fullscreen-timer-reset{
+  background:var(--surface);
+  color:var(--text);
+  border:1px solid var(--border);
+}
 .train-block-interval-timer{
   flex-direction:column;
   align-items:center;
@@ -5078,6 +5173,16 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
       <button type="button" class="saw-chip" onclick="trainAddBlock('rep_pass_fail')">Rep-level pass/fail</button>
     </div>
     <div id="train-blocks-wrap"></div>
+    <div id="train-fullscreen-timer" class="train-fullscreen-timer" hidden role="dialog" aria-label="Block timer">
+      <button type="button" id="train-fullscreen-timer-close" class="train-fullscreen-timer-close" aria-label="Close" onclick="closeTrainFullscreenTimer()">✕</button>
+      <div class="train-fullscreen-timer-title" id="train-fullscreen-timer-title"></div>
+      <div class="train-fullscreen-timer-clock" id="train-fullscreen-timer-clock">00:00</div>
+      <div class="train-fullscreen-timer-actions">
+        <button type="button" id="train-fullscreen-timer-start" onclick="trainFullscreenTimerStart()">Start</button>
+        <button type="button" id="train-fullscreen-timer-pause" onclick="trainFullscreenTimerPause()" hidden>Pause</button>
+        <button type="button" id="train-fullscreen-timer-reset" onclick="trainFullscreenTimerReset()">Reset</button>
+      </div>
+    </div>
     <div id="train-block-bottom" class="wk-add-bottom" style="display:none;">
       <div id="train-block-menu-bottom" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:8px;margin-bottom:10px;"></div>
       <button type="button" class="wk-add-btn" id="train-add-block-bottom" onclick="trainAddBlockMenu('bottom')">+ Add block</button>
@@ -6320,7 +6425,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index344'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index345'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -19705,6 +19810,7 @@ function paintTrainBlockTimerElapsed(id){
     paintTrainEmomRestTimers(b);
     if(!(b.timer_enabled && trainBlockTimerIsRunning(b))) return;
   }
+  if(_fullscreenTimerBlockId === id) renderTrainFullscreenTimerClock();
   var el = document.querySelector('[data-block-timer-elapsed="'+id+'"]');
   if(!el) return;
   el.textContent = formatTrainBlockTimerElapsed(trainBlockTimerElapsedMs(b));
@@ -19832,6 +19938,62 @@ function stopTrainBlockTimer(id){
   renderTrainSessionBuilder();
 }
 
+// Full-screen takeover of a block's plain stopwatch (Job C). Reuses the same
+// wall-clock timer_started_at/timer_ended_at fields and start/stop functions
+// as the compact row; out of scope for interval/countdown/EMOM-rest blocks.
+var _fullscreenTimerBlockId = null;
+function trainFullscreenTimerBlock(){
+  if(!trainSessionState || !_fullscreenTimerBlockId) return null;
+  return trainSessionState.blocks.find(function(x){ return x.id === _fullscreenTimerBlockId; }) || null;
+}
+function renderTrainFullscreenTimerClock(){
+  var b = trainFullscreenTimerBlock();
+  if(!b) return;
+  var clockEl = document.getElementById('train-fullscreen-timer-clock');
+  if(clockEl) clockEl.textContent = formatTrainBlockTimerElapsed(trainBlockTimerElapsedMs(b));
+  var running = trainBlockTimerIsRunning(b);
+  var startBtn = document.getElementById('train-fullscreen-timer-start');
+  var pauseBtn = document.getElementById('train-fullscreen-timer-pause');
+  if(startBtn) startBtn.hidden = running;
+  if(pauseBtn) pauseBtn.hidden = !running;
+}
+function openTrainFullscreenTimer(id){
+  if(!trainSessionState) return;
+  var b = trainSessionState.blocks.find(function(x){ return x.id === id; });
+  if(!b) return;
+  _fullscreenTimerBlockId = id;
+  var titleEl = document.getElementById('train-fullscreen-timer-title');
+  if(titleEl) titleEl.textContent = trainBlockDisplayTitle(b);
+  var el = document.getElementById('train-fullscreen-timer');
+  if(el) el.hidden = false;
+  renderTrainFullscreenTimerClock();
+  requestTrainWakeLock();
+}
+function closeTrainFullscreenTimer(){
+  _fullscreenTimerBlockId = null;
+  var el = document.getElementById('train-fullscreen-timer');
+  if(el) el.hidden = true;
+  if(!anyTrainIntervalProtocolActive()) releaseTrainWakeLock();
+}
+function trainFullscreenTimerStart(){
+  if(_fullscreenTimerBlockId) startTrainBlockTimer(_fullscreenTimerBlockId);
+  renderTrainFullscreenTimerClock();
+}
+function trainFullscreenTimerPause(){
+  if(_fullscreenTimerBlockId) stopTrainBlockTimer(_fullscreenTimerBlockId);
+  renderTrainFullscreenTimerClock();
+}
+function trainFullscreenTimerReset(){
+  var b = trainFullscreenTimerBlock();
+  if(!b) return;
+  b.timer_started_at = null;
+  b.timer_ended_at = null;
+  clearTrainBlockTimerInterval(b.id);
+  try{ markTrainDraftIfChanged(); scheduleTrainDraftSave(); }catch(e){}
+  renderTrainFullscreenTimerClock();
+  renderTrainSessionBuilder();
+}
+
 // NOTE: mirrors attemptSummary()'s markup — keep both in sync if that changes.
 function trainAutoLogAttempt(b){
   if(!b.attempts) b.attempts = [];
@@ -19945,7 +20107,6 @@ function revealTrainBlockNote(id){
 function renderTrainBlockHtml(b, bi, isWarmup){
   var done = !!b.complete;
   var timerOn = !!b.timer_enabled;
-  var isCheck = b.shape === 'check';
   var compact = trainBlockIsCompact(b);
   var kicker = isWarmup || !(bi > 0)
     ? ''
@@ -19958,7 +20119,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
     var actions = (trainBlockHasTitle(b)
         ? '<button type="button" class="train-block-edit" onclick="toggleTrainBlockEditing(\''+b.id+'\')">'+(b.editing?'Done editing':'Edit')+'</button>'
         : '')
-      + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
+      + '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>'
       + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
       + '<button type="button" class="train-block-remove" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;min-height:32px;">Remove</button>';
     head = '<div class="train-block-card'+(done?' is-complete':'')+'" data-block-id="'+b.id+'">'
@@ -19986,13 +20147,13 @@ function renderTrainBlockHtml(b, bi, isWarmup){
     + (trainBlockHasTitle(b)
       ? '<button type="button" class="train-block-edit" onclick="toggleTrainBlockEditing(\''+b.id+'\')">'+(b.editing?'Done editing':'Edit')+'</button>'
       : '')
-    + (isCheck ? '' : '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>')
+    + '<button type="button" class="train-block-timer-toggle'+(timerOn?' on':'')+'" aria-pressed="'+(timerOn?'true':'false')+'" onclick="toggleTrainBlockTimerEnabled(\''+b.id+'\')">Timer</button>'
     + '<button type="button" class="train-section-complete'+(done?' on':'')+'" onclick="toggleTrainSectionComplete(\''+b.id+'\')">'+(done?'Complete':'Mark complete')+'</button>'
     + '<button type="button" class="train-block-remove" onclick="trainRemoveBlock(\''+b.id+'\')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;">Remove</button></div></div>'
     + trainNoticeSlot(b);
   }
   var timerRow = '';
-  if(timerOn && !isCheck){
+  if(timerOn){
     if(b.shape === 'interval'){
       var isPaused = !!b._interval_is_paused;
       var startMs = b.interval_started_at ? new Date(b.interval_started_at).getTime() : NaN;
@@ -20034,6 +20195,7 @@ function renderTrainBlockHtml(b, bi, isWarmup){
         + '<button type="button" class="train-block-timer-btn" onclick="startTrainBlockTimer(\''+b.id+'\')">Start</button>'
         + '<button type="button" class="train-block-timer-btn" onclick="stopTrainBlockTimer(\''+b.id+'\')">Stop</button>'
         + '<span class="train-block-timer-elapsed" data-block-timer-elapsed="'+escTrainHtml(b.id)+'">'+formatTrainBlockTimerElapsed(trainBlockTimerElapsedMs(b))+'</span>'
+        + '<button type="button" class="train-block-timer-fullscreen" aria-label="Full screen timer" onclick="openTrainFullscreenTimer(\''+b.id+'\')">&#10530;</button>'
         + '</div>';
     }
   }
