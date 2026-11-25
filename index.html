@@ -420,6 +420,7 @@ button.home-week-dot{cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .train-emom-round-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
 .train-emom-round-label{font-size:12px;font-weight:700;color:var(--muted);}
 .train-emom-rest{font-size:12px;color:var(--accent);margin-top:6px;font-variant-numeric:tabular-nums;}
+.train-emom-rest-preview{font-size:12px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums;}
 .train-emom-round-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
 .wk-sent-hint{font-size:12px;line-height:1.4;color:var(--muted);margin:0 0 10px;overflow-wrap:anywhere;}
 .wk-blk-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
@@ -6425,7 +6426,7 @@ html.see-update-open .screen.active.log-flow-screen{height:calc(var(--log-flow-s
 // ═══════════════════════════════════════════════════════
 
 // ── SUPABASE CONFIG ──────────────────────────────────
-var app_version = 'index345'; // keep in sync with APP_VERSION in sw.js
+var app_version = 'index346'; // keep in sync with APP_VERSION in sw.js
 var WK_LS_KEY = 'see_wk';
 function isWkOn(){
   // Everyone gets the new builder and the awareness prompt. URL params are ignored.
@@ -17112,6 +17113,10 @@ function wkRenderEmomBody(b, compact){
     if(!compact){
       inner += '<button type="button" class="train-add-affordance" onclick="trainAddEmomBoulder(\''+b.id+'\','+ri+')" style="margin-bottom:8px;">+ Boulder</button>'
         + restFieldHtml('Rest after round', 'tb-'+b.id+'-r'+ri+'-rest', restSec);
+    } else if(Number(restSec) > 0 && !restHtml){
+      // The configured rest is otherwise only visible while editing or once
+      // it's actually counting/done - show it to the athlete beforehand too.
+      inner += '<div class="train-emom-rest-preview">Rest after round: '+formatTrainBlockTimerElapsed(Number(restSec) * 1000)+'</div>';
     }
     inner += trainBlockNoteField('tb-'+b.id+'-r'+ri+'-note', 'Round note', wkRoundNoteText(round));
     return '<div class="train-emom-round'+(doneR?' is-complete':'')+(locked?' is-locked':'')+'">'
