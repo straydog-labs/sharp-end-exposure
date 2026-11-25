@@ -164,13 +164,12 @@ try{
     stub: draftStub({})
   }, async function(page, recorded){
     await boot(page);
-    await page.evaluate(function(){ seed({ source_assignment_id: 'asg-del-1', session_running: true }); });
+    await page.evaluate(seed, { source_assignment_id: 'asg-del-1', session_running: true });
     await waitForScreen(page, 'screen-train-session');
     var id = await page.evaluate(function(){ return trainSessionState.blocks[0].id; });
     await page.click('[data-block-id="' + id + '"] .train-block-remove');
     var removed = await page.evaluate(function(){ return trainSessionState.blocks.length; });
     assert.strictEqual(removed, 2, 'block removed from an assigned session too');
-    assert.strictEqual(trainSessionState !== null, true);
     var assignmentId = await page.evaluate(function(){ return trainSessionState.source_assignment_id; });
     assert.strictEqual(assignmentId, 'asg-del-1', 'the assignment link itself is untouched');
     assert.strictEqual(recorded.filter(function(r){ return r.method !== 'GET' && r.url.indexOf('/rest/v1/assignments') !== -1; }).length, 0,
