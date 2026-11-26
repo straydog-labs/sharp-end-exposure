@@ -86,19 +86,23 @@ const labelVm = spawnSync('node', [], {
   encoding: 'utf8',
   input: helperSrc + `\n
 function assert(c, m){ if(!c) throw new Error(m || 'assert'); }
-var now = new Date('2026-11-16T21:00:00Z');
+// Self-relative fixture: every date is an offset from the real run-time "now" (and
+// the expected label strings are derived with the same helpers, not hardcoded), so
+// this suite can never drift out of sync with the calendar the way a frozen "now" did.
+var now = new Date();
+function daysAgoIso(n){ return new Date(now.getTime() - n * 86400000).toISOString(); }
 var anna = {
   first_name: 'Anna', last_name: 'Islamova', email: 'anna.islamova@gmail.com',
-  signed_up: '2026-06-09T21:00:00Z', is_coach: false, is_athlete: false, is_test: false,
-  last_activity: '2026-11-13T21:00:00Z', last_activity_kind: 'climb',
+  signed_up: daysAgoIso(160), is_coach: false, is_athlete: false, is_test: false,
+  last_activity: daysAgoIso(3), last_activity_kind: 'climb',
   climb_sessions: 16, climbs: 9, training_sessions: 2,
-  baseline_set: true, baseline_at: '2026-09-07T21:00:00Z',
+  baseline_set: true, baseline_at: daysAgoIso(70),
   coach_links: [], athlete_count: 0, assignments_open: 2
 };
 var kelly = {
   first_name: 'Kelly', last_name: 'Peterson', email: 'kelly.peterson@gmail.com',
   is_coach: false, is_athlete: true, is_test: false,
-  last_activity: '2026-11-15T21:00:00Z', last_activity_kind: 'checkin',
+  last_activity: daysAgoIso(1), last_activity_kind: 'checkin',
   climb_sessions: 2, climbs: 1, training_sessions: 0, baseline_set: false,
   coach_links: [{ first_name: 'Wes', last_name: 'Shih', email: 'wes.shih@gmail.com', name: 'Wes Shih' }],
   athlete_count: 0, assignments_open: 1
@@ -106,18 +110,18 @@ var kelly = {
 var wes = {
   first_name: 'Wes', last_name: 'Shih', email: 'wes.shih@gmail.com',
   is_coach: true, is_athlete: false, is_test: false,
-  last_activity: '2026-11-16T19:00:00Z', last_activity_kind: 'training',
+  last_activity: now.toISOString(), last_activity_kind: 'training',
   climb_sessions: 4, climbs: 2, training_sessions: 1, baseline_set: true,
-  baseline_at: '2026-08-28T21:00:00Z', coach_links: [], athlete_count: 1, assignments_open: 0
+  baseline_at: daysAgoIso(80), coach_links: [], athlete_count: 1, assignments_open: 0
 };
 var probe = { first_name: 'Probe', last_name: 'Bot', email: 'rls-probe-9@example.com', is_test: true, climb_sessions: 0, climbs: 0 };
 var empty = { name:'', email:'', signup:'', sessions:'', climbs:'', training:'', lastActivity:'', linked:'', openAssignments:'' };
-assert(usersLastActivityLabel(anna, now) === '2026-11-13 · 3d ago', usersLastActivityLabel(anna, now));
-assert(usersLastActivityLabel(kelly, now) === '2026-11-15 · 1d ago', usersLastActivityLabel(kelly, now));
-assert(usersLastActivityLabel(wes, now) === '2026-11-16 · today', usersLastActivityLabel(wes, now));
-assert(usersBaselineLabel(anna) === '✓ 2026-09-07', usersBaselineLabel(anna));
+assert(usersLastActivityLabel(anna, now) === fmtShortDate(anna.last_activity) + ' · 3d ago', usersLastActivityLabel(anna, now));
+assert(usersLastActivityLabel(kelly, now) === fmtShortDate(kelly.last_activity) + ' · 1d ago', usersLastActivityLabel(kelly, now));
+assert(usersLastActivityLabel(wes, now) === fmtShortDate(wes.last_activity) + ' · today', usersLastActivityLabel(wes, now));
+assert(usersBaselineLabel(anna) === '✓ ' + fmtShortDate(anna.baseline_at), usersBaselineLabel(anna));
 assert(usersBaselineLabel(kelly) === '—');
-assert(usersBaselineLabel(wes) === '✓ 2026-08-28');
+assert(usersBaselineLabel(wes) === '✓ ' + fmtShortDate(wes.baseline_at), usersBaselineLabel(wes));
 assert(linkedLabel(anna) === '—');
 assert(linkedLabel(kelly) === 'Coach: Wes Shih', linkedLabel(kelly));
 assert(linkedLabel(wes) === '1 athlete', linkedLabel(wes));
